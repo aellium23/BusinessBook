@@ -2,16 +2,90 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { Spinner } from '../components/ui'
-import { UserPlus, Mail, Shield, Eye, Edit3, Building2 } from 'lucide-react'
+import { UserPlus, Mail, Shield, Eye, Edit3, Building2, Info, ChevronDown, ChevronUp, Check, X } from 'lucide-react'
 
 const ROLES = [
-  { value:'admin',       label:'Admin',         desc:'Full access — all BUs, edit everything', color:'#B45309', bg:'#FEF3C7', bu:'both', canEdit:true  },
-  { value:'vgt_editor',  label:'VGT Editor',    desc:'VGT deals only — add/edit/delete + own target', color:'#0F6E56', bg:'#E1F5EE', bu:'VGT',  canEdit:true  },
-  { value:'ect_editor',  label:'ECT Editor',    desc:'ECT deals only — add/edit/delete + own target', color:'#993C1D', bg:'#FAECE7', bu:'ECT',  canEdit:true  },
-  { value:'viewer_vgt',  label:'Viewer VGT',    desc:'Read-only — VGT deals only',            color:'#1D9E75', bg:'#E1F5EE', bu:'VGT',  canEdit:false },
-  { value:'viewer_ect',  label:'Viewer ECT',    desc:'Read-only — ECT deals only',            color:'#D85A30', bg:'#FAECE7', bu:'ECT',  canEdit:false },
-  { value:'viewer_all',  label:'Viewer All',    desc:'Read-only — all deals, both BUs',       color:'#185FA5', bg:'#E6F1FB', bu:'both', canEdit:false },
+  { value:'admin',       label:'Admin',         desc:'Full access — all BUs, edit everything',                           color:'#B45309', bg:'#FEF3C7', bu:'both', canEdit:true,  editOwn:false },
+  { value:'vgt_editor',  label:'VGT Editor',    desc:'VGT — edit all deals of the team + own Sales Target',             color:'#0F6E56', bg:'#E1F5EE', bu:'VGT',  canEdit:true,  editOwn:false },
+  { value:'ect_editor',  label:'ECT Editor',    desc:'ECT — edit all deals of the team + own Sales Target',             color:'#993C1D', bg:'#FAECE7', bu:'ECT',  canEdit:true,  editOwn:false },
+  { value:'vgt_member',  label:'VGT Member',    desc:'VGT — sees all team deals, edits only own deals + own target',    color:'#1D9E75', bg:'#E1F5EE', bu:'VGT',  canEdit:true,  editOwn:true  },
+  { value:'ect_member',  label:'ECT Member',    desc:'ECT — sees all team deals, edits only own deals + own target',    color:'#D85A30', bg:'#FAECE7', bu:'ECT',  canEdit:true,  editOwn:true  },
+  { value:'viewer_vgt',  label:'Viewer VGT',    desc:'Read-only — VGT deals only, no edit',                             color:'#1D9E75', bg:'#F0FDF9', bu:'VGT',  canEdit:false, editOwn:false },
+  { value:'viewer_ect',  label:'Viewer ECT',    desc:'Read-only — ECT deals only, no edit',                             color:'#D85A30', bg:'#FFF5F2', bu:'ECT',  canEdit:false, editOwn:false },
+  { value:'viewer_all',  label:'Viewer All',    desc:'Read-only — all deals both BUs, no edit',                         color:'#185FA5', bg:'#E6F1FB', bu:'both', canEdit:false, editOwn:false },
 ]
+
+// Permissions matrix for each role
+const PERMISSIONS = {
+  admin:      { deals:'VGT + ECT', dealEdit:'All deals', targets:'All teams', targetEdit:'All',      budget:true,  users:true  },
+  vgt_editor: { deals:'VGT only',  dealEdit:'All VGT',   targets:'VGT team',  targetEdit:'All VGT',  budget:false, users:false },
+  ect_editor: { deals:'ECT only',  dealEdit:'All ECT',   targets:'ECT team',  targetEdit:'All ECT',  budget:false, users:false },
+  vgt_member: { deals:'VGT only',  dealEdit:'Own only',  targets:'VGT team',  targetEdit:'Own only', budget:false, users:false },
+  ect_member: { deals:'ECT only',  dealEdit:'Own only',  targets:'ECT team',  targetEdit:'Own only', budget:false, users:false },
+  viewer_vgt: { deals:'VGT only',  dealEdit:'None',      targets:'VGT team',  targetEdit:'None',     budget:false, users:false },
+  viewer_ect: { deals:'ECT only',  dealEdit:'None',      targets:'ECT team',  targetEdit:'None',     budget:false, users:false },
+  viewer_all: { deals:'VGT + ECT', dealEdit:'None',      targets:'All teams', targetEdit:'None',     budget:false, users:false },
+}
+
+function PermissionsLegend() {
+  const [open, setOpen] = useState(false)
+  const cols = ['Deals visible','Edit deals','Sales Targets','Edit target','Budget','Manage users']
+  const keys = ['deals','dealEdit','targets','targetEdit','budget','users']
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <button onClick={() => setOpen(o=>!o)}
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
+        <span className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+          <Info size={15} className="text-blue-500"/>
+          Permissions reference
+        </span>
+        {open ? <ChevronUp size={15} className="text-gray-400"/> : <ChevronDown size={15} className="text-gray-400"/>}
+      </button>
+
+      {open && (
+        <div className="border-t border-gray-100 overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-gray-50">
+                <th className="text-left px-4 py-2 font-semibold text-gray-500 w-28">Role</th>
+                {cols.map(c => (
+                  <th key={c} className="px-3 py-2 font-semibold text-gray-500 text-center whitespace-nowrap">{c}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {ROLES.map((r, i) => {
+                const p = PERMISSIONS[r.value]
+                return (
+                  <tr key={r.value} className={i%2===0?'bg-white':'bg-gray-50/50'}>
+                    <td className="px-4 py-2.5">
+                      <span className="font-bold text-[11px]" style={{ color:r.color }}>{r.label}</span>
+                    </td>
+                    {keys.map(k => (
+                      <td key={k} className="px-3 py-2.5 text-center">
+                        {typeof p[k] === 'boolean'
+                          ? p[k]
+                            ? <Check size={12} className="text-green-500 mx-auto"/>
+                            : <X size={12} className="text-red-400 mx-auto"/>
+                          : <span className={`text-[11px] ${
+                              p[k]==='None' ? 'text-red-400' :
+                              p[k]==='Own only' ? 'text-amber-600' :
+                              'text-gray-600'
+                            }`}>{p[k]}</span>
+                        }
+                      </td>
+                    ))}
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
 
 function RoleBadge({ role }) {
   const cfg = ROLES.find(r => r.value === role) || { label: role, color:'#6B7280', bg:'#F3F4F6' }
@@ -42,7 +116,7 @@ function UserCard({ profile, onRoleChange, onOwnerChange, currentUserId, isAdmin
 
   const roleCfg = ROLES.find(r => r.value === profile.role) || ROLES[5]
   const isSelf  = profile.id === currentUserId
-  const needsOwner = ['vgt_editor','ect_editor','viewer_vgt','viewer_ect'].includes(selectedRole)
+  const needsOwner = ['vgt_editor','ect_editor','vgt_member','ect_member','viewer_vgt','viewer_ect'].includes(selectedRole)
 
   async function save() {
     setSaving(true)
@@ -81,7 +155,7 @@ function UserCard({ profile, onRoleChange, onOwnerChange, currentUserId, isAdmin
           <div className="mt-2 flex items-center gap-2 flex-wrap">
             <span className="text-[10px] text-gray-500 flex items-center gap-1">
               {roleCfg.canEdit ? <Edit3 size={9} className="text-green-600"/> : <Eye size={9} className="text-blue-500"/>}
-              {roleCfg.canEdit ? 'Can edit' : 'Read only'}
+              {roleCfg.editOwn ? 'Edit own deals' : roleCfg.canEdit ? 'Edit all deals' : 'Read only'}
             </span>
             <span className="text-gray-300">·</span>
             <span className="text-[10px] text-gray-500 flex items-center gap-1">
@@ -96,22 +170,34 @@ function UserCard({ profile, onRoleChange, onOwnerChange, currentUserId, isAdmin
       {editing ? (
         <div className="px-4 pb-4 space-y-3 border-t border-gray-50 pt-3">
           <div className="grid gap-2">
-            {ROLES.map(r => (
-              <label key={r.value}
-                className={`flex items-start gap-3 p-2.5 rounded-lg cursor-pointer border transition-all ${
-                  selectedRole === r.value ? 'border-2' : 'border-gray-100 hover:border-gray-200'
-                }`}
-                style={selectedRole === r.value ? { borderColor: r.color, background: r.bg } : {}}>
-                <input type="radio" name={`role-${profile.id}`} value={r.value}
-                  checked={selectedRole === r.value}
-                  onChange={() => setSelectedRole(r.value)}
-                  className="mt-0.5 shrink-0"/>
-                <div>
-                  <p className="text-xs font-bold" style={{ color: r.color }}>{r.label}</p>
-                  <p className="text-[10px] text-gray-500">{r.desc}</p>
-                </div>
-              </label>
-            ))}
+            {ROLES.map(r => {
+              const p = PERMISSIONS[r.value]
+              const isSelected = selectedRole === r.value
+              return (
+                <label key={r.value}
+                  className={`flex items-start gap-3 p-2.5 rounded-lg cursor-pointer border transition-all ${
+                    isSelected ? 'border-2' : 'border-gray-100 hover:border-gray-200'
+                  }`}
+                  style={isSelected ? { borderColor: r.color, background: r.bg } : {}}>
+                  <input type="radio" name={`role-${profile.id}`} value={r.value}
+                    checked={isSelected}
+                    onChange={() => setSelectedRole(r.value)}
+                    className="mt-0.5 shrink-0"/>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold" style={{ color: r.color }}>{r.label}</p>
+                    <p className="text-[10px] text-gray-500 mb-1.5">{r.desc}</p>
+                    {isSelected && (
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 mt-1 p-2 bg-white/60 rounded-lg">
+                        <span className="text-[10px] text-gray-400">Sees: <strong className="text-gray-600">{p.deals}</strong></span>
+                        <span className="text-[10px] text-gray-400">Edits: <strong className={p.dealEdit==='None'?'text-red-500':p.dealEdit==='Own only'?'text-amber-600':'text-gray-600'}>{p.dealEdit}</strong></span>
+                        <span className="text-[10px] text-gray-400">Targets: <strong className="text-gray-600">{p.targets}</strong></span>
+                        <span className="text-[10px] text-gray-400">Budget: <strong className={p.budget?'text-green-600':'text-red-500'}>{p.budget?'Yes':'No'}</strong></span>
+                      </div>
+                    )}
+                  </div>
+                </label>
+              )
+            })}
           </div>
 
           {needsOwner && (
@@ -204,6 +290,9 @@ export default function Users() {
           {stats.total} users · {stats.editors} with edit access · {stats.viewers} read-only
         </p>
       </div>
+
+      {/* Permissions Legend */}
+      <PermissionsLegend/>
 
       {/* Invite */}
       <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
