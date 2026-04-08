@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { formatK } from '../components/ui'
 import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip,
+  ComposedChart, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip,
   ResponsiveContainer, Legend, ReferenceLine, Cell
 } from 'recharts'
 
@@ -58,7 +58,7 @@ function BUPerformanceCard({ bu, color, label, actMTD, actYTD, planMTD, planYTD,
       <div className="px-4 py-3 border-b border-gray-50">
         <div className="flex items-start justify-between mb-1.5">
           <div>
-            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">{mtdLabel} · MTD</p>
+            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">Actuals · {mtdLabel}</p>
             <p className="text-2xl font-bold text-gray-900">{formatK(actMTD*1000)}</p>
           </div>
           <div className="text-right space-y-0.5 mt-1">
@@ -74,7 +74,7 @@ function BUPerformanceCard({ bu, color, label, actMTD, actYTD, planMTD, planYTD,
       <div className="px-4 py-3">
         <div className="flex items-start justify-between mb-1.5">
           <div>
-            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">{ytdLabel} · YTD</p>
+            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">Actuals YTD · {ytdLabel}</p>
             <p className="text-2xl font-bold text-gray-900">{formatK(actYTD*1000)}</p>
           </div>
           <div className="text-right space-y-0.5 mt-1">
@@ -388,8 +388,6 @@ export default function Dashboard() {
         activeCycle={activeCycle} isAdmin={isAdmin}
       />
 
-      )}
-
       {/* ── MONTHLY EVOLUTION — VGT + ECT separate ───────────────────────── */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
         {/* Cycle selector */}
@@ -429,7 +427,7 @@ export default function Dashboard() {
             <div key={bu}>
               <p className="text-xs font-semibold mb-2" style={{ color: actColor }}>{label}</p>
               <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={monthlyDataByBU[bu] || []} barGap={2}
+                <ComposedChart data={monthlyDataByBU[bu] || []} barGap={2}
                   margin={{ top:4, right:4, left:-24, bottom:0 }}>
                   <XAxis dataKey="month" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
@@ -441,7 +439,7 @@ export default function Dashboard() {
                     strokeWidth={1.5} dot={false} />
                   <Line dataKey="FY25" type="monotone" stroke="#A78BFA"
                     strokeWidth={1.5} strokeDasharray="4 2" dot={false} />
-                </BarChart>
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           ))}
