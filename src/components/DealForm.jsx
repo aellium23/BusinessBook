@@ -56,6 +56,10 @@ const EMPTY = {
   list_price: '',
   discount_requested: '',
   discount_note_dist: '',
+  product: '',
+  equipment_count: '',
+  annual_studies: '',
+  annual_exams: '',
 }
 
 function DiscountApprovalPanel({ deal, onSave }) {
@@ -134,6 +138,10 @@ export default function DealForm({ deal, onClose, onSaved }) {
     list_price: deal.list_price || '',
     discount_requested: deal.discount_requested || '',
     discount_note_dist: deal.discount_note_dist || '',
+    product: deal.product || '',
+    equipment_count: deal.equipment_count || '',
+    annual_studies: deal.annual_studies || '',
+    annual_exams: deal.annual_exams || '',
   } : {
     ...EMPTY,
     bu: isAdmin ? '' : profile?.role?.toUpperCase() || '',
@@ -150,6 +158,18 @@ export default function DealForm({ deal, onClose, onSaved }) {
 
   const isMaint = form.deal_type === 'Maintenance'
   const isDistributor = profile?.role === 'distributor'
+
+  // Distributor stage flow — restricted stages
+  const DIST_STAGES = ['Lead', 'Offer Presented', 'BackLog', 'Lost']
+
+  // Products list — extensible
+  const PRODUCTS = [
+    { value: 'Dose',            label: 'Dose',                    hasEquipment: true,  hasStudies: true,  hasExams: false },
+    { value: 'AI Reporting',    label: 'AI Reporting',            hasEquipment: false, hasStudies: false, hasExams: true  },
+    { value: 'CWM 5',          label: 'CWM 5',                   hasEquipment: false, hasStudies: false, hasExams: true  },
+    { value: 'Command Center',  label: 'Command Center',          hasEquipment: false, hasStudies: false, hasExams: true  },
+  ]
+  const selectedProduct = PRODUCTS.find(p => p.value === form.product)
 
   // Load activity log for existing deal
   useEffect(() => {
@@ -179,6 +199,11 @@ export default function DealForm({ deal, onClose, onSaved }) {
   }
   const isECT   = form.bu === 'ECT'
   const hasIC   = isECT && parseFloat(form.intercompany_value) > 0
+
+  // Auto-set BU=VGT for distributors
+  useEffect(() => {
+    if (isDistributor && !form.bu) set('bu', 'VGT')
+  }, [isDistributor])
 
   function set(k, v) {
     setForm(f => {
@@ -285,7 +310,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
           <div>
             <label className="label">Stage *</label>
             <select className="select" value={form.stage} onChange={e => set('stage', e.target.value)}>
-              {['Lead','Pipeline','Offer Presented','BackLog','Invoiced','Lost'].map(s => <option key={s}>{s}</option>)}
+              {(isDistributor ? DIST_STAGES : ['Lead','Pipeline','Offer Presented','BackLog','Invoiced','Lost']).map(s => <option key={s}>{s}</option>)}
             </select>
           </div>
         </div>
@@ -387,6 +412,84 @@ export default function DealForm({ deal, onClose, onSaved }) {
               }
             />
           </div>
+        </div>
+
+        {/* ── PRODUCT ──────────────────────────────────────────── */}
+        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+          <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Product</p>
+
+          <div>
+            <label className="label">Product *</label>
+            <select className="select" value={form.product} onChange={e => set('product', e.target.value)}>
+              <option value="">— Select product —</option>
+              {PRODUCTS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          {/* Dose-specific fields */}
+          {selectedProduct?.hasEquipment && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">
+                  Equipment to integrate
+                  <span className="text-gray-400 font-normal ml-1">(total units)</span>
+                </label>
+                <input className="input" type="number" min="0"
+                  value={form.equipment_count}
+                  onChange={e => set('equipment_count', e.target.value)}
+                  placeholder="e.g. 12"/>
+              </div>
+              <div>
+                <label className="label">
+                  Annual studies volume
+                  <span className="text-gray-400 font-normal ml-1">(studies/year)</span>
+                </label>
+                <input className="input" type="number" min="0"
+                  value={form.annual_studies}
+                  onChange={e => set('annual_studies', e.target.value)}
+                  placeholder="e.g. 50000"/>
+              </div>
+            </div>
+          )}
+
+          {/* Other products — exams volume */}
+          {selectedProduct?.hasExams && (
+            <div>
+              <label className="label">
+                Annual exams volume
+                <span className="text-gray-400 font-normal ml-1">(exams/year)</span>
+              </label>
+              <input className="input" type="number" min="0"
+                value={form.annual_exams}
+                onChange={e => set('annual_exams', e.target.value)}
+                placeholder="e.g. 100000"/>
+            </div>
+          )}
+
+          {/* Product summary badge */}
+          {form.product && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs bg-navy/10 text-navy px-2 py-0.5 rounded font-medium">
+                {form.product}
+              </span>
+              {form.equipment_count && (
+                <span className="text-xs text-gray-500">
+                  📡 {form.equipment_count} equipments
+                </span>
+              )}
+              {form.annual_studies && (
+                <span className="text-xs text-gray-500">
+                  📊 {Number(form.annual_studies).toLocaleString()} studies/yr
+                </span>
+              )}
+              {form.annual_exams && (
+                <span className="text-xs text-gray-500">
+                  📋 {Number(form.annual_exams).toLocaleString()} exams/yr
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── DISTRIBUTION CHAIN ───────────────────────────────── */}
