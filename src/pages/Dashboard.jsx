@@ -328,7 +328,20 @@ export default function Dashboard() {
       return acc
     }, {})
 
-    return { weighted, winRate, aged, avgVelocity, lostReasons, wonCount: won.length, closedCount: closed.length }
+    // Product breakdown
+    const productBreakdown = active.filter(d => d.product && !['Lost'].includes(d.stage))
+      .reduce((acc, d) => {
+        if (!acc[d.product]) acc[d.product] = { count:0, value:0 }
+        acc[d.product].count++
+        acc[d.product].value += (d.value_total||0)
+        return acc
+      }, {})
+
+    // Distributor pipeline
+    const distDeals = active.filter(d => d.distributor)
+    const distPending = active.filter(d => d.discount_status === 'pending')
+
+    return { weighted, winRate, aged, avgVelocity, lostReasons, wonCount: won.length, closedCount: closed.length, productBreakdown, distDeals, distPending }
   }, [deals])
 
   // Region breakdown
@@ -561,6 +574,45 @@ export default function Dashboard() {
                 +{funnelAnalytics.aged.length - 5} more stalled deals
               </div>
             )}
+          </div>
+        )}
+
+        {/* Product breakdown */}
+        {Object.keys(funnelAnalytics.productBreakdown).length > 0 && (
+          <div>
+            <p className="text-xs text-gray-400 font-medium mb-2">Active pipeline by product</p>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(funnelAnalytics.productBreakdown).sort((a,b)=>b[1].value-a[1].value).map(([product, { count, value }]) => (
+                <span key={product} className="text-xs bg-navy/10 text-navy px-2 py-1 rounded-lg font-medium">
+                  {product} · {count} deal{count!==1?'s':''} · {formatK(value)}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Distributor pending discounts */}
+        {funnelAnalytics.distPending.length > 0 && (
+          <div className="border border-purple-200 rounded-lg overflow-hidden">
+            <div className="bg-purple-50 px-3 py-2">
+              <span className="text-xs font-semibold text-purple-700">
+                ⏳ {funnelAnalytics.distPending.length} discount request{funnelAnalytics.distPending.length!==1?'s':''} pending approval
+              </span>
+            </div>
+            {funnelAnalytics.distPending.slice(0,3).map(d => (
+              <div key={d.id} className="flex items-center justify-between px-3 py-2 border-t border-purple-100">
+                <div>
+                  <p className="text-xs font-medium text-gray-900">{d.end_customer || d.client}</p>
+                  <p className="text-[10px] text-gray-400">{d.distributor} · {d.product}</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded">
+                    -{d.discount_requested}% req.
+                  </span>
+                  <p className="text-[10px] text-gray-400 mt-0.5">{formatK(d.end_customer_value||d.value_total)}</p>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
