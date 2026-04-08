@@ -339,7 +339,7 @@ export default function Dashboard() {
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">VGT vs ECT · Forecast FY26</p>
           <div className="grid grid-cols-2 gap-6 mb-3">
-            {[['VGT','vgt',C_TEAL='#1D9E75'],['ECT','ect','#D85A30']].map(([label,key,color]) => (
+            {[['VGT','vgt','#1D9E75'],['ECT','ect','#D85A30']].map(([label,key,color]) => (
               <div key={label}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-medium text-gray-600">{label}</span>
