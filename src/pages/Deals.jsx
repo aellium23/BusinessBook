@@ -79,6 +79,21 @@ function DealCard({ deal, onEdit, onDelete, canEdit }) {
           {deal.stage === 'Lost' && deal.lost_reason && (
             <p className="text-xs text-red-500 mt-0.5">Lost: {deal.lost_reason}</p>
           )}
+          {(deal.end_customer || deal.distributor || deal.hub) && (
+            <div className="flex items-center gap-1 flex-wrap mt-1">
+              {deal.end_customer && (
+                <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded truncate max-w-28">{deal.end_customer}</span>
+              )}
+              {(deal.distributor || deal.hub) && <span className="text-gray-300 text-[10px]">→</span>}
+              {deal.distributor && (
+                <span className="text-[10px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded truncate max-w-28">{deal.distributor}</span>
+              )}
+              {deal.hub && (
+                <><span className="text-gray-300 text-[10px]">→</span>
+                <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded truncate max-w-28">{deal.hub}</span></>
+              )}
+            </div>
+          )}
         </div>
         <div className="text-right shrink-0">
           <p className="text-sm font-bold text-gray-900">{formatK(deal.value_total)}</p>
@@ -86,6 +101,11 @@ function DealCard({ deal, onEdit, onDelete, canEdit }) {
           <p className="text-xs text-blue-600 font-medium">
             W: {formatK((deal.value_total||0) * (WEIGHTS[deal.stage]||0))}
           </p>
+          {deal.end_customer_value && (
+            <p className="text-[10px] text-gray-400">
+              Project: {formatK(deal.end_customer_value)}
+            </p>
+          )}
           {hasIC && (
             <p className="text-xs text-amber-600 font-medium">
               VGT cost: {formatK(deal.intercompany_value)}
