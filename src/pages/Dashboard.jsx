@@ -93,6 +93,8 @@ function KpiCard({ label, value, plan, py, color = 'gray' }) {
 }
 
 const TOOLTIP_STYLE = { fontSize: 11, borderRadius: 8 }
+const WEIGHTS = { Lead: 0.10, Pipeline: 0.30, BackLog: 0.80, Invoiced: 1.0, Lost: 0 }
+const AGING_DAYS = 90
 
 export default function Dashboard() {
   const { profile, isAdmin } = useAuth()
@@ -196,6 +198,49 @@ export default function Dashboard() {
       return acc
     }, {})
   }, [deals, budget, fy25, displayCycle])
+
+  // Funnel analytics
+  const funnelAnalytics = useMemo(() => {
+    const active = deals.filter(d => !d.is_intercompany_mirror)
+    const now = Date.now()
+
+    // Weighted forecast
+    const weighted = active.reduce((s, d) => {
+      const fy = MONTHS_K.reduce((ms,m)=>ms+(d[m]||0),0)
+      const base = ['BackLog','Invoiced'].includes(d.stage) ? fy : (d.value_total||0)
+      return s + base * (WEIGHTS[d.stage]||0)
+    }, 0)
+
+    // Win rate
+    const closed = active.filter(d => ['Invoiced','Lost'].includes(d.stage))
+    const won    = active.filter(d => d.stage === 'Invoiced')
+    const winRate = closed.length > 0 ? Math.round(won.length / closed.length * 100) : null
+
+    // Aging alerts (Lead/Pipeline > 90 days)
+    const aged = active.filter(d => {
+      if (!['Lead','Pipeline'].includes(d.stage)) return false
+      const ref = d.stage_changed_at || d.updated_at || d.created_at
+      if (!ref) return false
+      return (now - new Date(ref).getTime()) / 86400000 >= AGING_DAYS
+    })
+
+    // Avg deal velocity (days from created to Invoiced)
+    const invoiced = active.filter(d => d.stage === 'Invoiced' && d.created_at && d.stage_changed_at)
+    const avgVelocity = invoiced.length > 0
+      ? Math.round(invoiced.reduce((s,d) =>
+          s + (new Date(d.stage_changed_at) - new Date(d.created_at)) / 86400000, 0
+        ) / invoiced.length)
+      : null
+
+    // Lost reasons breakdown
+    const lostDeals = active.filter(d => d.stage === 'Lost' && d.lost_reason)
+    const lostReasons = lostDeals.reduce((acc, d) => {
+      acc[d.lost_reason] = (acc[d.lost_reason]||0) + 1
+      return acc
+    }, {})
+
+    return { weighted, winRate, aged, avgVelocity, lostReasons, wonCount: won.length, closedCount: closed.length }
+  }, [deals])
 
   // Region breakdown
   const regionData = useMemo(() => {
@@ -420,6 +465,85 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </div>
       )}
+
+      {/* ── FUNNEL ANALYTICS ─────────────────────────────────────────────── */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 space-y-4">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Funnel analytics</p>
+
+        {/* KPI row */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="bg-purple-50 rounded-lg p-3">
+            <p className="text-[10px] text-purple-500 font-semibold uppercase tracking-wide">Weighted forecast</p>
+            <p className="text-lg font-bold text-purple-700 mt-0.5">{formatK(funnelAnalytics.weighted)}</p>
+            <p className="text-[10px] text-purple-400">Lead×10% + Pipe×30% + BL×80%</p>
+          </div>
+          <div className={`rounded-lg p-3 ${funnelAnalytics.winRate !== null ? (funnelAnalytics.winRate >= 50 ? 'bg-green-50' : 'bg-amber-50') : 'bg-gray-50'}`}>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Win rate</p>
+            <p className={`text-lg font-bold mt-0.5 ${funnelAnalytics.winRate !== null ? (funnelAnalytics.winRate >= 50 ? 'text-green-700' : 'text-amber-700') : 'text-gray-400'}`}>
+              {funnelAnalytics.winRate !== null ? `${funnelAnalytics.winRate}%` : '—'}
+            </p>
+            <p className="text-[10px] text-gray-400">{funnelAnalytics.wonCount} won / {funnelAnalytics.closedCount} closed</p>
+          </div>
+          <div className={`rounded-lg p-3 ${funnelAnalytics.aged.length > 0 ? 'bg-red-50' : 'bg-gray-50'}`}>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Aging alerts</p>
+            <p className={`text-lg font-bold mt-0.5 ${funnelAnalytics.aged.length > 0 ? 'text-red-700' : 'text-gray-400'}`}>
+              {funnelAnalytics.aged.length} deal{funnelAnalytics.aged.length !== 1 ? 's' : ''}
+            </p>
+            <p className="text-[10px] text-gray-400">Lead/Pipeline &gt;{AGING_DAYS}d</p>
+          </div>
+          <div className="bg-blue-50 rounded-lg p-3">
+            <p className="text-[10px] text-blue-500 font-semibold uppercase tracking-wide">Avg velocity</p>
+            <p className="text-lg font-bold text-blue-700 mt-0.5">
+              {funnelAnalytics.avgVelocity !== null ? `${funnelAnalytics.avgVelocity}d` : '—'}
+            </p>
+            <p className="text-[10px] text-blue-400">Created → Invoiced</p>
+          </div>
+        </div>
+
+        {/* Aging deals list */}
+        {funnelAnalytics.aged.length > 0 && (
+          <div className="border border-red-200 rounded-lg overflow-hidden">
+            <div className="bg-red-50 px-3 py-2 flex items-center gap-2">
+              <span className="text-xs font-semibold text-red-700">⚠ Deals stalled &gt;{AGING_DAYS} days</span>
+            </div>
+            {funnelAnalytics.aged.slice(0,5).map(d => {
+              const ref = d.stage_changed_at || d.updated_at || d.created_at
+              const days = ref ? Math.floor((Date.now() - new Date(ref).getTime()) / 86400000) : 0
+              return (
+                <div key={d.id} className="flex items-center justify-between px-3 py-2 border-t border-red-100">
+                  <div>
+                    <p className="text-xs font-medium text-gray-900">{d.client}</p>
+                    <p className="text-[10px] text-gray-400">{d.stage} · {d.sales_owner || '—'}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded">{days}d</span>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{formatK(d.value_total)}</p>
+                  </div>
+                </div>
+              )
+            })}
+            {funnelAnalytics.aged.length > 5 && (
+              <div className="px-3 py-2 text-xs text-gray-400 border-t border-red-100 text-center">
+                +{funnelAnalytics.aged.length - 5} more stalled deals
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Lost reasons */}
+        {Object.keys(funnelAnalytics.lostReasons).length > 0 && (
+          <div>
+            <p className="text-xs text-gray-400 font-medium mb-2">Lost reasons</p>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(funnelAnalytics.lostReasons).sort((a,b)=>b[1]-a[1]).map(([reason, count]) => (
+                <span key={reason} className="text-xs bg-red-50 text-red-700 px-2 py-1 rounded-lg">
+                  {reason} ({count})
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* ── SALES FUNNEL ──────────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
