@@ -62,6 +62,26 @@ function DealCard({ deal, onEdit, onDelete, canEdit }) {
                 <RefreshCw size={9}/> SLA
               </span>
             )}
+            {deal.discount_status === 'pending' && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-purple-100 text-purple-800">
+                ⏳ Discount pending {deal.discount_requested}%
+              </span>
+            )}
+            {deal.discount_status === 'approved' && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-green-100 text-green-700">
+                ✓ {deal.discount_approved}% approved
+              </span>
+            )}
+            {deal.discount_status === 'counter' && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-700">
+                ↔ Counter: {deal.discount_approved}%
+              </span>
+            )}
+            {deal.discount_status === 'rejected' && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700">
+                ✗ Rejected
+              </span>
+            )}
             {isIC && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-vgt/10 text-vgt">
                 <Link size={10}/> IC mirror
@@ -185,10 +205,12 @@ export default function Deals() {
   const { deals: rawDeals, loading, refetch, totals } = useDeals({
     stage:  stageF  || undefined,
     region: regionF || undefined,
-    bu:     buF     || undefined,
+    bu:     isDistributor ? undefined : (buF || undefined),
     search: search  || undefined,
   })
-  const deals = slaF ? rawDeals.filter(d => d.is_sla) : rawDeals
+  const deals = isDistributor
+    ? rawDeals.filter(d => d.distributor === profile?.sales_owner_name)
+    : slaF ? rawDeals.filter(d => d.is_sla) : rawDeals
 
   async function confirmDelete() {
     await deleteDeal(confirmDel.id)
