@@ -280,7 +280,7 @@ export default function Quotas() {
   return (
     <div className="p-4 space-y-8 max-w-4xl mx-auto">
       <div className="pt-1">
-        <h1 className="text-xl font-bold text-gray-900">Quotas · FY26</h1>
+        <h1 className="text-xl font-bold text-gray-900">Sales Targets · FY26</h1>
         <p className="text-sm text-gray-400">Team targets — Iberia</p>
       </div>
 
