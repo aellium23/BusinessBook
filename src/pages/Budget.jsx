@@ -7,7 +7,7 @@ import { Save, CheckCircle, TrendingUp, TrendingDown, Minus } from 'lucide-react
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
 const CYCLES   = ['BUD','EST1','EST2']
-const BUS      = ['VGT','ECT']
+const BUS      = ['VGT','ECT','ALL']
 
 const PL_LINES = [
   { key:'ns_int', label:'NS Internal',  input:true,  group:'revenue' },
@@ -28,6 +28,7 @@ const CYCLE_CONFIG = {
 const BU_CONFIG = {
   VGT: { color:'#1D9E75', bg:'#E1F5EE', label:'VGT · Portugal' },
   ECT: { color:'#D85A30', bg:'#FAECE7', label:'ECT · Spain'    },
+  ALL: { color:'#0D2137', bg:'#F1EFE8', label:'Iberia · Consolidated' },
 }
 
 const ACTIVE_CYCLE = () => {
@@ -81,6 +82,12 @@ export default function Budget() {
   }, [])
 
   function getVal(bu, cycle, plKey, month) {
+    if (bu === 'ALL') {
+      return (['VGT','ECT'].reduce((s, b) => {
+        const row = rows.find(r => r.bu===b && r.cycle===cycle && r.pl_key===plKey)
+        return s + (row?.[month] || 0)
+      }, 0))
+    }
     const row = rows.find(r => r.bu===bu && r.cycle===cycle && r.pl_key===plKey)
     return row?.[month] || 0
   }
@@ -112,6 +119,11 @@ export default function Budget() {
     return {
       VGT: { BUD: calc('VGT','BUD'), EST1: calc('VGT','EST1'), EST2: calc('VGT','EST2') },
       ECT: { BUD: calc('ECT','BUD'), EST1: calc('ECT','EST1'), EST2: calc('ECT','EST2') },
+      ALL: {
+        BUD:  Object.fromEntries(Object.keys(calc('VGT','BUD')).map(k=>[k,(calc('VGT','BUD')[k]||0)+(calc('ECT','BUD')[k]||0)])),
+        EST1: Object.fromEntries(Object.keys(calc('VGT','EST1')).map(k=>[k,(calc('VGT','EST1')[k]||0)+(calc('ECT','EST1')[k]||0)])),
+        EST2: Object.fromEntries(Object.keys(calc('VGT','EST2')).map(k=>[k,(calc('VGT','EST2')[k]||0)+(calc('ECT','EST2')[k]||0)])),
+      },
     }
   }, [rows])
 
@@ -131,11 +143,11 @@ export default function Budget() {
           <h1 className="text-xl font-bold text-gray-900">Budget · FY26</h1>
           <p className="text-sm text-gray-400">Values in K€ · Apr 2026 – Mar 2027</p>
         </div>
-        <button onClick={handleSave} disabled={saving}
+        {activeBu !== 'ALL' && <button onClick={handleSave} disabled={saving}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white transition-all"
           style={{ background: saved ? '#1D9E75' : '#0D2137' }}>
           {saved ? <><CheckCircle size={15}/> Saved</> : saving ? 'Saving…' : <><Save size={15}/> Save changes</>}
-        </button>
+        </button>}
       </div>
 
       {/* Summary cards — all cycles at a glance */}
@@ -259,7 +271,7 @@ export default function Budget() {
 
                       return (
                         <td key={mk} className="p-0.5">
-                          {input ? (
+                          {input && activeBu !== 'ALL' ? (
                             <input
                               type="number" step="0.1"
                               value={isFocused ? (getVal(activeBu,activeCycle,key,mk)||'') : (cellVal||'')}
@@ -312,7 +324,10 @@ export default function Budget() {
 
       {/* Bottom hint */}
       <p className="text-xs text-gray-400 text-center">
-        Click any cell to edit · Values in K€ · {cycleCfg.label} cycle
+        {activeBu === 'ALL'
+          ? `Read-only consolidated view · Values in K€ · ${cycleCfg.label}`
+          : `Click any cell to edit · Values in K€ · ${cycleCfg.label} cycle`
+        }
         {refCycle && ` · Trend vs ${CYCLE_CONFIG[refCycle].label}`}
       </p>
     </div>
