@@ -44,6 +44,7 @@ const EMPTY = {
   rec_month:'', rec_year:'',
   cs_month:'', cs_year:'', ce_month:'', ce_year:'',
   lost_reason:'',
+  win_probability:'',
 }
 
 export default function DealForm({ deal, onClose, onSaved }) {
@@ -66,7 +67,20 @@ export default function DealForm({ deal, onClose, onSaved }) {
   const isECT   = form.bu === 'ECT'
   const hasIC   = isECT && parseFloat(form.intercompany_value) > 0
 
-  function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
+  function set(k, v) {
+    setForm(f => {
+      const next = { ...f, [k]: v }
+      // Auto-set win probability when stage changes
+      if (k === 'stage') {
+        const defaults = { Lead:10, Pipeline:30, 'Offer Presented':60, BackLog:80, Invoiced:100, Lost:0 }
+        if (defaults[v] !== undefined && !f._prob_edited) {
+          next.win_probability = defaults[v]
+        }
+      }
+      if (k === 'win_probability') next._prob_edited = true
+      return next
+    })
+  }
 
   // Monthly preview for main deal
   useEffect(() => {
@@ -158,7 +172,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
           <div>
             <label className="label">Stage *</label>
             <select className="select" value={form.stage} onChange={e => set('stage', e.target.value)}>
-              {['Lead','Pipeline','BackLog','Invoiced','Lost'].map(s => <option key={s}>{s}</option>)}
+              {['Lead','Pipeline','Offer Presented','BackLog','Invoiced','Lost'].map(s => <option key={s}>{s}</option>)}
             </select>
           </div>
         </div>
@@ -228,8 +242,8 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </div>
         )}
 
-        {/* Value + GM */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* Value + GM + Win Probability */}
+        <div className="grid grid-cols-3 gap-3">
           <div>
             <label className="label">Value € (total)</label>
             <input className="input" type="number" value={form.value_total} onChange={e => set('value_total', e.target.value)} placeholder="0" />
@@ -237,6 +251,28 @@ export default function DealForm({ deal, onClose, onSaved }) {
           <div>
             <label className="label">GM %</label>
             <input className="input" type="number" value={form.gm_pct} onChange={e => set('gm_pct', e.target.value)} placeholder="0.0" />
+          </div>
+          <div>
+            <label className="label">
+              Win prob %
+              {['Lead','Pipeline','Offer Presented'].includes(form.stage) && (
+                <span className="ml-1 text-purple-500 font-normal">editable</span>
+              )}
+            </label>
+            <input
+              className={`input ${!['Lead','Pipeline','Offer Presented'].includes(form.stage) ? 'bg-gray-50 text-gray-400' : ''}`}
+              type="number" min="0" max="100"
+              value={form.win_probability ?? ''}
+              onChange={e => set('win_probability', e.target.value)}
+              disabled={!['Lead','Pipeline','Offer Presented'].includes(form.stage)}
+              placeholder={
+                form.stage === 'Lead' ? '10' :
+                form.stage === 'Pipeline' ? '30' :
+                form.stage === 'Offer Presented' ? '60' :
+                form.stage === 'BackLog' ? '80' :
+                form.stage === 'Invoiced' ? '100' : '0'
+              }
+            />
           </div>
         </div>
 
