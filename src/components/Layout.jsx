@@ -8,7 +8,7 @@ const nav = [
   { to: '/deals',   icon: List,            label: 'Deals'     },
   { to: '/clients', icon: Building2,       label: 'Clients'   },
   { to: '/history', icon: History,         label: 'History'   },
-  { to: '/quotas',  icon: Target,          label: 'Sales Targets', adminOnly: true },
+  { to: '/quotas',  icon: Target,          label: 'Sales Targets' },
   { to: '/budget',  icon: DollarSign,      label: 'Budget', adminOnly: true },
   { to: '/users',   icon: Users,           label: 'Users',  adminOnly: true },
 ]
@@ -40,10 +40,17 @@ export default function Layout({ children }) {
           <span className="text-white/80 text-xs sm:hidden font-medium truncate max-w-20">{(profile?.full_name || profile?.email || '').split(' ')[0]}</span>
           <span className={`text-xs px-2 py-0.5 rounded font-bold shrink-0 ${
             isAdmin ? 'bg-amber-400 text-amber-900' :
-            profile?.role === 'vgt' ? 'bg-vgt text-white' :
-            profile?.role === 'ect' ? 'bg-ect text-white' : 'bg-gray-500 text-white'
+            profile?.role?.includes('vgt') ? 'bg-vgt text-white' :
+            profile?.role?.includes('ect') ? 'bg-ect text-white' :
+            profile?.role?.includes('viewer') ? 'bg-blue-500 text-white' : 'bg-gray-500 text-white'
           }`}>
-            {(profile?.role || '').toUpperCase()}
+            {profile?.role === 'admin' ? 'ADMIN' :
+             profile?.role === 'vgt_editor' ? 'VGT' :
+             profile?.role === 'ect_editor' ? 'ECT' :
+             profile?.role === 'viewer_all' ? 'VIEWER' :
+             profile?.role === 'viewer_vgt' ? 'VGT' :
+             profile?.role === 'viewer_ect' ? 'ECT' :
+             (profile?.role || '').toUpperCase()}
           </span>
           <button onClick={handleSignOut} className="text-white/60 hover:text-white transition-colors ml-1">
             <LogOut size={16} />
