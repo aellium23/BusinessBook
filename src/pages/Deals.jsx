@@ -3,13 +3,36 @@ import { useDeals, deleteDeal } from '../hooks/useDeals'
 import { useAuth } from '../hooks/useAuth'
 import { BUBadge, StageBadge, SalesTypeBadge, Spinner, EmptyState, formatK } from '../components/ui'
 import DealForm from '../components/DealForm'
-import { Plus, Search, Trash2, Pencil, ChevronDown, ChevronUp, Link } from 'lucide-react'
+import { Plus, Search, Trash2, Pencil, ChevronDown, ChevronUp, Link, AlertTriangle, Clock } from 'lucide-react'
 
-const STAGES  = ['','Lead','Pipeline','BackLog','Invoiced']
+const STAGES  = ['','Lead','Pipeline','BackLog','Invoiced','Lost']
+const WEIGHTS = { Lead: 0.10, Pipeline: 0.30, BackLog: 0.80, Invoiced: 1.0, Lost: 0 }
 const REGIONS = ['','Europe','MEA','LATAM','APAC','NA']
 const BUS     = ['','VGT','ECT']
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
+
+function agingDays(deal) {
+  if (!['Lead','Pipeline'].includes(deal.stage)) return null
+  const ref = deal.stage_changed_at || deal.updated_at || deal.created_at
+  if (!ref) return null
+  return Math.floor((Date.now() - new Date(ref).getTime()) / 86400000)
+}
+
+function AgingBadge({ days }) {
+  if (days === null) return null
+  if (days >= 90) return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700">
+      <AlertTriangle size={10}/> {days}d
+    </span>
+  )
+  if (days >= 45) return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-700">
+      <Clock size={10}/> {days}d
+    </span>
+  )
+  return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-gray-100 text-gray-500"><Clock size={10}/>{days}d</span>
+}
 
 function DealCard({ deal, onEdit, onDelete, canEdit }) {
   const [open, setOpen] = useState(false)
@@ -25,6 +48,7 @@ function DealCard({ deal, onEdit, onDelete, canEdit }) {
             <BUBadge bu={deal.bu} />
             <StageBadge stage={deal.stage} />
             <SalesTypeBadge type={deal.sales_type} />
+            <AgingBadge days={agingDays(deal)} />
             {isIC && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-vgt/10 text-vgt">
                 <Link size={10}/> IC mirror
@@ -39,10 +63,16 @@ function DealCard({ deal, onEdit, onDelete, canEdit }) {
           <p className="font-semibold text-sm text-gray-900 truncate">{deal.client}</p>
           <p className="text-xs text-gray-400">{[deal.country, deal.region, deal.sales_owner].filter(Boolean).join(' · ')}</p>
           {deal.description && <p className="text-xs text-gray-500 truncate mt-0.5">{deal.description}</p>}
+          {deal.stage === 'Lost' && deal.lost_reason && (
+            <p className="text-xs text-red-500 mt-0.5">Lost: {deal.lost_reason}</p>
+          )}
         </div>
         <div className="text-right shrink-0">
           <p className="text-sm font-bold text-gray-900">{formatK(deal.value_total)}</p>
           <p className="text-xs text-gray-400">FY26: {formatK(fy26)}</p>
+          <p className="text-xs text-blue-600 font-medium">
+            W: {formatK((deal.value_total||0) * (WEIGHTS[deal.stage]||0))}
+          </p>
           {hasIC && (
             <p className="text-xs text-amber-600 font-medium">
               VGT cost: {formatK(deal.intercompany_value)}
@@ -139,12 +169,18 @@ export default function Deals() {
       </div>
 
       {/* Summary */}
+      {/* Weighted forecast summary */}
       <div className="flex gap-4 overflow-x-auto pb-1">
         {[
           { l:'Pipeline', v:totals.pipeline, c:'text-amber-700' },
           { l:'BackLog',  v:totals.backlog,  c:'text-blue-700'  },
           { l:'Actuals',  v:totals.invoiced, c:'text-green-700' },
           { l:'Forecast', v:totals.forecast, c:'text-vgt font-bold' },
+          { l:'Weighted', v:deals.filter(d=>!d.is_intercompany_mirror).reduce((s,d)=>{
+              const fy=MONTHS_K.reduce((ms,m)=>ms+(d[m]||0),0)
+              const base=['BackLog','Invoiced'].includes(d.stage)?fy:(d.value_total||0)
+              return s+base*(WEIGHTS[d.stage]||0)
+            },0), c:'text-purple-700 font-bold' },
         ].map(({ l, v, c }) => (
           <div key={l} className="text-center shrink-0">
             <p className="text-[10px] text-gray-400">{l}</p>
