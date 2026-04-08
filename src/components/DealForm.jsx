@@ -49,6 +49,10 @@ const EMPTY = {
   is_sla: false,
   sla_owner: '',
   sla_renewal_target: '',
+  end_customer: '',
+  distributor: '',
+  hub: '',
+  end_customer_value: '',
 }
 
 export default function DealForm({ deal, onClose, onSaved }) {
@@ -62,6 +66,10 @@ export default function DealForm({ deal, onClose, onSaved }) {
     sla_owner: deal.sla_owner || '',
     sla_renewal_target: deal.sla_renewal_target || '',
     win_probability: deal.win_probability ?? '',
+    end_customer: deal.end_customer || '',
+    distributor: deal.distributor || '',
+    hub: deal.hub || '',
+    end_customer_value: deal.end_customer_value || '',
   } : {
     ...EMPTY,
     bu: isAdmin ? '' : profile?.role?.toUpperCase() || '',
@@ -315,6 +323,75 @@ export default function DealForm({ deal, onClose, onSaved }) {
             />
           </div>
         </div>
+
+        {/* ── DISTRIBUTION CHAIN ───────────────────────────────── */}
+        {form.region !== 'Europe' || form.sales_type === 'External' ? (
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Distribution chain</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">
+                  {form.client} = who VGT invoices ·
+                  {form.hub ? ` via ${form.hub}` : form.distributor ? ` direct to distributor` : ' direct'}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">End customer (final client)</label>
+                <input className="input" value={form.end_customer}
+                  onChange={e => set('end_customer', e.target.value)}
+                  placeholder="e.g. Hospital La Paz"/>
+              </div>
+              <div>
+                <label className="label">End customer project value €</label>
+                <input className="input" type="number" value={form.end_customer_value}
+                  onChange={e => set('end_customer_value', e.target.value)}
+                  placeholder="Full project value"/>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">Distributor <span className="text-gray-400 font-normal">(optional)</span></label>
+                <input className="input" value={form.distributor}
+                  onChange={e => set('distributor', e.target.value)}
+                  placeholder="e.g. Fujifilm Mexico"/>
+              </div>
+              <div>
+                <label className="label">HUB — Fujifilm entity <span className="text-gray-400 font-normal">(optional)</span></label>
+                <input className="input" value={form.hub}
+                  onChange={e => set('hub', e.target.value)}
+                  list="hub-list"
+                  placeholder="e.g. HCUS, Fujifilm Spain"/>
+                <datalist id="hub-list">
+                  {['HCUS','Fujifilm Spain','Fujifilm France','Fujifilm Germany',
+                    'Fujifilm Italy','Fujifilm UK','Fujifilm Netherlands',
+                    'Fujifilm Middle East','Fujifilm Australia'].map(h =>
+                    <option key={h} value={h}/>
+                  )}
+                </datalist>
+              </div>
+            </div>
+
+            {/* Chain visualisation */}
+            {(form.end_customer || form.distributor || form.hub) && (
+              <div className="flex items-center gap-1.5 flex-wrap text-[10px] bg-white border border-gray-100 rounded-lg px-3 py-2">
+                <span className="font-medium text-gray-500">Chain:</span>
+                {form.end_customer && <><span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-medium">{form.end_customer}</span><span className="text-gray-300">→</span></>}
+                {form.distributor && <><span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded font-medium">{form.distributor}</span><span className="text-gray-300">→</span></>}
+                {form.hub && <><span className="bg-purple-50 text-purple-700 px-2 py-0.5 rounded font-medium">{form.hub}</span><span className="text-gray-300">→</span></>}
+                <span className="bg-vgt/10 text-vgt px-2 py-0.5 rounded font-medium">VGT</span>
+                {form.end_customer_value && form.value_total && (
+                  <span className="ml-auto text-gray-400">
+                    Project: €{Number(form.end_customer_value).toLocaleString()} → VGT: €{Number(form.value_total).toLocaleString()}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        ) : null}
 
         {/* ── SLA SECTION ──────────────────────────────────────── */}
         <div className={`rounded-xl p-4 space-y-3 border ${form.is_sla ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
