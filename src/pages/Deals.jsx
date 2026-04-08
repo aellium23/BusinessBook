@@ -205,10 +205,10 @@ export default function Deals() {
   const { deals: rawDeals, loading, refetch, totals } = useDeals({
     stage:  stageF  || undefined,
     region: regionF || undefined,
-    bu:     isDistributor ? undefined : (buF || undefined),
+    bu:     profile?.role === 'distributor' ? undefined : (buF || undefined),
     search: search  || undefined,
   })
-  const deals = isDistributor
+  const deals = profile?.role === 'distributor'
     ? rawDeals.filter(d => d.distributor === profile?.sales_owner_name)
     : slaF ? rawDeals.filter(d => d.is_sla) : rawDeals
 
