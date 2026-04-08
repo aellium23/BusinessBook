@@ -192,7 +192,7 @@ function exportToCSV(deals) {
 }
 
 export default function Deals() {
-  const { canEdit, isAdmin } = useAuth()
+  const { canEdit, isAdmin, profile } = useAuth()
   const [search, setSearch]     = useState('')
   const [stageF, setStageF]     = useState('')
   const [regionF, setRegionF]   = useState('')
