@@ -93,7 +93,7 @@ function KpiCard({ label, value, plan, py, color = 'gray' }) {
 }
 
 const TOOLTIP_STYLE = { fontSize: 11, borderRadius: 8 }
-const WEIGHTS = { Lead: 0.10, Pipeline: 0.30, BackLog: 0.80, Invoiced: 1.0, Lost: 0 }
+const WEIGHTS = { Lead: 0.10, Pipeline: 0.30, 'Offer Presented': 0.60, BackLog: 0.80, Invoiced: 1.0, Lost: 0 }
 const AGING_DAYS = 90
 
 export default function Dashboard() {
@@ -204,11 +204,14 @@ export default function Dashboard() {
     const active = deals.filter(d => !d.is_intercompany_mirror)
     const now = Date.now()
 
-    // Weighted forecast
+    // Weighted forecast — uses deal-level win_probability if set, else stage default
     const weighted = active.reduce((s, d) => {
       const fy = MONTHS_K.reduce((ms,m)=>ms+(d[m]||0),0)
       const base = ['BackLog','Invoiced'].includes(d.stage) ? fy : (d.value_total||0)
-      return s + base * (WEIGHTS[d.stage]||0)
+      const prob = d.win_probability !== null && d.win_probability !== undefined
+        ? d.win_probability / 100
+        : (WEIGHTS[d.stage]||0)
+      return s + base * prob
     }, 0)
 
     // Win rate
@@ -218,7 +221,7 @@ export default function Dashboard() {
 
     // Aging alerts (Lead/Pipeline > 90 days)
     const aged = active.filter(d => {
-      if (!['Lead','Pipeline'].includes(d.stage)) return false
+      if (!['Lead','Pipeline','Offer Presented'].includes(d.stage)) return false
       const ref = d.stage_changed_at || d.updated_at || d.created_at
       if (!ref) return false
       return (now - new Date(ref).getTime()) / 86400000 >= AGING_DAYS
@@ -475,7 +478,7 @@ export default function Dashboard() {
           <div className="bg-purple-50 rounded-lg p-3">
             <p className="text-[10px] text-purple-500 font-semibold uppercase tracking-wide">Weighted forecast</p>
             <p className="text-lg font-bold text-purple-700 mt-0.5">{formatK(funnelAnalytics.weighted)}</p>
-            <p className="text-[10px] text-purple-400">Lead×10% + Pipe×30% + BL×80%</p>
+            <p className="text-[10px] text-purple-400">Uses deal win % or stage default</p>
           </div>
           <div className={`rounded-lg p-3 ${funnelAnalytics.winRate !== null ? (funnelAnalytics.winRate >= 50 ? 'bg-green-50' : 'bg-amber-50') : 'bg-gray-50'}`}>
             <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Win rate</p>
@@ -550,10 +553,11 @@ export default function Dashboard() {
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Sales funnel</p>
         <div className="space-y-2">
           {[
-            { label:'Lead',     value: deals.filter(d=>d.stage==='Lead'&&!d.is_intercompany_mirror).reduce((s,d)=>s+(d.value_total||0)/1000,0), color:'#F4C0D1', text:'#4B1528' },
-            { label:'Pipeline', value: agg.vgt_pipe+agg.ect_pipe, color:'#FAC775', text:'#412402' },
-            { label:'BackLog',  value: agg.vgt_bl+agg.ect_bl,     color:'#B5D4F4', text:'#042C53' },
-            { label:'Invoiced', value: total_act,                  color:'#C0DD97', text:'#173404' },
+            { label:'Lead',            value: deals.filter(d=>d.stage==='Lead'&&!d.is_intercompany_mirror).reduce((s,d)=>s+(d.value_total||0)/1000,0), color:'#F4C0D1', text:'#4B1528' },
+            { label:'Pipeline',        value: agg.vgt_pipe+agg.ect_pipe, color:'#FAC775', text:'#412402' },
+            { label:'Offer Presented', value: deals.filter(d=>d.stage==='Offer Presented'&&!d.is_intercompany_mirror).reduce((s,d)=>s+(d.value_total||0)/1000,0), color:'#C4B5FD', text:'#3B1278' },
+            { label:'BackLog',         value: agg.vgt_bl+agg.ect_bl,     color:'#B5D4F4', text:'#042C53' },
+            { label:'Invoiced',        value: total_act,                  color:'#C0DD97', text:'#173404' },
           ].map(({ label, value, color, text }) => {
             const maxVal = deals.filter(d=>d.stage==='Lead'&&!d.is_intercompany_mirror).reduce((s,d)=>s+(d.value_total||0)/1000,0) || total_act || 1
             const pct = Math.max(8, (value / maxVal) * 100)
