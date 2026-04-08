@@ -43,6 +43,7 @@ const EMPTY = {
   value_total:'', gm_pct:'',
   rec_month:'', rec_year:'',
   cs_month:'', cs_year:'', ce_month:'', ce_year:'',
+  lost_reason:'',
 }
 
 export default function DealForm({ deal, onClose, onSaved }) {
@@ -157,7 +158,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
           <div>
             <label className="label">Stage *</label>
             <select className="select" value={form.stage} onChange={e => set('stage', e.target.value)}>
-              {['Lead','Pipeline','BackLog','Invoiced'].map(s => <option key={s}>{s}</option>)}
+              {['Lead','Pipeline','BackLog','Invoiced','Lost'].map(s => <option key={s}>{s}</option>)}
             </select>
           </div>
         </div>
@@ -205,6 +206,27 @@ export default function DealForm({ deal, onClose, onSaved }) {
           <label className="label">Description</label>
           <input className="input" value={form.description} onChange={e => set('description', e.target.value)} placeholder="Project details" />
         </div>
+
+        {/* Lost reason */}
+        {form.stage === 'Lost' && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+            <label className="label text-red-600">Reason lost *</label>
+            <select className="select bg-white" value={form.lost_reason} onChange={e => set('lost_reason', e.target.value)}>
+              <option value="">— Select reason —</option>
+              <option>Price too high</option>
+              <option>Lost to competitor</option>
+              <option>Budget freeze</option>
+              <option>Project cancelled</option>
+              <option>No decision</option>
+              <option>Technical requirements not met</option>
+              <option>Other</option>
+            </select>
+            {form.lost_reason === 'Other' && (
+              <input className="input mt-2" placeholder="Specify reason…"
+                value={form.lost_reason_detail || ''} onChange={e => set('lost_reason_detail', e.target.value)}/>
+            )}
+          </div>
+        )}
 
         {/* Value + GM */}
         <div className="grid grid-cols-2 gap-3">
