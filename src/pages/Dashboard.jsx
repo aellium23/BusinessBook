@@ -153,11 +153,11 @@ export default function Dashboard() {
       const fy = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
       const bu = d.bu?.toLowerCase()
       if (!bu) return
-      if (['BackLog','Invoiced'].includes(d.stage)) result[`${bu}_fc`] += fy
-      if (d.stage === 'Invoiced') result[`${bu}_act`] += fy
-      if (d.stage === 'BackLog')  result[`${bu}_bl`]  += fy
-      if (d.stage === 'Pipeline') result[`${bu}_pipe`]+= d.value_total || 0
-      if (['BackLog','Invoiced'].includes(d.stage)) result[`${bu}_gm`] += fy * (d.gm_pct || 0)
+      if (['BackLog','Invoiced'].includes(d.stage)) result[`${bu}_fc`] += fy / 1000
+      if (d.stage === 'Invoiced') result[`${bu}_act`] += fy / 1000
+      if (d.stage === 'BackLog')  result[`${bu}_bl`]  += fy / 1000
+      if (d.stage === 'Pipeline') result[`${bu}_pipe`] += (d.value_total || 0) / 1000
+      if (['BackLog','Invoiced'].includes(d.stage)) result[`${bu}_gm`] += (fy / 1000) * (d.gm_pct || 0)
     })
     return result
   }, [deals])
@@ -182,15 +182,15 @@ export default function Dashboard() {
       deals.forEach(d => {
         if (d.is_intercompany_mirror) return
         const v = d[MONTHS_K[i]] || 0
-        if (d.stage === 'Invoiced') actuals += v
-        else if (d.stage === 'BackLog') forecast += v
+        if (d.stage === 'Invoiced') actuals += v / 1000
+        else if (d.stage === 'BackLog') forecast += v / 1000
       })
       return {
         month: m,
-        Actuals:  Math.round(actuals  / 1000 * 10) / 10,
-        Forecast: Math.round(forecast / 1000 * 10) / 10,
+        Actuals:  Math.round(actuals * 10) / 10,
+        Forecast: Math.round(forecast * 10) / 10,
         Plan:     Math.round(getPlan(i) * 10) / 10,
-        FY25:     Math.round(getPY(i)   / 1000 * 10) / 10,
+        FY25:     Math.round(getPY(i) * 10) / 10,
       }
     })
   }, [deals, budget, fy25, activeCycle])
@@ -202,7 +202,7 @@ export default function Dashboard() {
       if (!d.region || d.is_intercompany_mirror) return
       const fy = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
       if (['BackLog','Invoiced'].includes(d.stage))
-        r[d.region] = (r[d.region] || 0) + fy
+        r[d.region] = (r[d.region] || 0) + fy / 1000
     })
     return Object.entries(r).sort((a,b) => b[1]-a[1])
       .map(([region, value]) => ({ region, value: Math.round(value/1000*10)/10 }))
@@ -393,12 +393,12 @@ export default function Dashboard() {
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Sales funnel</p>
         <div className="space-y-2">
           {[
-            { label:'Lead',     value: deals.filter(d=>d.stage==='Lead'&&!d.is_intercompany_mirror).reduce((s,d)=>s+(d.value_total||0),0), color:'#F4C0D1', text:'#4B1528' },
+            { label:'Lead',     value: deals.filter(d=>d.stage==='Lead'&&!d.is_intercompany_mirror).reduce((s,d)=>s+(d.value_total||0)/1000,0), color:'#F4C0D1', text:'#4B1528' },
             { label:'Pipeline', value: agg.vgt_pipe+agg.ect_pipe, color:'#FAC775', text:'#412402' },
             { label:'BackLog',  value: agg.vgt_bl+agg.ect_bl,     color:'#B5D4F4', text:'#042C53' },
             { label:'Invoiced', value: total_act,                  color:'#C0DD97', text:'#173404' },
           ].map(({ label, value, color, text }) => {
-            const maxVal = deals.filter(d=>d.stage==='Lead'&&!d.is_intercompany_mirror).reduce((s,d)=>s+(d.value_total||0),0) || total_act || 1
+            const maxVal = deals.filter(d=>d.stage==='Lead'&&!d.is_intercompany_mirror).reduce((s,d)=>s+(d.value_total||0)/1000,0) || total_act || 1
             const pct = Math.max(8, (value / maxVal) * 100)
             return (
               <div key={label} className="flex items-center gap-3">
