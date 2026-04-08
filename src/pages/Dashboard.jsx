@@ -11,54 +11,139 @@ import {
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 
-// ── Gauge chart (SVG semi-circle) ─────────────────────────────────────────
-function Gauge({ value, max, label, sub, color = '#1D9E75' }) {
-  const size = 180
-  const pct  = max > 0 ? Math.min(value / max, 1.35) : 0
-  const angle = pct * 180
-  const r  = 68
-  const cx = size / 2
-  const cy = 100
-  const toRad = a => (a - 180) * Math.PI / 180
-  const x1 = cx + r * Math.cos(toRad(0))
-  const y1 = cy + r * Math.sin(toRad(0))
-  const x2 = cx + r * Math.cos(toRad(angle))
-  const y2 = cy + r * Math.sin(toRad(angle))
-  const large = angle > 180 ? 1 : 0
-  const pctDisplay = max > 0 ? ((value / max - 1) * 100).toFixed(1) : '—'
-  const isOver = value >= max
+// ── Current FY month index (0=Apr, 1=May, ... 11=Mar) ────────────────────
+function getFYMonthIndex() {
+  const m = new Date().getMonth() + 1
+  return (m - 4 + 12) % 12
+}
+const MONTHS_LABEL = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
+
+function pct(value, reference) {
+  if (!reference || reference === 0) return null
+  return ((value - reference) / Math.abs(reference) * 100)
+}
+
+function PctBadge({ value, reference, label }) {
+  const p = pct(value, reference)
+  if (p === null) return null
+  const positive = p >= 0
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded ${
+      positive ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'
+    }`}>
+      {positive ? '▲' : '▼'} {Math.abs(p).toFixed(1)}% vs {label}
+    </span>
+  )
+}
+
+function BUPerformanceCard({ bu, color, label, actMTD, actYTD, planMTD, planYTD, pyMTD, pyYTD, cycle, mtdLabel, ytdLabel }) {
+  function Bar({ value, max, c }) {
+    const p = max > 0 ? Math.min(value/max*100, 140) : 0
+    return (
+      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-full rounded-full transition-all"
+          style={{ width:`${Math.min(p,100)}%`, background: p > 100 ? '#1D9E75' : c }}/>
+      </div>
+    )
+  }
+  return (
+    <div className="bg-white rounded-xl border-2 shadow-sm overflow-hidden" style={{ borderColor: color }}>
+      <div className="px-4 pt-3 pb-2 flex items-center justify-between" style={{ background: `${color}12` }}>
+        <div>
+          <p className="text-xs font-bold" style={{ color }}>{label}</p>
+          <p className="text-[10px] text-gray-400">{cycle} · {new Date().toLocaleString('en',{month:'short',year:'numeric'})}</p>
+        </div>
+        <span className="text-[10px] text-gray-400">K€</span>
+      </div>
+      <div className="px-4 py-3 border-b border-gray-50">
+        <div className="flex items-start justify-between mb-1.5">
+          <div>
+            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">{mtdLabel} · MTD</p>
+            <p className="text-2xl font-bold text-gray-900">{formatK(actMTD*1000)}</p>
+          </div>
+          <div className="text-right space-y-0.5 mt-1">
+            <PctBadge value={actMTD} reference={planMTD} label="Plan"/>
+            <div/><PctBadge value={actMTD} reference={pyMTD} label="PY"/>
+          </div>
+        </div>
+        <Bar value={actMTD} max={planMTD} c={color}/>
+        <div className="flex justify-between text-[9px] text-gray-400 mt-0.5">
+          <span>Plan: {formatK(planMTD*1000)}</span><span>PY: {formatK(pyMTD*1000)}</span>
+        </div>
+      </div>
+      <div className="px-4 py-3">
+        <div className="flex items-start justify-between mb-1.5">
+          <div>
+            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">{ytdLabel} · YTD</p>
+            <p className="text-2xl font-bold text-gray-900">{formatK(actYTD*1000)}</p>
+          </div>
+          <div className="text-right space-y-0.5 mt-1">
+            <PctBadge value={actYTD} reference={planYTD} label="Plan"/>
+            <div/><PctBadge value={actYTD} reference={pyYTD} label="PY"/>
+          </div>
+        </div>
+        <Bar value={actYTD} max={planYTD} c={color}/>
+        <div className="flex justify-between text-[9px] text-gray-400 mt-0.5">
+          <span>Plan: {formatK(planYTD*1000)}</span><span>PY: {formatK(pyYTD*1000)}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PerformanceSection({ deals, budget, fy25, activeCycle, isAdmin }) {
+  const fyIdx = getFYMonthIndex()
+  const curMonth = MONTHS_K[fyIdx]
+  const ytdMonths = MONTHS_K.slice(0, fyIdx + 1)
+  const mtdLabel = MONTHS_LABEL[fyIdx]
+  const ytdLabel = fyIdx === 0 ? MONTHS_LABEL[0] : `${MONTHS_LABEL[0]}–${MONTHS_LABEL[fyIdx]}`
+
+  function sumDeals(bu, months) {
+    return deals.filter(d=>d.bu===bu&&d.stage==='Invoiced'&&!d.is_intercompany_mirror)
+      .reduce((s,d)=>s+months.reduce((ms,m)=>ms+(d[m]||0),0),0)/1000
+  }
+  function sumPlan(bu, months) {
+    return ['ns_int','ns_ext'].reduce((s,key)=>{
+      const row=budget.find(r=>r.bu===bu&&r.cycle===activeCycle&&r.pl_key===key)
+      return s+months.reduce((ms,m)=>ms+(row?.[m]||0),0)
+    },0)
+  }
+  function sumPY(bu, months) {
+    const row=fy25.find(r=>r.bu===bu&&r.pl_key==='ns')
+    return row ? months.reduce((s,m)=>s+(row[m]||0),0) : 0
+  }
+
+  const cards = ['VGT','ECT'].map(bu=>({
+    bu, label: bu==='VGT'?'VGT · Portugal':'ECT · Spain',
+    color: bu==='VGT'?'#1D9E75':'#D85A30',
+    actMTD:  sumDeals(bu,[curMonth]),
+    actYTD:  sumDeals(bu,ytdMonths),
+    planMTD: sumPlan(bu,[curMonth]),
+    planYTD: sumPlan(bu,ytdMonths),
+    pyMTD:   sumPY(bu,[curMonth]),
+    pyYTD:   sumPY(bu,ytdMonths),
+  }))
+
+  const iberia = {
+    bu:'ALL', label:'Iberia · Consolidated', color:'#0D2137',
+    actMTD:  cards.reduce((s,c)=>s+c.actMTD,0),
+    actYTD:  cards.reduce((s,c)=>s+c.actYTD,0),
+    planMTD: cards.reduce((s,c)=>s+c.planMTD,0),
+    planYTD: cards.reduce((s,c)=>s+c.planYTD,0),
+    pyMTD:   cards.reduce((s,c)=>s+c.pyMTD,0),
+    pyYTD:   cards.reduce((s,c)=>s+c.pyYTD,0),
+  }
 
   return (
-    <div className="flex flex-col items-center">
-      <svg width={size} height={115} viewBox={`0 0 ${size} 115`}>
-        {/* Track */}
-        <path d={`M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}`}
-          fill="none" stroke="#E5E7EB" strokeWidth={14} strokeLinecap="round"/>
-        {/* Value arc */}
-        {pct > 0 && (
-          <path d={`M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`}
-            fill="none" stroke={color} strokeWidth={14} strokeLinecap="round"/>
-        )}
-        {/* Value text */}
-        <text x={cx} y={86} textAnchor="middle" dominantBaseline="middle"
-          style={{ fontSize: 20, fontWeight: 700, fill: '#111827', fontFamily: 'Arial' }}>
-          {formatK(value)}
-        </text>
-        {/* Plan text */}
-        <text x={cx} y={104} textAnchor="middle"
-          style={{ fontSize: 11, fill: '#9CA3AF', fontFamily: 'Arial' }}>
-          Plan {formatK(max)}
-        </text>
-      </svg>
-      <p className="text-xs font-semibold text-gray-700 mt-1 text-center">{label}</p>
-      <span className={`text-xs font-bold mt-1 px-2 py-0.5 rounded-full ${
-        isOver ? 'bg-green-100 text-green-700'
-        : value > 0 ? 'bg-amber-100 text-amber-700'
-        : 'bg-gray-100 text-gray-500'
-      }`}>
-        {pctDisplay !== '—' ? `${isOver?'+':''}${pctDisplay}% vs Plan` : '—'}
-      </span>
-      {sub && <p className="text-[10px] text-gray-400 mt-0.5 text-center">{sub}</p>}
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Sales performance · {activeCycle} · MTD & YTD</p>
+        <span className="text-[10px] text-gray-400">MTD: <strong>{mtdLabel}</strong> · YTD: <strong>{ytdLabel}</strong></span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {cards.map(c=><BUPerformanceCard key={c.bu} {...c} cycle={activeCycle} mtdLabel={mtdLabel} ytdLabel={ytdLabel}/>)}
+      </div>
+      {isAdmin && <BUPerformanceCard {...iberia} cycle={activeCycle} mtdLabel={mtdLabel} ytdLabel={ytdLabel}/>}
     </div>
   )
 }
@@ -494,65 +579,12 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── GAUGE CHARTS ──────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Sales YTD vs Plan</p>
-        <div className={`grid gap-3 ${isAdmin ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2'}`}>
-          {isAdmin && (
-            <Gauge value={total_act} max={total_plan}
-              label="Total Iberia" color="#0D2137" size={150}
-              sub={`Forecast: ${formatK(total_fc)}`}
-            />
-          )}
-          <Gauge value={agg.vgt_act} max={budgetTotals.vgt_ns}
-            label="VGT · Portugal" color="#1D9E75" size={150}
-            sub={`FC: ${formatK(agg.vgt_fc)}`}
-          />
-          <Gauge value={agg.ect_act} max={budgetTotals.ect_ns}
-            label="ECT · Spain" color="#D85A30" size={150}
-            sub={`FC: ${formatK(agg.ect_fc)}`}
-          />
-        </div>
-      </div>
+      {/* ── PERFORMANCE MTD / YTD ─────────────────────────────────────────── */}
+      <PerformanceSection
+        deals={deals} budget={budget} fy25={fy25}
+        activeCycle={activeCycle} isAdmin={isAdmin}
+      />
 
-      {/* ── KPI CARDS ─────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-3">
-        <KpiCard label="Actuals (Invoiced)"
-          value={total_act} plan={total_plan} py={total_py} color="teal" />
-        <KpiCard label="Forecast FY26"
-          value={total_fc} plan={total_plan} py={total_py} color="blue" />
-        <KpiCard label="BackLog"
-          value={agg.vgt_bl + agg.ect_bl} plan={null} py={null} color="gray" />
-        <KpiCard label="Pipeline"
-          value={agg.vgt_pipe + agg.ect_pipe} plan={null} py={null} color="gray" />
-      </div>
-
-      {/* GM KPIs */}
-      {(budgetTotals.vgt_gm > 0 || budgetTotals.ect_gm > 0) && (
-        <div className="grid grid-cols-2 gap-3">
-          <KpiCard label="VGT Gross Margin"
-            value={agg.vgt_gm} plan={budgetTotals.vgt_gm} py={null} color="teal" />
-          <KpiCard label="ECT Gross Margin"
-            value={agg.ect_gm} plan={budgetTotals.ect_gm} py={null} color="coral" />
-          <div className="bg-white rounded-xl border border-gray-200 p-3">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">VGT GM%</p>
-            <p className="text-xl font-bold text-vgt mt-0.5">
-              {agg.vgt_fc > 0 ? (agg.vgt_gm / agg.vgt_fc * 100).toFixed(1) : '—'}%
-            </p>
-            <p className="text-[10px] text-gray-400 mt-1">
-              Plan: {budgetTotals.vgt_ns > 0 ? (budgetTotals.vgt_gm / budgetTotals.vgt_ns * 100).toFixed(1) : '—'}%
-            </p>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-3">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">ECT GM%</p>
-            <p className="text-xl font-bold text-ect mt-0.5">
-              {agg.ect_fc > 0 ? (agg.ect_gm / agg.ect_fc * 100).toFixed(1) : '—'}%
-            </p>
-            <p className="text-[10px] text-gray-400 mt-1">
-              Plan: {budgetTotals.ect_ns > 0 ? (budgetTotals.ect_gm / budgetTotals.ect_ns * 100).toFixed(1) : '—'}%
-            </p>
-          </div>
-        </div>
       )}
 
       {/* ── MONTHLY EVOLUTION — VGT + ECT separate ───────────────────────── */}
