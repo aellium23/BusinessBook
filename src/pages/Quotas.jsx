@@ -128,7 +128,7 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
   )
 }
 
-function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin }) {
+function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, profile }) {
   const { color, manager } = TEAM_STRUCTURE[bu]
   const [addingNew, setAddingNew] = useState(false)
   const [newName, setNewName] = useState('')
@@ -203,7 +203,11 @@ function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin }) {
       {/* Reports grid */}
       {reportsQ.length > 0 && (
         <div className="grid gap-3 pl-4">
-          {reportsQ.map(q => (
+          {reportsQ.filter(q =>
+            isAdmin ||
+            !profile?.sales_owner_name ||
+            q.sales_owner === profile?.sales_owner_name
+          ).map(q => (
             <QuotaCard key={q.id} quota={q} color={color} isManager={false}
               actuals={actuals[`${bu}::${q.sales_owner}`]}
               forecast={forecast[`${bu}::${q.sales_owner}`]}
@@ -239,21 +243,25 @@ function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin }) {
 }
 
 export default function Quotas() {
-  const { isAdmin } = useAuth()
+  const { isAdmin, canSeeAll, profile } = useAuth()
   const [quotas, setQuotas] = useState([])
   const [deals, setDeals]   = useState([])
   const [loading, setLoading] = useState(true)
 
   async function load() {
-    const [qRes, dRes] = await Promise.all([
-      supabase.from('quotas').select('*').order('bu').order('sales_owner'),
-      supabase.from('deals').select('bu,sales_owner,stage,' + MONTHS_K.join(',')).eq('is_intercompany_mirror', false)
-    ])
+    let qQuery = supabase.from('quotas').select('*').order('bu').order('sales_owner')
+    let dQuery = supabase.from('deals').select('bu,sales_owner,stage,' + MONTHS_K.join(',')).eq('is_intercompany_mirror', false)
+
+    // Non-admin: filter to own BU deals only
+    if (!isAdmin && profile?.role === 'vgt_editor') dQuery = dQuery.eq('bu','VGT')
+    if (!isAdmin && profile?.role === 'ect_editor') dQuery = dQuery.eq('bu','ECT')
+
+    const [qRes, dRes] = await Promise.all([qQuery, dQuery])
     setQuotas(qRes.data || [])
     setDeals(dRes.data || [])
     setLoading(false)
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => { if (profile !== undefined) load() }, [profile])
 
   const actuals = useMemo(() => {
     const map = {}
@@ -287,11 +295,11 @@ export default function Quotas() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <div className="space-y-3">
           <TeamSection bu="VGT" quotas={quotas} actuals={actuals} forecast={forecast}
-            onRefresh={load} isAdmin={isAdmin}/>
+            onRefresh={load} isAdmin={isAdmin} profile={profile}/>
         </div>
         <div className="space-y-3 lg:border-l lg:border-gray-100 lg:pl-6">
           <TeamSection bu="ECT" quotas={quotas} actuals={actuals} forecast={forecast}
-            onRefresh={load} isAdmin={isAdmin}/>
+            onRefresh={load} isAdmin={isAdmin} profile={profile}/>
         </div>
       </div>
     </div>
