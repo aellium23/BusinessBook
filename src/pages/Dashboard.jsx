@@ -1,212 +1,420 @@
-import { useMemo } from 'react'
+import { useMemo, useEffect, useState } from 'react'
 import { useDeals } from '../hooks/useDeals'
 import { useAuth } from '../hooks/useAuth'
-import { KpiCard, Spinner, formatK } from '../components/ui'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line } from 'recharts'
-import { TrendingUp } from 'lucide-react'
+import { supabase } from '../lib/supabase'
+import { formatK } from '../components/ui'
+import {
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip,
+  ResponsiveContainer, Legend, ReferenceLine, Cell
+} from 'recharts'
 
-const MONTHS = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
+const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 
-const STAGE_COLOR = { Lead:'#F4C0D1', Pipeline:'#FAC775', BackLog:'#B5D4F4', Invoiced:'#C0DD97' }
-const REGION_COLOR = { Europe:'#B5D4F4', MEA:'#FAC775', LATAM:'#C0DD97', APAC:'#F4C0D1', NA:'#D3D1C7' }
+// ── Gauge chart (SVG semi-circle) ─────────────────────────────────────────
+function Gauge({ value, max, label, sub, color = '#1D9E75', size = 160 }) {
+  const pct    = max > 0 ? Math.min(value / max, 1.4) : 0
+  const angle  = pct * 180
+  const r      = size * 0.38
+  const cx     = size / 2
+  const cy     = size * 0.56
+  const toRad  = a => (a - 180) * Math.PI / 180
+  const x1 = cx + r * Math.cos(toRad(0))
+  const y1 = cy + r * Math.sin(toRad(0))
+  const x2 = cx + r * Math.cos(toRad(angle))
+  const y2 = cy + r * Math.sin(toRad(angle))
+  const large = angle > 180 ? 1 : 0
+  const pctDisplay = max > 0 ? ((value / max - 1) * 100).toFixed(1) : '—'
+  const isOver = value > max
+  const trackColor = '#E5E7EB'
 
-function FunnelBar({ label, value, total, color }) {
-  const pct = total > 0 ? Math.max(4, (value / total) * 100) : 4
   return (
-    <div className="flex-1 min-w-0">
-      <div className="h-2 rounded-full mb-1.5 transition-all" style={{ width: `${pct}%`, background: color, minWidth: 4 }} />
-      <p className="text-[10px] text-gray-500 truncate">{label}</p>
-      <p className="text-sm font-bold text-gray-900">{formatK(value)}</p>
+    <div className="flex flex-col items-center">
+      <svg width={size} height={size * 0.62} viewBox={`0 0 ${size} ${size * 0.62}`}>
+        {/* Track */}
+        <path
+          d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
+          fill="none" stroke={trackColor} strokeWidth={size * 0.08} strokeLinecap="round"
+        />
+        {/* Value arc */}
+        {pct > 0 && (
+          <path
+            d={`M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`}
+            fill="none" stroke={isOver ? '#1D9E75' : color}
+            strokeWidth={size * 0.08} strokeLinecap="round"
+          />
+        )}
+        {/* Centre value */}
+        <text x={cx} y={cy - 2} textAnchor="middle"
+          style={{ fontSize: size * 0.14, fontWeight: 700, fill: '#111827', fontFamily: 'Arial' }}>
+          {formatK(value)}
+        </text>
+        {/* Plan label */}
+        <text x={cx} y={cy + size * 0.1} textAnchor="middle"
+          style={{ fontSize: size * 0.085, fill: '#9CA3AF', fontFamily: 'Arial' }}>
+          Plan {formatK(max)}
+        </text>
+      </svg>
+      <p className="text-xs font-semibold text-gray-600 -mt-1">{label}</p>
+      <span className={`text-xs font-bold mt-0.5 px-2 py-0.5 rounded-full ${
+        isOver ? 'bg-green-100 text-green-700' : value > 0 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'
+      }`}>
+        {pctDisplay !== '—' ? `${isOver ? '+' : ''}${pctDisplay}% vs Plan` : '—'}
+      </span>
+      {sub && <p className="text-[10px] text-gray-400 mt-0.5">{sub}</p>}
     </div>
   )
 }
 
+// ── KPI card with vs Plan + vs PY ─────────────────────────────────────────
+function KpiCard({ label, value, plan, py, color = 'gray' }) {
+  const vsPlan = plan  > 0 ? (value / plan  - 1) * 100 : null
+  const vsPY   = py    > 0 ? (value / py    - 1) * 100 : null
+  const border = { teal:'border-t-2 border-vgt', coral:'border-t-2 border-ect',
+                   blue:'border-t-2 border-blue-400', green:'border-t-2 border-green-400', gray:'' }
+
+  return (
+    <div className={`bg-white rounded-xl border border-gray-200 shadow-sm p-3 ${border[color]}`}>
+      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">{label}</p>
+      <p className="text-xl font-bold text-gray-900 mt-0.5">{formatK(value)}</p>
+      <div className="flex gap-2 mt-1.5 flex-wrap">
+        {vsPlan !== null && (
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+            vsPlan >= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+            {vsPlan >= 0 ? '+' : ''}{vsPlan.toFixed(1)}% vs Plan
+          </span>
+        )}
+        {vsPY !== null && (
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+            vsPY >= 0 ? 'bg-blue-50 text-blue-700' : 'bg-orange-50 text-orange-600'}`}>
+            {vsPY >= 0 ? '+' : ''}{vsPY.toFixed(1)}% vs PY
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+const TOOLTIP_STYLE = { fontSize: 11, borderRadius: 8 }
+
 export default function Dashboard() {
   const { profile, isAdmin } = useAuth()
-  const { deals, loading, totals } = useDeals()
+  const { deals, loading }   = useDeals()
+  const [budget, setBudget]  = useState([])
+  const [fy25, setFy25]      = useState([])
 
-  const buFilter = useMemo(() => {
-    if (isAdmin) return null
-    return profile?.role?.toUpperCase()
-  }, [profile, isAdmin])
+  // Load budget from DB
+  useEffect(() => {
+    supabase.from('budget').select('*').then(({ data }) => setBudget(data || []))
+    supabase.from('fy25_actuals').select('*').then(({ data }) => setFy25(data || []))
+  }, [])
 
-  // Monthly actuals + forecast
+  // Determine active cycle
+  const activeCycle = useMemo(() => {
+    const m = new Date().getMonth() + 1
+    if (m >= 4 && m <= 6) return 'BUD'
+    if (m >= 7) return 'EST1'
+    return 'EST2'
+  }, [])
+
+  // Budget totals per BU
+  const budgetTotals = useMemo(() => {
+    const get = (bu, key) => {
+      const row = budget.find(r => r.bu === bu && r.cycle === activeCycle && r.pl_key === key)
+      if (!row) return 0
+      return MONTHS_K.reduce((s, m) => s + (row[m] || 0), 0)
+    }
+    return {
+      vgt_ns: get('VGT','ns_int') + get('VGT','ns_ext'),
+      ect_ns: get('ECT','ns_int') + get('ECT','ns_ext'),
+      vgt_gm: (get('VGT','ns_int') + get('VGT','ns_ext')) - get('VGT','cogs'),
+      ect_gm: (get('ECT','ns_int') + get('ECT','ns_ext')) - get('ECT','cogs'),
+    }
+  }, [budget, activeCycle])
+
+  // FY25 actuals per BU
+  const fy25Totals = useMemo(() => {
+    const get = (bu) => {
+      const rows = fy25.filter(r => r.bu === bu)
+      return rows.reduce((s, r) => s + MONTHS_K.reduce((ms, m) => ms + (r[m] || 0), 0), 0)
+    }
+    return { vgt: get('VGT'), ect: get('ECT') }
+  }, [fy25])
+
+  // Deal aggregates
+  const agg = useMemo(() => {
+    const result = {
+      vgt_fc:0, ect_fc:0, vgt_act:0, ect_act:0,
+      vgt_bl:0, ect_bl:0, vgt_pipe:0, ect_pipe:0,
+      vgt_gm:0, ect_gm:0,
+    }
+    deals.forEach(d => {
+      if (d.is_intercompany_mirror) return
+      const fy = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
+      const bu = d.bu?.toLowerCase()
+      if (!bu) return
+      if (['BackLog','Invoiced'].includes(d.stage)) result[`${bu}_fc`] += fy
+      if (d.stage === 'Invoiced') result[`${bu}_act`] += fy
+      if (d.stage === 'BackLog')  result[`${bu}_bl`]  += fy
+      if (d.stage === 'Pipeline') result[`${bu}_pipe`]+= d.value_total || 0
+      if (['BackLog','Invoiced'].includes(d.stage)) result[`${bu}_gm`] += fy * (d.gm_pct || 0)
+    })
+    return result
+  }, [deals])
+
+  // Monthly chart data — Actuals + Forecast + Plan
   const monthlyData = useMemo(() => {
+    const getPlan = (m_idx) => {
+      let plan = 0
+      ;['VGT','ECT'].forEach(bu => {
+        ;['ns_int','ns_ext'].forEach(key => {
+          const row = budget.find(r => r.bu === bu && r.cycle === activeCycle && r.pl_key === key)
+          if (row) plan += row[MONTHS_K[m_idx]] || 0
+        })
+      })
+      return plan
+    }
+    const getPY = (m_idx) => {
+      return fy25.reduce((s, r) => s + (r[MONTHS_K[m_idx]] || 0), 0)
+    }
     return MONTHS.map((m, i) => {
-      const key = MONTHS_K[i]
       let actuals = 0, forecast = 0
       deals.forEach(d => {
-        const v = d[key] || 0
+        if (d.is_intercompany_mirror) return
+        const v = d[MONTHS_K[i]] || 0
         if (d.stage === 'Invoiced') actuals += v
         else if (d.stage === 'BackLog') forecast += v
       })
-      return { month: m, actuals: actuals / 1000, forecast: forecast / 1000 }
+      return {
+        month: m,
+        Actuals:  Math.round(actuals  / 1000 * 10) / 10,
+        Forecast: Math.round(forecast / 1000 * 10) / 10,
+        Plan:     Math.round(getPlan(i) * 10) / 10,
+        FY25:     Math.round(getPY(i)   / 1000 * 10) / 10,
+      }
     })
-  }, [deals])
-
-  // Stage breakdown
-  const stageData = useMemo(() => {
-    const counts = {}
-    deals.forEach(d => { counts[d.stage] = (counts[d.stage] || 0) + (d.value_total || 0) })
-    return Object.entries(counts).map(([stage, value]) => ({ stage, value: value / 1000, fill: STAGE_COLOR[stage] || '#eee' }))
-  }, [deals])
+  }, [deals, budget, fy25, activeCycle])
 
   // Region breakdown
   const regionData = useMemo(() => {
     const r = {}
     deals.forEach(d => {
-      if (!d.region) return
+      if (!d.region || d.is_intercompany_mirror) return
       const fy = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
-      if (['BackLog','Invoiced'].includes(d.stage)) {
+      if (['BackLog','Invoiced'].includes(d.stage))
         r[d.region] = (r[d.region] || 0) + fy
-      }
     })
-    return Object.entries(r)
-      .sort((a, b) => b[1] - a[1])
-      .map(([region, value]) => ({ region, value: value / 1000, fill: REGION_COLOR[region] || '#eee' }))
+    return Object.entries(r).sort((a,b) => b[1]-a[1])
+      .map(([region, value]) => ({ region, value: Math.round(value/1000*10)/10 }))
   }, [deals])
 
-  // BU split
-  const buSplit = useMemo(() => {
-    let vgt = 0, ect = 0
-    deals.forEach(d => {
-      const fy = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
-      if (['BackLog','Invoiced'].includes(d.stage)) {
-        if (d.bu === 'VGT') vgt += fy
-        else if (d.bu === 'ECT') ect += fy
-      }
-    })
-    return { vgt, ect }
-  }, [deals])
+  const REGION_COLOR = { Europe:'#B5D4F4', MEA:'#FAC775', LATAM:'#C0DD97', APAC:'#F4C0D1', NA:'#D3D1C7' }
+  const total_fc = agg.vgt_fc + agg.ect_fc
+  const total_act = agg.vgt_act + agg.ect_act
+  const total_plan = budgetTotals.vgt_ns + budgetTotals.ect_ns
+  const total_py = fy25Totals.vgt + fy25Totals.ect
 
-  if (loading) return <Spinner />
+  if (loading) return (
+    <div className="flex items-center justify-center p-16">
+      <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin"/>
+    </div>
+  )
 
   return (
-    <div className="p-4 space-y-5 max-w-4xl mx-auto">
+    <div className="p-4 space-y-5 max-w-5xl mx-auto">
+
       {/* Header */}
       <div className="flex items-center justify-between pt-1">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-sm text-gray-400">FY26 · Apr 2026 – Mar 2027</p>
+          <p className="text-sm text-gray-400">FY26 · Apr 2026 – Mar 2027 · Active cycle:
+            <span className="ml-1 px-1.5 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800">{activeCycle}</span>
+          </p>
         </div>
-        <div className="flex items-center gap-1.5">
-          {isAdmin ? (
+        <div className="flex gap-1.5">
+          {isAdmin && (
             <>
-              <span className="badge-vgt">{formatK(buSplit.vgt)}</span>
-              <span className="text-gray-300">+</span>
-              <span className="badge-ect">{formatK(buSplit.ect)}</span>
+              <span className="inline-flex px-2 py-0.5 rounded text-xs font-bold bg-vgt text-white">
+                VGT {formatK(agg.vgt_fc)}
+              </span>
+              <span className="text-gray-300 text-sm">+</span>
+              <span className="inline-flex px-2 py-0.5 rounded text-xs font-bold bg-ect text-white">
+                ECT {formatK(agg.ect_fc)}
+              </span>
             </>
-          ) : (
-            <span className={profile?.role === 'vgt' ? 'badge-vgt' : 'badge-ect'}>
-              {formatK(buSplit.vgt + buSplit.ect)}
-            </span>
           )}
         </div>
       </div>
 
-      {/* KPI row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <KpiCard label="Pipeline" value={formatK(totals.pipeline)} color="gray" />
-        <KpiCard label="BackLog" value={formatK(totals.backlog)} color="blue" />
-        <KpiCard label="Actuals" value={formatK(totals.invoiced)} color="green" />
-        <KpiCard label="Forecast FY26" value={formatK(totals.forecast)} color="teal" />
-      </div>
-
-      {/* Sales Funnel */}
-      <div className="card p-4">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Sales funnel</p>
-        <div className="flex gap-4">
-          <FunnelBar label="Lead"     value={deals.filter(d=>d.stage==='Lead').reduce((s,d)=>s+(d.value_total||0),0)} total={totals.pipeline+totals.backlog+totals.invoiced||1} color="#F4C0D1" />
-          <FunnelBar label="Pipeline" value={totals.pipeline} total={totals.pipeline+totals.backlog+totals.invoiced||1} color="#FAC775" />
-          <FunnelBar label="BackLog"  value={totals.backlog}  total={totals.pipeline+totals.backlog+totals.invoiced||1} color="#B5D4F4" />
-          <FunnelBar label="Invoiced" value={totals.invoiced} total={totals.pipeline+totals.backlog+totals.invoiced||1} color="#C0DD97" />
+      {/* ── GAUGE CHARTS ──────────────────────────────────────────────────── */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Sales YTD vs Plan</p>
+        <div className={`grid gap-4 ${isAdmin ? 'grid-cols-3' : 'grid-cols-2'}`}>
+          {isAdmin && (
+            <Gauge value={total_act} max={total_plan}
+              label="Total Iberia" color="#0D2137" size={150}
+              sub={`Forecast: ${formatK(total_fc)}`}
+            />
+          )}
+          <Gauge value={agg.vgt_act} max={budgetTotals.vgt_ns}
+            label="VGT · Portugal" color="#1D9E75" size={150}
+            sub={`FC: ${formatK(agg.vgt_fc)}`}
+          />
+          <Gauge value={agg.ect_act} max={budgetTotals.ect_ns}
+            label="ECT · Spain" color="#D85A30" size={150}
+            sub={`FC: ${formatK(agg.ect_fc)}`}
+          />
         </div>
       </div>
 
-      {/* Monthly chart */}
-      <div className="card p-4">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Monthly · K€</p>
-          <div className="flex items-center gap-3 text-xs text-gray-400">
-            <span className="flex items-center gap-1"><span className="w-3 h-1 rounded bg-vgt inline-block"/>Actuals</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-1 rounded bg-blue-300 inline-block"/>Forecast</span>
+      {/* ── KPI CARDS ─────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <KpiCard label="Actuals (Invoiced)"
+          value={total_act} plan={total_plan} py={total_py} color="teal" />
+        <KpiCard label="Forecast FY26"
+          value={total_fc} plan={total_plan} py={total_py} color="blue" />
+        <KpiCard label="BackLog"
+          value={agg.vgt_bl + agg.ect_bl} plan={null} py={null} color="gray" />
+        <KpiCard label="Pipeline"
+          value={agg.vgt_pipe + agg.ect_pipe} plan={null} py={null} color="gray" />
+      </div>
+
+      {/* GM KPIs */}
+      {(budgetTotals.vgt_gm > 0 || budgetTotals.ect_gm > 0) && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <KpiCard label="VGT Gross Margin"
+            value={agg.vgt_gm} plan={budgetTotals.vgt_gm} py={null} color="teal" />
+          <KpiCard label="ECT Gross Margin"
+            value={agg.ect_gm} plan={budgetTotals.ect_gm} py={null} color="coral" />
+          <div className="bg-white rounded-xl border border-gray-200 p-3">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">VGT GM%</p>
+            <p className="text-xl font-bold text-vgt mt-0.5">
+              {agg.vgt_fc > 0 ? (agg.vgt_gm / agg.vgt_fc * 100).toFixed(1) : '—'}%
+            </p>
+            <p className="text-[10px] text-gray-400 mt-1">
+              Plan: {budgetTotals.vgt_ns > 0 ? (budgetTotals.vgt_gm / budgetTotals.vgt_ns * 100).toFixed(1) : '—'}%
+            </p>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 p-3">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">ECT GM%</p>
+            <p className="text-xl font-bold text-ect mt-0.5">
+              {agg.ect_fc > 0 ? (agg.ect_gm / agg.ect_fc * 100).toFixed(1) : '—'}%
+            </p>
+            <p className="text-[10px] text-gray-400 mt-1">
+              Plan: {budgetTotals.ect_ns > 0 ? (budgetTotals.ect_gm / budgetTotals.ect_ns * 100).toFixed(1) : '—'}%
+            </p>
           </div>
         </div>
-        <ResponsiveContainer width="100%" height={180}>
-          <BarChart data={monthlyData} barGap={2} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+      )}
+
+      {/* ── MONTHLY EVOLUTION ─────────────────────────────────────────────── */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Monthly sales evolution · K€</p>
+          <div className="flex gap-3 text-[10px] text-gray-400">
+            <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-vgt inline-block"/>Actuals</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-blue-300 inline-block"/>Forecast</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-gray-400 inline-block"/>Plan</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-0.5 border-t-2 border-dashed border-purple-400 inline-block"/>FY25</span>
+          </div>
+        </div>
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={monthlyData} barGap={2} margin={{ top:4, right:0, left:-20, bottom:0 }}>
             <XAxis dataKey="month" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-            <Tooltip formatter={(v) => [`€${v.toFixed(1)}K`, '']} labelStyle={{ fontSize: 12 }} />
-            <Bar dataKey="actuals"  fill="#1D9E75" radius={[3,3,0,0]} />
-            <Bar dataKey="forecast" fill="#B5D4F4" radius={[3,3,0,0]} />
+            <Tooltip contentStyle={TOOLTIP_STYLE}
+              formatter={(v, name) => [`€${v}K`, name]} />
+            <Bar dataKey="Actuals"  fill="#1D9E75" radius={[3,3,0,0]} />
+            <Bar dataKey="Forecast" fill="#B5D4F4" radius={[3,3,0,0]} />
+            <Line dataKey="Plan" type="monotone" stroke="#9CA3AF"
+              strokeWidth={1.5} dot={false} />
+            <Line dataKey="FY25" type="monotone" stroke="#A78BFA"
+              strokeWidth={1.5} strokeDasharray="4 2" dot={false} />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Region + BU side by side */}
-      <div className="grid sm:grid-cols-2 gap-4">
-        {/* Region */}
-        <div className="card p-4">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">By region · forecast K€</p>
-          {regionData.length === 0
-            ? <p className="text-sm text-gray-400">No data</p>
-            : regionData.map(({ region, value, fill }) => (
-              <div key={region} className="flex items-center gap-2 mb-2">
-                <span className="text-xs w-16 font-medium text-gray-600">{region}</span>
-                <div className="flex-1 bg-gray-100 rounded-full h-2">
-                  <div className="h-2 rounded-full transition-all" style={{ width: `${Math.max(4, (value / (regionData[0]?.value || 1)) * 100)}%`, background: fill }} />
-                </div>
-                <span className="text-xs font-bold text-gray-700 w-16 text-right">{formatK(value * 1000)}</span>
-              </div>
-            ))
-          }
-        </div>
-
-        {/* Stage donut-like bars */}
-        <div className="card p-4">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">By stage · total value K€</p>
-          {stageData.length === 0
-            ? <p className="text-sm text-gray-400">No data</p>
-            : stageData.map(({ stage, value, fill }) => (
-              <div key={stage} className="flex items-center gap-2 mb-2">
-                <span className="text-xs w-16 font-medium text-gray-600">{stage}</span>
-                <div className="flex-1 bg-gray-100 rounded-full h-2">
-                  <div className="h-2 rounded-full transition-all" style={{ width: `${Math.max(4, (value / (stageData[0]?.value || 1)) * 100)}%`, background: fill }} />
-                </div>
-                <span className="text-xs font-bold text-gray-700 w-16 text-right">{formatK(value * 1000)}</span>
-              </div>
-            ))
-          }
-        </div>
-      </div>
-
-      {/* BU split (admin only) */}
+      {/* ── VGT vs ECT SPLIT ──────────────────────────────────────────────── */}
       {isAdmin && (
-        <div className="card p-4">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">VGT vs ECT · forecast FY26</p>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs text-gray-400 mb-1">VGT · Portugal</p>
-              <p className="text-2xl font-bold text-vgt">{formatK(buSplit.vgt)}</p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {buSplit.vgt + buSplit.ect > 0 ? Math.round(buSplit.vgt / (buSplit.vgt + buSplit.ect) * 100) : 0}% of total
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 mb-1">ECT · Spain</p>
-              <p className="text-2xl font-bold text-ect">{formatK(buSplit.ect)}</p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {buSplit.vgt + buSplit.ect > 0 ? Math.round(buSplit.ect / (buSplit.vgt + buSplit.ect) * 100) : 0}% of total
-              </p>
-            </div>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">VGT vs ECT · Forecast FY26</p>
+          <div className="grid grid-cols-2 gap-6 mb-3">
+            {[['VGT','vgt',C_TEAL='#1D9E75'],['ECT','ect','#D85A30']].map(([label,key,color]) => (
+              <div key={label}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-medium text-gray-600">{label}</span>
+                  <span className="text-xs font-bold" style={{ color }}>{formatK(agg[`${key}_fc`])}</span>
+                </div>
+                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all"
+                    style={{ width: `${total_fc > 0 ? Math.min(agg[`${key}_fc`]/total_fc*100,100) : 0}%`, background: color }}/>
+                </div>
+                <div className="flex justify-between mt-1">
+                  <span className="text-[10px] text-gray-400">
+                    Plan: {formatK(key === 'vgt' ? budgetTotals.vgt_ns : budgetTotals.ect_ns)}
+                  </span>
+                  <span className="text-[10px] text-gray-400">
+                    {total_fc > 0 ? Math.round(agg[`${key}_fc`]/total_fc*100) : 0}% of total
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="h-3 rounded-full overflow-hidden bg-gray-100 mt-3 flex">
-            <div className="bg-vgt transition-all" style={{ width: `${buSplit.vgt + buSplit.ect > 0 ? (buSplit.vgt / (buSplit.vgt + buSplit.ect) * 100) : 50}%` }} />
-            <div className="bg-ect flex-1" />
+          <div className="h-3 rounded-full overflow-hidden bg-gray-100 flex">
+            <div className="bg-vgt transition-all"
+              style={{ width: `${total_fc > 0 ? agg.vgt_fc/total_fc*100 : 50}%` }}/>
+            <div className="bg-ect flex-1"/>
           </div>
         </div>
       )}
+
+      {/* ── REGION BREAKDOWN ──────────────────────────────────────────────── */}
+      {regionData.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Revenue by region · Forecast K€</p>
+          <ResponsiveContainer width="100%" height={Math.max(120, regionData.length * 36)}>
+            <BarChart data={regionData} layout="vertical"
+              margin={{ top:0, right:60, left:40, bottom:0 }}>
+              <XAxis type="number" tick={{ fontSize:10 }} axisLine={false} tickLine={false}/>
+              <YAxis type="category" dataKey="region" tick={{ fontSize:10 }} axisLine={false} tickLine={false} width={50}/>
+              <Tooltip contentStyle={TOOLTIP_STYLE} formatter={v => [`€${v}K`, 'Forecast']}/>
+              <Bar dataKey="value" radius={[0,4,4,0]} label={{ position:'right', fontSize:10 }}>
+                {regionData.map(({ region }) => (
+                  <Cell key={region} fill={REGION_COLOR[region] || '#D3D1C7'}/>
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* ── SALES FUNNEL ──────────────────────────────────────────────────── */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Sales funnel</p>
+        <div className="space-y-2">
+          {[
+            { label:'Lead',     value: deals.filter(d=>d.stage==='Lead'&&!d.is_intercompany_mirror).reduce((s,d)=>s+(d.value_total||0),0), color:'#F4C0D1', text:'#4B1528' },
+            { label:'Pipeline', value: agg.vgt_pipe+agg.ect_pipe, color:'#FAC775', text:'#412402' },
+            { label:'BackLog',  value: agg.vgt_bl+agg.ect_bl,     color:'#B5D4F4', text:'#042C53' },
+            { label:'Invoiced', value: total_act,                  color:'#C0DD97', text:'#173404' },
+          ].map(({ label, value, color, text }) => {
+            const maxVal = deals.filter(d=>d.stage==='Lead'&&!d.is_intercompany_mirror).reduce((s,d)=>s+(d.value_total||0),0) || total_act || 1
+            const pct = Math.max(8, (value / maxVal) * 100)
+            return (
+              <div key={label} className="flex items-center gap-3">
+                <span className="text-xs text-gray-500 w-14 text-right">{label}</span>
+                <div className="flex-1 h-6 bg-gray-50 rounded-lg overflow-hidden">
+                  <div className="h-full rounded-lg flex items-center px-2 transition-all"
+                    style={{ width: `${pct}%`, background: color, minWidth: 60 }}>
+                    <span className="text-xs font-bold" style={{ color: text }}>{formatK(value)}</span>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
     </div>
   )
 }
