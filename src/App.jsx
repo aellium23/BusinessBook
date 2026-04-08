@@ -5,6 +5,8 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Deals from './pages/Deals'
 import History from './pages/History'
+import Clients from './pages/Clients'
+import Quotas from './pages/Quotas'
 import Budget from './pages/Budget'
 import Users from './pages/Users'
 import { Spinner } from './components/ui'
@@ -31,6 +33,8 @@ function AppRoutes() {
         <Route path="/"        element={<Dashboard />} />
         <Route path="/deals"   element={<Deals />} />
         <Route path="/history" element={<History />} />
+        <Route path="/clients" element={<Clients />} />
+        <Route path="/quotas"  element={<Quotas />} />
         <Route path="/budget"  element={<Budget />} />
         <Route path="/users"   element={<Users />} />
         <Route path="/login"  element={<Navigate to="/" replace />} />
