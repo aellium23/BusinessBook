@@ -27,7 +27,10 @@ export default function Layout({ children }) {
           <span className="font-bold text-lg tracking-tight">
             <span className="text-vgt">B</span><span className="text-ect">B</span>
           </span>
-          <span className="text-white/60 text-sm font-medium hidden sm:inline">Business Book · FY26</span>
+          <div className="hidden sm:flex flex-col leading-tight">
+            <span className="text-white text-sm font-semibold">Business Book · FY26</span>
+            <span className="text-white/40 text-[10px]">Developed by Elio Santos · Powered by AI</span>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-white/60 text-xs hidden sm:inline">{profile?.full_name || profile?.email}</span>
