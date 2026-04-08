@@ -29,7 +29,7 @@ export default function Layout({ children }) {
           </span>
           <div className="hidden sm:flex flex-col leading-tight">
             <span className="text-white text-sm font-semibold">Business Book · FY26</span>
-            <span className="text-white/40 text-[10px]">Developed by Elio Santos · Powered by AI</span>
+            <span className="text-white/70 text-[10px] font-medium tracking-wide">Developed by Elio Santos · Powered by AI</span>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -66,8 +66,23 @@ export default function Layout({ children }) {
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 overflow-auto pb-20 sm:pb-4">
-          {children}
+        <main className="flex-1 overflow-auto pb-20 sm:pb-4 relative">
+          {/* Watermark */}
+          <div className="pointer-events-none fixed inset-0 flex items-center justify-center z-0"
+            style={{ left: '13rem' }}>
+            <svg viewBox="0 0 340 400" xmlns="http://www.w3.org/2000/svg"
+              style={{ width: 'min(40vw, 380px)', opacity: 0.055 }}>
+              {/* Left blade — tapers from top-left to bottom centre */}
+              <path d="M 10 10 C 10 10 170 10 175 18 C 178 24 172 32 170 40 L 168 50 L 170 380 C 170 380 10 10 10 10 Z"
+                fill="#0D2137"/>
+              {/* Right blade — mirror, dark red */}
+              <path d="M 330 10 C 330 10 170 10 165 18 C 162 24 168 32 170 40 L 172 50 L 170 380 C 170 380 330 10 330 10 Z"
+                fill="#7B1C2E"/>
+            </svg>
+          </div>
+          <div className="relative z-10">
+            {children}
+          </div>
         </main>
       </div>
 
