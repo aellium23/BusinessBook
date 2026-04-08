@@ -5,15 +5,15 @@ import { BUBadge, StageBadge, SalesTypeBadge, Spinner, EmptyState, formatK } fro
 import DealForm from '../components/DealForm'
 import { Plus, Search, Trash2, Pencil, ChevronDown, ChevronUp, Link, AlertTriangle, Clock } from 'lucide-react'
 
-const STAGES  = ['','Lead','Pipeline','BackLog','Invoiced','Lost']
-const WEIGHTS = { Lead: 0.10, Pipeline: 0.30, BackLog: 0.80, Invoiced: 1.0, Lost: 0 }
+const STAGES  = ['','Lead','Pipeline','Offer Presented','BackLog','Invoiced','Lost']
+const WEIGHTS = { Lead: 0.10, Pipeline: 0.30, 'Offer Presented': 0.60, BackLog: 0.80, Invoiced: 1.0, Lost: 0 }
 const REGIONS = ['','Europe','MEA','LATAM','APAC','NA']
 const BUS     = ['','VGT','ECT']
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 
 function agingDays(deal) {
-  if (!['Lead','Pipeline'].includes(deal.stage)) return null
+  if (!['Lead','Pipeline','Offer Presented'].includes(deal.stage)) return null
   const ref = deal.stage_changed_at || deal.updated_at || deal.created_at
   if (!ref) return null
   return Math.floor((Date.now() - new Date(ref).getTime()) / 86400000)
@@ -49,6 +49,14 @@ function DealCard({ deal, onEdit, onDelete, canEdit }) {
             <StageBadge stage={deal.stage} />
             <SalesTypeBadge type={deal.sales_type} />
             <AgingBadge days={agingDays(deal)} />
+            {deal.win_probability !== null && deal.win_probability !== undefined && (
+              <span className={`inline-flex px-2 py-0.5 rounded text-xs font-bold ${
+                deal.win_probability >= 80 ? 'bg-green-100 text-green-700' :
+                deal.win_probability >= 50 ? 'bg-purple-100 text-purple-700' :
+                deal.win_probability >= 20 ? 'bg-amber-100 text-amber-700' :
+                'bg-gray-100 text-gray-500'
+              }`}>{deal.win_probability}%</span>
+            )}
             {isIC && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-vgt/10 text-vgt">
                 <Link size={10}/> IC mirror
@@ -179,7 +187,10 @@ export default function Deals() {
           { l:'Weighted', v:deals.filter(d=>!d.is_intercompany_mirror).reduce((s,d)=>{
               const fy=MONTHS_K.reduce((ms,m)=>ms+(d[m]||0),0)
               const base=['BackLog','Invoiced'].includes(d.stage)?fy:(d.value_total||0)
-              return s+base*(WEIGHTS[d.stage]||0)
+              const prob = d.win_probability !== null && d.win_probability !== undefined
+                ? d.win_probability / 100
+                : (WEIGHTS[d.stage]||0)
+              return s+base*prob
             },0), c:'text-purple-700 font-bold' },
         ].map(({ l, v, c }) => (
           <div key={l} className="text-center shrink-0">
