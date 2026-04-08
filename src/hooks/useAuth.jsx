@@ -52,13 +52,14 @@ export function AuthProvider({ children }) {
   }, [profile])
 
   const isAdmin   = profile?.role === 'admin'
-  const isVGT     = ['vgt_editor','viewer_vgt'].includes(profile?.role) || isAdmin
-  const isECT     = ['ect_editor','viewer_ect'].includes(profile?.role) || isAdmin
+  const isVGT     = ['vgt_editor','vgt_member','viewer_vgt'].includes(profile?.role) || isAdmin
+  const isECT     = ['ect_editor','ect_member','viewer_ect'].includes(profile?.role) || isAdmin
   const canSeeAll = ['admin','viewer_all'].includes(profile?.role)
-  const canEdit   = ['admin','vgt_editor','ect_editor'].includes(profile?.role)
+  const canEdit   = ['admin','vgt_editor','ect_editor','vgt_member','ect_member'].includes(profile?.role)
+  const editOwnOnly = ['vgt_member','ect_member'].includes(profile?.role)
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, isAdmin, isVGT, isECT, canSeeAll, canEdit }}>
+    <AuthContext.Provider value={{ user, profile, loading, isAdmin, isVGT, isECT, canSeeAll, editOwnOnly, canEdit }}>
       {children}
     </AuthContext.Provider>
   )
