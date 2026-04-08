@@ -251,7 +251,7 @@ export default function Dashboard() {
       {/* ── GAUGE CHARTS ──────────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Sales YTD vs Plan</p>
-        <div className={`grid gap-4 ${isAdmin ? 'grid-cols-3' : 'grid-cols-2'}`}>
+        <div className={`grid gap-3 ${isAdmin ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2'}`}>
           {isAdmin && (
             <Gauge value={total_act} max={total_plan}
               label="Total Iberia" color="#0D2137" size={150}
@@ -270,7 +270,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── KPI CARDS ─────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <KpiCard label="Actuals (Invoiced)"
           value={total_act} plan={total_plan} py={total_py} color="teal" />
         <KpiCard label="Forecast FY26"
@@ -283,7 +283,7 @@ export default function Dashboard() {
 
       {/* GM KPIs */}
       {(budgetTotals.vgt_gm > 0 || budgetTotals.ect_gm > 0) && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <KpiCard label="VGT Gross Margin"
             value={agg.vgt_gm} plan={budgetTotals.vgt_gm} py={null} color="teal" />
           <KpiCard label="ECT Gross Margin"
