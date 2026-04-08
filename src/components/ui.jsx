@@ -10,6 +10,7 @@ export function StageBadge({ stage }) {
     Pipeline: 'badge-pipeline',
     BackLog:  'badge-backlog',
     Invoiced: 'badge-invoiced',
+    Lost:     'inline-flex px-2 py-0.5 rounded text-xs font-bold bg-red-200 text-red-900',
   }
   return <span className={map[stage] || 'inline-flex px-2 py-0.5 rounded text-xs font-bold bg-gray-200 text-gray-700'}>{stage}</span>
 }
