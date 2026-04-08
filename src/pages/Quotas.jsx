@@ -135,8 +135,13 @@ function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin }) {
   const [newTarget, setNewTarget] = useState('')
 
   const teamQuotas = quotas.filter(q => q.bu === bu)
-  const managerQ   = teamQuotas.find(q => q.sales_owner === manager)
-  const reportsQ   = teamQuotas.filter(q => q.sales_owner !== manager)
+  // Flexible match: exact or first name match
+  const managerQ   = teamQuotas.find(q =>
+    q.sales_owner === manager ||
+    manager.startsWith(q.sales_owner) ||
+    q.sales_owner.startsWith(manager.split(' ')[0])
+  )
+  const reportsQ   = teamQuotas.filter(q => q !== managerQ)
 
   // Manager totals = sum of reports
   const teamAct = reportsQ.reduce((s,q) => s + (actuals[`${bu}::${q.sales_owner}`]||0), 0)
@@ -197,7 +202,7 @@ function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin }) {
 
       {/* Reports grid */}
       {reportsQ.length > 0 && (
-        <div className="grid sm:grid-cols-2 gap-3 pl-4">
+        <div className="grid gap-3 pl-4">
           {reportsQ.map(q => (
             <QuotaCard key={q.id} quota={q} color={color} isManager={false}
               actuals={actuals[`${bu}::${q.sales_owner}`]}
@@ -279,13 +284,16 @@ export default function Quotas() {
         <p className="text-sm text-gray-400">Team targets — Iberia</p>
       </div>
 
-      <TeamSection bu="VGT" quotas={quotas} actuals={actuals} forecast={forecast}
-        onRefresh={load} isAdmin={isAdmin}/>
-
-      <div className="border-t border-gray-100"/>
-
-      <TeamSection bu="ECT" quotas={quotas} actuals={actuals} forecast={forecast}
-        onRefresh={load} isAdmin={isAdmin}/>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <div className="space-y-3">
+          <TeamSection bu="VGT" quotas={quotas} actuals={actuals} forecast={forecast}
+            onRefresh={load} isAdmin={isAdmin}/>
+        </div>
+        <div className="space-y-3 lg:border-l lg:border-gray-100 lg:pl-6">
+          <TeamSection bu="ECT" quotas={quotas} actuals={actuals} forecast={forecast}
+            onRefresh={load} isAdmin={isAdmin}/>
+        </div>
+      </div>
     </div>
   )
 }
