@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Modal } from '../components/ui'
-import { upsertDeal } from '../hooks/useDeals'
+import { upsertDeal, upsertDealWithIntercompany } from '../hooks/useDeals'
 import { useAuth } from '../hooks/useAuth'
+import { Link } from 'lucide-react'
 
-const MONTHS = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
-const YEARS  = [2026,2027,2028,2029,2030]
-const REGIONS = ['Europe','MEA','LATAM','APAC','NA']
+const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
+const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
+const YEARS    = [2026,2027,2028,2029,2030]
+const REGIONS  = ['Europe','MEA','LATAM','APAC','NA']
 const COUNTRY_MAP = {
   Europe: ['Portugal','Spain','France','Germany','Italy','Netherlands','Belgium','UK','Switzerland','Sweden','Norway','Denmark','Finland','Austria','Poland','Czech Republic','Romania','Greece','Turkey','Other Europe'],
   MEA:    ['UAE','Saudi Arabia','Qatar','Kuwait','Bahrain','Oman','Egypt','Morocco','Algeria','Tunisia','South Africa','Israel','Jordan','Iraq','Nigeria','Kenya','Ghana','Other MEA'],
@@ -14,21 +16,16 @@ const COUNTRY_MAP = {
   NA:     ['USA','Canada','Other NA'],
 }
 
-const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
 const CAL = { Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12 }
 const FY_ABS = { Apr:16,May:17,Jun:18,Jul:19,Aug:20,Sep:21,Oct:22,Nov:23,Dec:24,Jan:25,Feb:26,Mar:27 }
 
-function calAbs(month, year) {
-  return (year - 2025) * 12 + CAL[month]
-}
+function calAbs(m, y) { return (y - 2025) * 12 + CAL[m] }
 
 function calcMonthly(value, csM, csY, ceM, ceY, recM, recY) {
   if (!csM || !csY || !ceM || !ceY) return null
-  const cs  = calAbs(csM, parseInt(csY))
-  const ce  = calAbs(ceM, parseInt(ceY))
+  const cs = calAbs(csM, parseInt(csY)), ce = calAbs(ceM, parseInt(ceY))
   const rec = recM && recY ? calAbs(recM, parseInt(recY)) : cs
-  const n   = Math.max(1, ce - cs + 1)
-  const slice = value / n
+  const n = Math.max(1, ce - cs + 1), slice = value / n
   return MONTHS.map(m => {
     const i = FY_ABS[m]
     if (i < rec) return 0
@@ -40,12 +37,12 @@ function calcMonthly(value, csM, csY, ceM, ceY, recM, recY) {
 }
 
 const EMPTY = {
-  bu: '', sales_type: 'External', stage: 'Pipeline',
-  client: '', region: 'Europe', country: '',
-  sales_owner: '', deal_type: 'One-Shot', description: '',
-  value_total: '', gm_pct: '',
-  rec_month: '', rec_year: '',
-  cs_month: '', cs_year: '', ce_month: '', ce_year: '',
+  bu:'', sales_type:'External', stage:'Pipeline',
+  client:'', region:'Europe', country:'',
+  sales_owner:'', deal_type:'One-Shot', description:'',
+  value_total:'', gm_pct:'',
+  rec_month:'', rec_year:'',
+  cs_month:'', cs_year:'', ce_month:'', ce_year:'',
 }
 
 export default function DealForm({ deal, onClose, onSaved }) {
@@ -54,30 +51,40 @@ export default function DealForm({ deal, onClose, onSaved }) {
     ...deal,
     value_total: deal.value_total || '',
     gm_pct: deal.gm_pct != null ? (deal.gm_pct * 100).toFixed(1) : '',
+    intercompany_value: deal.intercompany_value || '',
   } : {
     ...EMPTY,
     bu: isAdmin ? '' : profile?.role?.toUpperCase() || '',
   })
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
+  const [saving, setSaving]   = useState(false)
+  const [error, setError]     = useState('')
   const [preview, setPreview] = useState(null)
+  const [icPreview, setIcPreview] = useState(null)
 
   const isMaint = form.deal_type === 'Maintenance'
+  const isECT   = form.bu === 'ECT'
+  const hasIC   = isECT && parseFloat(form.intercompany_value) > 0
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
+  // Monthly preview for main deal
   useEffect(() => {
     if (!isMaint || !form.value_total || !form.cs_month || !form.cs_year || !form.ce_month || !form.ce_year) {
       setPreview(null); return
     }
-    const monthly = calcMonthly(
-      parseFloat(form.value_total),
-      form.cs_month, form.cs_year,
-      form.ce_month, form.ce_year,
-      form.rec_month || null, form.rec_year || null
-    )
-    if (monthly) setPreview(monthly)
+    const m = calcMonthly(parseFloat(form.value_total), form.cs_month, form.cs_year,
+      form.ce_month, form.ce_year, form.rec_month || null, form.rec_year || null)
+    if (m) setPreview(m)
   }, [isMaint, form.value_total, form.cs_month, form.cs_year, form.ce_month, form.ce_year, form.rec_month, form.rec_year])
+
+  // Monthly preview for intercompany VGT mirror
+  useEffect(() => {
+    if (!hasIC || !preview) { setIcPreview(null); return }
+    const icVal = parseFloat(form.intercompany_value)
+    const total = preview.reduce((s, v) => s + v, 0)
+    if (total === 0) { setIcPreview(null); return }
+    setIcPreview(preview.map(v => Math.round((v / total) * icVal * 100) / 100))
+  }, [hasIC, form.intercompany_value, preview])
 
   async function handleSave() {
     if (!form.bu || !form.client || !form.stage) { setError('BU, Client and Stage are required'); return }
@@ -100,8 +107,19 @@ export default function DealForm({ deal, onClose, onSaved }) {
       ce_month: form.ce_month || null, ce_year: parseInt(form.ce_year) || null,
       ...monthly,
     }
-    const { error } = await upsertDeal(payload)
-    if (error) setError(error.message)
+
+    let result
+    if (hasIC) {
+      result = await upsertDealWithIntercompany(
+        payload,
+        parseFloat(form.intercompany_value),
+        deal?.linked_deal_id || null
+      )
+    } else {
+      result = await upsertDeal({ ...payload, intercompany_value: null })
+    }
+
+    if (result.error) setError(result.error.message)
     else { onSaved(); onClose() }
     setSaving(false)
   }
@@ -119,7 +137,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
       <div className="space-y-4">
         {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 
-        {/* Row 1: BU + Sales Type + Stage */}
+        {/* BU + Sales Type + Stage */}
         <div className="grid grid-cols-3 gap-3">
           <div>
             <label className="label">BU *</label>
@@ -147,14 +165,14 @@ export default function DealForm({ deal, onClose, onSaved }) {
         {/* Client */}
         <div>
           <label className="label">Client / Site *</label>
-          <input className="input" value={form.client} onChange={e => set('client', e.target.value)} placeholder="Hospital name or organisation" />
+          <input className="input" value={form.client} onChange={e => set('client', e.target.value)} placeholder="Hospital or organisation" />
         </div>
 
         {/* Region + Country */}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="label">Region</label>
-            <select className="select" value={form.region} onChange={e => { set('region', e.target.value); set('country', '') }}>
+            <select className="select" value={form.region} onChange={e => { set('region', e.target.value); set('country','') }}>
               {REGIONS.map(r => <option key={r}>{r}</option>)}
             </select>
           </div>
@@ -167,11 +185,11 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </div>
         </div>
 
-        {/* Sales Owner + Deal Type */}
+        {/* Owner + Type */}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="label">Sales Owner</label>
-            <input className="input" value={form.sales_owner} onChange={e => set('sales_owner', e.target.value)} placeholder="Name" />
+            <input className="input" value={form.sales_owner} onChange={e => set('sales_owner', e.target.value)} />
           </div>
           <div>
             <label className="label">Deal Type</label>
@@ -200,11 +218,67 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </div>
         </div>
 
-        {/* Maintenance fields */}
+        {/* ── INTERCOMPANY (ECT only) ────────────────────────────── */}
+        {isECT && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Link size={14} className="text-amber-600" />
+              <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">
+                Intercompany · VGT cost
+              </p>
+            </div>
+            <p className="text-xs text-amber-600">
+              If ECT purchases from VGT to deliver this deal, enter the VGT amount below.
+              A linked VGT Internal deal will be created automatically.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">VGT cost (€)</label>
+                <input className="input bg-white" type="number"
+                  value={form.intercompany_value}
+                  onChange={e => set('intercompany_value', e.target.value)}
+                  placeholder="0 — leave empty if none" />
+              </div>
+              {hasIC && form.value_total && (
+                <div className="flex items-end pb-2">
+                  <div>
+                    <p className="text-xs text-amber-600">ECT margin after VGT cost</p>
+                    <p className="text-lg font-bold text-amber-800">
+                      €{((parseFloat(form.value_total) - parseFloat(form.intercompany_value)) / 1000).toFixed(1)}K
+                    </p>
+                    <p className="text-xs text-amber-500">
+                      {form.value_total > 0
+                        ? Math.round((1 - parseFloat(form.intercompany_value) / parseFloat(form.value_total)) * 100)
+                        : 0}% of deal value
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* VGT mirror preview */}
+            {hasIC && (
+              <div className="bg-vgt/5 border border-vgt/20 rounded-lg p-3">
+                <p className="text-xs font-semibold text-vgt mb-1">
+                  VGT deal that will be created automatically
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                  <span>Client: <strong>{form.client || '—'}</strong></span>
+                  <span>Value: <strong>€{(parseFloat(form.intercompany_value)/1000).toFixed(1)}K</strong></span>
+                  <span>BU: <strong>VGT</strong></span>
+                  <span>Type: <strong>Internal</strong></span>
+                  <span>Stage: <strong>{form.stage}</strong></span>
+                  <span>Description: <strong>[Intercompany]</strong></span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Maintenance contract dates */}
         {isMaint && (
           <div className="bg-blue-50 rounded-xl p-4 space-y-3">
             <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Maintenance · contract dates</p>
-
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="label">Contract start</label>
@@ -233,7 +307,6 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 </div>
               </div>
             </div>
-
             <div>
               <label className="label">Recognition start (if delayed)</label>
               <div className="flex gap-2">
@@ -247,8 +320,6 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 </select>
               </div>
             </div>
-
-            {/* Preview */}
             {preview && (
               <div>
                 <p className="text-xs text-blue-600 font-medium mb-2">Revenue preview (FY26)</p>
@@ -261,14 +332,27 @@ export default function DealForm({ deal, onClose, onSaved }) {
                   ))}
                 </div>
                 <p className="text-xs text-blue-500 mt-1 text-right">
-                  FY26 total: €{(preview.reduce((s,v)=>s+v,0)/1000).toFixed(1)}K
+                  FY26: €{(preview.reduce((s,v)=>s+v,0)/1000).toFixed(1)}K
                 </p>
+                {icPreview && (
+                  <div className="mt-2">
+                    <p className="text-xs text-amber-600 font-medium mb-1">VGT intercompany mirror (FY26)</p>
+                    <div className="grid grid-cols-6 gap-1">
+                      {MONTHS.map((m, i) => (
+                        <div key={m} className={`text-center rounded p-1 ${icPreview[i] > 0 ? 'bg-amber-200' : 'bg-amber-50'}`}>
+                          <p className="text-[9px] text-amber-500">{m}</p>
+                          <p className="text-[10px] font-bold text-amber-800">{icPreview[i] > 0 ? `€${(icPreview[i]/1000).toFixed(1)}K` : '—'}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
         )}
 
-        {/* One-Shot monthly inputs */}
+        {/* One-Shot monthly */}
         {!isMaint && (
           <div>
             <p className="label mb-2">Monthly recognition · FY26</p>
