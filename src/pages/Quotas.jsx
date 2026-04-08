@@ -25,8 +25,9 @@ function ProgressRing({ pct, color, size = 64 }) {
   )
 }
 
-function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, teamActuals, onEdit, onDelete, isAdmin }) {
+function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, teamActuals, onEdit, onDelete, isAdmin, ownerName }) {
   const [editing, setEditing] = useState(false)
+  const isOwnCard = ownerName && quota.sales_owner === ownerName
   const [editVal, setEditVal] = useState(quota.target_eur)
 
   const act = isManager ? teamActuals : (actuals || 0)
@@ -112,16 +113,16 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
       </div>
 
       {/* Actions */}
-      {isAdmin && (
+      {(isAdmin || isOwnCard) && !isManager && (
         <div className="px-4 pb-3 flex gap-2">
           <button onClick={() => setEditing(true)}
             className="flex-1 text-xs bg-gray-50 hover:bg-gray-100 text-gray-600 py-1.5 rounded-lg transition-colors">
             Edit target
           </button>
-          <button onClick={() => onDelete(quota.id)}
+          {isAdmin && <button onClick={() => onDelete(quota.id)}
             className="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg transition-colors">
             <Trash2 size={12}/>
-          </button>
+          </button>}
         </div>
       )}
     </div>
@@ -182,7 +183,7 @@ function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, profil
           forecast={forecast[`${bu}::${manager}`]}
           teamActuals={teamAct} teamForecast={teamFC}
           onEdit={onRefresh} onDelete={async id => { await supabase.from('quotas').delete().eq('id',id); onRefresh() }}
-          isAdmin={isAdmin}
+          isAdmin={isAdmin} ownerName={profile?.sales_owner_name}
         />
       ) : (
         <div className="border-2 border-dashed rounded-xl p-4 text-center text-xs text-gray-400"
@@ -205,6 +206,8 @@ function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, profil
         <div className="grid gap-3 pl-4">
           {reportsQ.filter(q =>
             isAdmin ||
+            profile?.role?.includes('editor') ||
+            profile?.role?.includes('member') ||
             !profile?.sales_owner_name ||
             q.sales_owner === profile?.sales_owner_name
           ).map(q => (
@@ -214,7 +217,7 @@ function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, profil
               teamActuals={0} teamForecast={0}
               onEdit={onRefresh}
               onDelete={async id => { await supabase.from('quotas').delete().eq('id',id); onRefresh() }}
-              isAdmin={isAdmin}
+              isAdmin={isAdmin} ownerName={profile?.sales_owner_name}
             />
           ))}
         </div>
