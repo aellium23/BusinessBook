@@ -10,6 +10,7 @@ const ROLES = [
   { value:'ect_editor',  label:'ECT Editor',    desc:'ECT — edit all deals of the team + own Sales Target',             color:'#993C1D', bg:'#FAECE7', bu:'ECT',  canEdit:true,  editOwn:false },
   { value:'vgt_member',  label:'VGT Member',    desc:'VGT — sees all team deals, edits only own deals + own target',    color:'#1D9E75', bg:'#E1F5EE', bu:'VGT',  canEdit:true,  editOwn:true  },
   { value:'ect_member',  label:'ECT Member',    desc:'ECT — sees all team deals, edits only own deals + own target',    color:'#D85A30', bg:'#FAECE7', bu:'ECT',  canEdit:true,  editOwn:true  },
+  { value:'distributor', label:'Distributor',   desc:'External partner — sees only own deals, submits discount requests', color:'#7C3AED', bg:'#F5F3FF', bu:'VGT',  canEdit:true,  editOwn:true  },
   { value:'viewer_vgt',  label:'Viewer VGT',    desc:'Read-only — VGT deals only, no edit',                             color:'#1D9E75', bg:'#F0FDF9', bu:'VGT',  canEdit:false, editOwn:false },
   { value:'viewer_ect',  label:'Viewer ECT',    desc:'Read-only — ECT deals only, no edit',                             color:'#D85A30', bg:'#FFF5F2', bu:'ECT',  canEdit:false, editOwn:false },
   { value:'viewer_all',  label:'Viewer All',    desc:'Read-only — all deals both BUs, no edit',                         color:'#185FA5', bg:'#E6F1FB', bu:'both', canEdit:false, editOwn:false },
@@ -17,14 +18,15 @@ const ROLES = [
 
 // Permissions matrix for each role
 const PERMISSIONS = {
-  admin:      { deals:'VGT + ECT', dealEdit:'All deals', targets:'All teams', targetEdit:'All',      budget:true,  users:true  },
-  vgt_editor: { deals:'VGT only',  dealEdit:'All VGT',   targets:'VGT team',  targetEdit:'All VGT',  budget:false, users:false },
-  ect_editor: { deals:'ECT only',  dealEdit:'All ECT',   targets:'ECT team',  targetEdit:'All ECT',  budget:false, users:false },
-  vgt_member: { deals:'VGT only',  dealEdit:'Own only',  targets:'VGT team',  targetEdit:'Own only', budget:false, users:false },
-  ect_member: { deals:'ECT only',  dealEdit:'Own only',  targets:'ECT team',  targetEdit:'Own only', budget:false, users:false },
-  viewer_vgt: { deals:'VGT only',  dealEdit:'None',      targets:'VGT team',  targetEdit:'None',     budget:false, users:false },
-  viewer_ect: { deals:'ECT only',  dealEdit:'None',      targets:'ECT team',  targetEdit:'None',     budget:false, users:false },
-  viewer_all: { deals:'VGT + ECT', dealEdit:'None',      targets:'All teams', targetEdit:'None',     budget:false, users:false },
+  admin:       { deals:'VGT + ECT',  dealEdit:'All deals',  targets:'All teams', targetEdit:'All',      budget:true,  users:true  },
+  vgt_editor:  { deals:'VGT only',   dealEdit:'All VGT',    targets:'VGT team',  targetEdit:'All VGT',  budget:false, users:false },
+  ect_editor:  { deals:'ECT only',   dealEdit:'All ECT',    targets:'ECT team',  targetEdit:'All ECT',  budget:false, users:false },
+  vgt_member:  { deals:'VGT only',   dealEdit:'Own only',   targets:'VGT team',  targetEdit:'Own only', budget:false, users:false },
+  ect_member:  { deals:'ECT only',   dealEdit:'Own only',   targets:'ECT team',  targetEdit:'Own only', budget:false, users:false },
+  distributor: { deals:'Own deals',  dealEdit:'Own + discounts', targets:'None', targetEdit:'None',     budget:false, users:false },
+  viewer_vgt:  { deals:'VGT only',   dealEdit:'None',       targets:'VGT team',  targetEdit:'None',     budget:false, users:false },
+  viewer_ect:  { deals:'ECT only',   dealEdit:'None',       targets:'ECT team',  targetEdit:'None',     budget:false, users:false },
+  viewer_all:  { deals:'VGT + ECT',  dealEdit:'None',       targets:'All teams', targetEdit:'None',     budget:false, users:false },
 }
 
 function PermissionsLegend() {
@@ -116,7 +118,7 @@ function UserCard({ profile, onRoleChange, onOwnerChange, currentUserId, isAdmin
 
   const roleCfg = ROLES.find(r => r.value === profile.role) || ROLES[5]
   const isSelf  = profile.id === currentUserId
-  const needsOwner = ['vgt_editor','ect_editor','vgt_member','ect_member','viewer_vgt','viewer_ect'].includes(selectedRole)
+  const needsOwner = ['vgt_editor','ect_editor','vgt_member','ect_member','viewer_vgt','viewer_ect','distributor'].includes(selectedRole)
 
   async function save() {
     setSaving(true)
@@ -203,13 +205,15 @@ function UserCard({ profile, onRoleChange, onOwnerChange, currentUserId, isAdmin
           {needsOwner && (
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">
-                Link to Sales Target (name must match exactly)
+                {selectedRole === 'distributor' ? 'Distributor name (must match deal distributor field)' : 'Link to Sales Target (name must match exactly)'}
               </label>
               <input className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20"
                 value={ownerName} onChange={e => setOwnerName(e.target.value)}
-                placeholder="e.g. Paulo Cunha"/>
+                placeholder={selectedRole === 'distributor' ? 'e.g. Fujifilm Mexico' : 'e.g. Paulo Cunha'}/>
               <p className="text-[10px] text-gray-400 mt-1">
-                This user will only see their own Sales Target card
+                {selectedRole === 'distributor'
+                  ? 'Distributor only sees deals where distributor field matches this name'
+                  : 'This user will only see their own Sales Target card'}
               </p>
             </div>
           )}
