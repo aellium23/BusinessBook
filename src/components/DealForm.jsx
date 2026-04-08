@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { Modal } from '../components/ui'
 import { upsertDeal, upsertDealWithIntercompany } from '../hooks/useDeals'
 import { useAuth } from '../hooks/useAuth'
-import { Link } from 'lucide-react'
+import { supabase } from '../lib/supabase'
+import { Link, Clock, Plus } from 'lucide-react'
 
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
@@ -45,6 +46,9 @@ const EMPTY = {
   cs_month:'', cs_year:'', ce_month:'', ce_year:'',
   lost_reason:'',
   win_probability:'',
+  is_sla: false,
+  sla_owner: '',
+  sla_renewal_target: '',
 }
 
 export default function DealForm({ deal, onClose, onSaved }) {
@@ -54,6 +58,10 @@ export default function DealForm({ deal, onClose, onSaved }) {
     value_total: deal.value_total || '',
     gm_pct: deal.gm_pct != null ? (deal.gm_pct * 100).toFixed(1) : '',
     intercompany_value: deal.intercompany_value || '',
+    is_sla: deal.is_sla || false,
+    sla_owner: deal.sla_owner || '',
+    sla_renewal_target: deal.sla_renewal_target || '',
+    win_probability: deal.win_probability ?? '',
   } : {
     ...EMPTY,
     bu: isAdmin ? '' : profile?.role?.toUpperCase() || '',
@@ -62,8 +70,40 @@ export default function DealForm({ deal, onClose, onSaved }) {
   const [error, setError]     = useState('')
   const [preview, setPreview] = useState(null)
   const [icPreview, setIcPreview] = useState(null)
+  const [activities, setActivities] = useState([])
+  const [nextAction, setNextAction] = useState('')
+  const [nextActionDate, setNextActionDate] = useState('')
+  const [actNote, setActNote] = useState('')
+  const [addingAct, setAddingAct] = useState(false)
 
   const isMaint = form.deal_type === 'Maintenance'
+
+  // Load activity log for existing deal
+  useEffect(() => {
+    if (!deal?.id) return
+    supabase.from('deal_activities').select('*')
+      .eq('deal_id', deal.id).order('created_at', { ascending: false })
+      .then(({ data }) => setActivities(data || []))
+  }, [deal?.id])
+
+  async function addActivity() {
+    if (!deal?.id || !actNote) return
+    setAddingAct(true)
+    await supabase.from('deal_activities').insert({
+      deal_id: deal.id,
+      user_id: profile?.id,
+      user_name: profile?.full_name || profile?.email,
+      action_type: 'note',
+      note: actNote,
+      next_action: nextAction || null,
+      next_action_date: nextActionDate || null,
+    })
+    const { data } = await supabase.from('deal_activities').select('*')
+      .eq('deal_id', deal.id).order('created_at', { ascending: false })
+    setActivities(data || [])
+    setActNote(''); setNextAction(''); setNextActionDate('')
+    setAddingAct(false)
+  }
   const isECT   = form.bu === 'ECT'
   const hasIC   = isECT && parseFloat(form.intercompany_value) > 0
 
@@ -276,6 +316,37 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </div>
         </div>
 
+        {/* ── SLA SECTION ──────────────────────────────────────── */}
+        <div className={`rounded-xl p-4 space-y-3 border ${form.is_sla ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">SLA — Service Level Agreement</p>
+              <p className="text-[10px] text-gray-400 mt-0.5">Recurring contract · active during contract period</p>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <span className="text-xs text-gray-500">{form.is_sla ? 'Active SLA' : 'Not SLA'}</span>
+              <div className={`w-10 h-5 rounded-full transition-colors relative ${form.is_sla ? 'bg-blue-500' : 'bg-gray-300'}`}
+                onClick={() => set('is_sla', !form.is_sla)}>
+                <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.is_sla ? 'translate-x-5' : 'translate-x-0.5'}`}/>
+              </div>
+            </label>
+          </div>
+          {form.is_sla && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">SLA Owner</label>
+                <input className="input bg-white" value={form.sla_owner} onChange={e => set('sla_owner', e.target.value)} placeholder="Name responsible for renewal"/>
+              </div>
+              <div>
+                <label className="label">Renewal target %</label>
+                <input className="input bg-white" type="number" min="0" max="100"
+                  value={form.sla_renewal_target} onChange={e => set('sla_renewal_target', e.target.value)}
+                  placeholder="e.g. 5 for +5% growth"/>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* ── INTERCOMPANY (ECT only) ────────────────────────────── */}
         {isECT && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
@@ -423,6 +494,50 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Activity Log (only for existing deals) */}
+        {deal?.id && (
+          <div className="space-y-2">
+            <p className="label flex items-center gap-1.5"><Clock size={12}/> Activity log</p>
+
+            {/* Add activity */}
+            <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+              <textarea className="input text-xs resize-none" rows={2}
+                placeholder="Note or update…"
+                value={actNote} onChange={e => setActNote(e.target.value)}/>
+              <div className="grid grid-cols-2 gap-2">
+                <input className="input text-xs py-1" placeholder="Next action"
+                  value={nextAction} onChange={e => setNextAction(e.target.value)}/>
+                <input className="input text-xs py-1" type="date"
+                  value={nextActionDate} onChange={e => setNextActionDate(e.target.value)}/>
+              </div>
+              <button onClick={addActivity} disabled={!actNote || addingAct}
+                className="btn-secondary text-xs w-full">
+                <Plus size={11}/> {addingAct ? 'Adding…' : 'Add note'}
+              </button>
+            </div>
+
+            {/* Activity list */}
+            {activities.length > 0 && (
+              <div className="space-y-1 max-h-40 overflow-y-auto">
+                {activities.map(a => (
+                  <div key={a.id} className="bg-white border border-gray-100 rounded-lg px-3 py-2">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-[10px] font-medium text-gray-500">{a.user_name || 'User'}</span>
+                      <span className="text-[10px] text-gray-400">{new Date(a.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <p className="text-xs text-gray-700">{a.note}</p>
+                    {a.next_action && (
+                      <p className="text-[10px] text-blue-600 mt-0.5">
+                        → {a.next_action}{a.next_action_date ? ` · ${new Date(a.next_action_date).toLocaleDateString()}` : ''}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
