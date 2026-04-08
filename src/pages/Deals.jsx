@@ -49,6 +49,11 @@ function DealCard({ deal, onEdit, onDelete, canEdit }) {
             <StageBadge stage={deal.stage} />
             <SalesTypeBadge type={deal.sales_type} />
             <AgingBadge days={agingDays(deal)} />
+            {deal.product && (
+              <span className="inline-flex px-2 py-0.5 rounded text-xs font-bold bg-navy/10 text-navy">
+                {deal.product}
+              </span>
+            )}
             {deal.win_probability !== null && deal.win_probability !== undefined && (
               <span className={`inline-flex px-2 py-0.5 rounded text-xs font-bold ${
                 deal.win_probability >= 80 ? 'bg-green-100 text-green-700' :
@@ -98,6 +103,19 @@ function DealCard({ deal, onEdit, onDelete, canEdit }) {
           {deal.description && <p className="text-xs text-gray-500 truncate mt-0.5">{deal.description}</p>}
           {deal.stage === 'Lost' && deal.lost_reason && (
             <p className="text-xs text-red-500 mt-0.5">Lost: {deal.lost_reason}</p>
+          )}
+          {(deal.equipment_count || deal.annual_studies || deal.annual_exams) && (
+            <div className="flex items-center gap-2 flex-wrap mt-0.5">
+              {deal.equipment_count && (
+                <span className="text-[10px] text-gray-400">📡 {deal.equipment_count} equip.</span>
+              )}
+              {deal.annual_studies && (
+                <span className="text-[10px] text-gray-400">📊 {Number(deal.annual_studies).toLocaleString()} studies/yr</span>
+              )}
+              {deal.annual_exams && (
+                <span className="text-[10px] text-gray-400">📋 {Number(deal.annual_exams).toLocaleString()} exams/yr</span>
+              )}
+            </div>
           )}
           {(deal.end_customer || deal.distributor || deal.hub) && (
             <div className="flex items-center gap-1 flex-wrap mt-1">
