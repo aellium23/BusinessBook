@@ -117,6 +117,9 @@ export default function Dashboard() {
     return 'EST2'
   }, [])
 
+  const [selectedCycle, setSelectedCycle] = useState(null)
+  const displayCycle = selectedCycle || activeCycle
+
   // Budget totals per BU
   const budgetTotals = useMemo(() => {
     const get = (bu, key) => {
@@ -162,38 +165,40 @@ export default function Dashboard() {
     return result
   }, [deals])
 
-  // Monthly chart data — Actuals + Forecast + Plan
-  const monthlyData = useMemo(() => {
-    const getPlan = (m_idx) => {
+  // Monthly chart data — per BU
+  const monthlyDataByBU = useMemo(() => {
+    const getPlan = (bu, m_idx, cycle) => {
       let plan = 0
-      ;['VGT','ECT'].forEach(bu => {
-        ;['ns_int','ns_ext'].forEach(key => {
-          const row = budget.find(r => r.bu === bu && r.cycle === activeCycle && r.pl_key === key)
-          if (row) plan += row[MONTHS_K[m_idx]] || 0
-        })
+      ;['ns_int','ns_ext'].forEach(key => {
+        const row = budget.find(r => r.bu === bu && r.cycle === cycle && r.pl_key === key)
+        if (row) plan += row[MONTHS_K[m_idx]] || 0
       })
       return plan
     }
-    const getPY = (m_idx) => {
-      return fy25.reduce((s, r) => s + (r[MONTHS_K[m_idx]] || 0), 0)
+    const getPY = (bu, m_idx) => {
+      return fy25.filter(r => r.bu === bu && r.pl_key === 'ns')
+        .reduce((s, r) => s + (r[MONTHS_K[m_idx]] || 0), 0)
     }
-    return MONTHS.map((m, i) => {
-      let actuals = 0, forecast = 0
-      deals.forEach(d => {
-        if (d.is_intercompany_mirror) return
-        const v = d[MONTHS_K[i]] || 0
-        if (d.stage === 'Invoiced') actuals += v / 1000
-        else if (d.stage === 'BackLog') forecast += v / 1000
+    return ['VGT','ECT'].reduce((acc, bu) => {
+      acc[bu] = MONTHS.map((m, i) => {
+        let actuals = 0, forecast = 0
+        deals.forEach(d => {
+          if (d.is_intercompany_mirror || d.bu !== bu) return
+          const v = d[MONTHS_K[i]] || 0
+          if (d.stage === 'Invoiced') actuals += v / 1000
+          else if (d.stage === 'BackLog') forecast += v / 1000
+        })
+        return {
+          month: m,
+          Actuals:  Math.round(actuals * 10) / 10,
+          Forecast: Math.round(forecast * 10) / 10,
+          Plan:     Math.round(getPlan(bu, i, displayCycle) * 10) / 10,
+          FY25:     Math.round(getPY(bu, i) * 10) / 10,
+        }
       })
-      return {
-        month: m,
-        Actuals:  Math.round(actuals * 10) / 10,
-        Forecast: Math.round(forecast * 10) / 10,
-        Plan:     Math.round(getPlan(i) * 10) / 10,
-        FY25:     Math.round(getPY(i) * 10) / 10,
-      }
-    })
-  }, [deals, budget, fy25, activeCycle])
+      return acc
+    }, {})
+  }, [deals, budget, fy25, displayCycle])
 
   // Region breakdown
   const regionData = useMemo(() => {
@@ -307,31 +312,62 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── MONTHLY EVOLUTION ─────────────────────────────────────────────── */}
+      {/* ── MONTHLY EVOLUTION — VGT + ECT separate ───────────────────────── */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Monthly sales evolution · K€</p>
-          <div className="flex gap-3 text-[10px] text-gray-400">
-            <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-vgt inline-block"/>Actuals</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-blue-300 inline-block"/>Forecast</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-gray-400 inline-block"/>Plan</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-0.5 border-t-2 border-dashed border-purple-400 inline-block"/>FY25</span>
+        {/* Cycle selector */}
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Monthly sales · K€</p>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-gray-400">Plan cycle:</span>
+            {['BUD','EST1','EST2'].map(c => (
+              <button key={c} onClick={() => setSelectedCycle(c)}
+                className={`text-xs px-2 py-0.5 rounded font-bold transition-colors ${
+                  displayCycle === c
+                    ? c==='BUD' ? 'bg-blue-200 text-blue-900'
+                    : c==='EST1' ? 'bg-green-200 text-green-900'
+                    : 'bg-amber-200 text-amber-900'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}>
+                {c}{activeCycle===c ? ' ●' : ''}
+              </button>
+            ))}
           </div>
         </div>
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={monthlyData} barGap={2} margin={{ top:4, right:0, left:-20, bottom:0 }}>
-            <XAxis dataKey="month" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-            <Tooltip contentStyle={TOOLTIP_STYLE}
-              formatter={(v, name) => [`€${v}K`, name]} />
-            <Bar dataKey="Actuals"  fill="#1D9E75" radius={[3,3,0,0]} />
-            <Bar dataKey="Forecast" fill="#B5D4F4" radius={[3,3,0,0]} />
-            <Line dataKey="Plan" type="monotone" stroke="#9CA3AF"
-              strokeWidth={1.5} dot={false} />
-            <Line dataKey="FY25" type="monotone" stroke="#A78BFA"
-              strokeWidth={1.5} strokeDasharray="4 2" dot={false} />
-          </BarChart>
-        </ResponsiveContainer>
+
+        {/* Legend */}
+        <div className="flex gap-4 text-[10px] text-gray-400 mb-3">
+          <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm inline-block" style={{background:'#1D9E75'}}/>Actuals</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-blue-200 inline-block"/>Forecast</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-gray-400 inline-block"/>Plan ({displayCycle})</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-0.5 border-t-2 border-dashed border-purple-400 inline-block"/>FY25</span>
+        </div>
+
+        {/* Two charts side by side on desktop, stacked on mobile */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {[
+            { bu: 'VGT', label: 'VGT · Portugal', actColor: '#1D9E75', fcColor: '#9FE1CB' },
+            { bu: 'ECT', label: 'ECT · Spain',    actColor: '#D85A30', fcColor: '#F5C4B3' },
+          ].map(({ bu, label, actColor, fcColor }) => (
+            <div key={bu}>
+              <p className="text-xs font-semibold mb-2" style={{ color: actColor }}>{label}</p>
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={monthlyDataByBU[bu] || []} barGap={2}
+                  margin={{ top:4, right:4, left:-24, bottom:0 }}>
+                  <XAxis dataKey="month" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE}
+                    formatter={(v, name) => [`€${v}K`, name]} />
+                  <Bar dataKey="Actuals"  fill={actColor} radius={[3,3,0,0]} />
+                  <Bar dataKey="Forecast" fill={fcColor}  radius={[3,3,0,0]} />
+                  <Line dataKey="Plan" type="monotone" stroke="#9CA3AF"
+                    strokeWidth={1.5} dot={false} />
+                  <Line dataKey="FY25" type="monotone" stroke="#A78BFA"
+                    strokeWidth={1.5} strokeDasharray="4 2" dot={false} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* ── VGT vs ECT SPLIT ──────────────────────────────────────────────── */}
