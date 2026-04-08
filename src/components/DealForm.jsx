@@ -3,7 +3,7 @@ import { Modal } from '../components/ui'
 import { upsertDeal, upsertDealWithIntercompany } from '../hooks/useDeals'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Link, Clock, Plus } from 'lucide-react'
+import { Link, Clock, Plus, AlertCircle, CheckCircle, XCircle, RefreshCw as CounterIcon } from 'lucide-react'
 
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
@@ -53,6 +53,67 @@ const EMPTY = {
   distributor: '',
   hub: '',
   end_customer_value: '',
+  list_price: '',
+  discount_requested: '',
+  discount_note_dist: '',
+}
+
+function DiscountApprovalPanel({ deal, onSave }) {
+  const [approved, setApproved] = useState(deal.discount_approved ?? '')
+  const [transfer, setTransfer] = useState(deal.transfer_price ?? '')
+  const [note, setNote]         = useState(deal.discount_note || '')
+  const [status, setStatus]     = useState(deal.discount_status || 'pending')
+  const [saving, setSaving]     = useState(false)
+
+  async function save() {
+    setSaving(true)
+    await supabase.from('deals').update({
+      discount_approved: parseFloat(approved) || null,
+      transfer_price:    parseFloat(transfer) || null,
+      discount_note:     note,
+      discount_status:   status,
+    }).eq('id', deal.id)
+    setSaving(false)
+    onSave?.()
+  }
+
+  return (
+    <div className="border-t border-gray-200 pt-3 space-y-3">
+      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">VGT Response</p>
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <label className="label">Decision</label>
+          <select className="select" value={status} onChange={e => setStatus(e.target.value)}>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="counter">Counter offer</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+        <div>
+          <label className="label">Approved discount %</label>
+          <input className="input" type="number" min="0" max="100"
+            value={approved} onChange={e => setApproved(e.target.value)}
+            placeholder="e.g. 12"/>
+        </div>
+        <div>
+          <label className="label">Transfer price €</label>
+          <input className="input" type="number"
+            value={transfer} onChange={e => setTransfer(e.target.value)}
+            placeholder="Price to distributor"/>
+        </div>
+      </div>
+      <div>
+        <label className="label">Note to distributor</label>
+        <input className="input" value={note} onChange={e => setNote(e.target.value)}
+          placeholder="Reason, conditions, expiry…"/>
+      </div>
+      <button onClick={save} disabled={saving}
+        className="w-full btn-primary text-xs">
+        {saving ? 'Saving…' : 'Save VGT response'}
+      </button>
+    </div>
+  )
 }
 
 export default function DealForm({ deal, onClose, onSaved }) {
@@ -70,6 +131,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
     distributor: deal.distributor || '',
     hub: deal.hub || '',
     end_customer_value: deal.end_customer_value || '',
+    list_price: deal.list_price || '',
+    discount_requested: deal.discount_requested || '',
+    discount_note_dist: deal.discount_note_dist || '',
   } : {
     ...EMPTY,
     bu: isAdmin ? '' : profile?.role?.toUpperCase() || '',
@@ -85,6 +149,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
   const [addingAct, setAddingAct] = useState(false)
 
   const isMaint = form.deal_type === 'Maintenance'
+  const isDistributor = profile?.role === 'distributor'
 
   // Load activity log for existing deal
   useEffect(() => {
@@ -392,6 +457,98 @@ export default function DealForm({ deal, onClose, onSaved }) {
             )}
           </div>
         ) : null}
+
+        {/* ── DISCOUNT REQUEST ─────────────────────────────────── */}
+        {(isDistributor || deal?.discount_status || deal?.discount_requested) && (
+          <div className={`rounded-xl p-4 space-y-3 border ${
+            deal?.discount_status === 'approved' ? 'bg-green-50 border-green-200' :
+            deal?.discount_status === 'rejected' ? 'bg-red-50 border-red-200' :
+            deal?.discount_status === 'counter'  ? 'bg-amber-50 border-amber-200' :
+            deal?.discount_status === 'pending'  ? 'bg-blue-50 border-blue-200' :
+            'bg-gray-50 border-gray-200'
+          }`}>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                Discount request
+              </p>
+              {deal?.discount_status && (
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                  deal.discount_status === 'approved' ? 'bg-green-100 text-green-700' :
+                  deal.discount_status === 'rejected' ? 'bg-red-100 text-red-700' :
+                  deal.discount_status === 'counter'  ? 'bg-amber-100 text-amber-700' :
+                  'bg-blue-100 text-blue-700'
+                }`}>
+                  {deal.discount_status === 'approved' && <CheckCircle size={10}/>}
+                  {deal.discount_status === 'rejected' && <XCircle size={10}/>}
+                  {deal.discount_status === 'counter'  && <CounterIcon size={10}/>}
+                  {deal.discount_status === 'pending'  && <AlertCircle size={10}/>}
+                  {deal.discount_status.charAt(0).toUpperCase() + deal.discount_status.slice(1)}
+                </span>
+              )}
+            </div>
+
+            {/* Distributor fills these */}
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="label">List price €</label>
+                <input className="input" type="number"
+                  value={form.list_price}
+                  onChange={e => set('list_price', e.target.value)}
+                  disabled={!isDistributor && !!deal?.id}
+                  placeholder="Catalogue price"/>
+              </div>
+              <div>
+                <label className="label">Discount requested %</label>
+                <input className="input" type="number" min="0" max="100"
+                  value={form.discount_requested}
+                  onChange={e => set('discount_requested', e.target.value)}
+                  disabled={!isDistributor && !!deal?.id}
+                  placeholder="e.g. 15"/>
+              </div>
+              <div>
+                <label className="label">Your price to client €</label>
+                <div className="input bg-gray-50 text-gray-600 text-sm">
+                  {form.list_price && form.discount_requested
+                    ? `€${(Number(form.list_price) * (1 - Number(form.discount_requested)/100)).toLocaleString('pt-PT', {maximumFractionDigits:0})}`
+                    : '—'}
+                </div>
+              </div>
+            </div>
+
+            {/* Distributor note */}
+            <div>
+              <label className="label">
+                {isDistributor ? 'Your note to VGT' : 'Distributor note'}
+              </label>
+              <input className="input" value={form.discount_note_dist}
+                onChange={e => set('discount_note_dist', e.target.value)}
+                disabled={!isDistributor}
+                placeholder="Reason for discount request, competition, client budget…"/>
+            </div>
+
+            {/* Admin response - only visible/editable by admin/vgt */}
+            {!isDistributor && deal?.discount_requested && (
+              <DiscountApprovalPanel deal={deal} onSave={onSaved}/>
+            )}
+
+            {/* Distributor sees response */}
+            {isDistributor && deal?.discount_status && deal.discount_status !== 'pending' && (
+              <div className={`p-3 rounded-lg ${
+                deal.discount_status === 'approved' ? 'bg-green-100' :
+                deal.discount_status === 'rejected' ? 'bg-red-100' : 'bg-amber-100'
+              }`}>
+                <p className="text-xs font-semibold text-gray-700 mb-1">VGT response</p>
+                {deal.discount_approved !== null && (
+                  <p className="text-sm font-bold text-gray-900">
+                    Approved discount: {deal.discount_approved}%
+                    {deal.transfer_price && ` → Transfer price: €${deal.transfer_price.toLocaleString()}`}
+                  </p>
+                )}
+                {deal.discount_note && <p className="text-xs text-gray-600 mt-0.5">{deal.discount_note}</p>}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── SLA SECTION ──────────────────────────────────────── */}
         <div className={`rounded-xl p-4 space-y-3 border ${form.is_sla ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
