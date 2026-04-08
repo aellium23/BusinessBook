@@ -1,12 +1,14 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { signOut } from '../lib/supabase'
-import { LayoutDashboard, List, DollarSign, Users, LogOut, ChevronRight, History } from 'lucide-react'
+import { LayoutDashboard, List, DollarSign, Users, LogOut, ChevronRight, History, Building2, Target } from 'lucide-react'
 
 const nav = [
   { to: '/',        icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/deals',   icon: List,            label: 'Deals'     },
+  { to: '/clients', icon: Building2,       label: 'Clients'   },
   { to: '/history', icon: History,         label: 'History'   },
+  { to: '/quotas',  icon: Target,          label: 'Quotas', adminOnly: true },
   { to: '/budget',  icon: DollarSign,      label: 'Budget', adminOnly: true },
   { to: '/users',   icon: Users,           label: 'Users',  adminOnly: true },
 ]
