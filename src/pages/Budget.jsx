@@ -31,6 +31,16 @@ const BU_CONFIG = {
   ALL: { color:'#0D2137', bg:'#F1EFE8', label:'Iberia · Consolidated' },
 }
 
+const PERIODS = {
+  FY:  { label:'Full Year', months: ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar'], display: ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'] },
+  Q1:  { label:'Q1 (Apr–Jun)', months: ['apr','may','jun'], display: ['Apr','May','Jun'] },
+  Q2:  { label:'Q2 (Jul–Sep)', months: ['jul','aug','sep'], display: ['Jul','Aug','Sep'] },
+  Q3:  { label:'Q3 (Oct–Dec)', months: ['oct','nov','dec'], display: ['Oct','Nov','Dec'] },
+  Q4:  { label:'Q4 (Jan–Mar)', months: ['jan','feb','mar'], display: ['Jan','Feb','Mar'] },
+  H1:  { label:'1H (Apr–Sep)', months: ['apr','may','jun','jul','aug','sep'], display: ['Apr','May','Jun','Jul','Aug','Sep'] },
+  H2:  { label:'2H (Oct–Mar)', months: ['oct','nov','dec','jan','feb','mar'], display: ['Oct','Nov','Dec','Jan','Feb','Mar'] },
+}
+
 const ACTIVE_CYCLE = () => {
   const m = new Date().getMonth() + 1
   if (m >= 4 && m <= 6) return 'BUD'
@@ -72,6 +82,7 @@ export default function Budget() {
   const [activeBu, setActiveBu]       = useState('VGT')
   const [activeCycle, setActiveCycle] = useState(ACTIVE_CYCLE())
   const [focusCell, setFocusCell]     = useState(null)
+  const [activePeriod, setActivePeriod] = useState('FY')
   const activeCycleDefault = ACTIVE_CYCLE()
 
   useEffect(() => {
@@ -220,10 +231,12 @@ export default function Budget() {
                 <th className="text-left px-4 py-3 font-bold w-28 sticky left-0" style={{ background:buCfg.bg, color:buCfg.color }}>
                   {buCfg.label}
                 </th>
-                {MONTHS.map(m => (
+                {PERIODS[activePeriod].display.map(m => (
                   <th key={m} className="px-1.5 py-3 font-semibold text-gray-500 text-center w-14">{m}</th>
                 ))}
-                <th className="px-3 py-3 font-bold text-gray-800 text-center w-16">FY26</th>
+                <th className="px-3 py-3 font-bold text-gray-800 text-center w-16">
+                  {activePeriod === 'FY' ? 'FY26' : PERIODS[activePeriod].label.split(' ')[0]}
+                </th>
                 {refCycle && <th className="px-3 py-3 font-medium text-gray-400 text-center w-16">vs {CYCLE_CONFIG[refCycle].label}</th>}
               </tr>
             </thead>
@@ -231,17 +244,21 @@ export default function Budget() {
               {PL_LINES.map(({ key, label, input, group }, lineIdx) => {
                 const isTotal = group === 'total'
                 const rowVals = Object.fromEntries(
-                  PL_LINES.filter(l=>l.input).map(l => [l.key, MONTHS_K.reduce((s,m)=>s+getVal(activeBu,activeCycle,l.key,m),0)])
+                  PL_LINES.filter(l=>l.input).map(l => [l.key, PERIODS[activePeriod].months.reduce((s,m)=>s+getVal(activeBu,activeCycle,l.key,m),0)])
                 )
                 const derived = calcDerived(rowVals)
+                const periodMonths = PERIODS[activePeriod].months
                 const annualVal = input
-                  ? MONTHS_K.reduce((s,m)=>s+getVal(activeBu,activeCycle,key,m),0)
-                  : derived[key] || 0
+                  ? periodMonths.reduce((s,m)=>s+getVal(activeBu,activeCycle,key,m),0)
+                  : (() => {
+                      const pVals = Object.fromEntries(PL_LINES.filter(l=>l.input).map(l=>[l.key, periodMonths.reduce((s,m)=>s+getVal(activeBu,activeCycle,l.key,m),0)]))
+                      return calcDerived(pVals)[key] || 0
+                    })()
 
                 const refAnnual = refCycle
                   ? (input
-                    ? MONTHS_K.reduce((s,m)=>s+getVal(activeBu,refCycle,key,m),0)
-                    : calcDerived(Object.fromEntries(PL_LINES.filter(l=>l.input).map(l=>[l.key,MONTHS_K.reduce((s,m)=>s+getVal(activeBu,refCycle,l.key,m),0)])))[key] || 0)
+                    ? periodMonths.reduce((s,m)=>s+getVal(activeBu,refCycle,key,m),0)
+                    : calcDerived(Object.fromEntries(PL_LINES.filter(l=>l.input).map(l=>[l.key,periodMonths.reduce((s,m)=>s+getVal(activeBu,refCycle,l.key,m),0)])))[key] || 0)
                   : null
 
                 return (
@@ -260,7 +277,7 @@ export default function Budget() {
                     </td>
 
                     {/* Monthly cells */}
-                    {MONTHS_K.map((mk, mi) => {
+                    {PERIODS[activePeriod].months.map((mk, mi) => {
                       const mRowVals = Object.fromEntries(
                         PL_LINES.filter(l=>l.input).map(l=>[l.key, getVal(activeBu,activeCycle,l.key,mk)])
                       )
@@ -322,11 +339,27 @@ export default function Budget() {
         </div>
       </div>
 
+      {/* Period selector */}
+      <div className="flex items-center gap-1 flex-wrap">
+        <span className="text-xs text-gray-400 mr-1">Period:</span>
+        {Object.entries(PERIODS).map(([key, p]) => (
+          <button key={key} onClick={() => setActivePeriod(key)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+              activePeriod === key
+                ? 'text-white border-transparent shadow-sm'
+                : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+            }`}
+            style={activePeriod === key ? { background: buCfg.color } : {}}>
+            {key === 'FY' ? 'Full Year' : key}
+          </button>
+        ))}
+      </div>
+
       {/* Bottom hint */}
       <p className="text-xs text-gray-400 text-center">
         {activeBu === 'ALL'
-          ? `Read-only consolidated view · Values in K€ · ${cycleCfg.label}`
-          : `Click any cell to edit · Values in K€ · ${cycleCfg.label} cycle`
+          ? `Read-only consolidated view · K€ · ${cycleCfg.label} · ${PERIODS[activePeriod].label}`
+          : `Click any cell to edit · K€ · ${cycleCfg.label} · ${PERIODS[activePeriod].label}`
         }
         {refCycle && ` · Trend vs ${CYCLE_CONFIG[refCycle].label}`}
       </p>
