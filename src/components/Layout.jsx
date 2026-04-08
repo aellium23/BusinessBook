@@ -70,14 +70,24 @@ export default function Layout({ children }) {
           {/* Watermark */}
           <div className="pointer-events-none fixed inset-0 flex items-center justify-center z-0"
             style={{ left: '13rem' }}>
-            <svg viewBox="0 0 340 400" xmlns="http://www.w3.org/2000/svg"
-              style={{ width: 'min(40vw, 380px)', opacity: 0.055 }}>
-              {/* Left blade — tapers from top-left to bottom centre */}
-              <path d="M 10 10 C 10 10 170 10 175 18 C 178 24 172 32 170 40 L 168 50 L 170 380 C 170 380 10 10 10 10 Z"
-                fill="#0D2137"/>
-              {/* Right blade — mirror, dark red */}
-              <path d="M 330 10 C 330 10 170 10 165 18 C 162 24 168 32 170 40 L 172 50 L 170 380 C 170 380 330 10 330 10 Z"
-                fill="#7B1C2E"/>
+            <svg viewBox="0 0 260 440" xmlns="http://www.w3.org/2000/svg"
+              style={{ width: 'min(28vw, 280px)', opacity: 0.1 }}>
+              <path d="
+                M 8 8
+                C 35 6 112 4 120 16
+                C 125 24 120 36 116 50
+                L 113 65
+                C 110 95 109 155 124 430
+                C 90 340 50 220 8 8 Z
+              " fill="#1a1a1a"/>
+              <path d="
+                M 252 8
+                C 225 6 148 4 140 16
+                C 135 24 140 36 144 50
+                L 147 65
+                C 150 95 151 155 136 430
+                C 170 340 210 220 252 8 Z
+              " fill="#7B1C2E"/>
             </svg>
           </div>
           <div className="relative z-10">
