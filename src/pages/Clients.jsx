@@ -88,11 +88,20 @@ function ClientCard({ client, deals }) {
           {deals.map(d => {
             const fy = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
             return (
-              <div key={d.id} className="flex items-center justify-between px-4 py-2 border-b border-gray-50 last:border-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <StageBadge stage={d.stage}/>
-                  {d.is_sla && <RefreshCw size={10} className="text-blue-500 shrink-0"/>}
-                  <span className="text-xs text-gray-700 truncate">{d.description || d.deal_type}</span>
+              <div key={d.id} className="flex items-start justify-between px-4 py-2 border-b border-gray-50 last:border-0">
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <StageBadge stage={d.stage}/>
+                    {d.is_sla && <RefreshCw size={10} className="text-blue-500 shrink-0"/>}
+                    <span className="text-xs text-gray-700 truncate">{d.description || d.deal_type}</span>
+                  </div>
+                  {(d.end_customer || d.distributor || d.hub) && (
+                    <div className="flex items-center gap-1 flex-wrap ml-0.5">
+                      {d.end_customer && <span className="text-[9px] bg-blue-50 text-blue-600 px-1 py-0.5 rounded">{d.end_customer}</span>}
+                      {d.distributor && <><span className="text-gray-300 text-[9px]">→</span><span className="text-[9px] bg-amber-50 text-amber-600 px-1 py-0.5 rounded">{d.distributor}</span></>}
+                      {d.hub && <><span className="text-gray-300 text-[9px]">→</span><span className="text-[9px] bg-purple-50 text-purple-600 px-1 py-0.5 rounded">{d.hub}</span></>}
+                    </div>
+                  )}
                 </div>
                 <div className="text-right shrink-0 ml-2">
                   <p className="text-xs font-medium text-gray-800">{formatK(d.value_total)}</p>
