@@ -101,7 +101,6 @@ function getFYMonthIndex() {
   const m = new Date().getMonth() + 1 // 1-12
   return (m - 4 + 12) % 12
 }
-const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
 const MONTHS_LABEL = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 
 function pct(value, reference) {
