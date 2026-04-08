@@ -8,7 +8,7 @@ const nav = [
   { to: '/deals',   icon: List,            label: 'Deals'     },
   { to: '/clients', icon: Building2,       label: 'Clients'   },
   { to: '/history', icon: History,         label: 'History'   },
-  { to: '/quotas',  icon: Target,          label: 'Quotas', adminOnly: true },
+  { to: '/quotas',  icon: Target,          label: 'Sales Targets', adminOnly: true },
   { to: '/budget',  icon: DollarSign,      label: 'Budget', adminOnly: true },
   { to: '/users',   icon: Users,           label: 'Users',  adminOnly: true },
 ]
