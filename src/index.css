@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body { @apply bg-gray-50 text-gray-900 antialiased; }
+  * { @apply box-border; }
+}
+
+@layer components {
+  .card  { @apply bg-white rounded-xl border border-gray-200 shadow-sm; }
+  .btn   { @apply inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors; }
+  .btn-primary   { @apply btn bg-navy text-white hover:bg-navy-light; }
+  .btn-secondary { @apply btn bg-gray-100 text-gray-700 hover:bg-gray-200; }
+  .btn-danger    { @apply btn bg-red-50 text-red-700 hover:bg-red-100; }
+  .input  { @apply w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy/30; }
+  .select { @apply input bg-white; }
+  .label  { @apply block text-xs font-medium text-gray-500 mb-1; }
+  .badge-vgt  { @apply inline-flex px-2 py-0.5 rounded text-xs font-bold bg-vgt text-white; }
+  .badge-ect  { @apply inline-flex px-2 py-0.5 rounded text-xs font-bold bg-ect text-white; }
+  .badge-int  { @apply inline-flex px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white; }
+  .badge-ext  { @apply inline-flex px-2 py-0.5 rounded text-xs font-bold bg-blue-700 text-white; }
+  .badge-lead     { @apply inline-flex px-2 py-0.5 rounded text-xs font-bold bg-pink-200 text-pink-900; }
+  .badge-pipeline { @apply inline-flex px-2 py-0.5 rounded text-xs font-bold bg-amber-200 text-amber-900; }
+  .badge-backlog  { @apply inline-flex px-2 py-0.5 rounded text-xs font-bold bg-blue-200 text-blue-900; }
+  .badge-invoiced { @apply inline-flex px-2 py-0.5 rounded text-xs font-bold bg-green-200 text-green-900; }
+}
