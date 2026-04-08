@@ -12,56 +12,53 @@ const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','f
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 
 // ── Gauge chart (SVG semi-circle) ─────────────────────────────────────────
-function Gauge({ value, max, label, sub, color = '#1D9E75', size = 160 }) {
-  const pct    = max > 0 ? Math.min(value / max, 1.4) : 0
-  const angle  = pct * 180
-  const r      = size * 0.38
-  const cx     = size / 2
-  const cy     = size * 0.56
-  const toRad  = a => (a - 180) * Math.PI / 180
+function Gauge({ value, max, label, sub, color = '#1D9E75' }) {
+  const size = 180
+  const pct  = max > 0 ? Math.min(value / max, 1.35) : 0
+  const angle = pct * 180
+  const r  = 68
+  const cx = size / 2
+  const cy = 100
+  const toRad = a => (a - 180) * Math.PI / 180
   const x1 = cx + r * Math.cos(toRad(0))
   const y1 = cy + r * Math.sin(toRad(0))
   const x2 = cx + r * Math.cos(toRad(angle))
   const y2 = cy + r * Math.sin(toRad(angle))
   const large = angle > 180 ? 1 : 0
   const pctDisplay = max > 0 ? ((value / max - 1) * 100).toFixed(1) : '—'
-  const isOver = value > max
-  const trackColor = '#E5E7EB'
+  const isOver = value >= max
 
   return (
     <div className="flex flex-col items-center">
-      <svg width={size} height={size * 0.62} viewBox={`0 0 ${size} ${size * 0.62}`}>
+      <svg width={size} height={115} viewBox={`0 0 ${size} 115`}>
         {/* Track */}
-        <path
-          d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
-          fill="none" stroke={trackColor} strokeWidth={size * 0.08} strokeLinecap="round"
-        />
+        <path d={`M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}`}
+          fill="none" stroke="#E5E7EB" strokeWidth={14} strokeLinecap="round"/>
         {/* Value arc */}
         {pct > 0 && (
-          <path
-            d={`M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`}
-            fill="none" stroke={isOver ? '#1D9E75' : color}
-            strokeWidth={size * 0.08} strokeLinecap="round"
-          />
+          <path d={`M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`}
+            fill="none" stroke={color} strokeWidth={14} strokeLinecap="round"/>
         )}
-        {/* Centre value */}
-        <text x={cx} y={cy - 2} textAnchor="middle"
-          style={{ fontSize: size * 0.14, fontWeight: 700, fill: '#111827', fontFamily: 'Arial' }}>
+        {/* Value text */}
+        <text x={cx} y={86} textAnchor="middle" dominantBaseline="middle"
+          style={{ fontSize: 20, fontWeight: 700, fill: '#111827', fontFamily: 'Arial' }}>
           {formatK(value)}
         </text>
-        {/* Plan label */}
-        <text x={cx} y={cy + size * 0.1} textAnchor="middle"
-          style={{ fontSize: size * 0.085, fill: '#9CA3AF', fontFamily: 'Arial' }}>
+        {/* Plan text */}
+        <text x={cx} y={104} textAnchor="middle"
+          style={{ fontSize: 11, fill: '#9CA3AF', fontFamily: 'Arial' }}>
           Plan {formatK(max)}
         </text>
       </svg>
-      <p className="text-xs font-semibold text-gray-600 -mt-1">{label}</p>
-      <span className={`text-xs font-bold mt-0.5 px-2 py-0.5 rounded-full ${
-        isOver ? 'bg-green-100 text-green-700' : value > 0 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'
+      <p className="text-xs font-semibold text-gray-700 mt-1 text-center">{label}</p>
+      <span className={`text-xs font-bold mt-1 px-2 py-0.5 rounded-full ${
+        isOver ? 'bg-green-100 text-green-700'
+        : value > 0 ? 'bg-amber-100 text-amber-700'
+        : 'bg-gray-100 text-gray-500'
       }`}>
-        {pctDisplay !== '—' ? `${isOver ? '+' : ''}${pctDisplay}% vs Plan` : '—'}
+        {pctDisplay !== '—' ? `${isOver?'+':''}${pctDisplay}% vs Plan` : '—'}
       </span>
-      {sub && <p className="text-[10px] text-gray-400 mt-0.5">{sub}</p>}
+      {sub && <p className="text-[10px] text-gray-400 mt-0.5 text-center">{sub}</p>}
     </div>
   )
 }
