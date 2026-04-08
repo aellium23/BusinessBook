@@ -3,7 +3,7 @@ import { useDeals, deleteDeal } from '../hooks/useDeals'
 import { useAuth } from '../hooks/useAuth'
 import { BUBadge, StageBadge, SalesTypeBadge, Spinner, EmptyState, formatK } from '../components/ui'
 import DealForm from '../components/DealForm'
-import { Plus, Search, Trash2, Pencil, ChevronDown, ChevronUp, Link, AlertTriangle, Clock } from 'lucide-react'
+import { Plus, Search, Trash2, Pencil, ChevronDown, ChevronUp, Link, AlertTriangle, Clock, Download, RefreshCw } from 'lucide-react'
 
 const STAGES  = ['','Lead','Pipeline','Offer Presented','BackLog','Invoiced','Lost']
 const WEIGHTS = { Lead: 0.10, Pipeline: 0.30, 'Offer Presented': 0.60, BackLog: 0.80, Invoiced: 1.0, Lost: 0 }
@@ -56,6 +56,11 @@ function DealCard({ deal, onEdit, onDelete, canEdit }) {
                 deal.win_probability >= 20 ? 'bg-amber-100 text-amber-700' :
                 'bg-gray-100 text-gray-500'
               }`}>{deal.win_probability}%</span>
+            )}
+            {deal.is_sla && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800">
+                <RefreshCw size={9}/> SLA
+              </span>
             )}
             {isIC && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-vgt/10 text-vgt">
@@ -121,6 +126,31 @@ function DealCard({ deal, onEdit, onDelete, canEdit }) {
   )
 }
 
+function exportToCSV(deals) {
+  const MONTHS = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
+  const MK = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
+  const headers = ['BU','Stage','Client','Country','Region','Sales Owner','Deal Type','Is SLA','SLA Owner',
+    'Value €','GM%','Win Prob%','Description',...MONTHS,'FY26 Total']
+  const rows = deals.map(d => {
+    const fy = MK.reduce((s,m)=>s+(d[m]||0),0)
+    return [
+      d.bu, d.stage, d.client, d.country, d.region, d.sales_owner, d.deal_type,
+      d.is_sla ? 'Yes' : 'No', d.sla_owner || '',
+      d.value_total || 0, d.gm_pct ? (d.gm_pct*100).toFixed(1) : '',
+      d.win_probability || '', d.description || '',
+      ...MK.map(m => d[m] || 0), fy
+    ]
+  })
+  const csv = [headers, ...rows].map(r => r.map(v =>
+    typeof v === 'string' && v.includes(',') ? `"${v}"` : v
+  ).join(',')).join('\n')
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a'); a.href = url
+  a.download = `BusinessBook_FY26_${new Date().toISOString().slice(0,10)}.csv`
+  a.click(); URL.revokeObjectURL(url)
+}
+
 export default function Deals() {
   const { canEdit, isAdmin } = useAuth()
   const [search, setSearch]     = useState('')
@@ -130,13 +160,15 @@ export default function Deals() {
   const [editDeal, setEditDeal] = useState(null)
   const [formOpen, setFormOpen] = useState(false)
   const [confirmDel, setConfirmDel] = useState(null)
+  const [slaF, setSlaF] = useState(false)
 
-  const { deals, loading, refetch, totals } = useDeals({
+  const { deals: rawDeals, loading, refetch, totals } = useDeals({
     stage:  stageF  || undefined,
     region: regionF || undefined,
     bu:     buF     || undefined,
     search: search  || undefined,
   })
+  const deals = slaF ? rawDeals.filter(d => d.is_sla) : rawDeals
 
   async function confirmDelete() {
     await deleteDeal(confirmDel.id)
@@ -150,11 +182,16 @@ export default function Deals() {
           <h1 className="text-xl font-bold text-gray-900">Deals</h1>
           <p className="text-sm text-gray-400">{deals.length} records</p>
         </div>
-        {canEdit && (
-          <button onClick={() => { setEditDeal(null); setFormOpen(true) }} className="btn-primary">
-            <Plus size={16}/> New deal
+        <div className="flex items-center gap-2">
+          <button onClick={() => exportToCSV(deals)} className="btn-secondary text-xs">
+            <Download size={14}/> Export
           </button>
-        )}
+          {canEdit && (
+            <button onClick={() => { setEditDeal(null); setFormOpen(true) }} className="btn-primary">
+              <Plus size={16}/> New deal
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -174,6 +211,10 @@ export default function Deals() {
         <select className="select w-28" value={regionF} onChange={e => setRegionF(e.target.value)}>
           {REGIONS.map(r => <option key={r} value={r}>{r || 'All regions'}</option>)}
         </select>
+        <button onClick={() => setSlaF(o => !o)}
+          className={`btn text-xs gap-1 ${slaF ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'btn-secondary'}`}>
+          <RefreshCw size={11}/> SLA
+        </button>
       </div>
 
       {/* Summary */}
