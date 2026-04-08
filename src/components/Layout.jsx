@@ -75,7 +75,7 @@ export default function Layout({ children }) {
               alt=""
               style={{
                 width: 'min(30vw, 300px)',
-                opacity: 0.07,
+                opacity: 0.12,
                 mixBlendMode: 'multiply',
                 userSelect: 'none',
                 pointerEvents: 'none',
