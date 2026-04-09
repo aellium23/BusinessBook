@@ -100,7 +100,13 @@ function PerformanceSection({ deals, budget, fy25, activeCycle, isAdmin }) {
 
   function sumDeals(bu, months) {
     return deals.filter(d=>d.bu===bu&&d.stage==='Invoiced'&&!d.is_intercompany_mirror)
-      .reduce((s,d)=>s+months.reduce((ms,m)=>ms+(d[m]||0),0),0)/1000
+      .reduce((s,d)=>{
+        const rate = (!d.currency||d.currency==='EUR') ? 1 : (d.exchange_rate||1)
+        const monthSum = months.reduce((ms,m)=>ms+(d[m]||0),0)
+        // Fallback: if monthly fields empty but value_total set, use value_total
+        const val = (monthSum === 0 && d.value_total > 0) ? d.value_total : monthSum
+        return s + val * rate
+      },0)/1000
   }
   function sumPlan(bu, months) {
     return ['ns_int','ns_ext'].reduce((s,key)=>{
@@ -238,14 +244,20 @@ export default function Dashboard() {
     }
     deals.forEach(d => {
       if (d.is_intercompany_mirror) return
-      const fy = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
       const bu = d.bu?.toLowerCase()
       if (!bu) return
-      if (['BackLog','Invoiced'].includes(d.stage)) result[`${bu}_fc`] += fy / 1000
-      if (d.stage === 'Invoiced') result[`${bu}_act`] += fy / 1000
-      if (d.stage === 'BackLog')  result[`${bu}_bl`]  += fy / 1000
-      if (d.stage === 'Pipeline') result[`${bu}_pipe`] += (d.value_total || 0) / 1000
-      if (['BackLog','Invoiced'].includes(d.stage)) result[`${bu}_gm`] += (fy / 1000) * (d.gm_pct || 0)
+      // Currency conversion to EUR
+      const rate = (!d.currency || d.currency === 'EUR') ? 1 : (d.exchange_rate || 1)
+      // Monthly sum — for SLA deals with empty months, fall back to value_total
+      const fyRaw = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
+      const fy = (fyRaw === 0 && d.value_total > 0) ? d.value_total : fyRaw
+      const fyEUR = fy * rate
+      const valEUR = (d.value_total || 0) * rate
+      if (['BackLog','Invoiced'].includes(d.stage)) result[`${bu}_fc`]   += fyEUR / 1000
+      if (d.stage === 'Invoiced')                   result[`${bu}_act`]  += fyEUR / 1000
+      if (d.stage === 'BackLog')                    result[`${bu}_bl`]   += fyEUR / 1000
+      if (d.stage === 'Pipeline' || d.stage === 'Offer Presented') result[`${bu}_pipe`] += valEUR / 1000
+      if (['BackLog','Invoiced'].includes(d.stage)) result[`${bu}_gm`]   += (fyEUR / 1000) * (d.gm_pct || 0)
     })
     return result
   }, [deals])
