@@ -47,6 +47,10 @@ const EMPTY = {
   lost_reason:'',
   win_probability:'',
   is_sla: false,
+  sla_type: '',
+  sla_annual_value: '',
+  sla_start_date: '',
+  sla_end_date: '',
   sla_owner: '',
   sla_renewal_target: '',
   end_customer: '',
@@ -84,7 +88,7 @@ function DiscountApprovalPanel({ deal, onSave }) {
   return (
     <div className="border-t border-gray-200 pt-3 space-y-3">
       <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">VGT Response</p>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <div>
           <label className="label">Decision</label>
           <select className="select" value={status} onChange={e => setStatus(e.target.value)}>
@@ -128,6 +132,10 @@ export default function DealForm({ deal, onClose, onSaved }) {
     gm_pct: deal.gm_pct != null ? (deal.gm_pct * 100).toFixed(1) : '',
     intercompany_value: deal.intercompany_value || '',
     is_sla: deal.is_sla || false,
+    sla_type: deal.sla_type || '',
+    sla_annual_value: deal.sla_annual_value || '',
+    sla_start_date: deal.sla_start_date || '',
+    sla_end_date: deal.sla_end_date || '',
     sla_owner: deal.sla_owner || '',
     sla_renewal_target: deal.sla_renewal_target || '',
     win_probability: deal.win_probability ?? '',
@@ -291,7 +299,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
         {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 
         {/* BU + Sales Type + Stage */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div>
             <label className="label">BU *</label>
             <select className="select" value={form.bu} onChange={e => set('bu', e.target.value)} disabled={!isAdmin}>
@@ -381,7 +389,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
         )}
 
         {/* Value + GM + Win Probability */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div>
             <label className="label">Value € (total)</label>
             <input className="input" type="number" value={form.value_total} onChange={e => set('value_total', e.target.value)} placeholder="0" />
@@ -591,7 +599,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
             </div>
 
             {/* Distributor fills these */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div>
                 <label className="label">List price €</label>
                 <input className="input" type="number"
@@ -662,24 +670,65 @@ export default function DealForm({ deal, onClose, onSaved }) {
             </div>
             <label className="flex items-center gap-2 cursor-pointer">
               <span className="text-xs text-gray-500">{form.is_sla ? 'Active SLA' : 'Not SLA'}</span>
-              <div className={`w-10 h-5 rounded-full transition-colors relative ${form.is_sla ? 'bg-blue-500' : 'bg-gray-300'}`}
+              <div className={`w-11 h-6 rounded-full transition-colors relative ${form.is_sla ? 'bg-blue-500' : 'bg-gray-300'}`}
                 onClick={() => set('is_sla', !form.is_sla)}>
-                <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.is_sla ? 'translate-x-5' : 'translate-x-0.5'}`}/>
+                <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.is_sla ? 'translate-x-5' : 'translate-x-0'}`}/>
               </div>
             </label>
           </div>
           {form.is_sla && (
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="label">SLA Owner</label>
-                <input className="input bg-white" value={form.sla_owner} onChange={e => set('sla_owner', e.target.value)} placeholder="Name responsible for renewal"/>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">SLA Type</label>
+                  <select className="select bg-white" value={form.sla_type||''} onChange={e => set('sla_type', e.target.value)}>
+                    <option value="">— Select type —</option>
+                    <option>Software Maintenance</option>
+                    <option>Hardware Maintenance</option>
+                    <option>Full Service (SW+HW)</option>
+                    <option>Managed Service</option>
+                    <option>Subscription</option>
+                    <option>Support & Updates</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Annual SLA value €</label>
+                  <input className="input bg-white" type="number"
+                    value={form.sla_annual_value||''} onChange={e => set('sla_annual_value', e.target.value)}
+                    placeholder="Annual contract value"/>
+                </div>
               </div>
-              <div>
-                <label className="label">Renewal target %</label>
-                <input className="input bg-white" type="number" min="0" max="100"
-                  value={form.sla_renewal_target} onChange={e => set('sla_renewal_target', e.target.value)}
-                  placeholder="e.g. 5 for +5% growth"/>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">Contract start</label>
+                  <input className="input bg-white" type="date"
+                    value={form.sla_start_date||''} onChange={e => set('sla_start_date', e.target.value)}/>
+                </div>
+                <div>
+                  <label className="label">Contract end</label>
+                  <input className="input bg-white" type="date"
+                    value={form.sla_end_date||''} onChange={e => set('sla_end_date', e.target.value)}/>
+                </div>
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">SLA Owner</label>
+                  <input className="input bg-white" value={form.sla_owner} onChange={e => set('sla_owner', e.target.value)} placeholder="Responsible for renewal"/>
+                </div>
+                <div>
+                  <label className="label">Renewal target %</label>
+                  <input className="input bg-white" type="number" min="0" max="100"
+                    value={form.sla_renewal_target} onChange={e => set('sla_renewal_target', e.target.value)}
+                    placeholder="e.g. 5"/>
+                </div>
+              </div>
+              {/* Expiry warning */}
+              {form.sla_end_date && (() => {
+                const days = Math.ceil((new Date(form.sla_end_date) - new Date()) / 86400000)
+                if (days < 0) return <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">⚠ Contract expired {Math.abs(days)} days ago</p>
+                if (days < 90) return <p className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">⏰ Expires in {days} days — renewal needed</p>
+                return <p className="text-xs text-green-600 bg-green-50 px-3 py-2 rounded-lg">✓ Active — {days} days remaining</p>
+              })()}
             </div>
           )}
         </div>
@@ -822,7 +871,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
         {!isMaint && (
           <div>
             <p className="label mb-2">Monthly recognition · FY26</p>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {MONTHS.map((m, i) => (
                 <div key={m}>
                   <label className="text-[10px] text-gray-400">{m}</label>
