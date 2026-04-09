@@ -133,7 +133,7 @@ function DealCard({ deal, onEdit, onDelete, canEdit }) {
             </div>
           )}
         </div>
-        <div className="text-right shrink-0">
+        <div className="text-right shrink-0 min-w-0 max-w-28">
           <p className="text-sm font-bold text-gray-900">{formatK(deal.value_total)}</p>
           <p className="text-xs text-gray-400">FY26: {formatK(fy26)}</p>
           <p className="text-xs text-blue-600 font-medium">
@@ -228,7 +228,7 @@ export default function Deals() {
   })
   const deals = profile?.role === 'distributor'
     ? rawDeals.filter(d => d.distributor === profile?.sales_owner_name)
-    : slaF ? rawDeals.filter(d => d.is_sla) : rawDeals
+    : slaF ? rawDeals.filter(d => d.is_sla === true) : rawDeals
 
   async function confirmDelete() {
     await deleteDeal(confirmDel.id)
@@ -248,7 +248,7 @@ export default function Deals() {
           </button>
           {canEdit && (
             <button onClick={() => { setEditDeal(null); setFormOpen(true) }} className="btn-primary">
-              <Plus size={16}/> New deal
+              <Plus size={16}/> <span className="hidden sm:inline">New</span> Deal
             </button>
           )}
         </div>
@@ -261,14 +261,14 @@ export default function Deals() {
           <input className="input pl-8" placeholder="Search client…" value={search} onChange={e => setSearch(e.target.value)}/>
         </div>
         {isAdmin && (
-          <select className="select w-24" value={buF} onChange={e => setBuF(e.target.value)}>
+          <select className="select w-20 sm:w-24 text-xs shrink-0" value={buF} onChange={e => setBuF(e.target.value)}>
             {BUS.map(b => <option key={b} value={b}>{b || 'All BU'}</option>)}
           </select>
         )}
-        <select className="select w-28" value={stageF} onChange={e => setStageF(e.target.value)}>
+        <select className="select w-24 sm:w-28 text-xs shrink-0" value={stageF} onChange={e => setStageF(e.target.value)}>
           {STAGES.map(s => <option key={s} value={s}>{s || 'All stages'}</option>)}
         </select>
-        <select className="select w-28" value={regionF} onChange={e => setRegionF(e.target.value)}>
+        <select className="select w-24 sm:w-28 text-xs shrink-0" value={regionF} onChange={e => setRegionF(e.target.value)}>
           {REGIONS.map(r => <option key={r} value={r}>{r || 'All regions'}</option>)}
         </select>
         <button onClick={() => setSlaF(o => !o)}
