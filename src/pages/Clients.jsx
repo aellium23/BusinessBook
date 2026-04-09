@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { BUBadge, StageBadge, formatK, toEUR, CurrencyBadge, Spinner } from '../components/ui'
+import { BUBadge, StageBadge, formatK, CurrencyBadge, Spinner } from '../components/ui'
 import { Building2, Search, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react'
 
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
@@ -20,13 +20,13 @@ function ClientCard({ client, deals }) {
 
   const totalFY26 = deals.reduce((s, d) => {
     const fy = MONTHS_K.reduce((ms, m) => ms + (d[m] || 0), 0)
-    const fyEUR = toEUR(fy, d.currency, d.exchange_rate)
+    const fyEUR = fy * ((!d.currency || d.currency==="EUR") ? 1 : (d.exchange_rate||1))
     return s + (['BackLog','Invoiced'].includes(d.stage) ? fyEUR : 0)
   }, 0)
 
   const totalPipe = deals.reduce((s, d) =>
     d.stage === 'Pipeline' || d.stage === 'Offer Presented'
-      ? s + toEUR(d.value_total || 0, d.currency, d.exchange_rate) : s, 0)
+      ? s + (d.value_total||0) * ((!d.currency || d.currency==="EUR") ? 1 : (d.exchange_rate||1)) : s, 0)
 
   const slas = deals.filter(d => d.is_sla)
   const activeSLAs = slas.filter(d => {
@@ -115,7 +115,7 @@ function ClientCard({ client, deals }) {
                     </p>
                   </div>
                   {d.currency && d.currency !== 'EUR' && (
-                    <p className="text-[10px] text-blue-500">≈ {formatK(toEUR(d.value_total, d.currency, d.exchange_rate))}</p>
+                    <p className="text-[10px] text-blue-500">≈ {formatK((d.value_total||0) * ((!d.currency || d.currency==="EUR") ? 1 : (d.exchange_rate||1)))}</p>
                   )}
                 </div>
               </div>
