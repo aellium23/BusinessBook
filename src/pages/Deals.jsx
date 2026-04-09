@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useDeals, deleteDeal } from '../hooks/useDeals'
 import { useAuth } from '../hooks/useAuth'
-import { BUBadge, StageBadge, SalesTypeBadge, Spinner, EmptyState, formatK } from '../components/ui'
+import { BUBadge, StageBadge, SalesTypeBadge, Spinner, EmptyState, formatK, CurrencyBadge } from '../components/ui'
 import DealForm from '../components/DealForm'
 import { Plus, Search, Trash2, Pencil, ChevronDown, ChevronUp, Link, AlertTriangle, Clock, Download, RefreshCw } from 'lucide-react'
 
@@ -143,7 +143,7 @@ function DealCard({ deal, onEdit, onDelete, canEdit }) {
             </p>
           </div>
           {deal.currency && deal.currency !== 'EUR' && deal.exchange_rate && (
-            <p className="text-[10px] text-blue-500">≈ {formatK(toEUR(deal.value_total, deal.currency, deal.exchange_rate))}</p>
+            <p className="text-[10px] text-blue-500">≈ {formatK((deal.value_total||0) * (deal.exchange_rate||1))}</p>
           )}
           <p className="text-xs text-gray-400">FY26: {formatK(fy26)}</p>
           <p className="text-xs text-blue-600 font-medium">
@@ -298,7 +298,7 @@ export default function Deals() {
           { l:'Weighted', v:deals.filter(d=>!d.is_intercompany_mirror).reduce((s,d)=>{
               const fy=MONTHS_K.reduce((ms,m)=>ms+(d[m]||0),0)
               const baseRaw=['BackLog','Invoiced'].includes(d.stage)?fy:(d.value_total||0)
-              const base = toEUR(baseRaw, d.currency, d.exchange_rate)
+              const base = baseRaw * ((!d.currency || d.currency==='EUR') ? 1 : (d.exchange_rate||1))
               const prob = d.win_probability !== null && d.win_probability !== undefined
                 ? d.win_probability / 100
                 : (WEIGHTS[d.stage]||0)
