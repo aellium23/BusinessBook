@@ -162,7 +162,7 @@ export default function Budget() {
       </div>
 
       {/* Summary cards — all cycles at a glance */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         {CYCLES.map(cycle => {
           const t = annualTotals[activeBu][cycle]
           const cfg = CYCLE_CONFIG[cycle]
@@ -195,10 +195,10 @@ export default function Budget() {
 
       {/* BU + Cycle selectors */}
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex rounded-xl overflow-hidden border border-gray-200">
+        <div className="flex rounded-xl overflow-hidden border border-gray-200 w-full sm:w-auto">
           {BUS.map(bu => (
             <button key={bu} onClick={() => setActiveBu(bu)}
-              className="px-4 py-2 text-sm font-semibold transition-all"
+              className="flex-1 sm:flex-none px-3 sm:px-4 py-2 text-sm font-semibold transition-all"
               style={activeBu === bu
                 ? { background: BU_CONFIG[bu].color, color:'white' }
                 : { background:'white', color:'#6B7280' }}>
@@ -206,7 +206,7 @@ export default function Budget() {
             </button>
           ))}
         </div>
-        <div className="flex rounded-xl overflow-hidden border border-gray-200">
+        <div className="flex rounded-xl overflow-hidden border border-gray-200 w-full sm:w-auto">
           {CYCLES.map(c => (
             <button key={c} onClick={() => setActiveCycle(c)}
               className="px-4 py-2 text-sm font-medium transition-all flex items-center gap-1.5"
