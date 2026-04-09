@@ -134,7 +134,17 @@ function DealCard({ deal, onEdit, onDelete, canEdit }) {
           )}
         </div>
         <div className="text-right shrink-0 min-w-0 max-w-28">
-          <p className="text-sm font-bold text-gray-900">{formatK(deal.value_total)}</p>
+          <div className="flex items-center justify-end gap-1">
+            <CurrencyBadge currency={deal.currency}/>
+            <p className="text-sm font-bold text-gray-900">
+              {deal.currency && deal.currency !== 'EUR'
+                ? `${deal.currency === 'USD' ? '$' : '£'}${(deal.value_total||0).toLocaleString()}`
+                : formatK(deal.value_total)}
+            </p>
+          </div>
+          {deal.currency && deal.currency !== 'EUR' && deal.exchange_rate && (
+            <p className="text-[10px] text-blue-500">≈ {formatK(toEUR(deal.value_total, deal.currency, deal.exchange_rate))}</p>
+          )}
           <p className="text-xs text-gray-400">FY26: {formatK(fy26)}</p>
           <p className="text-xs text-blue-600 font-medium">
             W: {formatK((deal.value_total||0) * (WEIGHTS[deal.stage]||0))}
@@ -287,7 +297,8 @@ export default function Deals() {
           { l:'Forecast', v:totals.forecast, c:'text-vgt font-bold' },
           { l:'Weighted', v:deals.filter(d=>!d.is_intercompany_mirror).reduce((s,d)=>{
               const fy=MONTHS_K.reduce((ms,m)=>ms+(d[m]||0),0)
-              const base=['BackLog','Invoiced'].includes(d.stage)?fy:(d.value_total||0)
+              const baseRaw=['BackLog','Invoiced'].includes(d.stage)?fy:(d.value_total||0)
+              const base = toEUR(baseRaw, d.currency, d.exchange_rate)
               const prob = d.win_probability !== null && d.win_probability !== undefined
                 ? d.win_probability / 100
                 : (WEIGHTS[d.stage]||0)
