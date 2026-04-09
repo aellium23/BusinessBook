@@ -14,8 +14,8 @@ export function useDeals(filters = {}) {
     setLoading(true)
     let q = supabase.from('deals').select('*').order('created_at', { ascending: false })
 
-    if (!isAdmin && profile?.role === 'vgt') q = q.eq('bu', 'VGT')
-    if (!isAdmin && profile?.role === 'ect') q = q.eq('bu', 'ECT')
+    if (!isAdmin && ['vgt_editor','vgt_member','viewer_vgt'].includes(profile?.role)) q = q.eq('bu', 'VGT')
+    if (!isAdmin && ['ect_editor','ect_member','viewer_ect'].includes(profile?.role)) q = q.eq('bu', 'ECT')
     if (filters.bu)     q = q.eq('bu', filters.bu)
     if (filters.stage)  q = q.eq('stage', filters.stage)
     if (filters.region) q = q.eq('region', filters.region)
