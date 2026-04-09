@@ -179,7 +179,7 @@ export default function Clients() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 flex-wrap items-center">
         <div className="relative flex-1 min-w-32">
           <Search size={14} className="absolute left-2.5 top-2.5 text-gray-400"/>
           <input className="input pl-8" placeholder="Search client or country…"
@@ -204,7 +204,7 @@ export default function Clients() {
             <Building2 size={32} className="mx-auto mb-2 opacity-30"/>
             <p>No clients found</p>
           </div>
-        : <div className="space-y-2">
+        : <div className="space-y-2 pb-2">
             {grouped.map(([client, ds]) => (
               <ClientCard key={client} client={client} deals={ds}/>
             ))}
