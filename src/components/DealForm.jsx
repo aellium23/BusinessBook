@@ -7,7 +7,7 @@ import { Link, Clock, Plus, AlertCircle, CheckCircle, XCircle, RefreshCw as Coun
 
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
-const YEARS    = [2026,2027,2028,2029,2030]
+const YEARS    = [2023,2024,2025,2026,2027,2028,2029,2030,2031]
 const REGIONS  = ['Europe','MEA','LATAM','APAC','NA']
 const COUNTRY_MAP = {
   Europe: ['Portugal','Spain','France','Germany','Italy','Netherlands','Belgium','UK','Switzerland','Sweden','Norway','Denmark','Finland','Austria','Poland','Czech Republic','Romania','Greece','Turkey','Other Europe'],
@@ -270,6 +270,38 @@ export default function DealForm({ deal, onClose, onSaved }) {
       rec_month: form.rec_month || null, rec_year: parseInt(form.rec_year) || null,
       cs_month: form.cs_month || null, cs_year: parseInt(form.cs_year) || null,
       ce_month: form.ce_month || null, ce_year: parseInt(form.ce_year) || null,
+      // Currency
+      currency: form.currency || 'EUR',
+      exchange_rate: form.currency === 'EUR' ? 1.0 : (parseFloat(form.exchange_rate) || 1.0),
+      // SLA
+      is_sla: form.is_sla || false,
+      sla_type: form.is_sla ? (form.sla_type || null) : null,
+      sla_annual_value: form.is_sla ? (parseFloat(form.sla_annual_value) || null) : null,
+      // SLA dates use cs_month/cs_year/ce_month/ce_year (unified contract dates)
+      sla_owner: form.is_sla ? (form.sla_owner || null) : null,
+      sla_renewal_target: form.is_sla ? (parseFloat(form.sla_renewal_target) || null) : null,
+      // Product
+      product: form.product || null,
+      equipment_count: parseInt(form.equipment_count) || null,
+      annual_studies: parseInt(form.annual_studies) || null,
+      annual_exams: parseInt(form.annual_exams) || null,
+      // Distribution chain
+      end_customer: form.end_customer || null,
+      distributor: form.distributor || null,
+      hub: form.hub || null,
+      end_customer_value: parseFloat(form.end_customer_value) || null,
+      // Discount
+      list_price: parseFloat(form.list_price) || null,
+      discount_requested: parseFloat(form.discount_requested) || null,
+      discount_note_dist: form.discount_note_dist || null,
+      ...((!deal?.discount_status || deal.discount_status === null) && form.discount_requested
+        ? { discount_status: 'pending' } : {}),
+      // Win probability
+      win_probability: ['BackLog','Invoiced','Lost'].includes(form.stage)
+        ? { BackLog:80, Invoiced:100, Lost:0 }[form.stage]
+        : (parseFloat(form.win_probability) || null),
+      // Lost
+      lost_reason: form.stage === 'Lost' ? (form.lost_reason || null) : null,
       ...monthly,
     }
 
@@ -744,18 +776,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                     placeholder="Annual contract value"/>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="label">Contract start</label>
-                  <input className="input bg-white" type="date"
-                    value={form.sla_start_date||''} onChange={e => set('sla_start_date', e.target.value)}/>
-                </div>
-                <div>
-                  <label className="label">Contract end</label>
-                  <input className="input bg-white" type="date"
-                    value={form.sla_end_date||''} onChange={e => set('sla_end_date', e.target.value)}/>
-                </div>
-              </div>
+              {/* Contract dates managed in Contract Dates section above */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="label">SLA Owner</label>
@@ -768,13 +789,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                     placeholder="e.g. 5"/>
                 </div>
               </div>
-              {/* Expiry warning */}
-              {form.sla_end_date && (() => {
-                const days = Math.ceil((new Date(form.sla_end_date) - new Date()) / 86400000)
-                if (days < 0) return <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">⚠ Contract expired {Math.abs(days)} days ago</p>
-                if (days < 90) return <p className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">⏰ Expires in {days} days — renewal needed</p>
-                return <p className="text-xs text-green-600 bg-green-50 px-3 py-2 rounded-lg">✓ Active — {days} days remaining</p>
-              })()}
+
             </div>
           )}
         </div>
@@ -838,17 +853,17 @@ export default function DealForm({ deal, onClose, onSaved }) {
 
         {/* Maintenance contract dates */}
         {isMaint && (
-          <div className="bg-blue-50 rounded-xl p-4 space-y-3">
-            <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Maintenance · contract dates</p>
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
+            <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Contract dates</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="label">Contract start</label>
-                <div className="flex gap-2">
-                  <select className="select" value={form.cs_month} onChange={e => set('cs_month', e.target.value)}>
+                <div className="flex gap-1.5">
+                  <select className="select flex-1" value={form.cs_month} onChange={e => set('cs_month', e.target.value)}>
                     <option value="">Month</option>
                     {MONTHS.map(m => <option key={m}>{m}</option>)}
                   </select>
-                  <select className="select w-24" value={form.cs_year} onChange={e => set('cs_year', e.target.value)}>
+                  <select className="select w-20" value={form.cs_year} onChange={e => set('cs_year', e.target.value)}>
                     <option value="">Year</option>
                     {YEARS.map(y => <option key={y}>{y}</option>)}
                   </select>
@@ -856,60 +871,37 @@ export default function DealForm({ deal, onClose, onSaved }) {
               </div>
               <div>
                 <label className="label">Contract end</label>
-                <div className="flex gap-2">
-                  <select className="select" value={form.ce_month} onChange={e => set('ce_month', e.target.value)}>
+                <div className="flex gap-1.5">
+                  <select className="select flex-1" value={form.ce_month} onChange={e => set('ce_month', e.target.value)}>
                     <option value="">Month</option>
                     {MONTHS.map(m => <option key={m}>{m}</option>)}
                   </select>
-                  <select className="select w-24" value={form.ce_year} onChange={e => set('ce_year', e.target.value)}>
+                  <select className="select w-20" value={form.ce_year} onChange={e => set('ce_year', e.target.value)}>
                     <option value="">Year</option>
                     {YEARS.map(y => <option key={y}>{y}</option>)}
                   </select>
                 </div>
               </div>
             </div>
-            <div>
-              <label className="label">Recognition start (if delayed)</label>
-              <div className="flex gap-2">
-                <select className="select" value={form.rec_month} onChange={e => set('rec_month', e.target.value)}>
-                  <option value="">Month (default = contract start)</option>
-                  {MONTHS.map(m => <option key={m}>{m}</option>)}
-                </select>
-                <select className="select w-24" value={form.rec_year} onChange={e => set('rec_year', e.target.value)}>
-                  <option value="">Year</option>
-                  {YEARS.map(y => <option key={y}>{y}</option>)}
-                </select>
-              </div>
-            </div>
-            {preview && (
-              <div>
-                <p className="text-xs text-blue-600 font-medium mb-2">Revenue preview (FY26)</p>
-                <div className="grid grid-cols-6 gap-1">
-                  {MONTHS.map((m, i) => (
-                    <div key={m} className={`text-center rounded p-1 ${preview[i] > 0 ? 'bg-blue-200' : 'bg-blue-100/50'}`}>
-                      <p className="text-[9px] text-blue-500">{m}</p>
-                      <p className="text-[10px] font-bold text-blue-800">{preview[i] > 0 ? `€${(preview[i]/1000).toFixed(1)}K` : '—'}</p>
-                    </div>
-                  ))}
+            {/* Duration indicator */}
+            {form.cs_month && form.cs_year && form.ce_month && form.ce_year && (() => {
+              const months = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
+              const allMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+              const start = new Date(`${form.cs_year}-${String(allMonths.indexOf(form.cs_month)+1).padStart(2,'0')}-01`)
+              const end   = new Date(`${form.ce_year}-${String(allMonths.indexOf(form.ce_month)+1).padStart(2,'0')}-01`)
+              const months_dur = Math.round((end - start) / (1000*60*60*24*30.5))
+              const years_dur  = (months_dur / 12).toFixed(1)
+              const isExpired  = end < new Date()
+              const expiring   = !isExpired && (end - new Date()) < 90*24*60*60*1000
+              return (
+                <div className={`text-xs px-3 py-2 rounded-lg ${isExpired ? 'bg-red-100 text-red-700' : expiring ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                  {isExpired ? '⚠ Expired' : expiring ? '⏰ Expiring soon' : '✓ Active'} · {months_dur} months ({years_dur} yrs)
+                  {form.sla_annual_value && months_dur > 0 && (
+                    <span className="ml-2">· Total: €{(parseFloat(form.sla_annual_value) * months_dur / 12).toLocaleString('pt-PT', {maximumFractionDigits:0})}</span>
+                  )}
                 </div>
-                <p className="text-xs text-blue-500 mt-1 text-right">
-                  FY26: €{(preview.reduce((s,v)=>s+v,0)/1000).toFixed(1)}K
-                </p>
-                {icPreview && (
-                  <div className="mt-2">
-                    <p className="text-xs text-amber-600 font-medium mb-1">VGT intercompany mirror (FY26)</p>
-                    <div className="grid grid-cols-6 gap-1">
-                      {MONTHS.map((m, i) => (
-                        <div key={m} className={`text-center rounded p-1 ${icPreview[i] > 0 ? 'bg-amber-200' : 'bg-amber-50'}`}>
-                          <p className="text-[9px] text-amber-500">{m}</p>
-                          <p className="text-[10px] font-bold text-amber-800">{icPreview[i] > 0 ? `€${(icPreview[i]/1000).toFixed(1)}K` : '—'}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+              )
+            })()}
           </div>
         )}
 
