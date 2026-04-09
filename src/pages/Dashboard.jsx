@@ -140,7 +140,7 @@ function PerformanceSection({ deals, budget, fy25, activeCycle, isAdmin }) {
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Sales performance · {activeCycle} · MTD & YTD</p>
         <span className="text-[10px] text-gray-400">MTD: <strong>{mtdLabel}</strong> · YTD: <strong>{ytdLabel}</strong></span>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3">
         {cards.map(c=><BUPerformanceCard key={c.bu} {...c} cycle={activeCycle} mtdLabel={mtdLabel} ytdLabel={ytdLabel}/>)}
       </div>
       {isAdmin && <BUPerformanceCard {...iberia} cycle={activeCycle} mtdLabel={mtdLabel} ytdLabel={ytdLabel}/>}
@@ -518,7 +518,7 @@ export default function Dashboard() {
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Funnel analytics</p>
 
         {/* KPI row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <div className="bg-purple-50 rounded-lg p-3">
             <p className="text-[10px] text-purple-500 font-semibold uppercase tracking-wide">Weighted forecast</p>
             <p className="text-lg font-bold text-purple-700 mt-0.5">{formatK(funnelAnalytics.weighted)}</p>
