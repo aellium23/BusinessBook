@@ -173,7 +173,7 @@ export default function History() {
         <div className="p-4 border-b border-gray-100">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Monthly detail · K€</p>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto -mx-4 px-4">
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
@@ -190,11 +190,11 @@ export default function History() {
                   <tr className="border-b border-gray-50">
                     <td className="px-4 py-2 font-semibold text-vgt">VGT NS</td>
                     {MONTHS_K.map(m => (
-                      <td key={m} className="px-2 py-2 text-center text-gray-700">
+                      <td key={m} className="px-1 py-2 text-center text-gray-700 text-[11px]">
                         {get('VGT','ns',m).toFixed(1)}
                       </td>
                     ))}
-                    <td className="px-3 py-2 text-center font-bold text-vgt">
+                    <td className="px-2 py-2 text-center font-bold text-vgt text-[11px]">
                       {totals.vgt.ns.toFixed(1)}
                     </td>
                   </tr>
@@ -216,7 +216,7 @@ export default function History() {
                   <tr className="border-b border-gray-50">
                     <td className="px-4 py-2 font-semibold text-ect">ECT NS</td>
                     {MONTHS_K.map(m => (
-                      <td key={m} className="px-2 py-2 text-center text-gray-700">
+                      <td key={m} className="px-1 py-2 text-center text-gray-700 text-[11px]">
                         {get('ECT','ns',m).toFixed(1)}
                       </td>
                     ))}
