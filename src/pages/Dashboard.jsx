@@ -2,7 +2,7 @@ import { useMemo, useEffect, useState } from 'react'
 import { useDeals } from '../hooks/useDeals'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { formatK } from '../components/ui'
+import { formatK, toEUR } from '../components/ui'
 import {
   ComposedChart, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip,
   ResponsiveContainer, Legend, ReferenceLine, Cell
