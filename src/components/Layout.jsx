@@ -26,13 +26,20 @@ export default function Layout({ children }) {
     <div className="min-h-screen flex flex-col">
       {/* Top bar */}
       <header className="bg-navy text-white px-4 py-3 flex items-center justify-between sticky top-0 z-40 shadow-md">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="font-bold text-xl tracking-tight shrink-0">
-            <span className="text-vgt">B</span><span className="text-ect">B</span>
-          </span>
+        <div className="flex items-center gap-2.5 min-w-0">
+          {/* BB Emblem — compact header version */}
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+            <circle cx="18" cy="18" r="17" fill="#C9952A"/>
+            <circle cx="18" cy="18" r="14.5" fill="none" stroke="#F5E08A" strokeWidth="0.8" opacity="0.7"/>
+            <circle cx="18" cy="18" r="16" fill="none" stroke="#8B6010" strokeWidth="1.2"/>
+            {/* Left B */}
+            <path d="M6 9L6 27L13 27Q19 27 19 21.5Q19 18.5 16.5 17.5Q19 16.5 19 12Q19 9 13 9Z M8.5 11.5L12.5 11.5Q15.5 11.5 15.5 14Q15.5 16.5 12.5 16.5L8.5 16.5Z M8.5 18.5L13 18.5Q16.5 18.5 16.5 22Q16.5 25 13 25L8.5 25Z" fill="#0D1E30"/>
+            {/* Right B */}
+            <path d="M20 9L20 27L27 27Q33 27 33 21.5Q33 18.5 30.5 17.5Q33 16.5 33 12Q33 9 27 9Z M22.5 11.5L26.5 11.5Q29.5 11.5 29.5 14Q29.5 16.5 26.5 16.5L22.5 16.5Z M22.5 18.5L27 18.5Q30.5 18.5 30.5 22Q30.5 25 27 25L22.5 25Z" fill="#0D1E30"/>
+          </svg>
           <div className="flex flex-col leading-tight min-w-0">
-            <span className="text-white text-sm font-semibold truncate">Business Book · FY26</span>
-            <span className="text-white/60 text-[10px] font-medium hidden sm:block">Developed by Elio Santos · Powered by AI</span>
+            <span className="text-white text-sm font-semibold truncate tracking-wide">Business Book · FY26</span>
+            <span className="text-white/50 text-[10px] font-medium hidden sm:block tracking-wide">by Elio Santos · Powered by AI</span>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -74,6 +81,18 @@ export default function Layout({ children }) {
               <ChevronRight size={14} className="ml-auto opacity-30" />
             </NavLink>
           ))}
+          {/* BB Emblem watermark at bottom of sidebar */}
+          <div className="mt-auto px-4 pb-4 hidden sm:flex flex-col items-center gap-1.5 opacity-20 hover:opacity-40 transition-opacity">
+            <svg width="64" height="64" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="40" cy="40" r="38" fill="#C9952A"/>
+              <circle cx="40" cy="40" r="33" fill="none" stroke="#F5E08A" strokeWidth="1.5" opacity="0.8"/>
+              <circle cx="40" cy="40" r="36.5" fill="none" stroke="#8B6010" strokeWidth="2"/>
+              <path d="M12 20L12 60L29 60Q45 60 45 48Q45 42 39 40Q45 38 45 27Q45 20 29 20Z M18 26L28 26Q34 26 34 32Q34 38 28 38L18 38Z M18 44L30 44Q37 44 37 51Q37 58 30 58L18 58Z" fill="#0D1E30"/>
+              <path d="M47 20L47 60L64 60Q80 60 80 48Q80 42 74 40Q80 38 80 27Q80 20 64 20Z M53 26L63 26Q69 26 69 32Q69 38 63 38L53 38Z M53 44L65 44Q72 44 72 51Q72 58 65 58L53 58Z" fill="#0D1E30"/>
+            </svg>
+            <span className="text-[9px] text-gray-500 font-medium tracking-widest uppercase">Business Book</span>
+            <span className="text-[8px] text-gray-400 tracking-wide">by Elio Santos</span>
+          </div>
         </aside>
 
         {/* Main content */}
