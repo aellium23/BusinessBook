@@ -43,7 +43,7 @@ const EMPTY = {
   sales_owner:'', deal_type:'One-Shot', description:'',
   value_total:'', gm_pct:'',
   rec_month:'', rec_year:'',
-  cs_month:'', cs_year:'', ce_month:'', ce_year:'',
+  cs_day:1, cs_month:'', cs_year:'', ce_day:31, ce_month:'', ce_year:'',
   lost_reason:'',
   win_probability:'',
   currency: 'EUR',
@@ -51,8 +51,8 @@ const EMPTY = {
   is_sla: false,
   sla_type: '',
   sla_annual_value: '',
-  sla_start_date: '',
-  sla_end_date: '',
+  sla_billing_month: '',
+  sla_billing_year: '',
   sla_owner: '',
   sla_renewal_target: '',
   end_customer: '',
@@ -66,6 +66,80 @@ const EMPTY = {
   equipment_count: '',
   annual_studies: '',
   annual_exams: '',
+}
+
+// ── SLA Revenue Recognition Calculator ─────────────────────────────────
+// Logic: bill month = retroactive catchup + linear for remaining months in FY26
+const FY26_MONTHS = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
+const ALL_MONTHS  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+function calcSLARecognition({ startDay, startMonth, startYear, endDay, endMonth, endYear, billingMonth, billingYear, annualValue, currency, exchangeRate }) {
+  if (!startMonth || !startYear || !endMonth || !endYear || !billingMonth || !billingYear || !annualValue) return null
+
+  const startDate = new Date(`${startYear}-${String(ALL_MONTHS.indexOf(startMonth)+1).padStart(2,'0')}-${String(startDay||1).padStart(2,'0')}`)
+  const endDate   = new Date(`${endYear}-${String(ALL_MONTHS.indexOf(endMonth)+1).padStart(2,'0')}-${String(endDay||28).padStart(2,'0')}`)
+  const billDate  = new Date(`${billingYear}-${String(ALL_MONTHS.indexOf(billingMonth)+1).padStart(2,'0')}-01`)
+
+  // Total contract duration in days
+  const totalDays = (endDate - startDate) / 86400000 + 1
+  if (totalDays <= 0) return null
+
+  // Daily rate
+  const rate = parseFloat(exchangeRate) || 1
+  const valueEUR = parseFloat(annualValue) * (currency === 'EUR' ? 1 : rate)
+  const dailyRate = valueEUR / totalDays
+
+  // FY26 months: Apr 2026 → Mar 2027
+  const fy26Start = new Date('2026-04-01')
+  const fy26End   = new Date('2027-03-31')
+
+  const recognition = {}
+  FY26_MONTHS.forEach((m, i) => {
+    const yr = i < 9 ? 2026 : 2027  // Apr-Dec=2026, Jan-Mar=2027
+    const mNum = ALL_MONTHS.indexOf(m) + 1
+    const monthStart = new Date(`${yr}-${String(mNum).padStart(2,'0')}-01`)
+    const monthEnd   = new Date(yr, mNum, 0) // last day of month
+    recognition[m] = { days: 0, value: 0, type: 'none' }
+
+    // Is this month within contract period?
+    if (monthEnd < startDate || monthStart > endDate) return
+
+    // Days of contract within this month
+    const overlapStart = monthStart < startDate ? startDate : monthStart
+    const overlapEnd   = monthEnd > endDate ? endDate : monthEnd
+    const days = Math.max(0, (overlapEnd - overlapStart) / 86400000 + 1)
+    recognition[m].days = days
+    recognition[m].rawValue = dailyRate * days
+  })
+
+  // Apply billing logic: on billing month, catch up all previous months
+  const billMonthIdx = FY26_MONTHS.indexOf(billingMonth)
+  if (billMonthIdx < 0) return null
+
+  let catchupTotal = 0
+  FY26_MONTHS.forEach((m, i) => {
+    if (i < billMonthIdx) {
+      catchupTotal += recognition[m].rawValue || 0
+      recognition[m].value = 0
+      recognition[m].type = 'deferred'
+    }
+  })
+
+  // Billing month = catchup + own month
+  const billM = FY26_MONTHS[billMonthIdx]
+  recognition[billM].value = catchupTotal + (recognition[billM].rawValue || 0)
+  recognition[billM].type = 'billing'
+
+  // Remaining months after billing = normal
+  FY26_MONTHS.forEach((m, i) => {
+    if (i > billMonthIdx) {
+      recognition[m].value = recognition[m].rawValue || 0
+      recognition[m].type = recognition[m].days > 0 ? 'normal' : 'none'
+    }
+  })
+
+  const totalRecognized = FY26_MONTHS.reduce((s,m) => s + recognition[m].value, 0)
+  return { recognition, totalRecognized, totalDays, dailyRate, valueEUR }
 }
 
 function DiscountApprovalPanel({ deal, onSave }) {
@@ -138,8 +212,8 @@ export default function DealForm({ deal, onClose, onSaved }) {
     is_sla: deal.is_sla || false,
     sla_type: deal.sla_type || '',
     sla_annual_value: deal.sla_annual_value || '',
-    sla_start_date: deal.sla_start_date || '',
-    sla_end_date: deal.sla_end_date || '',
+    sla_billing_month: deal.sla_billing_month || '',
+    sla_billing_year: deal.sla_billing_year || '',
     sla_owner: deal.sla_owner || '',
     sla_renewal_target: deal.sla_renewal_target || '',
     win_probability: deal.win_probability ?? '',
@@ -169,6 +243,33 @@ export default function DealForm({ deal, onClose, onSaved }) {
   const [addingAct, setAddingAct] = useState(false)
 
   const isMaint = form.deal_type === 'Maintenance'
+
+  // Auto-calculate SLA monthly recognition
+  useEffect(() => {
+    if (!form.is_sla || !form.sla_annual_value || !form.cs_month || !form.cs_year ||
+        !form.ce_month || !form.ce_year || !form.sla_billing_month || !form.sla_billing_year) return
+    const result = calcSLARecognition({
+      startDay: parseInt(form.cs_day)||1,
+      startMonth: form.cs_month, startYear: parseInt(form.cs_year),
+      endDay: parseInt(form.ce_day)||31, endMonth: form.ce_month, endYear: parseInt(form.ce_year),
+      billingMonth: form.sla_billing_month, billingYear: parseInt(form.sla_billing_year),
+      annualValue: form.sla_annual_value, currency: form.currency, exchangeRate: form.exchange_rate,
+    })
+    if (!result) return
+    setForm(f => {
+      const next = { ...f }
+      const MK = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
+      FY26_MONTHS.forEach((m, i) => {
+        const val = result.recognition[m]?.value || 0
+        next[MK[i]] = val > 0 ? Math.round(val) : ''
+      })
+      // Set value_total to EUR total
+      next.value_total = Math.round(result.totalRecognized)
+      return next
+    })
+  }, [form.is_sla, form.sla_annual_value, form.cs_month, form.cs_year,
+      form.ce_month, form.ce_year, form.sla_billing_month, form.sla_billing_year,
+      form.currency, form.exchange_rate])
   const isDistributor = profile?.role === 'distributor'
 
   // Distributor stage flow — restricted stages
@@ -268,8 +369,8 @@ export default function DealForm({ deal, onClose, onSaved }) {
       value_total: parseFloat(form.value_total) || 0,
       gm_pct: parseFloat(form.gm_pct) / 100 || 0,
       rec_month: form.rec_month || null, rec_year: parseInt(form.rec_year) || null,
-      cs_month: form.cs_month || null, cs_year: parseInt(form.cs_year) || null,
-      ce_month: form.ce_month || null, ce_year: parseInt(form.ce_year) || null,
+      cs_day: parseInt(form.cs_day) || 1, cs_month: form.cs_month || null, cs_year: parseInt(form.cs_year) || null,
+      ce_day: parseInt(form.ce_day) || 31, ce_month: form.ce_month || null, ce_year: parseInt(form.ce_year) || null,
       // Currency
       currency: form.currency || 'EUR',
       exchange_rate: form.currency === 'EUR' ? 1.0 : (parseFloat(form.exchange_rate) || 1.0),
@@ -277,7 +378,8 @@ export default function DealForm({ deal, onClose, onSaved }) {
       is_sla: form.is_sla || false,
       sla_type: form.is_sla ? (form.sla_type || null) : null,
       sla_annual_value: form.is_sla ? (parseFloat(form.sla_annual_value) || null) : null,
-      // SLA dates use cs_month/cs_year/ce_month/ce_year (unified contract dates)
+      sla_billing_month: form.is_sla ? (form.sla_billing_month || null) : null,
+      sla_billing_year: form.is_sla ? (parseInt(form.sla_billing_year) || null) : null,
       sla_owner: form.is_sla ? (form.sla_owner || null) : null,
       sla_renewal_target: form.is_sla ? (parseFloat(form.sla_renewal_target) || null) : null,
       // Product
@@ -776,7 +878,20 @@ export default function DealForm({ deal, onClose, onSaved }) {
                     placeholder="Annual contract value"/>
                 </div>
               </div>
-              {/* Contract dates managed in Contract Dates section above */}
+              {/* Billing month — when the invoice is issued */}
+              <div>
+                <label className="label">Billing month <span className="text-gray-400 font-normal">(when invoice is issued)</span></label>
+                <div className="flex gap-1.5">
+                  <select className="select flex-1 bg-white" value={form.sla_billing_month||''} onChange={e => set('sla_billing_month', e.target.value)}>
+                    <option value="">— Month —</option>
+                    {FY26_MONTHS.map(m => <option key={m}>{m}</option>)}
+                  </select>
+                  <select className="select w-20 bg-white" value={form.sla_billing_year||''} onChange={e => set('sla_billing_year', e.target.value)}>
+                    <option value="">Year</option>
+                    {[2025,2026,2027].map(y => <option key={y}>{y}</option>)}
+                  </select>
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="label">SLA Owner</label>
@@ -859,6 +974,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
               <div>
                 <label className="label">Contract start</label>
                 <div className="flex gap-1.5">
+                  <select className="select w-14" value={form.cs_day||1} onChange={e => set('cs_day', e.target.value)}>
+                    {[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31].map(d => <option key={d}>{d}</option>)}
+                  </select>
                   <select className="select flex-1" value={form.cs_month} onChange={e => set('cs_month', e.target.value)}>
                     <option value="">Month</option>
                     {MONTHS.map(m => <option key={m}>{m}</option>)}
@@ -872,6 +990,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
               <div>
                 <label className="label">Contract end</label>
                 <div className="flex gap-1.5">
+                  <select className="select w-14" value={form.ce_day||31} onChange={e => set('ce_day', e.target.value)}>
+                    {[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31].map(d => <option key={d}>{d}</option>)}
+                  </select>
                   <select className="select flex-1" value={form.ce_month} onChange={e => set('ce_month', e.target.value)}>
                     <option value="">Month</option>
                     {MONTHS.map(m => <option key={m}>{m}</option>)}
@@ -882,8 +1003,58 @@ export default function DealForm({ deal, onClose, onSaved }) {
                   </select>
                 </div>
               </div>
+
+              {/* Recognition preview */}
+              {(() => {
+                const result = calcSLARecognition({
+                  startDay: parseInt(form.cs_day)||1,
+                  startMonth: form.cs_month, startYear: parseInt(form.cs_year),
+                  endDay: parseInt(form.ce_day)||31,
+                  endMonth: form.ce_month, endYear: parseInt(form.ce_year),
+                  billingMonth: form.sla_billing_month,
+                  billingYear: parseInt(form.sla_billing_year),
+                  annualValue: form.sla_annual_value,
+                  currency: form.currency,
+                  exchangeRate: form.exchange_rate,
+                })
+                if (!result) return null
+                return (
+                  <div className="bg-white border border-blue-200 rounded-xl p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-blue-700">Revenue recognition · FY26</p>
+                      <span className="text-xs font-bold text-blue-700">
+                        Total: €{result.totalRecognized.toLocaleString('pt-PT', {maximumFractionDigits:0})}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-6 gap-1">
+                      {FY26_MONTHS.map(m => {
+                        const r = result.recognition[m]
+                        const v = r?.value || 0
+                        const type = r?.type || 'none'
+                        return (
+                          <div key={m} className={`rounded p-1 text-center ${
+                            type === 'billing' ? 'bg-blue-600 text-white' :
+                            type === 'normal'  ? 'bg-blue-100 text-blue-800' :
+                            type === 'deferred'? 'bg-gray-100 text-gray-400' :
+                            'bg-gray-50 text-gray-300'
+                          }`}>
+                            <p className="text-[9px] font-medium">{m}</p>
+                            <p className="text-[9px] font-bold">
+                              {v > 0 ? `€${Math.round(v/1000*10)/10}K` : '—'}
+                            </p>
+                            {type === 'billing' && <p className="text-[7px] opacity-80">BILL</p>}
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <p className="text-[10px] text-blue-500">
+                      Billing month catches up {FY26_MONTHS.indexOf(form.sla_billing_month)} prior month(s) · remaining recognized monthly
+                    </p>
+                  </div>
+                )
+              })()}
             </div>
-            {/* Duration indicator */}
+          )}{/* Duration indicator */}
             {form.cs_month && form.cs_year && form.ce_month && form.ce_year && (() => {
               const months = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
               const allMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
