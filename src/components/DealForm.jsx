@@ -983,11 +983,11 @@ export default function DealForm({ deal, onClose, onSaved }) {
                     <select className="select w-16 text-sm" value={form.cs_day||1} onChange={e => set('cs_day', e.target.value)}>
                       {Array.from({length:31},(_,i)=>i+1).map(d=><option key={d}>{d}</option>)}
                     </select>
-                    <select className="select flex-1 text-sm" value={form.cs_month||''} onChange={e => set('cs_month', e.target.value)}>
+                    <select className="select w-20 text-sm" value={form.cs_month||''} onChange={e => set('cs_month', e.target.value)}>
                       <option value="">Mon</option>
                       {MONTHS.map(m=><option key={m}>{m}</option>)}
                     </select>
-                    <select className="select w-[72px] text-sm" value={form.cs_year||''} onChange={e => set('cs_year', e.target.value)}>
+                    <select className="select w-[84px] text-sm" value={form.cs_year||''} onChange={e => set('cs_year', e.target.value)}>
                       <option value="">Yr</option>
                       {YEARS.map(y=><option key={y}>{y}</option>)}
                     </select>
@@ -999,11 +999,11 @@ export default function DealForm({ deal, onClose, onSaved }) {
                     <select className="select w-16 text-sm" value={form.ce_day||31} onChange={e => set('ce_day', e.target.value)}>
                       {Array.from({length:31},(_,i)=>i+1).map(d=><option key={d}>{d}</option>)}
                     </select>
-                    <select className="select flex-1 text-sm" value={form.ce_month||''} onChange={e => set('ce_month', e.target.value)}>
+                    <select className="select w-20 text-sm" value={form.ce_month||''} onChange={e => set('ce_month', e.target.value)}>
                       <option value="">Mon</option>
                       {MONTHS.map(m=><option key={m}>{m}</option>)}
                     </select>
-                    <select className="select w-[72px] text-sm" value={form.ce_year||''} onChange={e => set('ce_year', e.target.value)}>
+                    <select className="select w-[84px] text-sm" value={form.ce_year||''} onChange={e => set('ce_year', e.target.value)}>
                       <option value="">Yr</option>
                       {YEARS.map(y=><option key={y}>{y}</option>)}
                     </select>
