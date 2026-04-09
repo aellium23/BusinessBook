@@ -361,9 +361,11 @@ export default function Dashboard() {
     const r = {}
     deals.forEach(d => {
       if (!d.region || d.is_intercompany_mirror) return
-      const fy = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
+      const rate = (!d.currency || d.currency === 'EUR') ? 1 : (d.exchange_rate || 1)
+      const fyRaw = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
+      const fy = (fyRaw === 0 && d.value_total > 0) ? d.value_total : fyRaw
       if (['BackLog','Invoiced'].includes(d.stage))
-        r[d.region] = (r[d.region] || 0) + fy / 1000
+        r[d.region] = (r[d.region] || 0) + fy * rate
     })
     return Object.entries(r).sort((a,b) => b[1]-a[1])
       .map(([region, value]) => ({ region, value: Math.round(value/1000*10)/10 }))
