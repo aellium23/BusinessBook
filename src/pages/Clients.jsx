@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { BUBadge, StageBadge, formatK, Spinner } from '../components/ui'
+import { BUBadge, StageBadge, formatK, toEUR, CurrencyBadge, Spinner } from '../components/ui'
 import { Building2, Search, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react'
 
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
@@ -20,11 +20,13 @@ function ClientCard({ client, deals }) {
 
   const totalFY26 = deals.reduce((s, d) => {
     const fy = MONTHS_K.reduce((ms, m) => ms + (d[m] || 0), 0)
-    return s + (['BackLog','Invoiced'].includes(d.stage) ? fy : 0)
+    const fyEUR = toEUR(fy, d.currency, d.exchange_rate)
+    return s + (['BackLog','Invoiced'].includes(d.stage) ? fyEUR : 0)
   }, 0)
 
   const totalPipe = deals.reduce((s, d) =>
-    d.stage === 'Pipeline' || d.stage === 'Offer Presented' ? s + (d.value_total || 0) : s, 0)
+    d.stage === 'Pipeline' || d.stage === 'Offer Presented'
+      ? s + toEUR(d.value_total || 0, d.currency, d.exchange_rate) : s, 0)
 
   const slas = deals.filter(d => d.is_sla)
   const activeSLAs = slas.filter(d => {
@@ -104,8 +106,17 @@ function ClientCard({ client, deals }) {
                   )}
                 </div>
                 <div className="text-right shrink-0 ml-2">
-                  <p className="text-xs font-medium text-gray-800">{formatK(d.value_total)}</p>
-                  {fy > 0 && <p className="text-[10px] text-gray-400">FY26: {formatK(fy)}</p>}
+                  <div className="flex items-center justify-end gap-1">
+                    <CurrencyBadge currency={d.currency}/>
+                    <p className="text-xs font-medium text-gray-800">
+                      {d.currency && d.currency !== 'EUR'
+                        ? `${d.currency === 'USD' ? '$' : '£'}${(d.value_total||0).toLocaleString()}`
+                        : formatK(d.value_total)}
+                    </p>
+                  </div>
+                  {d.currency && d.currency !== 'EUR' && (
+                    <p className="text-[10px] text-blue-500">≈ {formatK(toEUR(d.value_total, d.currency, d.exchange_rate))}</p>
+                  )}
                 </div>
               </div>
             )
