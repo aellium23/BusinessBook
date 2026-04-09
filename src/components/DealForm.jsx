@@ -968,44 +968,76 @@ export default function DealForm({ deal, onClose, onSaved }) {
 
         {/* Maintenance contract dates */}
         {isMaint && (
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
-            <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Contract dates</p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="label">Contract start</label>
-                <div className="flex gap-1.5">
-                  <select className="select w-14" value={form.cs_day||1} onChange={e => set('cs_day', e.target.value)}>
-                    {[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31].map(d => <option key={d}>{d}</option>)}
-                  </select>
-                  <select className="select flex-1" value={form.cs_month} onChange={e => set('cs_month', e.target.value)}>
-                    <option value="">Month</option>
-                    {MONTHS.map(m => <option key={m}>{m}</option>)}
-                  </select>
-                  <select className="select w-20" value={form.cs_year} onChange={e => set('cs_year', e.target.value)}>
-                    <option value="">Year</option>
-                    {YEARS.map(y => <option key={y}>{y}</option>)}
-                  </select>
+          <div className="rounded-xl border border-gray-200 overflow-hidden">
+            {/* Header */}
+            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+              <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Contract dates</p>
+            </div>
+
+            <div className="p-4 space-y-4">
+              {/* Start + End on same row */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label mb-1">Start date</label>
+                  <div className="flex gap-1">
+                    <select className="select w-16 text-sm" value={form.cs_day||1} onChange={e => set('cs_day', e.target.value)}>
+                      {Array.from({length:31},(_,i)=>i+1).map(d=><option key={d}>{d}</option>)}
+                    </select>
+                    <select className="select flex-1 text-sm" value={form.cs_month||''} onChange={e => set('cs_month', e.target.value)}>
+                      <option value="">Mon</option>
+                      {MONTHS.map(m=><option key={m}>{m}</option>)}
+                    </select>
+                    <select className="select w-[72px] text-sm" value={form.cs_year||''} onChange={e => set('cs_year', e.target.value)}>
+                      <option value="">Yr</option>
+                      {YEARS.map(y=><option key={y}>{y}</option>)}
+                    </select>
+                  </div>
                 </div>
-              </div>
-              <div>
-                <label className="label">Contract end</label>
-                <div className="flex gap-1.5">
-                  <select className="select w-14" value={form.ce_day||31} onChange={e => set('ce_day', e.target.value)}>
-                    {[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31].map(d => <option key={d}>{d}</option>)}
-                  </select>
-                  <select className="select flex-1" value={form.ce_month} onChange={e => set('ce_month', e.target.value)}>
-                    <option value="">Month</option>
-                    {MONTHS.map(m => <option key={m}>{m}</option>)}
-                  </select>
-                  <select className="select w-20" value={form.ce_year} onChange={e => set('ce_year', e.target.value)}>
-                    <option value="">Year</option>
-                    {YEARS.map(y => <option key={y}>{y}</option>)}
-                  </select>
+                <div>
+                  <label className="label mb-1">End date</label>
+                  <div className="flex gap-1">
+                    <select className="select w-16 text-sm" value={form.ce_day||31} onChange={e => set('ce_day', e.target.value)}>
+                      {Array.from({length:31},(_,i)=>i+1).map(d=><option key={d}>{d}</option>)}
+                    </select>
+                    <select className="select flex-1 text-sm" value={form.ce_month||''} onChange={e => set('ce_month', e.target.value)}>
+                      <option value="">Mon</option>
+                      {MONTHS.map(m=><option key={m}>{m}</option>)}
+                    </select>
+                    <select className="select w-[72px] text-sm" value={form.ce_year||''} onChange={e => set('ce_year', e.target.value)}>
+                      <option value="">Yr</option>
+                      {YEARS.map(y=><option key={y}>{y}</option>)}
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              {/* Recognition preview */}
-              {(() => {
+              {/* Duration pill */}
+              {form.cs_month && form.cs_year && form.ce_month && form.ce_year && (() => {
+                const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+                const s = new Date(`${form.cs_year}-${String(M.indexOf(form.cs_month)+1).padStart(2,'0')}-${String(form.cs_day||1).padStart(2,'0')}`)
+                const e = new Date(`${form.ce_year}-${String(M.indexOf(form.ce_month)+1).padStart(2,'0')}-${String(form.ce_day||28).padStart(2,'0')}`)
+                const days = Math.round((e - s) / 86400000) + 1
+                const months = Math.round(days / 30.44 * 10) / 10
+                const expired = e < new Date()
+                const expiring = !expired && (e - new Date()) < 90*24*60*60*1000
+                return (
+                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
+                    expired  ? 'bg-red-50 text-red-700 border border-red-200' :
+                    expiring ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                               'bg-green-50 text-green-700 border border-green-200'
+                  }`}>
+                    {expired ? '⚠ Expired' : expiring ? '⏰ Expiring soon' : '✓ Active'}
+                    <span className="opacity-60">·</span>
+                    {days} days · {months} months
+                    {form.sla_annual_value && (
+                      <><span className="opacity-60">·</span>Total €{Math.round(parseFloat(form.sla_annual_value) * days / 365).toLocaleString()}</>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {/* Revenue recognition — only when SLA + billing month set */}
+              {form.is_sla && form.sla_billing_month && form.sla_billing_year && form.sla_annual_value && form.cs_month && form.cs_year && form.ce_month && form.ce_year && (() => {
                 const result = calcSLARecognition({
                   startDay: parseInt(form.cs_day)||1,
                   startMonth: form.cs_month, startYear: parseInt(form.cs_year),
@@ -1014,76 +1046,49 @@ export default function DealForm({ deal, onClose, onSaved }) {
                   billingMonth: form.sla_billing_month,
                   billingYear: parseInt(form.sla_billing_year),
                   annualValue: form.sla_annual_value,
-                  currency: form.currency,
-                  exchangeRate: form.exchange_rate,
+                  currency: form.currency, exchangeRate: form.exchange_rate,
                 })
                 if (!result) return null
+                const catchupMonths = FY26_MONTHS.indexOf(form.sla_billing_month)
                 return (
-                  <div className="bg-white border border-blue-200 rounded-xl p-3 space-y-2">
+                  <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold text-blue-700">Revenue recognition · FY26</p>
+                      <p className="text-xs font-semibold text-gray-700">Revenue recognition · FY26</p>
                       <span className="text-xs font-bold text-blue-700">
-                        Total: €{result.totalRecognized.toLocaleString('pt-PT', {maximumFractionDigits:0})}
+                        Total €{Math.round(result.totalRecognized).toLocaleString()}
                       </span>
                     </div>
-                    {/* Month grid — 2 rows of 6 for better readability */}
+                    {/* 12 month grid - 2 rows of 6 */}
                     <div className="grid grid-cols-6 gap-1.5">
                       {FY26_MONTHS.map(m => {
                         const r = result.recognition[m]
-                        const v = r?.value || 0
-                        const type = r?.type || 'none'
+                        const v = Math.round(r?.value || 0)
+                        const t = r?.type || 'none'
                         return (
-                          <div key={m} className={`rounded-lg py-2 px-1 text-center border ${
-                            type === 'billing'  ? 'bg-blue-600 border-blue-700 text-white' :
-                            type === 'normal'   ? 'bg-blue-50 border-blue-200 text-blue-800' :
-                            type === 'deferred' ? 'bg-gray-50 border-gray-200 text-gray-400' :
-                            'bg-white border-gray-100 text-gray-300'
+                          <div key={m} className={`rounded-lg p-2 text-center ${
+                            t==='billing'  ? 'bg-blue-600 text-white' :
+                            t==='normal'   ? 'bg-blue-50 text-blue-700 border border-blue-100' :
+                            t==='deferred' ? 'bg-gray-50 text-gray-400 border border-gray-100' :
+                                             'bg-white text-gray-200 border border-gray-100'
                           }`}>
-                            <p className="text-[10px] font-semibold leading-tight">{m}</p>
-                            <p className="text-xs font-bold mt-0.5 leading-tight">
-                              {v > 0 ? `€${(v/1000).toFixed(1)}K` : '—'}
-                            </p>
-                            {type === 'billing' && (
-                              <p className="text-[8px] font-medium mt-0.5 opacity-80 leading-tight">BILL</p>
-                            )}
+                            <div className="text-[10px] font-semibold">{m}</div>
+                            <div className={`text-[11px] font-bold mt-0.5 ${t==='billing'?'text-white':''}`}>
+                              {v>0 ? `€${v>=1000?Math.round(v/100)/10+'K':v}` : '—'}
+                            </div>
+                            {t==='billing' && <div className="text-[8px] opacity-75 mt-0.5">BILL</div>}
                           </div>
                         )
                       })}
                     </div>
-                    {/* Legend */}
-                    <div className="flex items-center gap-3 flex-wrap text-[10px]">
-                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-blue-600 inline-block"/><span className="text-gray-500">Billing month (catchup)</span></span>
-                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-blue-50 border border-blue-200 inline-block"/><span className="text-gray-500">Deferred recognition</span></span>
-                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-gray-50 border border-gray-200 inline-block"/><span className="text-gray-500">Outside FY26</span></span>
+                    <div className="flex gap-3 text-[10px] text-gray-400">
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-blue-600 inline-block"/> Billing (catchup {catchupMonths}m)</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-blue-50 border border-blue-100 inline-block"/> Linear</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-gray-50 border border-gray-100 inline-block"/> Deferred</span>
                     </div>
-                    <p className="text-[10px] text-blue-500 font-medium">
-                      {FY26_MONTHS.indexOf(form.sla_billing_month)} month(s) deferred → recognised in {form.sla_billing_month} {form.sla_billing_year}
-                    </p>
                   </div>
                 )
               })()}
             </div>
-          )}
-
-          {/* Duration indicator */}
-            {form.cs_month && form.cs_year && form.ce_month && form.ce_year && (() => {
-              const months = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
-              const allMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-              const start = new Date(`${form.cs_year}-${String(allMonths.indexOf(form.cs_month)+1).padStart(2,'0')}-01`)
-              const end   = new Date(`${form.ce_year}-${String(allMonths.indexOf(form.ce_month)+1).padStart(2,'0')}-01`)
-              const months_dur = Math.round((end - start) / (1000*60*60*24*30.5))
-              const years_dur  = (months_dur / 12).toFixed(1)
-              const isExpired  = end < new Date()
-              const expiring   = !isExpired && (end - new Date()) < 90*24*60*60*1000
-              return (
-                <div className={`text-xs px-3 py-2 rounded-lg ${isExpired ? 'bg-red-100 text-red-700' : expiring ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-                  {isExpired ? '⚠ Expired' : expiring ? '⏰ Expiring soon' : '✓ Active'} · {months_dur} months ({years_dur} yrs)
-                  {form.sla_annual_value && months_dur > 0 && (
-                    <span className="ml-2">· Total: €{(parseFloat(form.sla_annual_value) * months_dur / 12).toLocaleString('pt-PT', {maximumFractionDigits:0})}</span>
-                  )}
-                </div>
-              )
-            })()}
           </div>
         )}
 
