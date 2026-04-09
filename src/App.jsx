@@ -9,6 +9,7 @@ import Clients from './pages/Clients'
 import Quotas from './pages/Quotas'
 import Budget from './pages/Budget'
 import Users from './pages/Users'
+import Settings from './pages/Settings'
 import { Spinner } from './components/ui'
 
 function AppRoutes() {
@@ -35,8 +36,9 @@ function AppRoutes() {
         <Route path="/history" element={<History />} />
         <Route path="/clients" element={<Clients />} />
         <Route path="/quotas"  element={<Quotas />} />
-        <Route path="/budget"  element={<Budget />} />
-        <Route path="/users"   element={<Users />} />
+        <Route path="/budget"    element={<Budget />} />
+        <Route path="/users"     element={<Users />} />
+        <Route path="/settings"  element={<Settings />} />
         <Route path="/login"  element={<Navigate to="/" replace />} />
         <Route path="*"       element={<Navigate to="/" replace />} />
       </Routes>
