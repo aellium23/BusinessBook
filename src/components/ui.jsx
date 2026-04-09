@@ -58,6 +58,22 @@ export function EmptyState({ icon, title, description, action }) {
   )
 }
 
+export function toEUR(val, currency, rate) {
+  if (!val) return 0
+  if (!currency || currency === 'EUR') return val
+  return val * (parseFloat(rate) || 1)
+}
+
+export function currencySymbol(currency) {
+  return currency === 'USD' ? '$' : currency === 'GBP' ? '£' : '€'
+}
+
+export function CurrencyBadge({ currency }) {
+  if (!currency || currency === 'EUR') return null
+  const color = currency === 'USD' ? 'bg-green-100 text-green-700' : 'bg-purple-100 text-purple-700'
+  return <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${color}`}>{currency}</span>
+}
+
 export function formatK(n) {
   if (n === null || n === undefined) return '—'
   const k = n / 1000
