@@ -46,6 +46,8 @@ const EMPTY = {
   cs_month:'', cs_year:'', ce_month:'', ce_year:'',
   lost_reason:'',
   win_probability:'',
+  currency: 'EUR',
+  exchange_rate: '',
   is_sla: false,
   sla_type: '',
   sla_annual_value: '',
@@ -131,6 +133,8 @@ export default function DealForm({ deal, onClose, onSaved }) {
     value_total: deal.value_total || '',
     gm_pct: deal.gm_pct != null ? (deal.gm_pct * 100).toFixed(1) : '',
     intercompany_value: deal.intercompany_value || '',
+    currency: deal.currency || 'EUR',
+    exchange_rate: deal.exchange_rate || '',
     is_sla: deal.is_sla || false,
     sla_type: deal.sla_type || '',
     sla_annual_value: deal.sla_annual_value || '',
@@ -388,10 +392,52 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </div>
         )}
 
+        {/* Currency selector */}
+        <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+          <div className="flex-1">
+            <label className="label">Currency</label>
+            <div className="flex gap-2 mt-1">
+              {['EUR','USD','GBP'].map(c => (
+                <button key={c} type="button"
+                  onClick={() => { set('currency', c); if (c === 'EUR') set('exchange_rate', '1') }}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${
+                    form.currency === c
+                      ? c === 'EUR' ? 'bg-blue-600 text-white'
+                      : c === 'USD' ? 'bg-green-600 text-white'
+                      : 'bg-purple-600 text-white'
+                      : 'bg-white border border-gray-200 text-gray-500 hover:border-gray-300'
+                  }`}>
+                  {c === 'EUR' ? '€ EUR' : c === 'USD' ? '$ USD' : '£ GBP'}
+                </button>
+              ))}
+            </div>
+          </div>
+          {form.currency !== 'EUR' && (
+            <div className="shrink-0">
+              <label className="label">Rate to EUR</label>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="text-xs text-gray-400">1 {form.currency} =</span>
+                <input className="input w-20 text-center" type="number" step="0.0001"
+                  value={form.exchange_rate}
+                  onChange={e => set('exchange_rate', e.target.value)}
+                  placeholder="0.0000"/>
+                <span className="text-xs text-gray-400">EUR</span>
+              </div>
+              {form.exchange_rate && form.value_total && (
+                <p className="text-[10px] text-blue-600 mt-1 text-right">
+                  ≈ €{(parseFloat(form.value_total) * parseFloat(form.exchange_rate)).toLocaleString('pt-PT', {maximumFractionDigits:0})}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Value + GM + Win Probability */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div>
-            <label className="label">Value € (total)</label>
+            <label className="label">
+              Value {form.currency === 'EUR' ? '€' : form.currency === 'USD' ? '$' : '£'} (total)
+            </label>
             <input className="input" type="number" value={form.value_total} onChange={e => set('value_total', e.target.value)} placeholder="0" />
           </div>
           <div>
