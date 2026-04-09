@@ -1026,35 +1026,46 @@ export default function DealForm({ deal, onClose, onSaved }) {
                         Total: €{result.totalRecognized.toLocaleString('pt-PT', {maximumFractionDigits:0})}
                       </span>
                     </div>
-                    <div className="grid grid-cols-6 gap-1">
+                    {/* Month grid — 2 rows of 6 for better readability */}
+                    <div className="grid grid-cols-6 gap-1.5">
                       {FY26_MONTHS.map(m => {
                         const r = result.recognition[m]
                         const v = r?.value || 0
                         const type = r?.type || 'none'
                         return (
-                          <div key={m} className={`rounded p-1 text-center ${
-                            type === 'billing' ? 'bg-blue-600 text-white' :
-                            type === 'normal'  ? 'bg-blue-100 text-blue-800' :
-                            type === 'deferred'? 'bg-gray-100 text-gray-400' :
-                            'bg-gray-50 text-gray-300'
+                          <div key={m} className={`rounded-lg py-2 px-1 text-center border ${
+                            type === 'billing'  ? 'bg-blue-600 border-blue-700 text-white' :
+                            type === 'normal'   ? 'bg-blue-50 border-blue-200 text-blue-800' :
+                            type === 'deferred' ? 'bg-gray-50 border-gray-200 text-gray-400' :
+                            'bg-white border-gray-100 text-gray-300'
                           }`}>
-                            <p className="text-[9px] font-medium">{m}</p>
-                            <p className="text-[9px] font-bold">
-                              {v > 0 ? `€${Math.round(v/1000*10)/10}K` : '—'}
+                            <p className="text-[10px] font-semibold leading-tight">{m}</p>
+                            <p className="text-xs font-bold mt-0.5 leading-tight">
+                              {v > 0 ? `€${(v/1000).toFixed(1)}K` : '—'}
                             </p>
-                            {type === 'billing' && <p className="text-[7px] opacity-80">BILL</p>}
+                            {type === 'billing' && (
+                              <p className="text-[8px] font-medium mt-0.5 opacity-80 leading-tight">BILL</p>
+                            )}
                           </div>
                         )
                       })}
                     </div>
-                    <p className="text-[10px] text-blue-500">
-                      Billing month catches up {FY26_MONTHS.indexOf(form.sla_billing_month)} prior month(s) · remaining recognized monthly
+                    {/* Legend */}
+                    <div className="flex items-center gap-3 flex-wrap text-[10px]">
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-blue-600 inline-block"/><span className="text-gray-500">Billing month (catchup)</span></span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-blue-50 border border-blue-200 inline-block"/><span className="text-gray-500">Deferred recognition</span></span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-gray-50 border border-gray-200 inline-block"/><span className="text-gray-500">Outside FY26</span></span>
+                    </div>
+                    <p className="text-[10px] text-blue-500 font-medium">
+                      {FY26_MONTHS.indexOf(form.sla_billing_month)} month(s) deferred → recognised in {form.sla_billing_month} {form.sla_billing_year}
                     </p>
                   </div>
                 )
               })()}
             </div>
-          )}{/* Duration indicator */}
+          )}
+
+          {/* Duration indicator */}
             {form.cs_month && form.cs_year && form.ce_month && form.ce_year && (() => {
               const months = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
               const allMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
