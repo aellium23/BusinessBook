@@ -1,5 +1,11 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+
+function toEUR(val, currency, rate) {
+  if (!val) return 0
+  if (!currency || currency === 'EUR') return val
+  return val * (rate || 1)
+}
 import { useAuth } from './useAuth'
 
 const MONTHS = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
