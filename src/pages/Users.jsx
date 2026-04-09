@@ -303,7 +303,7 @@ export default function Users() {
         <p className="text-sm font-semibold text-gray-700 flex items-center gap-2">
           <UserPlus size={15}/> Invite new user
         </p>
-        <form onSubmit={handleInvite} className="flex flex-col sm:flex-row gap-2">
+        <form onSubmit={handleInvite} className="flex flex-col gap-2">
           <input type="email" required placeholder="user@fujifilm.com" value={inviteEmail}
             onChange={e => setInviteEmail(e.target.value)}
             className="border border-gray-200 rounded-lg px-3 py-2 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-navy/20"/>
@@ -337,7 +337,7 @@ export default function Users() {
 
       {/* User cards */}
       {loading ? <Spinner/> : (
-        <div className="grid sm:grid-cols-2 gap-3">
+        <div className="grid gap-3">
           {filtered.map(p => (
             <UserCard key={p.id} profile={p}
               onRoleChange={loadProfiles}
