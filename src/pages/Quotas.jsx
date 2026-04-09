@@ -227,7 +227,7 @@ function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, profil
       {addingNew && (
         <div className="border border-gray-200 rounded-xl p-3 space-y-2 bg-gray-50">
           <p className="text-xs font-medium text-gray-600">Add team member — {bu}</p>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-navy/20"
               placeholder="Name" value={newName} onChange={e => setNewName(e.target.value)}/>
             <input type="number" className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-navy/20"
