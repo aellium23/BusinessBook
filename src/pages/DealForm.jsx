@@ -4,7 +4,7 @@ import { upsertDeal, upsertDealWithIntercompany } from '../hooks/useDeals'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { useFxRates } from '../hooks/useFxRates'
-import { Link, Clock, Plus, AlertCircle, CheckCircle, XCircle, RefreshCw as CounterIcon } from 'lucide-react'
+import { Link, Clock, Plus, AlertCircle, CheckCircle, XCircle, RefreshCw as CounterIcon, History } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
@@ -245,6 +245,8 @@ export default function DealForm({ deal, onClose, onSaved }) {
   const [nextActionDate, setNextActionDate] = useState('')
   const [actNote, setActNote] = useState('')
   const [addingAct, setAddingAct] = useState(false)
+  const [dealHistory, setDealHistory] = useState([])
+  const [showHistory, setShowHistory] = useState(false)
 
   const isMaint = form.deal_type === 'Maintenance'
 
@@ -288,12 +290,18 @@ export default function DealForm({ deal, onClose, onSaved }) {
   ]
   const selectedProduct = PRODUCTS.find(p => p.value === form.product)
 
-  // Load activity log for existing deal
+  // Load activity log and change history for existing deal
   useEffect(() => {
     if (!deal?.id) return
     supabase.from('deal_activities').select("*")
       .eq('deal_id', deal.id).order('created_at', { ascending: false })
       .then(({ data }) => setActivities(data || []))
+    supabase.from('deal_history')
+      .select("*, changed_by_profile:changed_by(full_name, email)")
+      .eq('deal_id', deal.id)
+      .order('changed_at', { ascending: false })
+      .limit(50)
+      .then(({ data }) => setDealHistory(data || []))
   }, [deal?.id])
 
   async function addActivity() {
@@ -1123,6 +1131,64 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Change History (auto-tracked by trigger) */}
+        {deal?.id && dealHistory.length > 0 && (
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => setShowHistory(h => !h)}
+              className="label flex items-center gap-1.5 w-full text-left hover:text-gray-700 transition-colors">
+              <History size={12}/>
+              {t("df_change_history")}
+              <span className="ml-auto text-[10px] text-gray-400 font-normal">
+                {dealHistory.length} {t("df_changes")}
+              </span>
+              <span className="text-gray-300 text-[10px]">{showHistory ? '▲' : '▼'}</span>
+            </button>
+            {showHistory && (
+              <div className="space-y-1 max-h-52 overflow-y-auto">
+                {dealHistory.map(h => {
+                  const fieldLabels = {
+                    stage: t("df_stage"), value_total: t("df_value"),
+                    gm_pct: t("df_gm"), client: t("df_client"),
+                    country: t("df_country"), region: t("df_region"),
+                    sales_owner: t("df_owner"), deal_type: t("df_deal_type"),
+                    currency: t("df_currency"), win_probability: t("df_win_prob"),
+                    lost_reason: 'Lost reason', discount_status: 'Discount status',
+                    discount_approved: t("df_approved_disc"), sla_annual_value: t("df_sla_annual"),
+                    description: t("df_description"), bu: t("df_bu"),
+                  }
+                  const fieldLabel = fieldLabels[h.field_name] || h.field_name
+                  const user = h.changed_by_profile?.full_name || h.changed_by_profile?.email?.split('@')[0] || '—'
+                  return (
+                    <div key={h.id} className="bg-white border border-gray-100 rounded-lg px-3 py-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-semibold text-gray-600">{fieldLabel}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-gray-400">{user}</span>
+                          <span className="text-[10px] text-gray-300">·</span>
+                          <span className="text-[10px] text-gray-400">
+                            {new Date(h.changed_at).toLocaleDateString('pt-PT', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        {h.old_value && (
+                          <span className="text-red-500 line-through text-[11px]">{h.old_value}</span>
+                        )}
+                        {h.old_value && h.new_value && <span className="text-gray-300">→</span>}
+                        {h.new_value && (
+                          <span className="text-green-600 font-medium text-[11px]">{h.new_value}</span>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
 
