@@ -167,7 +167,7 @@ function DiscountApprovalPanel({ deal, onSave }) {
   return (
     <div className="border-t border-gray-200 pt-3 space-y-3">
       <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">VGT Response</p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
           <label className="label">{tr("df_decision")}</label>
           <select className="select" value={status} onChange={e => setStatus(e.target.value)}>
@@ -488,7 +488,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
         {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 
         {/* BU + Sales Type + Stage */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label className="label">{tr("df_bu")} *</label>
             <select className="select" value={form.bu} onChange={e => set('bu', e.target.value)} disabled={!isAdmin}>
@@ -519,7 +519,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
         </div>
 
         {/* Region + Country */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="label">{tr("df_region")}</label>
             <select className="select" value={form.region} onChange={e => { set('region', e.target.value); set('country','') }}>
@@ -536,7 +536,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
         </div>
 
         {/* Owner + Type */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="label">{tr("df_owner")}</label>
             <input className="input" value={form.sales_owner} onChange={e => set('sales_owner', e.target.value)} />
@@ -632,7 +632,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
         </div>
 
         {/* Value + GM + Win Probability */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label className="label">
               {tr("df_value")} {form.currency === 'EUR' ? '€' : form.currency === 'USD' ? '$' : '£'}
@@ -682,7 +682,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
 
           {/* Dose-specific fields */}
           {selectedProduct?.hasEquipment && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="label">
                   {tr("df_equipment")}
@@ -758,7 +758,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="label">{tr("df_end_customer")}</label>
                 <input className="input" value={form.end_customer}
@@ -773,7 +773,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="label">{tr("df_distributor")} <span className="text-gray-400 font-normal">{tr("df_optional")}</span></label>
                 <input className="input" value={form.distributor}
@@ -844,7 +844,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
             </div>
 
             {/* Distributor fills these */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="label">{tr("df_list_price")}</label>
                 <input className="input" type="number"
@@ -923,7 +923,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </div>
           {form.is_sla && (
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="label">{tr("df_sla_type")}</label>
                   <select className="select bg-white" value={form.sla_type||''} onChange={e => set('sla_type', e.target.value)}>
@@ -957,7 +957,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="label">{tr("df_sla_owner")}</label>
                   <input className="input bg-white" value={form.sla_owner} onChange={e => set('sla_owner', e.target.value)} placeholder="Responsible for renewal"/>
@@ -987,7 +987,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
               If ECT purchases from VGT to deliver this deal, enter the VGT amount below.
               A linked VGT Internal deal will be created automatically.
             </p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="label">{tr("df_vgt_cost")}</label>
                 <input className="input bg-white" type="number"
@@ -1044,7 +1044,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="label mb-1">Start date</label>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 flex-wrap">
                     <select className="select w-16 text-sm" value={form.cs_day||1} onChange={e => set('cs_day', e.target.value)}>
                       {Array.from({length:31},(_,i)=>i+1).map(d=><option key={d}>{d}</option>)}
                     </select>
@@ -1060,7 +1060,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 </div>
                 <div>
                   <label className="label mb-1">End date</label>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 flex-wrap">
                     <select className="select w-16 text-sm" value={form.ce_day||31} onChange={e => set('ce_day', e.target.value)}>
                       {Array.from({length:31},(_,i)=>i+1).map(d=><option key={d}>{d}</option>)}
                     </select>
@@ -1124,7 +1124,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                       </span>
                     </div>
                     {/* 12 month grid - 2 rows of 6 */}
-                    <div className="grid grid-cols-6 gap-1.5">
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
                       {FY26_MONTHS.map(m => {
                         const r = result.recognition[m]
                         const v = Math.round(r?.value || 0)
@@ -1279,7 +1279,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
       {/* ── CHANGE REASON MODAL ─────────────────────────────────────── */}
       {showReasonModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4">
+          <div className="bg-white rounded-2xl shadow-xl p-5 w-full max-w-sm space-y-4 mx-4">
             <div className="flex items-center gap-2">
               <span className="text-2xl">⚠️</span>
               <h3 className="font-bold text-gray-900">{tr("df_reason_title")}</h3>
