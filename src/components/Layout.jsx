@@ -1,27 +1,54 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { signOut } from '../lib/supabase'
-import { LayoutDashboard, List, DollarSign, Users, LogOut, ChevronRight, History, Building2, Target, Settings } from 'lucide-react'
+import { useNotifications } from '../hooks/useTasks'
+import { useTasks } from '../hooks/useTasks'
+import { LayoutDashboard, List, DollarSign, Users, LogOut, ChevronRight, History, Building2, Target, Settings, CheckSquare, FileText } from 'lucide-react'
 
-const nav = [
-  { to: '/',         icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/deals',    icon: List,            label: 'Deals'     },
-  { to: '/clients',  icon: Building2,       label: 'Clients'   },
-  { to: '/history',  icon: History,         label: 'History'   },
-  { to: '/quotas',   icon: Target,          label: 'Sales Targets' },
-  { to: '/budget',   icon: DollarSign,      label: 'Budget',    adminOnly: true },
-  { to: '/users',    icon: Users,           label: 'Users',     adminOnly: true },
-  { to: '/settings', icon: Settings,        label: 'Settings',  adminOnly: true },
-]
+function NavItem({ to, icon: Icon, label, badge }) {
+  return (
+    <NavLink to={to} end={to === '/'}
+      className={({ isActive }) =>
+        `flex items-center gap-3 mx-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+          isActive ? 'bg-navy text-white' : 'text-gray-600 hover:bg-gray-100'
+        }`
+      }>
+      <Icon size={16} />
+      {label}
+      <ChevronRight size={14} className="ml-auto opacity-30" />
+      {badge > 0 && (
+        <span className="ml-auto bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+          {badge > 9 ? '9+' : badge}
+        </span>
+      )}
+    </NavLink>
+  )
+}
 
 export default function Layout({ children }) {
   const { profile, isAdmin } = useAuth()
   const navigate = useNavigate()
+  const { unread } = useNotifications()
+  const { overdueCount } = useTasks()
+  const taskBadge = (unread || 0) + (overdueCount || 0)
 
   async function handleSignOut() {
     await signOut()
     navigate('/login')
   }
+
+  const nav = [
+    { to: '/',        icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/deals',   icon: List,            label: 'Deals' },
+    { to: '/tasks',   icon: CheckSquare,     label: 'Tasks',          badge: taskBadge },
+    { to: '/tenders', icon: FileText,        label: 'Tenders & RFPs' },
+    { to: '/clients', icon: Building2,       label: 'Clients' },
+    { to: '/history', icon: History,         label: 'History' },
+    { to: '/quotas',  icon: Target,          label: 'Sales Targets' },
+    { to: '/budget',  icon: DollarSign,      label: 'Budget',         adminOnly: true },
+    { to: '/users',   icon: Users,           label: 'Users',          adminOnly: true },
+    { to: '/settings',icon: Settings,        label: 'Settings',       adminOnly: true },
+  ]
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -65,17 +92,8 @@ export default function Layout({ children }) {
       <div className="flex flex-1">
         {/* Sidebar — desktop */}
         <aside className="hidden sm:flex flex-col w-52 bg-white border-r border-gray-100 py-4 gap-1 shrink-0">
-          {nav.filter(n => !n.adminOnly || isAdmin).map(({ to, icon: Icon, label }) => (
-            <NavLink key={to} to={to} end={to === '/'}
-              className={({ isActive }) =>
-                `flex items-center gap-3 mx-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive ? 'bg-navy text-white' : 'text-gray-600 hover:bg-gray-100'
-                }`
-              }>
-              <Icon size={16} />
-              {label}
-              <ChevronRight size={14} className="ml-auto opacity-30" />
-            </NavLink>
+          {nav.filter(n => !n.adminOnly || isAdmin).map(({ to, icon, label, badge }) => (
+            <NavItem key={to} to={to} icon={icon} label={label} badge={badge} />
           ))}
           {/* BB Logo watermark at bottom of sidebar */}
           <div className="mt-auto px-3 pb-6 hidden sm:flex flex-col items-center gap-1 opacity-55 hover:opacity-90 transition-opacity duration-300">
@@ -111,15 +129,22 @@ export default function Layout({ children }) {
 
       {/* Bottom nav — mobile */}
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex z-40" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-        {nav.filter(n => !n.adminOnly || isAdmin).slice(0, 5).map(({ to, icon: Icon, label }) => (
+        {nav.filter(n => !n.adminOnly || isAdmin).slice(0, 5).map(({ to, icon: Icon, label, badge }) => (
           <NavLink key={to} to={to} end={to === '/'}
             className={({ isActive }) =>
-              `flex-1 flex flex-col items-center py-2.5 gap-0.5 min-h-[56px] justify-center transition-colors ${
+              `flex-1 flex flex-col items-center py-2.5 gap-0.5 min-h-[56px] justify-center transition-colors relative ${
                 isActive ? 'text-navy' : 'text-gray-400'
               }`
             }>
-            <Icon size={20} />
-            {label}
+            <div className="relative">
+              <Icon size={20} />
+              {badge > 0 && (
+                <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
+                  {badge > 9 ? '9+' : badge}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px]">{label}</span>
           </NavLink>
         ))}
       </nav>
