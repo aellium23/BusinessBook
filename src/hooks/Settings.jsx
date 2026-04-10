@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useFxRates, updateFxRate } from '../hooks/useFxRates'
 import { useAuth } from '../hooks/useAuth'
 import { TrendingUp, Save, RefreshCw, AlertCircle, CheckCircle2, Info } from 'lucide-react'
+import { useTranslation } from '../hooks/useTranslation'
 
 const CURRENCIES = [
   { code: 'USD', label: 'US Dollar', symbol: '$', flag: '🇺🇸', regions: 'MEA, LATAM' },
@@ -10,6 +11,7 @@ const CURRENCIES = [
 
 export default function Settings() {
   const { isAdmin } = useAuth()
+  const { t } = useTranslation()
   const { rates, loading, refetch } = useFxRates()
 
   const [localRates, setLocalRates] = useState({})
@@ -67,7 +69,7 @@ export default function Settings() {
       <div className="flex gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
         <Info size={18} className="text-amber-600 shrink-0 mt-0.5" />
         <div className="text-sm text-amber-800 space-y-1">
-          <p className="font-semibold">Rate changes apply to future deals only</p>
+          <p className="font-semibold">{t("settings_rate_note")}</p>
           <p className="text-amber-700">
             Each deal locks in the exchange rate at the time of creation.
             Updating rates here will not change existing deal cards — only new deals
