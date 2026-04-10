@@ -235,7 +235,7 @@ function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, profil
               placeholder="Target €" value={newTarget} onChange={e => setNewTarget(e.target.value)}/>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setAddingNew(false)} className="text-xs text-gray-400 px-3 py-1.5">{t('quotas_cancel')</button>
+            <button onClick={() => setAddingNew(false)} className="text-xs text-gray-400 px-3 py-1.5">{t('quotas_cancel')}</button>
             <button onClick={addQuota} className="text-xs bg-navy text-white px-3 py-1.5 rounded-lg flex items-center gap-1">
               <Save size={11}/> Save
             </button>
