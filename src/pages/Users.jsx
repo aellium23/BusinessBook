@@ -112,7 +112,7 @@ function Avatar({ name, color }) {
   )
 }
 
-function UserCard({ profile, onRoleChange, onOwnerChange, currentUserId, isAdmin }) {
+function UserCard({ profile, onRoleChange, onOwnerChange, currentUserId, isAdmin, salesOwners = [] }) {
   const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
   const [selectedRole, setSelectedRole] = useState(profile.role || 'viewer_all')
@@ -208,15 +208,25 @@ function UserCard({ profile, onRoleChange, onOwnerChange, currentUserId, isAdmin
           {needsOwner && (
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">
-                {selectedRole === 'distributor' ? 'Distributor name (must match deal distributor field)' : 'Link to Sales Target (name must match exactly)'}
+                {selectedRole === 'distributor' ? 'Distributor name' : 'Link to Sales Owner'}
               </label>
-              <input className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20"
-                value={ownerName} onChange={e => setOwnerName(e.target.value)}
-                placeholder={selectedRole === 'distributor' ? 'e.g. Fujifilm Mexico' : 'e.g. Paulo Cunha'}/>
+              {selectedRole === 'distributor' ? (
+                <input className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20"
+                  value={ownerName} onChange={e => setOwnerName(e.target.value)}
+                  placeholder="e.g. Fujifilm Mexico"/>
+              ) : (
+                <select className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy/20"
+                  value={ownerName} onChange={e => setOwnerName(e.target.value)}>
+                  <option value="">— No sales owner linked —</option>
+                  {salesOwners.filter(o => o.active).map(o => (
+                    <option key={o.id} value={o.name}>{o.name} · {o.bu}</option>
+                  ))}
+                </select>
+              )}
               <p className="text-[10px] text-gray-400 mt-1">
                 {selectedRole === 'distributor'
                   ? 'Distributor only sees deals where distributor field matches this name'
-                  : 'This user will only see their own Sales Target card'}
+                  : 'Links this user to their Sales Target card in Quotas page'}
               </p>
             </div>
           )}
@@ -257,9 +267,15 @@ export default function Users() {
   const [inviteMsg, setInviteMsg] = useState('')
   const [filterBU, setFilterBU] = useState('all')
 
+  const [salesOwners, setSalesOwners] = useState([])
+
   async function loadProfiles() {
-    const { data } = await supabase.from('profiles').select("*").order('created_at')
-    setProfiles(data || [])
+    const [profRes, ownRes] = await Promise.all([
+      supabase.from('profiles').select("*").order('created_at'),
+      supabase.from('sales_owners').select('*').order('bu').order('name')
+    ])
+    setProfiles(profRes.data || [])
+    setSalesOwners(ownRes.data || [])
     setLoading(false)
   }
   useEffect(() => { loadProfiles() }, [])
@@ -347,7 +363,8 @@ export default function Users() {
               onRoleChange={loadProfiles}
               onOwnerChange={loadProfiles}
               currentUserId={currentUser?.id}
-              isAdmin={isAdmin}/>
+              isAdmin={isAdmin}
+              salesOwners={salesOwners}/>
           ))}
         </div>
       )}
