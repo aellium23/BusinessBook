@@ -1,8 +1,10 @@
+// Budget FY26 — i18n v2
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { Spinner, formatK } from '../components/ui'
 import { Save, CheckCircle, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { useTranslation } from '../hooks/useTranslation'
 
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
@@ -75,6 +77,7 @@ function Trend({ value, reference }) {
 
 export default function Budget() {
   const { isAdmin } = useAuth()
+  const { t } = useTranslation()
   const [rows, setRows]       = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
@@ -86,7 +89,7 @@ export default function Budget() {
   const activeCycleDefault = ACTIVE_CYCLE()
 
   useEffect(() => {
-    supabase.from('budget').select('*').then(({ data }) => {
+    supabase.from('budget').select("*").then(({ data }) => {
       setRows(data || [])
       setLoading(false)
     })
@@ -138,7 +141,7 @@ export default function Budget() {
     }
   }, [rows])
 
-  if (!isAdmin) return <div className="p-8 text-center text-gray-400">Admin access required.</div>
+  if (!isAdmin) return <div className="p-8 text-center text-gray-400">{t("budget_admin")}</div>
   if (loading) return <Spinner/>
 
   const buCfg    = BU_CONFIG[activeBu]
@@ -151,13 +154,13 @@ export default function Budget() {
       {/* Header */}
       <div className="flex items-center justify-between pt-1 flex-wrap gap-2">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Budget · FY26</h1>
-          <p className="text-sm text-gray-400">Values in K€ · Apr 2026 – Mar 2027</p>
+          <h1 className="text-xl font-bold text-gray-900">{t("budget_title")}</h1>
+          <p className="text-sm text-gray-400">{t("budget_values")}</p>
         </div>
         {activeBu !== 'ALL' && <button onClick={handleSave} disabled={saving}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white transition-all"
           style={{ background: saved ? '#1D9E75' : '#0D2137' }}>
-          {saved ? <><CheckCircle size={15}/> Saved</> : saving ? 'Saving…' : <><Save size={15}/> Save changes</>}
+          {saved ? <><CheckCircle size={15}/> {t("budget_saved")}</> : saving ? t("budget_saving") : <><Save size={15}/> {t("budget_save")}</>}
         </button>}
       </div>
 
@@ -178,7 +181,7 @@ export default function Budget() {
               }}>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold" style={{ color: cfg.color }}>{cfg.label}</span>
-                {isActive && <span className="text-[9px] bg-white/70 px-1.5 py-0.5 rounded font-medium" style={{ color: cfg.color }}>Active</span>}
+                {isActive && <span className="text-[9px] bg-white/70 px-1.5 py-0.5 rounded font-medium" style={{ color: cfg.color }}>{t("budget_active")}</span>}
               </div>
               <p className="text-lg font-bold text-gray-900">{formatK(t.ns * 1000)}</p>
               <p className="text-xs text-gray-500 mt-0.5">
@@ -235,7 +238,7 @@ export default function Budget() {
                   <th key={m} className="px-1.5 py-3 font-semibold text-gray-500 text-center w-14">{m}</th>
                 ))}
                 <th className="px-3 py-3 font-bold text-gray-800 text-center w-16">
-                  {activePeriod === 'FY' ? 'FY26' : PERIODS[activePeriod].label.split(' ')[0]}
+                  {activePeriod === 'FY' ? 'FY26' : PERIODS[activePeriod].label.split(" ")[0]}
                 </th>
                 {refCycle && <th className="px-3 py-3 font-medium text-gray-400 text-center w-16">vs {CYCLE_CONFIG[refCycle].label}</th>}
               </tr>
@@ -341,7 +344,7 @@ export default function Budget() {
 
       {/* Period selector */}
       <div className="flex items-center gap-1 flex-wrap">
-        <span className="text-xs text-gray-400 mr-1">Period:</span>
+        <span className="text-xs text-gray-400 mr-1">{t("budget_period")}</span>
         {Object.entries(PERIODS).map(([key, p]) => (
           <button key={key} onClick={() => setActivePeriod(key)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
