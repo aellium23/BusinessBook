@@ -118,7 +118,7 @@ function TenderModal({ tender, onClose, onSaved, deals, users }) {
       <div className="space-y-4 p-1 max-h-[70vh] overflow-y-auto">
 
         {/* Title + Reference */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <div className="col-span-2">
             <label className="label">Title *</label>
             <input className="input" value={form.title} onChange={e => set('title', e.target.value)}
@@ -165,7 +165,7 @@ function TenderModal({ tender, onClose, onSaved, deals, users }) {
         </div>
 
         {/* Value + Currency + Status */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <div className="col-span-2">
             <label className="label">Estimated value</label>
             <input className="input" type="number" value={form.estimated_value}
@@ -389,7 +389,7 @@ export default function Tenders() {
       </div>
 
       {/* Stats bar */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: 'Total',     value: tenders.length,                         color: 'text-gray-700' },
           { label: 'Open',      value: tenders.filter(t=>t.status==='open').length,      color: 'text-blue-600' },
