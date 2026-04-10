@@ -31,7 +31,7 @@ export default function History() {
   const [activeBU, setActiveBU] = useState('both')
 
   useEffect(() => {
-    supabase.from('fy25_actuals').select('*').then(({ data }) => {
+    supabase.from('fy25_actuals').select("*").then(({ data }) => {
       setFy25(data || [])
       setLoading(false)
     })
@@ -87,8 +87,8 @@ export default function History() {
       {/* Header */}
       <div className="flex items-center justify-between pt-1">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">{t('hist_title')}</h1>
-          <p className="text-sm text-gray-400">{t('hist_subtitle')}</p>
+          <h1 className="text-xl font-bold text-gray-900">{t("hist_title")}</h1>
+          <p className="text-sm text-gray-400">{t("hist_subtitle")}</p>
         </div>
         {isAdmin && (
           <div className="flex gap-1.5">
@@ -101,7 +101,7 @@ export default function History() {
                     : 'bg-navy text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}>
-                {b === 'both' ? t('hist_iberia') : b}
+                {b === 'both' ? t("hist_iberia") : b}
               </button>
             ))}
           </div>
@@ -112,26 +112,26 @@ export default function History() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {activeBU !== 'ECT' && (
           <>
-            <KpiBox label={t('hist_vgt_ns')} value={formatK(totals.vgt.ns * 1000)}
+            <KpiBox label={t("hist_vgt_ns")} value={formatK(totals.vgt.ns * 1000)}
               sub={`GM: ${formatK(totals.vgt.gm * 1000)}`} color="#1D9E75"/>
-            <KpiBox label={t('hist_vgt_gm')} value={`${totals.vgt.ns > 0 ? (totals.vgt.gm/totals.vgt.ns*100).toFixed(1) : '—'}%`}
-              sub={t('hist_gm_rate')} color="#1D9E75"/>
+            <KpiBox label={t("hist_vgt_gm")} value={`${totals.vgt.ns > 0 ? (totals.vgt.gm/totals.vgt.ns*100).toFixed(1) : '—'}%`}
+              sub={t("hist_gm_rate")} color="#1D9E75"/>
           </>
         )}
         {activeBU !== 'VGT' && (
           <>
-            <KpiBox label={t('hist_ect_ns')} value={formatK(totals.ect.ns * 1000)}
+            <KpiBox label={t("hist_ect_ns")} value={formatK(totals.ect.ns * 1000)}
               sub={`GM: ${formatK(totals.ect.gm * 1000)}`} color="#D85A30"/>
-            <KpiBox label={t('hist_ect_gm')} value={`${totals.ect.ns > 0 ? (totals.ect.gm/totals.ect.ns*100).toFixed(1) : '—'}%`}
-              sub={t('hist_gm_rate')} color="#D85A30"/>
+            <KpiBox label={t("hist_ect_gm")} value={`${totals.ect.ns > 0 ? (totals.ect.gm/totals.ect.ns*100).toFixed(1) : '—'}%`}
+              sub={t("hist_gm_rate")} color="#D85A30"/>
           </>
         )}
         {activeBU === 'both' && (
           <>
-            <KpiBox label={t('hist_iberia_ns')} value={formatK(totals.total.ns * 1000)}
+            <KpiBox label={t("hist_iberia_ns")} value={formatK(totals.total.ns * 1000)}
               sub={`GM: ${formatK(totals.total.gm * 1000)}`} color="#0D2137"/>
-            <KpiBox label={t('hist_iberia_gm')} value={`${totals.total.ns > 0 ? (totals.total.gm/totals.total.ns*100).toFixed(1) : '—'}%`}
-              sub={t('hist_comb_rate')} color="#0D2137"/>
+            <KpiBox label={t("hist_iberia_gm")} value={`${totals.total.ns > 0 ? (totals.total.gm/totals.total.ns*100).toFixed(1) : '—'}%`}
+              sub={t("hist_comb_rate")} color="#0D2137"/>
           </>
         )}
       </div>
@@ -139,7 +139,7 @@ export default function History() {
       {/* Monthly Net Sales chart */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-          {t('hist_monthly_ns')}
+          {t("hist_monthly_ns")}
         </p>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={monthlyChart} barGap={2} margin={{ top:4, right:4, left:-20, bottom:0 }}>
@@ -156,7 +156,7 @@ export default function History() {
       {/* Monthly GM chart */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-          {t('hist_monthly_gm')}
+          {t("hist_monthly_gm")}
         </p>
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={monthlyChart} barGap={2} margin={{ top:4, right:4, left:-20, bottom:0 }}>
@@ -173,13 +173,13 @@ export default function History() {
       {/* Monthly table */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-gray-100">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t('hist_monthly_det')}</p>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t("hist_monthly_det")}</p>
         </div>
         <div className="overflow-x-auto -mx-4 px-4">
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="text-left px-4 py-2 font-semibold text-gray-500 w-28">{t('hist_metric')}</th>
+                <th className="text-left px-4 py-2 font-semibold text-gray-500 w-28">{t("hist_metric")}</th>
                 {MONTHS.map(m => (
                   <th key={m} className="px-2 py-2 font-semibold text-gray-500 text-center w-12">{m}</th>
                 ))}
@@ -241,7 +241,7 @@ export default function History() {
               )}
               {activeBU === 'both' && (
                 <tr className="bg-navy/5 font-bold">
-                  <td className="px-4 py-2 text-navy">{t('hist_iberia')} NS</td>
+                  <td className="px-4 py-2 text-navy">{t("hist_iberia")} NS</td>
                   {MONTHS_K.map(m => (
                     <td key={m} className="px-2 py-2 text-center text-navy">
                       {(get('VGT','ns',m) + get('ECT','ns',m)).toFixed(1)}
