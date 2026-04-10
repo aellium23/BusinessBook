@@ -41,7 +41,7 @@ function DeadlineBadge({ deadline }) {
 }
 
 // ── Task Form Modal ────────────────────────────────────────────────────────────
-function TaskModal({ task, onClose, onSaved, users, deals, canAssign }) {
+function TaskModal({ task, onClose, onSaved, users, deals, canAssign, pushNotification }) {
   const { user } = useAuth()
   const isEdit = !!task?.id
   const [form, setForm] = useState({
@@ -54,7 +54,6 @@ function TaskModal({ task, onClose, onSaved, users, deals, canAssign }) {
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState(null)
-  const { pushNotification } = useNotifications()
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
@@ -272,8 +271,7 @@ function Section({ title, count, overdueCount, children, defaultOpen = true }) {
 }
 
 // ── Notifications Panel ────────────────────────────────────────────────────────
-function NotificationsPanel({ onClose }) {
-  const { notifications, markRead, markAllRead } = useNotifications()
+function NotificationsPanel({ onClose, notifications, markRead, markAllRead }) {
   const typeIcon = {
     task_assigned:    '📋',
     task_due:         '⏰',
@@ -320,7 +318,7 @@ export default function Tasks() {
   const canAssign = isAdmin || ['vgt_editor','ect_editor'].includes(profile?.role)
 
   const { myTasks, assignedToMe, assignedByMe, loading, refetch } = useTasks()
-  const { unread } = useNotifications()
+  const { unread, notifications, markRead, markAllRead, pushNotification } = useNotifications()
 
   const [modal, setModal]         = useState(null)  // null | task object | 'new'
   const [showNotif, setShowNotif] = useState(false)
@@ -373,7 +371,7 @@ export default function Tasks() {
                 </span>
               )}
             </button>
-            {showNotif && <NotificationsPanel onClose={() => setShowNotif(false)} />}
+            {showNotif && <NotificationsPanel onClose={() => setShowNotif(false)} notifications={notifications} markRead={markRead} markAllRead={markAllRead} />}
           </div>
 
           {/* Filter */}
@@ -450,6 +448,7 @@ export default function Tasks() {
           users={users}
           deals={deals}
           canAssign={canAssign}
+          pushNotification={pushNotification}
         />
       )}
     </div>
