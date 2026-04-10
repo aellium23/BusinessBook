@@ -41,16 +41,16 @@ export default function Layout({ children }) {
   }
 
   const nav = [
-    { to: '/',        icon: LayoutDashboard, label: t('nav_dashboard') },
-    { to: '/deals',   icon: List,            label: t('nav_deals') },
-    { to: '/tasks',   icon: CheckSquare,     label: t('nav_tasks'),    badge: taskBadge },
-    { to: '/tenders', icon: FileText,        label: t('nav_tenders') },
-    { to: '/clients', icon: Building2,       label: t('nav_clients') },
-    { to: '/history', icon: History,         label: t('nav_history') },
-    { to: '/quotas',  icon: Target,          label: t('nav_targets') },
-    { to: '/budget',  icon: DollarSign,      label: t('nav_budget'),   adminOnly: true },
-    { to: '/users',   icon: Users,           label: t('nav_users'),    adminOnly: true },
-    { to: '/settings',icon: Settings,        label: t('nav_settings'), adminOnly: true },
+    { to: '/',        icon: LayoutDashboard, label: t("nav_dashboard") },
+    { to: '/deals',   icon: List,            label: t("nav_deals") },
+    { to: '/tasks',   icon: CheckSquare,     label: t("nav_tasks"),    badge: taskBadge },
+    { to: '/tenders', icon: FileText,        label: t("nav_tenders") },
+    { to: '/clients', icon: Building2,       label: t("nav_clients") },
+    { to: '/history', icon: History,         label: t("nav_history") },
+    { to: '/quotas',  icon: Target,          label: t("nav_targets") },
+    { to: '/budget',  icon: DollarSign,      label: t("nav_budget"),   adminOnly: true },
+    { to: '/users',   icon: Users,           label: t("nav_users"),    adminOnly: true },
+    { to: '/settings',icon: Settings,        label: t("nav_settings"), adminOnly: true },
   ]
 
   return (
@@ -70,7 +70,7 @@ export default function Layout({ children }) {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-white/80 text-xs hidden sm:inline font-medium">{profile?.full_name || profile?.email}</span>
-          <span className="text-white/80 text-xs sm:hidden font-medium truncate max-w-20">{(profile?.full_name || profile?.email || '').split(' ')[0]}</span>
+          <span className="text-white/80 text-xs sm:hidden font-medium truncate max-w-20">{(profile?.full_name || profile?.email || '').split(" ")[0]}</span>
           <span className={`text-xs px-2 py-0.5 rounded font-bold shrink-0 ${
             isAdmin ? 'bg-amber-400 text-amber-900' :
             profile?.role?.includes('vgt') ? 'bg-vgt text-white' :
