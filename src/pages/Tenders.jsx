@@ -330,7 +330,7 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealCreated }) 
         {/* Value + Currency */}
         <div className="grid grid-cols-3 gap-2">
           <div className="col-span-2">
-            <label className="label">Estimated value</label>
+            <label className="label">Base Price</label>
             <input className="input" type="number" value={form.estimated_value}
               onChange={e => set('estimated_value', e.target.value)} placeholder="0" />
           </div>
