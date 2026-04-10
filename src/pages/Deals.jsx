@@ -1,261 +1,360 @@
-import { useEffect, useState, useMemo } from 'react'
-import { supabase } from '../lib/supabase'
+import { useState, useMemo } from 'react'
+import { useDeals, deleteDeal } from '../hooks/useDeals'
 import { useAuth } from '../hooks/useAuth'
-import { formatK, Spinner } from '../components/ui'
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  LineChart, Line, Legend, Cell
-} from 'recharts'
+import { BUBadge, StageBadge, SalesTypeBadge, Spinner, EmptyState, formatK, CurrencyBadge } from '../components/ui'
+import DealForm from '../components/DealForm'
+import { Plus, Search, Trash2, Pencil, ChevronDown, ChevronUp, Link, AlertTriangle, Clock, Download, RefreshCw } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 
+const STAGES  = ['','Lead','Pipeline','Offer Presented','BackLog','Invoiced','Lost']
+const WEIGHTS = { Lead: 0.10, Pipeline: 0.30, 'Offer Presented': 0.60, BackLog: 0.80, Invoiced: 1.0, Lost: 0 }
+const REGIONS = ['','Europe','MEA','LATAM','APAC','NA']
+const BUS     = ['','VGT','ECT']
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
-const TOOLTIP  = { fontSize: 11, borderRadius: 8 }
 
-function KpiBox({ label, value, sub, color }) {
+function agingDays(deal) {
+  if (!['Lead','Pipeline','Offer Presented'].includes(deal.stage)) return null
+  const ref = deal.stage_changed_at || deal.updated_at || deal.created_at
+  if (!ref) return null
+  return Math.floor((Date.now() - new Date(ref).getTime()) / 86400000)
+}
+
+function AgingBadge({ days }) {
+  if (days === null) return null
+  if (days >= 90) return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700">
+      <AlertTriangle size={10}/> {days}d
+    </span>
+  )
+  if (days >= 45) return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-700">
+      <Clock size={10}/> {days}d
+    </span>
+  )
+  return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-gray-100 text-gray-500"><Clock size={10}/>{days}d</span>
+}
+
+function DealCard({ deal, onEdit, onDelete, canEdit }) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const fy26 = MONTHS_K.reduce((s, m) => s + (deal[m] || 0), 0)
+  const isIC  = deal.is_intercompany_mirror
+  const hasIC = deal.intercompany_value > 0
+
   return (
-    <div className={`bg-white rounded-xl border border-gray-200 p-4 border-t-2`}
-      style={{ borderTopColor: color }}>
-      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">{label}</p>
-      <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
-      {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+    <div className={`card p-3 space-y-2 ${isIC ? 'border-l-4 border-vgt' : ''}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap mb-1">
+            <BUBadge bu={deal.bu} />
+            <StageBadge stage={deal.stage} />
+            <SalesTypeBadge type={deal.sales_type} />
+            <AgingBadge days={agingDays(deal)} />
+            {deal.product && (
+              <span className="inline-flex px-2 py-0.5 rounded text-xs font-bold bg-navy/10 text-navy">
+                {deal.product}
+              </span>
+            )}
+            {deal.win_probability !== null && deal.win_probability !== undefined && (
+              <span className={`inline-flex px-2 py-0.5 rounded text-xs font-bold ${
+                deal.win_probability >= 80 ? 'bg-green-100 text-green-700' :
+                deal.win_probability >= 50 ? 'bg-purple-100 text-purple-700' :
+                deal.win_probability >= 20 ? 'bg-amber-100 text-amber-700' :
+                'bg-gray-100 text-gray-500'
+              }`}>{deal.win_probability}%</span>
+            )}
+            {deal.is_sla && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800">
+                <RefreshCw size={9}/> SLA
+              </span>
+            )}
+            {deal.discount_status === 'pending' && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-purple-100 text-purple-800">
+                ⏳ Discount pending {deal.discount_requested}%
+              </span>
+            )}
+            {deal.discount_status === 'approved' && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-green-100 text-green-700">
+                ✓ {deal.discount_approved}% approved
+              </span>
+            )}
+            {deal.discount_status === 'counter' && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-700">
+                ↔ Counter: {deal.discount_approved}%
+              </span>
+            )}
+            {deal.discount_status === 'rejected' && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700">
+                ✗ Rejected
+              </span>
+            )}
+            {isIC && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-vgt/10 text-vgt">
+                <Link size={10}/> IC mirror
+              </span>
+            )}
+            {hasIC && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-800">
+                <Link size={10}/> IC →VGT
+              </span>
+            )}
+          </div>
+          <p className="font-semibold text-sm text-gray-900 truncate">{deal.client}</p>
+          <p className="text-xs text-gray-400">{[deal.country, deal.region, deal.sales_owner].filter(Boolean).join(' · ')}</p>
+          {deal.description && <p className="text-xs text-gray-500 truncate mt-0.5">{deal.description}</p>}
+          {deal.stage === 'Lost' && deal.lost_reason && (
+            <p className="text-xs text-red-500 mt-0.5">Lost: {deal.lost_reason}</p>
+          )}
+          {(deal.equipment_count || deal.annual_studies || deal.annual_exams) && (
+            <div className="flex items-center gap-2 flex-wrap mt-0.5">
+              {deal.equipment_count && (
+                <span className="text-[10px] text-gray-400">📡 {deal.equipment_count} equip.</span>
+              )}
+              {deal.annual_studies && (
+                <span className="text-[10px] text-gray-400">📊 {Number(deal.annual_studies).toLocaleString()} studies/yr</span>
+              )}
+              {deal.annual_exams && (
+                <span className="text-[10px] text-gray-400">📋 {Number(deal.annual_exams).toLocaleString()} exams/yr</span>
+              )}
+            </div>
+          )}
+          {(deal.end_customer || deal.distributor || deal.hub) && (
+            <div className="flex items-center gap-1 flex-wrap mt-1">
+              {deal.end_customer && (
+                <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded truncate max-w-28">{deal.end_customer}</span>
+              )}
+              {(deal.distributor || deal.hub) && <span className="text-gray-300 text-[10px]">→</span>}
+              {deal.distributor && (
+                <span className="text-[10px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded truncate max-w-28">{deal.distributor}</span>
+              )}
+              {deal.hub && (
+                <><span className="text-gray-300 text-[10px]">→</span>
+                <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded truncate max-w-28">{deal.hub}</span></>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="text-right shrink-0 min-w-0 max-w-28">
+          <div className="flex items-center justify-end gap-1">
+            <CurrencyBadge currency={deal.currency}/>
+            <p className="text-sm font-bold text-gray-900">
+              {deal.currency && deal.currency !== 'EUR'
+                ? `${deal.currency === 'USD' ? '$' : '£'}${(deal.value_total||0).toLocaleString()}`
+                : formatK(deal.value_total)}
+            </p>
+          </div>
+          {deal.currency && deal.currency !== 'EUR' && deal.exchange_rate && (
+            <p className="text-[10px] text-blue-500">≈ {formatK((deal.value_total||0) * (deal.exchange_rate||1))}</p>
+          )}
+          <p className="text-xs text-gray-400">FY26: {formatK(fy26)}</p>
+          <p className="text-xs text-blue-600 font-medium">
+            W: {formatK((deal.value_total||0) * (WEIGHTS[deal.stage]||0))}
+          </p>
+          {deal.end_customer_value && (
+            <p className="text-[10px] text-gray-400">
+              Project: {formatK(deal.end_customer_value)}
+            </p>
+          )}
+          {hasIC && (
+            <p className="text-xs text-amber-600 font-medium">
+              VGT cost: {formatK(deal.intercompany_value)}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between pt-1">
+        <button onClick={() => setOpen(o => !o)} className="text-xs text-gray-400 flex items-center gap-1">
+          Monthly {open ? <ChevronUp size={12}/> : <ChevronDown size={12}/>}
+        </button>
+        {canEdit && !isIC && (
+          <div className="flex gap-2">
+            <button onClick={() => onEdit(deal)} className="text-gray-400 hover:text-navy"><Pencil size={14}/></button>
+            <button onClick={() => onDelete(deal)} className="text-gray-400 hover:text-red-500"><Trash2 size={14}/></button>
+          </div>
+        )}
+        {isIC && (
+          <span className="text-xs text-gray-400 italic">{t("deals_auto")}</span>
+        )}
+      </div>
+
+      {open && (
+        <div className="grid grid-cols-6 gap-1 pt-1">
+          {MONTHS.map((m, i) => {
+            const v = deal[MONTHS_K[i]] || 0
+            return (
+              <div key={m} className={`text-center rounded p-1 ${v > 0 ? (isIC ? 'bg-vgt/10' : 'bg-blue-50') : 'bg-gray-50'}`}>
+                <p className="text-[9px] text-gray-400">{m}</p>
+                <p className="text-[10px] font-bold text-gray-700">{v > 0 ? `${(v/1000).toFixed(1)}K` : '—'}</p>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
 
-export default function History() {
-  const { isAdmin, profile } = useAuth()
+function exportToCSV(deals) {
+  const MONTHS = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
+  const MK = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
+  const headers = ['BU','Stage','Client','Country','Region','Sales Owner','Deal Type','Is SLA','SLA Owner',
+    'Value €','GM%','Win Prob%','Description',...MONTHS,'FY26 Total']
+  const rows = deals.map(d => {
+    const fy = MK.reduce((s,m)=>s+(d[m]||0),0)
+    return [
+      d.bu, d.stage, d.client, d.country, d.region, d.sales_owner, d.deal_type,
+      d.is_sla ? 'Yes' : 'No', d.sla_owner || '',
+      d.value_total || 0, d.gm_pct ? (d.gm_pct*100).toFixed(1) : '',
+      d.win_probability || '', d.description || '',
+      ...MK.map(m => d[m] || 0), fy
+    ]
+  })
+  const csv = [headers, ...rows].map(r => r.map(v =>
+    typeof v === 'string' && v.includes(',') ? `"${v}"` : v
+  ).join(',')).join('\n')
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a"); a.href = url
+  a.download = `BusinessBook_FY26_${new Date().toISOString().slice(0,10)}.csv`
+  a.click(); URL.revokeObjectURL(url)
+}
+
+export default function Deals() {
+  const { canEdit, isAdmin, profile } = useAuth()
   const { t } = useTranslation()
-  const [fy25, setFy25]   = useState([])
-  const [loading, setLoading] = useState(true)
-  const [activeBU, setActiveBU] = useState('both')
+  const [search, setSearch]     = useState('')
+  const [stageF, setStageF]     = useState('')
+  const [regionF, setRegionF]   = useState('')
+  const [buF, setBuF]           = useState('')
+  const [editDeal, setEditDeal] = useState(null)
+  const [formOpen, setFormOpen] = useState(false)
+  const [confirmDel, setConfirmDel] = useState(null)
+  const [slaF, setSlaF] = useState(false)
 
-  useEffect(() => {
-    supabase.from('fy25_actuals').select("*").then(({ data }) => {
-      setFy25(data || [])
-      setLoading(false)
-    })
-  }, [])
+  const { deals: rawDeals, loading, refetch, totals } = useDeals({
+    stage:  stageF  || undefined,
+    region: regionF || undefined,
+    bu:     profile?.role === 'distributor' ? undefined : (buF || undefined),
+    search: search  || undefined,
+  })
+  const deals = profile?.role === 'distributor'
+    ? rawDeals.filter(d => d.distributor === profile?.sales_owner_name)
+    : slaF ? rawDeals.filter(d => d.is_sla === true) : rawDeals
 
-  const get = (bu, pl, month) => {
-    const row = fy25.find(r => r.bu === bu && r.pl_key === pl)
-    return row ? (row[month] || 0) : 0
+  async function confirmDelete() {
+    await deleteDeal(confirmDel.id)
+    setConfirmDel(null); refetch()
   }
 
-  const totals = useMemo(() => {
-    const calc = (bu) => ({
-      ns: MONTHS_K.reduce((s,m) => s + get(bu,'ns',m), 0),
-      gm: MONTHS_K.reduce((s,m) => s + get(bu,'gm',m), 0),
-    })
-    const vgt = calc('VGT'), ect = calc('ECT')
-    return {
-      vgt, ect,
-      total: { ns: vgt.ns + ect.ns, gm: vgt.gm + ect.gm },
-    }
-  }, [fy25])
-
-  const monthlyChart = useMemo(() => {
-    return MONTHS.map((m, i) => {
-      const mk = MONTHS_K[i]
-      const vgt_ns = get('VGT','ns',mk)
-      const ect_ns = get('ECT','ns',mk)
-      const vgt_gm = get('VGT','gm',mk)
-      const ect_gm = get('ECT','gm',mk)
-      return {
-        month: m,
-        'VGT NS':  Math.round(vgt_ns * 10) / 10,
-        'ECT NS':  Math.round(ect_ns * 10) / 10,
-        'VGT GM':  Math.round(vgt_gm * 10) / 10,
-        'ECT GM':  Math.round(ect_gm * 10) / 10,
-        'Total NS': Math.round((vgt_ns + ect_ns) * 10) / 10,
-      }
-    })
-  }, [fy25])
-
-  if (loading) return (
-    <div className="flex items-center justify-center p-16">
-      <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin"/>
-    </div>
-  )
-
-  const showVGT = activeBU === 'both' || activeBU === 'VGT'
-  const showECT = activeBU === 'both' || activeBU === 'ECT'
-
   return (
-    <div className="p-4 space-y-5 max-w-5xl mx-auto">
-
-      {/* Header */}
+    <div className="p-4 space-y-4 max-w-4xl mx-auto">
       <div className="flex items-center justify-between pt-1">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">{t("hist_title")}</h1>
-          <p className="text-sm text-gray-400">{t("hist_subtitle")}</p>
+          <h1 className="text-xl font-bold text-gray-900">{t("deals_title")}</h1>
+          <p className="text-sm text-gray-400">{deals.length} records</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => exportToCSV(deals)} className="btn-secondary text-xs">
+            <Download size={14}/> Export
+          </button>
+          {canEdit && (
+            <button onClick={() => { setEditDeal(null); setFormOpen(true) }} className="btn-primary">
+              <Plus size={16}/> <span className="hidden sm:inline">{t("deals_new")}</span> {t("deals_title")}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-32">
+          <Search size={14} className="absolute left-2.5 top-2.5 text-gray-400"/>
+          <input className="input pl-8" placeholder="Search client…" value={search} onChange={e => setSearch(e.target.value)}/>
         </div>
         {isAdmin && (
-          <div className="flex gap-1.5">
-            {['both','VGT','ECT'].map(b => (
-              <button key={b} onClick={() => setActiveBU(b)}
-                className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
-                  activeBU === b
-                    ? b === 'VGT' ? 'bg-vgt text-white'
-                    : b === 'ECT' ? 'bg-ect text-white'
-                    : 'bg-navy text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}>
-                {b === 'both' ? t("hist_iberia") : b}
-              </button>
+          <select className="select w-20 sm:w-24 text-xs shrink-0" value={buF} onChange={e => setBuF(e.target.value)}>
+            {BUS.map(b => <option key={b} value={b}>{b || 'All BU'}</option>)}
+          </select>
+        )}
+        <select className="select w-24 sm:w-28 text-xs shrink-0" value={stageF} onChange={e => setStageF(e.target.value)}>
+          {STAGES.map(s => <option key={s} value={s}>{s || 'All stages'}</option>)}
+        </select>
+        <select className="select w-24 sm:w-28 text-xs shrink-0" value={regionF} onChange={e => setRegionF(e.target.value)}>
+          {REGIONS.map(r => <option key={r} value={r}>{r || 'All regions'}</option>)}
+        </select>
+        <button onClick={() => setSlaF(o => !o)}
+          className={`btn text-xs gap-1 ${slaF ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'btn-secondary'}`}>
+          <RefreshCw size={11}/> SLA
+        </button>
+      </div>
+
+      {/* Summary */}
+      {/* Weighted forecast summary */}
+      <div className="flex gap-4 overflow-x-auto pb-1">
+        {[
+          { l:t("deals_pipeline"), v:totals.pipeline, c:'text-amber-700' },
+          { l:t("deals_backlog"),  v:totals.backlog,  c:'text-blue-700'  },
+          { l:t("deals_actuals"),  v:totals.invoiced, c:'text-green-700' },
+          { l:t("deals_fc"), v:totals.forecast, c:'text-vgt font-bold' },
+          { l:t("deals_weighted"), v:deals.filter(d=>!d.is_intercompany_mirror).reduce((s,d)=>{
+              const fy=MONTHS_K.reduce((ms,m)=>ms+(d[m]||0),0)
+              const baseRaw=['BackLog','Invoiced'].includes(d.stage)?fy:(d.value_total||0)
+              const base = baseRaw * ((!d.currency || d.currency==='EUR') ? 1 : (d.exchange_rate||1))
+              const prob = d.win_probability !== null && d.win_probability !== undefined
+                ? d.win_probability / 100
+                : (WEIGHTS[d.stage]||0)
+              return s+base*prob
+            },0), c:'text-purple-700 font-bold' },
+        ].map(({ l, v, c }) => (
+          <div key={l} className="text-center shrink-0">
+            <p className="text-[10px] text-gray-400">{l}</p>
+            <p className={`text-sm font-semibold ${c}`}>{formatK(v)}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* List */}
+      {loading ? <Spinner /> : deals.length === 0
+        ? <EmptyState icon="📋" title="No deals found" description="Adjust filters or add a new deal"
+            action={canEdit && <button onClick={() => setFormOpen(true)} className="btn-primary">{t("deals_add")}</button>}/>
+        : <div className="space-y-2">
+            {deals.map(d => (
+              <DealCard key={d.id} deal={d} canEdit={canEdit}
+                onEdit={deal => { setEditDeal(deal); setFormOpen(true) }}
+                onDelete={setConfirmDel}
+              />
             ))}
           </div>
-        )}
-      </div>
+      }
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {activeBU !== 'ECT' && (
-          <>
-            <KpiBox label={t("hist_vgt_ns")} value={formatK(totals.vgt.ns * 1000)}
-              sub={`GM: ${formatK(totals.vgt.gm * 1000)}`} color="#1D9E75"/>
-            <KpiBox label={t("hist_vgt_gm")} value={`${totals.vgt.ns > 0 ? (totals.vgt.gm/totals.vgt.ns*100).toFixed(1) : '—'}%`}
-              sub={t("hist_gm_rate")} color="#1D9E75"/>
-          </>
-        )}
-        {activeBU !== 'VGT' && (
-          <>
-            <KpiBox label={t("hist_ect_ns")} value={formatK(totals.ect.ns * 1000)}
-              sub={`GM: ${formatK(totals.ect.gm * 1000)}`} color="#D85A30"/>
-            <KpiBox label={t("hist_ect_gm")} value={`${totals.ect.ns > 0 ? (totals.ect.gm/totals.ect.ns*100).toFixed(1) : '—'}%`}
-              sub={t("hist_gm_rate")} color="#D85A30"/>
-          </>
-        )}
-        {activeBU === 'both' && (
-          <>
-            <KpiBox label={t("hist_iberia_ns")} value={formatK(totals.total.ns * 1000)}
-              sub={`GM: ${formatK(totals.total.gm * 1000)}`} color="#0D2137"/>
-            <KpiBox label={t("hist_iberia_gm")} value={`${totals.total.ns > 0 ? (totals.total.gm/totals.total.ns*100).toFixed(1) : '—'}%`}
-              sub={t("hist_comb_rate")} color="#0D2137"/>
-          </>
-        )}
-      </div>
+      {formOpen && (
+        <DealForm deal={editDeal}
+          onClose={() => { setFormOpen(false); setEditDeal(null) }}
+          onSaved={refetch} />
+      )}
 
-      {/* Monthly Net Sales chart */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-          {t("hist_monthly_ns")}
-        </p>
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={monthlyChart} barGap={2} margin={{ top:4, right:4, left:-20, bottom:0 }}>
-            <XAxis dataKey="month" tick={{ fontSize:10 }} axisLine={false} tickLine={false}/>
-            <YAxis tick={{ fontSize:10 }} axisLine={false} tickLine={false}/>
-            <Tooltip contentStyle={TOOLTIP} formatter={(v,n) => [`€${v}K`, n]}/>
-            <Legend wrapperStyle={{ fontSize:10 }}/>
-            {showVGT && <Bar dataKey="VGT NS" fill="#1D9E75" radius={[3,3,0,0]}/>}
-            {showECT && <Bar dataKey="ECT NS" fill="#D85A30" radius={[3,3,0,0]}/>}
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Monthly GM chart */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-          {t("hist_monthly_gm")}
-        </p>
-        <ResponsiveContainer width="100%" height={180}>
-          <BarChart data={monthlyChart} barGap={2} margin={{ top:4, right:4, left:-20, bottom:0 }}>
-            <XAxis dataKey="month" tick={{ fontSize:10 }} axisLine={false} tickLine={false}/>
-            <YAxis tick={{ fontSize:10 }} axisLine={false} tickLine={false}/>
-            <Tooltip contentStyle={TOOLTIP} formatter={(v,n) => [`€${v}K`, n]}/>
-            <Legend wrapperStyle={{ fontSize:10 }}/>
-            {showVGT && <Bar dataKey="VGT GM" fill="#9FE1CB" radius={[3,3,0,0]}/>}
-            {showECT && <Bar dataKey="ECT GM" fill="#F5C4B3" radius={[3,3,0,0]}/>}
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Monthly table */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-gray-100">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t("hist_monthly_det")}</p>
+      {confirmDel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmDel(null)} />
+          <div className="relative bg-white rounded-2xl p-6 max-w-xs w-full shadow-xl">
+            <h3 className="font-semibold text-gray-900 mb-2">{t("deals_delete_q")}</h3>
+            <p className="text-sm text-gray-500 mb-1">
+              <strong>{confirmDel.client}</strong> will be permanently removed.
+            </p>
+            {confirmDel.intercompany_value > 0 && (
+              <p className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded mb-3">
+                The linked VGT intercompany deal will also be deleted.
+              </p>
+            )}
+            <div className="flex gap-2 mt-4">
+              <button onClick={() => setConfirmDel(null)} className="btn-secondary flex-1">{t("deals_cancel")}</button>
+              <button onClick={confirmDelete} className="btn-danger flex-1">{t("deals_delete")}</button>
+            </div>
+          </div>
         </div>
-        <div className="overflow-x-auto -mx-4 px-4">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="text-left px-4 py-2 font-semibold text-gray-500 w-28">{t("hist_metric")}</th>
-                {MONTHS.map(m => (
-                  <th key={m} className="px-2 py-2 font-semibold text-gray-500 text-center w-12">{m}</th>
-                ))}
-                <th className="px-3 py-2 font-semibold text-gray-700 text-center">FY25</th>
-              </tr>
-            </thead>
-            <tbody>
-              {showVGT && (
-                <>
-                  <tr className="border-b border-gray-50">
-                    <td className="px-4 py-2 font-semibold text-vgt">VGT NS</td>
-                    {MONTHS_K.map(m => (
-                      <td key={m} className="px-1 py-2 text-center text-gray-700 text-[11px]">
-                        {get('VGT','ns',m).toFixed(1)}
-                      </td>
-                    ))}
-                    <td className="px-2 py-2 text-center font-bold text-vgt text-[11px]">
-                      {totals.vgt.ns.toFixed(1)}
-                    </td>
-                  </tr>
-                  <tr className="border-b border-gray-100 bg-gray-50/50">
-                    <td className="px-4 py-2 text-vgt/70">VGT GM</td>
-                    {MONTHS_K.map(m => (
-                      <td key={m} className={`px-2 py-2 text-center ${get('VGT','gm',m) < 0 ? 'text-red-500' : 'text-gray-500'}`}>
-                        {get('VGT','gm',m).toFixed(1)}
-                      </td>
-                    ))}
-                    <td className="px-3 py-2 text-center font-bold text-vgt/80">
-                      {totals.vgt.gm.toFixed(1)}
-                    </td>
-                  </tr>
-                </>
-              )}
-              {showECT && (
-                <>
-                  <tr className="border-b border-gray-50">
-                    <td className="px-4 py-2 font-semibold text-ect">ECT NS</td>
-                    {MONTHS_K.map(m => (
-                      <td key={m} className="px-1 py-2 text-center text-gray-700 text-[11px]">
-                        {get('ECT','ns',m).toFixed(1)}
-                      </td>
-                    ))}
-                    <td className="px-3 py-2 text-center font-bold text-ect">
-                      {totals.ect.ns.toFixed(1)}
-                    </td>
-                  </tr>
-                  <tr className="border-b border-gray-100 bg-gray-50/50">
-                    <td className="px-4 py-2 text-ect/70">ECT GM</td>
-                    {MONTHS_K.map(m => (
-                      <td key={m} className={`px-2 py-2 text-center ${get('ECT','gm',m) < 0 ? 'text-red-500' : 'text-gray-500'}`}>
-                        {get('ECT','gm',m).toFixed(1)}
-                      </td>
-                    ))}
-                    <td className="px-3 py-2 text-center font-bold text-ect/80">
-                      {totals.ect.gm.toFixed(1)}
-                    </td>
-                  </tr>
-                </>
-              )}
-              {activeBU === 'both' && (
-                <tr className="bg-navy/5 font-bold">
-                  <td className="px-4 py-2 text-navy">{t("hist_iberia")} NS</td>
-                  {MONTHS_K.map(m => (
-                    <td key={m} className="px-2 py-2 text-center text-navy">
-                      {(get('VGT','ns',m) + get('ECT','ns',m)).toFixed(1)}
-                    </td>
-                  ))}
-                  <td className="px-3 py-2 text-center text-navy">
-                    {totals.total.ns.toFixed(1)}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      )}
     </div>
   )
 }
