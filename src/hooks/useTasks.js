@@ -17,6 +17,7 @@ export function useTasks() {
         .select(`
           *,
           deal:deal_id ( id, client, bu ),
+          tender:tender_id ( id, title ),
           assignee:assigned_to ( id, full_name, email ),
           owner:owner_id ( id, full_name, email )
         `)
