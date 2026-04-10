@@ -148,7 +148,7 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealCreated }) 
       country:  newDeal.country || null,
       stage:    newDeal.stage,
       currency: newDeal.currency,
-      owner_id: user.id,
+      created_by: user.id,
     }).select('id, client, bu, country').single()
     setCreatingDeal(false)
     if (e) { setError(e.message); return }
