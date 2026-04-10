@@ -138,7 +138,7 @@ export default function Clients() {
   const [slaOnly, setSlaOnly] = useState(false)
 
   useEffect(() => {
-    let q = supabase.from('deals').select('*')
+    let q = supabase.from('deals').select("*")
       .eq('is_intercompany_mirror', false)
       .order('client')
 
@@ -200,7 +200,7 @@ export default function Clients() {
         </div>
         {isAdmin && (
           <select className="select w-24" value={buFilter} onChange={e => setBuFilter(e.target.value)}>
-            <option value="all">{t('clients_all_bu')}</option>
+            <option value="all">{t("clients_all_bu")}</option>
             <option value="VGT">VGT</option>
             <option value="ECT">ECT</option>
           </select>
@@ -215,7 +215,7 @@ export default function Clients() {
       {grouped.length === 0
         ? <div className="text-center py-12 text-gray-400">
             <Building2 size={32} className="mx-auto mb-2 opacity-30"/>
-            <p>{t('clients_none')}</p>
+            <p>{t("clients_none")}</p>
           </div>
         : <div className="space-y-2 pb-2">
             {grouped.map(([client, ds]) => (
