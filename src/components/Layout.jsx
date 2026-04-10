@@ -1,9 +1,10 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { signOut } from '../lib/supabase'
 import { useNotifications } from '../hooks/useTasks'
 import { useTasks } from '../hooks/useTasks'
-import { LayoutDashboard, List, DollarSign, Users, LogOut, ChevronRight, History, Building2, Target, Settings, CheckSquare, FileText } from 'lucide-react'
+import { LayoutDashboard, List, DollarSign, Users, LogOut, ChevronRight, History, Building2, Target, Settings, CheckSquare, FileText, MoreHorizontal } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 import { LANGUAGES, setLang } from '../lib/i18n'
 
@@ -34,6 +35,20 @@ export default function Layout({ children }) {
   const { overdueCount } = useTasks()
   const { t, lang } = useTranslation()
   const taskBadge = (unread || 0) + (overdueCount || 0)
+  const location = useLocation()
+  const [showMore, setShowMore] = useState(false)
+  const moreRef = useRef(null)
+
+  // Fechar o menu "More" quando navegar
+  useEffect(() => { setShowMore(false) }, [location.pathname])
+
+  // Fechar ao clicar fora
+  useEffect(() => {
+    if (!showMore) return
+    const handler = (e) => { if (moreRef.current && !moreRef.current.contains(e.target)) setShowMore(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showMore])
 
   async function handleSignOut() {
     await signOut()
@@ -146,24 +161,78 @@ export default function Layout({ children }) {
 
       {/* Bottom nav — mobile */}
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex z-40" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-        {nav.filter(n => !n.adminOnly || isAdmin).slice(0, 5).map(({ to, icon: Icon, label, badge }) => (
-          <NavLink key={to} to={to} end={to === '/'}
-            className={({ isActive }) =>
-              `flex-1 flex flex-col items-center py-2.5 gap-0.5 min-h-[56px] justify-center transition-colors relative ${
-                isActive ? 'text-navy' : 'text-gray-400'
-              }`
-            }>
-            <div className="relative">
-              <Icon size={20} />
-              {badge > 0 && (
-                <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
-                  {badge > 9 ? '9+' : badge}
-                </span>
+        {(() => {
+          const filtered = nav.filter(n => !n.adminOnly || isAdmin)
+          const primary = filtered.slice(0, 4)  // 4 items + More button
+          const secondary = filtered.slice(4)    // restantes no More menu
+
+          return (
+            <>
+              {primary.map(({ to, icon: Icon, label, badge }) => (
+                <NavLink key={to} to={to} end={to === '/'}
+                  className={({ isActive }) =>
+                    `flex-1 flex flex-col items-center py-2.5 gap-0.5 min-h-[56px] justify-center transition-colors relative ${
+                      isActive ? 'text-navy' : 'text-gray-400'
+                    }`
+                  }>
+                  <div className="relative">
+                    <Icon size={20} />
+                    {badge > 0 && (
+                      <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
+                        {badge > 9 ? '9+' : badge}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px]">{label}</span>
+                </NavLink>
+              ))}
+
+              {/* More button */}
+              {secondary.length > 0 && (
+                <div className="flex-1 flex flex-col items-center relative" ref={moreRef}>
+                  <button
+                    onClick={() => setShowMore(o => !o)}
+                    className={`flex-1 w-full flex flex-col items-center py-2.5 gap-0.5 min-h-[56px] justify-center transition-colors ${
+                      showMore || secondary.some(n => location.pathname === n.to)
+                        ? 'text-navy' : 'text-gray-400'
+                    }`}>
+                    <div className="relative">
+                      <MoreHorizontal size={20} />
+                      {secondary.some(n => (n.badge || 0) > 0) && (
+                        <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
+                          {secondary.reduce((s, n) => s + (n.badge || 0), 0)}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px]">More</span>
+                  </button>
+
+                  {/* More popup menu */}
+                  {showMore && (
+                    <div className="absolute bottom-full right-0 mb-2 bg-white rounded-2xl shadow-xl border border-gray-100 w-52 overflow-hidden">
+                      {secondary.map(({ to, icon: Icon, label, badge }) => (
+                        <NavLink key={to} to={to}
+                          className={({ isActive }) =>
+                            `flex items-center gap-3 px-4 py-3 transition-colors border-b border-gray-50 last:border-0 ${
+                              isActive ? 'bg-navy/5 text-navy font-semibold' : 'text-gray-700 hover:bg-gray-50'
+                            }`
+                          }>
+                          <Icon size={18} className="shrink-0" />
+                          <span className="text-sm">{label}</span>
+                          {badge > 0 && (
+                            <span className="ml-auto bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                              {badge}
+                            </span>
+                          )}
+                        </NavLink>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
-            </div>
-            <span className="text-[10px]">{label}</span>
-          </NavLink>
-        ))}
+            </>
+          )
+        })()}
       </nav>
     </div>
   )
