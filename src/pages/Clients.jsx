@@ -261,7 +261,7 @@ export default function Clients() {
       {/* Filtros avançados — colapsáveis */}
       {showFilters && (
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-3">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-2">
 
             {/* BU */}
             {isAdmin && (
