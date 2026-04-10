@@ -35,15 +35,64 @@ function AgingBadge({ days }) {
   return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-gray-100 text-gray-500"><Clock size={10}/>{days}d</span>
 }
 
+
+// ── Deal Score: verde/amarelo/vermelho baseado em saúde do deal ──────────
+function dealScore(deal) {
+  let score = 100
+  const now = new Date()
+
+  // Penalizar por inactividade (sem updated_at recente)
+  if (deal.updated_at) {
+    const daysSince = (now - new Date(deal.updated_at)) / 86400000
+    if (daysSince > 90) score -= 30
+    else if (daysSince > 45) score -= 15
+    else if (daysSince > 21) score -= 5
+  }
+
+  // Penalizar por stage problemático
+  if (deal.stage === 'Lost') return { score: 0, color: 'gray', label: 'Lost' }
+  if (deal.stage === 'Invoiced') return { score: 100, color: 'green', label: 'Closed' }
+
+  // Penalizar por probabilidade baixa
+  const prob = deal.win_probability ?? { Lead:10, Pipeline:30, 'Offer Presented':60, BackLog:80 }[deal.stage] ?? 30
+  if (prob < 20) score -= 25
+  else if (prob < 40) score -= 10
+
+  // Penalizar por valor em queda (sem dados históricos, usar proxy: deal sem valor)
+  if (!deal.value_total || deal.value_total === 0) score -= 20
+
+  // Penalizar se deal muito antigo sem avançar (created_at há >6 meses e ainda em Lead/Pipeline)
+  if (deal.created_at && ['Lead','Pipeline'].includes(deal.stage)) {
+    const age = (now - new Date(deal.created_at)) / 86400000
+    if (age > 180) score -= 25
+    else if (age > 90) score -= 10
+  }
+
+  // Bónus por actividade recente, SLA, produto definido
+  if (deal.is_sla) score += 5
+  if (deal.product) score += 5
+
+  score = Math.max(0, Math.min(100, score))
+  if (score >= 70) return { score, color: 'green', label: 'Healthy' }
+  if (score >= 40) return { score, color: 'amber', label: 'At risk' }
+  return { score, color: 'red', label: 'Critical' }
+}
+
 function DealCard({ deal, onEdit, onDelete, canEdit }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const fy26 = MONTHS_K.reduce((s, m) => s + (deal[m] || 0), 0)
   const isIC  = deal.is_intercompany_mirror
   const hasIC = deal.intercompany_value > 0
+  const score = dealScore(deal)
+
+  const scoreBorderClass = score.color === 'green' ? 'border-l-4 border-green-400' :
+    score.color === 'amber' ? 'border-l-4 border-amber-400' :
+    score.color === 'red'   ? 'border-l-4 border-red-400' :
+    score.color === 'gray'  ? 'border-l-4 border-gray-300' : ''
 
   return (
-    <div className={`card p-3 space-y-2 ${isIC ? 'border-l-4 border-vgt' : ''}`}>
+    <div className={`card p-3 space-y-2 ${isIC ? 'border-l-4 border-vgt' : scoreBorderClass}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap mb-1">
@@ -171,6 +220,19 @@ function DealCard({ deal, onEdit, onDelete, canEdit }) {
         {canEdit && !isIC && (
           <div className="flex gap-2">
             <button onClick={() => onEdit(deal)} className="text-gray-400 hover:text-navy"><Pencil size={14}/></button>
+            <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold mr-1 ${
+              score.color === 'green' ? 'bg-green-100 text-green-700' :
+              score.color === 'amber' ? 'bg-amber-100 text-amber-700' :
+              score.color === 'red'   ? 'bg-red-100 text-red-700' :
+              'bg-gray-100 text-gray-400'
+            }`} title={`Score: ${score.score}/100`}>
+              <span className={`w-1.5 h-1.5 rounded-full inline-block ${
+                score.color === 'green' ? 'bg-green-500' :
+                score.color === 'amber' ? 'bg-amber-500' :
+                score.color === 'red'   ? 'bg-red-500' : 'bg-gray-400'
+              }`}/>
+              {score.label}
+            </div>
             <button onClick={() => onDelete(deal)} className="text-gray-400 hover:text-red-500"><Trash2 size={14}/></button>
           </div>
         )}
