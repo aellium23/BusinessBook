@@ -76,7 +76,7 @@ function Trend({ value, reference }) {
 
 export default function Budget() {
   const { isAdmin } = useAuth()
-  const { t } = useTranslation()
+  const { t: tr } = useTranslation()
   const [rows, setRows]       = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
@@ -140,7 +140,7 @@ export default function Budget() {
     }
   }, [rows])
 
-  if (!isAdmin) return <div className="p-8 text-center text-gray-400">{t("budget_admin")}</div>
+  if (!isAdmin) return <div className="p-8 text-center text-gray-400">{tr("budget_admin")}</div>
   if (loading) return <Spinner/>
 
   const buCfg    = BU_CONFIG[activeBu]
@@ -153,13 +153,13 @@ export default function Budget() {
       {/* Header */}
       <div className="flex items-center justify-between pt-1 flex-wrap gap-2">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">{t("budget_title")}</h1>
-          <p className="text-sm text-gray-400">{t("budget_values")}</p>
+          <h1 className="text-xl font-bold text-gray-900">{tr("budget_title")}</h1>
+          <p className="text-sm text-gray-400">{tr("budget_values")}</p>
         </div>
         {activeBu !== 'ALL' && <button onClick={handleSave} disabled={saving}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white transition-all"
           style={{ background: saved ? '#1D9E75' : '#0D2137' }}>
-          {saved ? <><CheckCircle size={15}/> {t("budget_saved")}</> : saving ? t("budget_saving") : <><Save size={15}/> {t("budget_save")}</>}
+          {saved ? <><CheckCircle size={15}/> {tr("budget_saved")}</> : saving ? tr("budget_saving") : <><Save size={15}/> {tr("budget_save")}</>}
         </button>}
       </div>
 
@@ -180,7 +180,7 @@ export default function Budget() {
               }}>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold" style={{ color: cfg.color }}>{cfg.label}</span>
-                {isActive && <span className="text-[9px] bg-white/70 px-1.5 py-0.5 rounded font-medium" style={{ color: cfg.color }}>{t("budget_active")}</span>}
+                {isActive && <span className="text-[9px] bg-white/70 px-1.5 py-0.5 rounded font-medium" style={{ color: cfg.color }}>{tr("budget_active")}</span>}
               </div>
               <p className="text-lg font-bold text-gray-900">{formatK(t.ns * 1000)}</p>
               <p className="text-xs text-gray-500 mt-0.5">
@@ -343,7 +343,7 @@ export default function Budget() {
 
       {/* Period selector */}
       <div className="flex items-center gap-1 flex-wrap">
-        <span className="text-xs text-gray-400 mr-1">{t("budget_period")}</span>
+        <span className="text-xs text-gray-400 mr-1">{tr("budget_period")}</span>
         {Object.entries(PERIODS).map(([key, p]) => (
           <button key={key} onClick={() => setActivePeriod(key)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
