@@ -159,6 +159,8 @@ const translations = {
     dash_plan_cycle:  'Plan cycle:',
     // Clients
     clients_title:    'Clients',
+    clients_count:        'clients',
+    clients_filters_active: 'active',
     clients_all_bu:   'All BU',
     clients_fy26:     'FY26 forecast',
     clients_sla:      'Active SLAs',
@@ -445,6 +447,8 @@ const translations = {
     dash_plan_cycle:  'Ciclo de plan:',
     // Clients
     clients_title:    'Clientes',
+    clients_count:        'clientes',
+    clients_filters_active: 'activos',
     clients_all_bu:   'Todas BU',
     clients_fy26:     'Previsión FY26',
     clients_sla:      'SLAs activos',
@@ -720,6 +724,8 @@ const translations = {
     dash_plan_cycle:  'Ciclo de plano:',
     // Clients
     clients_title:    'Clientes',
+    clients_count:        'clientes',
+    clients_filters_active: 'activos',
     clients_all_bu:   'Todas BU',
     clients_fy26:     'Previsão FY26',
     clients_sla:      'SLAs ativos',
