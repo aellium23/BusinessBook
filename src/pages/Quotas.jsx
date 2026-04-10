@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { formatK, Spinner } from '../components/ui'
 import { Target, Plus, Save, Trash2, ChevronDown, ChevronUp, Crown } from 'lucide-react'
+import { useTranslation } from '../hooks/useTranslation'
 
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
 
@@ -69,7 +70,7 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
             ) : (
               <p className="text-xs text-gray-400">
                 Target: <strong className="text-gray-700">{formatK(target)}</strong>
-                {isManager && <span className="ml-1 text-gray-400">(team rollup)</span>}
+                {isManager && <span className="ml-1 text-gray-400">({t('quotas_team_rollup')})</span>}
               </p>
             )}
           </div>
@@ -91,7 +92,7 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
         <div className="mt-3 space-y-2">
           <div>
             <div className="flex justify-between text-[10px] text-gray-400 mb-1">
-              <span>Actuals (Invoiced)</span>
+              <span>{t('quotas_actuals')}</span>
               <span className="font-medium text-gray-600">{formatK(act)} · {Math.round(pctAct)}%</span>
             </div>
             <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -101,7 +102,7 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
           </div>
           <div>
             <div className="flex justify-between text-[10px] text-gray-400 mb-1">
-              <span>Forecast (BL + Inv)</span>
+              <span>{t('quotas_forecast')}</span>
               <span className="font-medium text-gray-600">{formatK(fc)} · {Math.round(pctFC)}%</span>
             </div>
             <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -196,7 +197,7 @@ function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, profil
       {reportsQ.length > 0 && (
         <div className="flex items-center gap-2 px-2">
           <div className="w-4 border-l-2 border-b-2 border-gray-200 h-3 rounded-bl"/>
-          <span className="text-[10px] text-gray-400">Reports</span>
+          <span className="text-[10px] text-gray-400">{t('quotas_reports')}</span>
           <div className="flex-1 border-t border-gray-100"/>
         </div>
       )}
@@ -234,7 +235,7 @@ function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, profil
               placeholder="Target €" value={newTarget} onChange={e => setNewTarget(e.target.value)}/>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setAddingNew(false)} className="text-xs text-gray-400 px-3 py-1.5">Cancel</button>
+            <button onClick={() => setAddingNew(false)} className="text-xs text-gray-400 px-3 py-1.5">{t('quotas_cancel')</button>
             <button onClick={addQuota} className="text-xs bg-navy text-white px-3 py-1.5 rounded-lg flex items-center gap-1">
               <Save size={11}/> Save
             </button>
@@ -291,8 +292,8 @@ export default function Quotas() {
   return (
     <div className="p-4 space-y-8 max-w-4xl mx-auto">
       <div className="pt-1">
-        <h1 className="text-xl font-bold text-gray-900">Sales Targets · FY26</h1>
-        <p className="text-sm text-gray-400">Team targets — Iberia</p>
+        <h1 className="text-xl font-bold text-gray-900">{t('quotas_title')}</h1>
+        <p className="text-sm text-gray-400">{t('quotas_team')}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
