@@ -213,7 +213,7 @@ function DealCard({ deal, onEdit, onDelete, canEdit }) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-1">
+      <div className="flex items-start sm:items-center justify-between pt-1 gap-2">
         <button onClick={() => setOpen(o => !o)} className="text-xs text-gray-400 flex items-center gap-1">
           Monthly {open ? <ChevronUp size={12}/> : <ChevronDown size={12}/>}
         </button>
@@ -242,7 +242,7 @@ function DealCard({ deal, onEdit, onDelete, canEdit }) {
       </div>
 
       {open && (
-        <div className="grid grid-cols-6 gap-1 pt-1">
+        <div className="grid grid-cols-4 sm:grid-cols-6 gap-1 pt-1">
           {MONTHS.map((m, i) => {
             const v = deal[MONTHS_K[i]] || 0
             return (
@@ -374,7 +374,7 @@ export default function Deals() {
             {activeFilters > 0 && <span className="ml-1 text-blue-500">· {activeFilters} {t("deals_filters_active")}</span>}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 flex-wrap justify-end">
           <button onClick={() => exportToCSV(deals)} className="btn-secondary text-xs">
             <Download size={14}/> Export
           </button>
