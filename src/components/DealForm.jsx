@@ -248,6 +248,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
   const [addingAct, setAddingAct] = useState(false)
   const [dealHistory, setDealHistory] = useState([])
   const [showHistory, setShowHistory] = useState(false)
+  const [salesProfiles, setSalesProfiles] = useState([])
   const [changeReason, setChangeReason] = useState('')
   const [showReasonModal, setShowReasonModal] = useState(false)
   const [pendingSave, setPendingSave] = useState(false)
@@ -293,6 +294,14 @@ export default function DealForm({ deal, onClose, onSaved }) {
     { value: 'Command Center',  label: 'Command Center',          hasEquipment: false, hasStudies: false, hasExams: true  },
   ]
   const selectedProduct = PRODUCTS.find(p => p.value === form.product)
+
+  // Load profiles for Sales Owner dropdown (once)
+  useEffect(() => {
+    supabase.from('profiles')
+      .select('id,full_name,email,role')
+      .order('full_name')
+      .then(({ data }) => setSalesProfiles(data || []))
+  }, [])
 
   // Load activity log and change history for existing deal
   useEffect(() => {
@@ -539,7 +548,13 @@ export default function DealForm({ deal, onClose, onSaved }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="label">{tr("df_owner")}</label>
-            <input className="input" value={form.sales_owner} onChange={e => set('sales_owner', e.target.value)} />
+            <select className="select" value={form.sales_owner} onChange={e => set('sales_owner', e.target.value)}>
+              <option value="">— Select owner —</option>
+              {salesProfiles.map(p => {
+                const name = p.full_name || p.email?.split('@')[0] || ''
+                return <option key={p.id} value={name}>{name}</option>
+              })}
+            </select>
           </div>
           <div>
             <label className="label">{tr("df_deal_type")}</label>
