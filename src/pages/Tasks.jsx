@@ -269,11 +269,12 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
 }
 
 // ── Single Task Row ────────────────────────────────────────────────────────────
-function TaskRow({ task, onEdit, onDelete, currentUserId, canAssign }) {
+function TaskRow({ task, onEdit, onDelete, currentUserId, canAssign, tenders = [] }) {
   const [toggling, setToggling] = useState(false)
   const isDone    = task.status === 'done'
   const isOverdue = !isDone && task.deadline && daysDiff(task.deadline) < 0
   const prio      = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium
+  const tenderName = task.tender_id ? (tenders.find(t => t.id === task.tender_id)?.title ?? null) : null
 
   async function toggleDone() {
     setToggling(true)
@@ -329,10 +330,10 @@ function TaskRow({ task, onEdit, onDelete, currentUserId, canAssign }) {
               <Link2 size={9} /> {task.deal.client}
             </span>
           )}
-          {/* Tender link */}
-          {task.tender && (
+          {/* Tender link — resolve name from tender_id */}
+          {task.tender_id && tenderName && (
             <span className="flex items-center gap-1 text-[10px] text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded-full">
-              <FileText size={9} /> {task.tender.title}
+              <FileText size={9} /> {tenderName}
             </span>
           )}
         </div>
@@ -505,7 +506,7 @@ export default function Tasks() {
         {filterTasks(myTasks).length === 0 ? (
           <p className="text-sm text-gray-400 py-4 text-center">No personal tasks</p>
         ) : filterTasks(myTasks).map(t => (
-          <TaskRow key={t.id} task={t} currentUserId={user?.id} canAssign={canAssign}
+          <TaskRow key={t.id} task={t} currentUserId={user?.id} canAssign={canAssign} tenders={tenders}
             onEdit={(t, refetchOnly) => refetchOnly ? refetch() : setModal(t)}
             onDelete={handleDelete} />
         ))}
@@ -523,7 +524,7 @@ export default function Tasks() {
           overdueCount={overdueIn(assignedToMe)}
         >
           {filterTasks(assignedToMe).map(t => (
-            <TaskRow key={t.id} task={t} currentUserId={user?.id} canAssign={canAssign}
+            <TaskRow key={t.id} task={t} currentUserId={user?.id} canAssign={canAssign} tenders={tenders}
               onEdit={(t, refetchOnly) => refetchOnly ? refetch() : setModal(t)}
               onDelete={handleDelete} />
           ))}
@@ -539,7 +540,7 @@ export default function Tasks() {
           defaultOpen={false}
         >
           {filterTasks(assignedByMe).map(t => (
-            <TaskRow key={t.id} task={t} currentUserId={user?.id} canAssign={canAssign}
+            <TaskRow key={t.id} task={t} currentUserId={user?.id} canAssign={canAssign} tenders={tenders}
               onEdit={(t, refetchOnly) => refetchOnly ? refetch() : setModal(t)}
               onDelete={handleDelete} />
           ))}
