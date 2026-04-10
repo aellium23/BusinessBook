@@ -316,7 +316,7 @@ export default function Deals() {
       {/* List */}
       {loading ? <Spinner /> : deals.length === 0
         ? <EmptyState icon="📋" title="No deals found" description="Adjust filters or add a new deal"
-            action={canEdit && <button onClick={() => setFormOpen(true)} className="btn-primary"{t('deals_add')}</button>}/>
+            action={canEdit && <button onClick={() => setFormOpen(true)} className="btn-primary">{t('deals_add')}</button>}/>
         : <div className="space-y-2">
             {deals.map(d => (
               <DealCard key={d.id} deal={d} canEdit={canEdit}
@@ -347,8 +347,8 @@ export default function Deals() {
               </p>
             )}
             <div className="flex gap-2 mt-4">
-              <button onClick={() => setConfirmDel(null)} className="btn-secondary flex-1"{t('deals_cancel')}</button>
-              <button onClick={confirmDelete} className="btn-danger flex-1"{t('deals_delete')}</button>
+              <button onClick={() => setConfirmDel(null)} className="btn-secondary flex-1">{t('deals_cancel')}</button>
+              <button onClick={confirmDelete} className="btn-danger flex-1">{t('deals_delete')}</button>
             </div>
           </div>
         </div>
