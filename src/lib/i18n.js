@@ -5,9 +5,9 @@
 const STORAGE_KEY = 'bb_lang'
 
 export const LANGUAGES = [
-  { code: 'en', label: 'English',   flag: '🇬🇧' },
-  { code: 'es', label: 'Español',   flag: '🇪🇸' },
-  { code: 'pt', label: 'Português', flag: '🇵🇹' },
+  { code: 'en', label: 'English', flag: 'EN' },
+  { code: 'es', label: 'Español', flag: 'ES' },
+  { code: 'pt', label: 'Português', flag: 'PT' },
 ]
 
 const translations = {
