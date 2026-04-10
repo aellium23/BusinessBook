@@ -276,7 +276,7 @@ export default function Quotas() {
 
   async function load() {
     let qQuery = supabase.from('quotas').select("*").order('bu').order('sales_owner')
-    let dQuery = supabase.from('deals').select('bu,sales_owner,stage,' + MONTHS_K.join(',')).eq('is_intercompany_mirror', false)
+    let dQuery = supabase.from('deals').select('bu,sales_owner,stage,value_total,currency,exchange_rate,' + MONTHS_K.join(',')).eq('is_intercompany_mirror', false)
     let oQuery = supabase.from('sales_owners').select('id,name,bu,active').eq('active', true).order('bu').order('name')
 
     // Non-admin: filter to own BU deals only
@@ -291,12 +291,19 @@ export default function Quotas() {
   }
   useEffect(() => { if (profile !== undefined) load() }, [profile])
 
+  // Helper: valor do deal em EUR (meses ou value_total como fallback)
+  function dealValue(d) {
+    const monthly = MONTHS_K.reduce((s,m) => s + (d[m]||0), 0)
+    const base = monthly > 0 ? monthly : (d.value_total || 0)
+    return base * ((!d.currency || d.currency === 'EUR') ? 1 : (d.exchange_rate || 1))
+  }
+
   const actuals = useMemo(() => {
     const map = {}
     deals.forEach(d => {
       if (d.stage !== 'Invoiced') return
       const key = `${d.bu}::${d.sales_owner || 'Unassigned'}`
-      map[key] = (map[key]||0) + MONTHS_K.reduce((s,m)=>s+(d[m]||0),0)
+      map[key] = (map[key]||0) + dealValue(d)
     })
     return map
   }, [deals])
@@ -306,7 +313,7 @@ export default function Quotas() {
     deals.forEach(d => {
       if (!['BackLog','Invoiced'].includes(d.stage)) return
       const key = `${d.bu}::${d.sales_owner || 'Unassigned'}`
-      map[key] = (map[key]||0) + MONTHS_K.reduce((s,m)=>s+(d[m]||0),0)
+      map[key] = (map[key]||0) + dealValue(d)
     })
     return map
   }, [deals])
