@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { BUBadge, StageBadge, formatK, CurrencyBadge, Spinner } from '../components/ui'
 import { Building2, Search, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react'
+import { useTranslation } from '../hooks/useTranslation'
 
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
 
@@ -129,6 +130,7 @@ function ClientCard({ client, deals }) {
 
 export default function Clients() {
   const { isAdmin, profile } = useAuth()
+  const { t } = useTranslation()
   const [deals, setDeals]   = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -198,7 +200,7 @@ export default function Clients() {
         </div>
         {isAdmin && (
           <select className="select w-24" value={buFilter} onChange={e => setBuFilter(e.target.value)}>
-            <option value="all">All BU</option>
+            <option value="all">{t('clients_all_bu')}</option>
             <option value="VGT">VGT</option>
             <option value="ECT">ECT</option>
           </select>
@@ -213,7 +215,7 @@ export default function Clients() {
       {grouped.length === 0
         ? <div className="text-center py-12 text-gray-400">
             <Building2 size={32} className="mx-auto mb-2 opacity-30"/>
-            <p>No clients found</p>
+            <p>{t('clients_none')}</p>
           </div>
         : <div className="space-y-2 pb-2">
             {grouped.map(([client, ds]) => (
