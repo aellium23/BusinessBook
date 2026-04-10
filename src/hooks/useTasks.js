@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
 
@@ -62,7 +62,6 @@ export function useNotifications() {
   const { user } = useAuth()
   const [notifications, setNotifications] = useState([])
   const [unread, setUnread]               = useState(0)
-  const channelRef = useRef(null)
 
   const fetch = useCallback(async () => {
     if (!user) return
@@ -83,42 +82,6 @@ export function useNotifications() {
   }, [user])
 
   useEffect(() => { fetch() }, [fetch])
-
-  // Real-time subscription — safe pattern: subscribe first, then add listener
-  useEffect(() => {
-    if (!user) return
-    // Cleanup previous channel
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current)
-      channelRef.current = null
-    }
-    const channel = supabase.channel(`notif-${user.id}`)
-    channel.on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'notifications',
-        filter: `user_id=eq.${user.id}`,
-      },
-      payload => {
-        setNotifications(prev => [payload.new, ...prev])
-        setUnread(u => u + 1)
-      }
-    )
-    channel.subscribe(status => {
-      if (status === 'SUBSCRIPTION_ERROR') {
-        console.warn('Notifications realtime not available — run SQL migration first')
-      }
-    })
-    channelRef.current = channel
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current)
-        channelRef.current = null
-      }
-    }
-  }, [user])
 
   async function markRead(id) {
     try {
