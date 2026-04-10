@@ -54,7 +54,7 @@ export default function Layout({ children }) {
   ]
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col overflow-x-hidden">
       {/* Top bar */}
       <header className="bg-navy text-white px-3 py-2 flex items-center justify-between sticky top-0 z-40 shadow-md" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
         <div className="flex items-center gap-2.5 min-w-0">
@@ -122,7 +122,7 @@ export default function Layout({ children }) {
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto pb-24 sm:pb-6 relative min-w-0">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden pb-24 sm:pb-6 relative min-w-0">
           {/* Watermark */}
           <div className="pointer-events-none fixed inset-0 flex items-center justify-center z-0"
             style={{ left: typeof window !== 'undefined' && window.innerWidth >= 640 ? '13rem' : '0' }}>
