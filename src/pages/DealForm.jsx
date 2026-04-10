@@ -205,6 +205,7 @@ function DiscountApprovalPanel({ deal, onSave }) {
 
 export default function DealForm({ deal, onClose, onSaved }) {
   const { profile, isAdmin } = useAuth()
+  const { t } = useTranslation()
   const { getRate } = useFxRates()
   const [form, setForm] = useState(() => deal ? {
     ...deal,
