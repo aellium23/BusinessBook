@@ -195,8 +195,19 @@ export default function Dashboard() {
   const { deals, loading }   = useDeals()
   const [budget, setBudget]  = useState([])
   const [fy25, setFy25]      = useState([])
+  const [recentChanges, setRecentChanges] = useState([])
 
   // Load budget from DB
+  useEffect(() => {
+    // Feed de alterações recentes
+    supabase.from('deal_history')
+      .select("*, deal:deal_id(client, bu, stage), changed_by_profile:changed_by(full_name, email)")
+      .neq('field_name', 'change_reason')
+      .order('changed_at', { ascending: false })
+      .limit(8)
+      .then(({ data }) => setRecentChanges(data || []))
+  }, [])
+
   useEffect(() => {
     supabase.from('budget').select("*").then(({ data }) => setBudget(data || []))
     supabase.from('fy25_actuals').select("*").then(({ data }) => setFy25(data || []))
@@ -629,6 +640,49 @@ export default function Dashboard() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* ── RECENT CHANGES FEED ──────────────────────────────────── */}
+        {recentChanges.length > 0 && (
+          <div className="bg-white border border-gray-200 rounded-2xl p-4">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">{t("dash_recent_changes")}</p>
+            <div className="space-y-2">
+              {recentChanges.map(h => {
+                const fieldLabels = {
+                  stage: 'Stage', value_total: 'Value', gm_pct: 'GM%',
+                  client: 'Client', country: 'Country', region: 'Region',
+                  sales_owner: 'Owner', deal_type: 'Type', currency: 'Currency',
+                  win_probability: 'Win%', lost_reason: 'Lost reason',
+                  discount_status: 'Discount', bu: 'BU',
+                }
+                const field = fieldLabels[h.field_name] || h.field_name
+                const user = h.changed_by_profile?.full_name || h.changed_by_profile?.email?.split('@')[0] || '—'
+                const client = h.deal?.client || '—'
+                const bu = h.deal?.bu
+                const isValueChange = h.field_name === 'value_total'
+                const isStageChange = h.field_name === 'stage'
+                return (
+                  <div key={h.id} className="flex items-center gap-3 py-1.5 border-b border-gray-50 last:border-0">
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
+                      bu === 'VGT' ? 'bg-vgt/10 text-vgt' : 'bg-ect/10 text-ect'
+                    }`}>{bu?.[0] || '?'}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-gray-800 truncate">{client}</p>
+                      <p className="text-[10px] text-gray-400">
+                        <span className="font-semibold text-gray-600">{field}</span>
+                        {h.old_value && <span className="line-through text-red-400 mx-1">{isValueChange ? `€${Number(h.old_value).toLocaleString()}` : h.old_value}</span>}
+                        {h.new_value && <span className="text-green-600 font-medium">{isValueChange ? `€${Number(h.new_value).toLocaleString()}` : h.new_value}</span>}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-[10px] text-gray-400">{user}</p>
+                      <p className="text-[10px] text-gray-300">{new Date(h.changed_at).toLocaleDateString('pt-PT', {day:'numeric', month:'short'})}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
 
