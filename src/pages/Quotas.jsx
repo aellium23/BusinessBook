@@ -116,7 +116,7 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
 
       {/* Actions */}
       {(isAdmin || isOwnCard) && !isManager && (
-        <div className="px-4 pb-3 flex gap-2">
+        <div className="px-4 pb-3 flex gap-2 flex-wrap">
           <button onClick={() => setEditing(true)}
             className="flex-1 text-xs bg-gray-50 hover:bg-gray-100 text-gray-600 py-1.5 rounded-lg transition-colors">
             Edit target
