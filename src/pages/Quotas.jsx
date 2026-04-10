@@ -27,6 +27,7 @@ function ProgressRing({ pct, color, size = 64 }) {
 }
 
 function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, teamActuals, onEdit, onDelete, isAdmin, ownerName }) {
+  const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
   const isOwnCard = ownerName && quota.sales_owner === ownerName
   const [editVal, setEditVal] = useState(quota.target_eur)
@@ -131,6 +132,7 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
 }
 
 function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, profile }) {
+  const { t } = useTranslation()
   const { color, manager } = TEAM_STRUCTURE[bu]
   const [addingNew, setAddingNew] = useState(false)
   const [newName, setNewName] = useState('')
