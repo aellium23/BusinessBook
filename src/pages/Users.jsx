@@ -32,7 +32,8 @@ const PERMISSIONS = {
 
 function PermissionsLegend() {
   const [open, setOpen] = useState(false)
-  const cols = [{t('users_deals')},{t('users_edit_deals')},{t('users_sales_t')},{t('users_edit_t')},'Budget',{t('users_manage')}]
+  const { t } = useTranslation()
+  const cols = [t('users_deals'),t('users_edit_deals'),t('users_sales_t'),t('users_edit_t'),'Budget',t('users_manage')]
   const keys = ['deals','dealEdit','targets','targetEdit','budget','users']
 
   return (
