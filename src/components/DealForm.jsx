@@ -295,11 +295,13 @@ export default function DealForm({ deal, onClose, onSaved }) {
   ]
   const selectedProduct = PRODUCTS.find(p => p.value === form.product)
 
-  // Load profiles for Sales Owner dropdown (once)
+  // Load sales_owners for Sales Owner dropdown (once)
   useEffect(() => {
-    supabase.from('profiles')
-      .select('id,full_name,email,role')
-      .order('full_name')
+    supabase.from('sales_owners')
+      .select('id,name,bu,active')
+      .eq('active', true)
+      .order('bu')
+      .order('name')
       .then(({ data }) => setSalesProfiles(data || []))
   }, [])
 
@@ -550,10 +552,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
             <label className="label">{tr("df_owner")}</label>
             <select className="select" value={form.sales_owner} onChange={e => set('sales_owner', e.target.value)}>
               <option value="">— Select owner —</option>
-              {salesProfiles.map(p => {
-                const name = p.full_name || p.email?.split('@')[0] || ''
-                return <option key={p.id} value={name}>{name}</option>
-              })}
+              {salesProfiles.map(p => (
+                <option key={p.id} value={p.name}>{p.name} · {p.bu}</option>
+              ))}
             </select>
           </div>
           <div>
