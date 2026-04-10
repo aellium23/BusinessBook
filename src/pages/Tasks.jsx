@@ -433,11 +433,11 @@ export default function Tasks() {
   const [tenders, setTenders] = useState([])
 
   useEffect(() => {
-    if (!user) return
+    if (!profile) return
     supabase.from('profiles').select('id, full_name, email').then(({ data }) => setUsers(data ?? []))
     supabase.from('deals').select('id, client, bu').order('client').then(({ data }) => setDeals(data ?? []))
     supabase.from('tenders').select('id, title').order('title').then(({ data }) => setTenders(data ?? []))
-  }, [user])
+  }, [profile])
 
   function filterTasks(list) {
     if (filter === 'open') return list.filter(t => t.status === 'open')
