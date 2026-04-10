@@ -283,17 +283,34 @@ function exportToCSV(deals) {
   a.click(); URL.revokeObjectURL(url)
 }
 
+const PAGE_SIZE_OPTIONS = [5, 10, 25]
+const PERIOD_OPTIONS = [
+  { label: 'All time', days: 0 },
+  { label: 'Last 7 days', days: 7 },
+  { label: 'Last 30 days', days: 30 },
+  { label: 'Last 90 days', days: 90 },
+]
+
 export default function Deals() {
   const { canEdit, isAdmin, profile } = useAuth()
   const { t } = useTranslation()
+
+  // Filtros
   const [search, setSearch]     = useState('')
   const [stageF, setStageF]     = useState('')
   const [regionF, setRegionF]   = useState('')
   const [buF, setBuF]           = useState('')
+  const [ownerF, setOwnerF]     = useState('')
+  const [slaF, setSlaF]         = useState(false)
+  const [periodF, setPeriodF]   = useState(0)   // dias; 0 = todos
+  const [pageSize, setPageSize] = useState(5)
+  const [page, setPage]         = useState(1)
+
+  // Modal states
   const [editDeal, setEditDeal] = useState(null)
   const [formOpen, setFormOpen] = useState(false)
   const [confirmDel, setConfirmDel] = useState(null)
-  const [slaF, setSlaF] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
 
   const { deals: rawDeals, loading, refetch, totals } = useDeals({
     stage:  stageF  || undefined,
@@ -301,9 +318,44 @@ export default function Deals() {
     bu:     profile?.role === 'distributor' ? undefined : (buF || undefined),
     search: search  || undefined,
   })
-  const deals = profile?.role === 'distributor'
-    ? rawDeals.filter(d => d.distributor === profile?.sales_owner_name)
-    : slaF ? rawDeals.filter(d => d.is_sla === true) : rawDeals
+
+  // Filtros client-side adicionais
+  const deals = useMemo(() => {
+    let d = profile?.role === 'distributor'
+      ? rawDeals.filter(x => x.distributor === profile?.sales_owner_name)
+      : rawDeals
+    if (slaF) d = d.filter(x => x.is_sla)
+    if (ownerF) d = d.filter(x => x.sales_owner?.toLowerCase().includes(ownerF.toLowerCase()))
+    if (periodF > 0) {
+      const cutoff = new Date()
+      cutoff.setDate(cutoff.getDate() - periodF)
+      d = d.filter(x => x.updated_at && new Date(x.updated_at) >= cutoff)
+    }
+    return d
+  }, [rawDeals, slaF, ownerF, periodF, profile])
+
+  // Reset página quando filtros mudam
+  const resetPage = () => setPage(1)
+  const handleSearch = v => { setSearch(v); resetPage() }
+  const handleStage  = v => { setStageF(v); resetPage() }
+  const handleRegion = v => { setRegionF(v); resetPage() }
+  const handleBu     = v => { setBuF(v); resetPage() }
+  const handleOwner  = v => { setOwnerF(v); resetPage() }
+  const handleSla    = ()  => { setSlaF(o => !o); resetPage() }
+  const handlePeriod = v => { setPeriodF(Number(v)); resetPage() }
+
+  // Paginação
+  const totalPages = Math.max(1, Math.ceil(deals.length / pageSize))
+  const paginated  = deals.slice((page - 1) * pageSize, page * pageSize)
+
+  // Owners únicos para o filtro
+  const owners = useMemo(() => {
+    const s = new Set(rawDeals.map(d => d.sales_owner).filter(Boolean))
+    return Array.from(s).sort()
+  }, [rawDeals])
+
+  // Contagem de filtros activos
+  const activeFilters = [search, stageF, regionF, buF, ownerF, slaF, periodF > 0].filter(Boolean).length
 
   async function confirmDelete() {
     await deleteDeal(confirmDel.id)
@@ -312,61 +364,137 @@ export default function Deals() {
 
   return (
     <div className="p-4 space-y-4 max-w-4xl mx-auto">
+
+      {/* Header */}
       <div className="flex items-center justify-between pt-1">
         <div>
           <h1 className="text-xl font-bold text-gray-900">{t("deals_title")}</h1>
-          <p className="text-sm text-gray-400">{deals.length} records</p>
+          <p className="text-sm text-gray-400">
+            {deals.length} {t("deals_records")}
+            {activeFilters > 0 && <span className="ml-1 text-blue-500">· {activeFilters} {t("deals_filters_active")}</span>}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => exportToCSV(deals)} className="btn-secondary text-xs">
             <Download size={14}/> Export
           </button>
+          <button
+            onClick={() => setShowFilters(o => !o)}
+            className={`btn-secondary text-xs gap-1 ${activeFilters > 0 ? 'ring-2 ring-blue-400' : ''}`}>
+            <Search size={13}/>
+            {t("deals_filters")}
+            {activeFilters > 0 && (
+              <span className="bg-blue-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                {activeFilters}
+              </span>
+            )}
+          </button>
           {canEdit && (
             <button onClick={() => { setEditDeal(null); setFormOpen(true) }} className="btn-primary">
-              <Plus size={16}/> <span className="hidden sm:inline">{t("deals_new")}</span> {t("deals_title")}
+              <Plus size={16}/> <span className="hidden sm:inline">{t("deals_new")}</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-2 flex-wrap">
-        <div className="relative flex-1 min-w-32">
-          <Search size={14} className="absolute left-2.5 top-2.5 text-gray-400"/>
-          <input className="input pl-8" placeholder="Search client…" value={search} onChange={e => setSearch(e.target.value)}/>
-        </div>
-        {isAdmin && (
-          <select className="select w-20 sm:w-24 text-xs shrink-0" value={buF} onChange={e => setBuF(e.target.value)}>
-            {BUS.map(b => <option key={b} value={b}>{b || 'All BU'}</option>)}
-          </select>
+      {/* Search bar sempre visível */}
+      <div className="relative">
+        <Search size={14} className="absolute left-2.5 top-2.5 text-gray-400"/>
+        <input className="input pl-8 w-full" placeholder={t("search_deals")}
+          value={search} onChange={e => handleSearch(e.target.value)}/>
+        {search && (
+          <button onClick={() => handleSearch('')}
+            className="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600">×</button>
         )}
-        <select className="select w-24 sm:w-28 text-xs shrink-0" value={stageF} onChange={e => setStageF(e.target.value)}>
-          {STAGES.map(s => <option key={s} value={s}>{s || 'All stages'}</option>)}
-        </select>
-        <select className="select w-24 sm:w-28 text-xs shrink-0" value={regionF} onChange={e => setRegionF(e.target.value)}>
-          {REGIONS.map(r => <option key={r} value={r}>{r || 'All regions'}</option>)}
-        </select>
-        <button onClick={() => setSlaF(o => !o)}
-          className={`btn text-xs gap-1 ${slaF ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'btn-secondary'}`}>
-          <RefreshCw size={11}/> SLA
-        </button>
       </div>
 
-      {/* Summary */}
-      {/* Weighted forecast summary */}
+      {/* Filtros avançados — colapsáveis */}
+      {showFilters && (
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+
+            {/* BU */}
+            {isAdmin && (
+              <div>
+                <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">BU</label>
+                <select className="select text-xs w-full" value={buF} onChange={e => handleBu(e.target.value)}>
+                  {BUS.map(b => <option key={b} value={b}>{b || t("deals_all_bu")}</option>)}
+                </select>
+              </div>
+            )}
+
+            {/* Stage */}
+            <div>
+              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Stage</label>
+              <select className="select text-xs w-full" value={stageF} onChange={e => handleStage(e.target.value)}>
+                {STAGES.map(s => <option key={s} value={s}>{s || t("deals_all_stages")}</option>)}
+              </select>
+            </div>
+
+            {/* Region */}
+            <div>
+              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Region</label>
+              <select className="select text-xs w-full" value={regionF} onChange={e => handleRegion(e.target.value)}>
+                {REGIONS.map(r => <option key={r} value={r}>{r || t("deals_all_regions")}</option>)}
+              </select>
+            </div>
+
+            {/* Sales Owner */}
+            <div>
+              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">{t("df_owner")}</label>
+              <select className="select text-xs w-full" value={ownerF} onChange={e => handleOwner(e.target.value)}>
+                <option value="">{t("deals_all_owners")}</option>
+                {owners.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+
+            {/* Período */}
+            <div>
+              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">{t("deals_period")}</label>
+              <select className="select text-xs w-full" value={periodF} onChange={e => handlePeriod(e.target.value)}>
+                {PERIOD_OPTIONS.map(p => <option key={p.days} value={p.days}>{p.label}</option>)}
+              </select>
+            </div>
+
+            {/* Cards por página */}
+            <div>
+              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">{t("deals_per_page")}</label>
+              <select className="select text-xs w-full" value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); resetPage() }}>
+                {PAGE_SIZE_OPTIONS.map(n => <option key={n} value={n}>{n} {t("deals_per_page_suffix")}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Toggle SLA + Reset */}
+          <div className="flex items-center justify-between">
+            <button onClick={handleSla}
+              className={`btn text-xs gap-1 ${slaF ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'btn-secondary'}`}>
+              <RefreshCw size={11}/> SLA only
+            </button>
+            {activeFilters > 0 && (
+              <button onClick={() => {
+                setSearch(''); setStageF(''); setRegionF(''); setBuF('')
+                setOwnerF(''); setSlaF(false); setPeriodF(0); resetPage()
+              }} className="text-xs text-red-500 hover:text-red-700 font-medium">
+                {t("deals_clear_filters")}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Totais */}
       <div className="flex gap-4 overflow-x-auto pb-1">
         {[
           { l:t("deals_pipeline"), v:totals.pipeline, c:'text-amber-700' },
           { l:t("deals_backlog"),  v:totals.backlog,  c:'text-blue-700'  },
           { l:t("deals_actuals"),  v:totals.invoiced, c:'text-green-700' },
-          { l:t("deals_fc"), v:totals.forecast, c:'text-vgt font-bold' },
+          { l:t("deals_fc"),       v:totals.forecast, c:'text-vgt font-bold' },
           { l:t("deals_weighted"), v:deals.filter(d=>!d.is_intercompany_mirror).reduce((s,d)=>{
               const fy=MONTHS_K.reduce((ms,m)=>ms+(d[m]||0),0)
               const baseRaw=['BackLog','Invoiced'].includes(d.stage)?fy:(d.value_total||0)
-              const base = baseRaw * ((!d.currency || d.currency==='EUR') ? 1 : (d.exchange_rate||1))
-              const prob = d.win_probability !== null && d.win_probability !== undefined
-                ? d.win_probability / 100
-                : (WEIGHTS[d.stage]||0)
+              const base=baseRaw*((!d.currency||d.currency==='EUR')?1:(d.exchange_rate||1))
+              const prob=d.win_probability!=null?d.win_probability/100:(WEIGHTS[d.stage]||0)
               return s+base*prob
             },0), c:'text-purple-700 font-bold' },
         ].map(({ l, v, c }) => (
@@ -377,18 +505,58 @@ export default function Deals() {
         ))}
       </div>
 
-      {/* List */}
+      {/* Lista paginada */}
       {loading ? <Spinner /> : deals.length === 0
         ? <EmptyState icon="📋" title="No deals found" description="Adjust filters or add a new deal"
             action={canEdit && <button onClick={() => setFormOpen(true)} className="btn-primary">{t("deals_add")}</button>}/>
-        : <div className="space-y-2">
-            {deals.map(d => (
-              <DealCard key={d.id} deal={d} canEdit={canEdit}
-                onEdit={deal => { setEditDeal(deal); setFormOpen(true) }}
-                onDelete={setConfirmDel}
-              />
-            ))}
-          </div>
+        : <>
+            <div className="space-y-2">
+              {paginated.map(d => (
+                <DealCard key={d.id} deal={d} canEdit={canEdit}
+                  onEdit={deal => { setEditDeal(deal); setFormOpen(true) }}
+                  onDelete={setConfirmDel}
+                />
+              ))}
+            </div>
+
+            {/* Paginação */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-1">
+                <p className="text-xs text-gray-400">
+                  {t("deals_showing")} {(page-1)*pageSize+1}–{Math.min(page*pageSize, deals.length)} {t("deals_of")} {deals.length}
+                </p>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p-1))}
+                    disabled={page === 1}
+                    className="btn-secondary text-xs px-2 py-1 disabled:opacity-30">
+                    ←
+                  </button>
+                  {Array.from({length: totalPages}, (_, i) => i+1)
+                    .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                    .reduce((acc, p, i, arr) => {
+                      if (i > 0 && p - arr[i-1] > 1) acc.push('…')
+                      acc.push(p)
+                      return acc
+                    }, [])
+                    .map((p, i) => p === '…'
+                      ? <span key={`ellipsis-${i}`} className="text-xs text-gray-300 px-1">…</span>
+                      : <button key={p} onClick={() => setPage(p)}
+                          className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors ${
+                            p === page ? 'bg-navy text-white' : 'text-gray-500 hover:bg-gray-100'
+                          }`}>{p}</button>
+                    )
+                  }
+                  <button
+                    onClick={() => setPage(p => Math.min(totalPages, p+1))}
+                    disabled={page === totalPages}
+                    className="btn-secondary text-xs px-2 py-1 disabled:opacity-30">
+                    →
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
       }
 
       {formOpen && (
