@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTasks, createTask, updateTask, deleteTask, useNotifications } from '../hooks/useTasks'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
@@ -40,7 +40,91 @@ function DeadlineBadge({ deadline }) {
   )
 }
 
-// ── Task Form Modal ────────────────────────────────────────────────────────────
+// ── SearchableSelect ───────────────────────────────────────────────────────────
+// Dropdown com barra de pesquisa — suporta centenas de opções sem perder usabilidade
+function SearchableSelect({ value, onChange, options, placeholder = 'Search…', emptyLabel = '— None —' }) {
+  const [open, setOpen]       = useState(false)
+  const [query, setQuery]     = useState('')
+  const containerRef          = useRef(null)
+  const inputRef              = useRef(null)
+
+  const selected = options.find(o => o.value === value)
+
+  const filtered = query
+    ? options.filter(o => o.label.toLowerCase().includes(query.toLowerCase()))
+    : options
+
+  // Close on outside click
+  useEffect(() => {
+    function handler(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false)
+        setQuery('')
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  function handleSelect(val) {
+    onChange(val)
+    setOpen(false)
+    setQuery('')
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      {/* Trigger */}
+      <button type="button"
+        onClick={() => { setOpen(o => !o); setTimeout(() => inputRef.current?.focus(), 50) }}
+        className="input w-full text-left flex items-center justify-between gap-2 min-h-[38px]">
+        <span className={selected ? 'text-gray-900 truncate' : 'text-gray-400'}>
+          {selected ? selected.label : emptyLabel}
+        </span>
+        <ChevronDown size={14} className={`shrink-0 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {/* Dropdown */}
+      {open && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+          {/* Search input */}
+          <div className="p-2 border-b border-gray-100">
+            <input
+              ref={inputRef}
+              type="text"
+              className="input py-1.5 text-sm"
+              placeholder={placeholder}
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              onClick={e => e.stopPropagation()}
+            />
+          </div>
+          {/* Options list */}
+          <div className="max-h-48 overflow-y-auto">
+            <button type="button"
+              onClick={() => handleSelect('')}
+              className="w-full text-left px-3 py-2 text-sm text-gray-400 hover:bg-gray-50">
+              {emptyLabel}
+            </button>
+            {filtered.length === 0 ? (
+              <p className="px-3 py-2 text-sm text-gray-400">No results</p>
+            ) : filtered.map(o => (
+              <button type="button" key={o.value}
+                onClick={() => handleSelect(o.value)}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 truncate ${
+                  o.value === value ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                }`}>
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── TaskModal ──────────────────────────────────────────────────────────────────
 function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, pushNotification }) {
   const { user } = useAuth()
   const isEdit = !!task?.id
@@ -147,24 +231,24 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
         {/* Link to deal or tender — mutually exclusive */}
         <div className="space-y-2">
           <label className="label">Link to deal <span className="text-gray-400">(optional)</span></label>
-          <select className="select" value={form.deal_id}
-            onChange={e => { set('deal_id', e.target.value); if (e.target.value) set('tender_id', '') }}>
-            <option value="">— No deal —</option>
-            {deals.map(d => (
-              <option key={d.id} value={d.id}>[{d.bu}] {d.client}</option>
-            ))}
-          </select>
+          <SearchableSelect
+            value={form.deal_id}
+            onChange={val => { set('deal_id', val); if (val) set('tender_id', '') }}
+            options={deals.map(d => ({ value: d.id, label: `[${d.bu}] ${d.client}` }))}
+            placeholder="Search deals…"
+            emptyLabel="— No deal —"
+          />
         </div>
 
         <div className="space-y-2">
           <label className="label">Link to tender <span className="text-gray-400">(optional)</span></label>
-          <select className="select" value={form.tender_id}
-            onChange={e => { set('tender_id', e.target.value); if (e.target.value) set('deal_id', '') }}>
-            <option value="">— No tender —</option>
-            {tenders.map(t => (
-              <option key={t.id} value={t.id}>{t.title}</option>
-            ))}
-          </select>
+          <SearchableSelect
+            value={form.tender_id}
+            onChange={val => { set('tender_id', val); if (val) set('deal_id', '') }}
+            options={tenders.map(t => ({ value: t.id, label: t.title }))}
+            placeholder="Search tenders…"
+            emptyLabel="— No tender —"
+          />
         </div>
 
         {error && (
