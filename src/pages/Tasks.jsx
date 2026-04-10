@@ -102,7 +102,7 @@ function SearchableSelect({ value, onChange, options, placeholder = 'Search…',
           {/* Options list */}
           <div className="max-h-48 overflow-y-auto">
             <button type="button"
-              onClick={() => handleSelect('')}
+              onClick={() => handleSelect("")}
               className="w-full text-left px-3 py-2 text-sm text-gray-400 hover:bg-gray-50">
               {emptyLabel}
             </button>
@@ -435,9 +435,9 @@ export default function Tasks() {
 
   useEffect(() => {
     if (!profile) return
-    supabase.from('profiles').select('id, full_name, email').then(({ data }) => setUsers(data ?? []))
-    supabase.from('deals').select('id, client, bu').order('client').then(({ data }) => setDeals(data ?? []))
-    supabase.from('tenders').select('id, title').order('title').then(({ data }) => setTenders(data ?? []))
+    supabase.from('profiles').select("id, full_name, email").then(({ data }) => setUsers(data ?? []))
+    supabase.from('deals').select("id, client, bu").order('client').then(({ data }) => setDeals(data ?? []))
+    supabase.from('tenders').select("id, title").order('title').then(({ data }) => setTenders(data ?? []))
   }, [profile])
 
   function filterTasks(list) {
