@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTasks, createTask, updateTask, deleteTask, useNotifications } from '../hooks/useTasks'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
@@ -433,10 +433,11 @@ export default function Tasks() {
   const [tenders, setTenders] = useState([])
 
   useEffect(() => {
+    if (!user) return
     supabase.from('profiles').select('id, full_name, email').then(({ data }) => setUsers(data ?? []))
     supabase.from('deals').select('id, client, bu').order('client').then(({ data }) => setDeals(data ?? []))
     supabase.from('tenders').select('id, title').order('title').then(({ data }) => setTenders(data ?? []))
-  }, [])
+  }, [user])
 
   function filterTasks(list) {
     if (filter === 'open') return list.filter(t => t.status === 'open')
