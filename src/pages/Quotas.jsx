@@ -248,6 +248,7 @@ function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, profil
 
 export default function Quotas() {
   const { isAdmin, canSeeAll, profile } = useAuth()
+  const { t } = useTranslation()
   const [quotas, setQuotas] = useState([])
   const [deals, setDeals]   = useState([])
   const [loading, setLoading] = useState(true)
