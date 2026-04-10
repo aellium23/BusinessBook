@@ -7,6 +7,7 @@ import {
   ComposedChart, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip,
   ResponsiveContainer, Legend, ReferenceLine, Cell
 } from 'recharts'
+import { useTranslation } from '../hooks/useTranslation'
 
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
@@ -287,8 +288,8 @@ export default function Dashboard() {
         })
         return {
           month: m,
-          Actuals:  Math.round(actuals * 10) / 10,
-          Forecast: Math.round(forecast * 10) / 10,
+          [t('dash_actuals')]:  Math.round(actuals * 10) / 10,
+          [t('dash_forecast')]: Math.round(forecast * 10) / 10,
           Plan:     Math.round(getPlan(bu, i, displayCycle) * 10) / 10,
           FY25:     Math.round(getPY(bu, i) * 10) / 10,
         }
@@ -389,7 +390,7 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between pt-1">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
+          <h1 className="text-xl font-bold text-gray-900">{t('dash_title')}</h1>
           <p className="text-sm text-gray-400">FY26 · Apr 2026 – Mar 2027 · Active cycle:
             <span className="ml-1 px-1.5 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800">{activeCycle}</span>
           </p>
@@ -419,9 +420,9 @@ export default function Dashboard() {
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
         {/* Cycle selector */}
         <div className="flex items-center justify-between mb-4">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Monthly sales · K€</p>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t('dash_monthly')}</p>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-gray-400">Plan cycle:</span>
+            <span className="text-[10px] text-gray-400">{t('dash_plan_cycle')}</span>
             {['BUD','EST1','EST2'].map(c => (
               <button key={c} onClick={() => setSelectedCycle(c)}
                 className={`text-xs px-2 py-0.5 rounded font-bold transition-colors ${
@@ -439,8 +440,8 @@ export default function Dashboard() {
 
         {/* Legend */}
         <div className="flex gap-4 text-[10px] text-gray-400 mb-3">
-          <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm inline-block" style={{background:'#1D9E75'}}/>Actuals</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-blue-200 inline-block"/>Forecast</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm inline-block" style={{background:'#1D9E75'}}/>{t('dash_actuals')}</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-blue-200 inline-block"/>{t('dash_forecast')}</span>
           <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-gray-400 inline-block"/>Plan ({displayCycle})</span>
           <span className="flex items-center gap-1"><span className="w-3 h-0.5 border-t-2 border-dashed border-purple-400 inline-block"/>FY25</span>
         </div>
@@ -460,8 +461,8 @@ export default function Dashboard() {
                   <YAxis tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={TOOLTIP_STYLE}
                     formatter={(v, name) => [`€${v}K`, name]} />
-                  <Bar dataKey="Actuals"  fill={actColor} radius={[3,3,0,0]} />
-                  <Bar dataKey="Forecast" fill={fcColor}  radius={[3,3,0,0]} />
+                  <Bar dataKey={t('dash_actuals')}  fill={actColor} radius={[3,3,0,0]} />
+                  <Bar dataKey={t('dash_forecast')} fill={fcColor}  radius={[3,3,0,0]} />
                   <Line dataKey="Plan" type="monotone" stroke="#9CA3AF"
                     strokeWidth={1.5} dot={false} />
                   <Line dataKey="FY25" type="monotone" stroke="#A78BFA"
@@ -476,7 +477,7 @@ export default function Dashboard() {
       {/* ── VGT vs ECT SPLIT ──────────────────────────────────────────────── */}
       {isAdmin && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">VGT vs ECT · Forecast FY26</p>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">{t('dash_vgt_ect')}</p>
           <div className="grid grid-cols-2 gap-6 mb-3">
             {[['VGT','vgt','#1D9E75'],['ECT','ect','#D85A30']].map(([label,key,color]) => (
               <div key={label}>
@@ -510,7 +511,7 @@ export default function Dashboard() {
       {/* ── REGION BREAKDOWN ──────────────────────────────────────────────── */}
       {regionData.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Revenue by region · Forecast K€</p>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">{t('dash_by_region')}</p>
           <ResponsiveContainer width="100%" height={Math.max(120, regionData.length * 36)}>
             <BarChart data={regionData} layout="vertical"
               margin={{ top:0, right:60, left:40, bottom:0 }}>
@@ -529,35 +530,35 @@ export default function Dashboard() {
 
       {/* ── FUNNEL ANALYTICS ─────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 space-y-4">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Funnel analytics</p>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t('dash_funnel_ana')}</p>
 
         {/* KPI row */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-purple-50 rounded-lg p-3">
-            <p className="text-[10px] text-purple-500 font-semibold uppercase tracking-wide">Weighted forecast</p>
+            <p className="text-[10px] text-purple-500 font-semibold uppercase tracking-wide">{t('dash_weighted')}</p>
             <p className="text-lg font-bold text-purple-700 mt-0.5">{formatK(funnelAnalytics.weighted)}</p>
-            <p className="text-[10px] text-purple-400">Uses deal win % or stage default</p>
+            <p className="text-[10px] text-purple-400">{t('dash_funnel_note')}</p>
           </div>
           <div className={`rounded-lg p-3 ${funnelAnalytics.winRate !== null ? (funnelAnalytics.winRate >= 50 ? 'bg-green-50' : 'bg-amber-50') : 'bg-gray-50'}`}>
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Win rate</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{t('dash_win_rate')}</p>
             <p className={`text-lg font-bold mt-0.5 ${funnelAnalytics.winRate !== null ? (funnelAnalytics.winRate >= 50 ? 'text-green-700' : 'text-amber-700') : 'text-gray-400'}`}>
               {funnelAnalytics.winRate !== null ? `${funnelAnalytics.winRate}%` : '—'}
             </p>
             <p className="text-[10px] text-gray-400">{funnelAnalytics.wonCount} won / {funnelAnalytics.closedCount} closed</p>
           </div>
           <div className={`rounded-lg p-3 ${funnelAnalytics.aged.length > 0 ? 'bg-red-50' : 'bg-gray-50'}`}>
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Aging alerts</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{t('dash_aging')}</p>
             <p className={`text-lg font-bold mt-0.5 ${funnelAnalytics.aged.length > 0 ? 'text-red-700' : 'text-gray-400'}`}>
               {funnelAnalytics.aged.length} deal{funnelAnalytics.aged.length !== 1 ? 's' : ''}
             </p>
             <p className="text-[10px] text-gray-400">Lead/Pipeline &gt;{AGING_DAYS}d</p>
           </div>
           <div className="bg-blue-50 rounded-lg p-3">
-            <p className="text-[10px] text-blue-500 font-semibold uppercase tracking-wide">Avg velocity</p>
+            <p className="text-[10px] text-blue-500 font-semibold uppercase tracking-wide">{t('dash_avg_vel')}</p>
             <p className="text-lg font-bold text-blue-700 mt-0.5">
               {funnelAnalytics.avgVelocity !== null ? `${funnelAnalytics.avgVelocity}d` : '—'}
             </p>
-            <p className="text-[10px] text-blue-400">Created → Invoiced</p>
+            <p className="text-[10px] text-blue-400">{t('dash_created')}</p>
           </div>
         </div>
 
@@ -594,7 +595,7 @@ export default function Dashboard() {
         {/* Product breakdown */}
         {Object.keys(funnelAnalytics.productBreakdown).length > 0 && (
           <div>
-            <p className="text-xs text-gray-400 font-medium mb-2">Active pipeline by product</p>
+            <p className="text-xs text-gray-400 font-medium mb-2">{t('dash_pipeline_lbl')}</p>
             <div className="flex flex-wrap gap-2">
               {Object.entries(funnelAnalytics.productBreakdown).sort((a,b)=>b[1].value-a[1].value).map(([product, { count, value }]) => (
                 <span key={product} className="text-xs bg-navy/10 text-navy px-2 py-1 rounded-lg font-medium">
@@ -633,7 +634,7 @@ export default function Dashboard() {
         {/* Lost reasons */}
         {Object.keys(funnelAnalytics.lostReasons).length > 0 && (
           <div>
-            <p className="text-xs text-gray-400 font-medium mb-2">Lost reasons</p>
+            <p className="text-xs text-gray-400 font-medium mb-2">{t('dash_lost')}</p>
             <div className="flex flex-wrap gap-2">
               {Object.entries(funnelAnalytics.lostReasons).sort((a,b)=>b[1]-a[1]).map(([reason, count]) => (
                 <span key={reason} className="text-xs bg-red-50 text-red-700 px-2 py-1 rounded-lg">
