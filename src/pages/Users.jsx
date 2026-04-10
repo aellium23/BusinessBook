@@ -248,6 +248,7 @@ function UserCard({ profile, onRoleChange, onOwnerChange, currentUserId, isAdmin
 
 export default function Users() {
   const { isAdmin, user: currentUser } = useAuth()
+  const { t } = useTranslation()
   const [profiles, setProfiles] = useState([])
   const [loading, setLoading]   = useState(true)
   const [inviteEmail, setInviteEmail] = useState('')
