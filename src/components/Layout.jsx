@@ -4,6 +4,8 @@ import { signOut } from '../lib/supabase'
 import { useNotifications } from '../hooks/useTasks'
 import { useTasks } from '../hooks/useTasks'
 import { LayoutDashboard, List, DollarSign, Users, LogOut, ChevronRight, History, Building2, Target, Settings, CheckSquare, FileText } from 'lucide-react'
+import { useTranslation } from '../hooks/useTranslation'
+import { LANGUAGES, setLang } from '../lib/i18n'
 
 function NavItem({ to, icon: Icon, label, badge }) {
   return (
@@ -30,6 +32,7 @@ export default function Layout({ children }) {
   const navigate = useNavigate()
   const { unread } = useNotifications()
   const { overdueCount } = useTasks()
+  const { t, lang } = useTranslation()
   const taskBadge = (unread || 0) + (overdueCount || 0)
 
   async function handleSignOut() {
@@ -38,16 +41,16 @@ export default function Layout({ children }) {
   }
 
   const nav = [
-    { to: '/',        icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/deals',   icon: List,            label: 'Deals' },
-    { to: '/tasks',   icon: CheckSquare,     label: 'Tasks',          badge: taskBadge },
-    { to: '/tenders', icon: FileText,        label: 'Tenders & RFPs' },
-    { to: '/clients', icon: Building2,       label: 'Clients' },
-    { to: '/history', icon: History,         label: 'History' },
-    { to: '/quotas',  icon: Target,          label: 'Sales Targets' },
-    { to: '/budget',  icon: DollarSign,      label: 'Budget',         adminOnly: true },
-    { to: '/users',   icon: Users,           label: 'Users',          adminOnly: true },
-    { to: '/settings',icon: Settings,        label: 'Settings',       adminOnly: true },
+    { to: '/',        icon: LayoutDashboard, label: t('nav_dashboard') },
+    { to: '/deals',   icon: List,            label: t('nav_deals') },
+    { to: '/tasks',   icon: CheckSquare,     label: t('nav_tasks'),    badge: taskBadge },
+    { to: '/tenders', icon: FileText,        label: t('nav_tenders') },
+    { to: '/clients', icon: Building2,       label: t('nav_clients') },
+    { to: '/history', icon: History,         label: t('nav_history') },
+    { to: '/quotas',  icon: Target,          label: t('nav_targets') },
+    { to: '/budget',  icon: DollarSign,      label: t('nav_budget'),   adminOnly: true },
+    { to: '/users',   icon: Users,           label: t('nav_users'),    adminOnly: true },
+    { to: '/settings',icon: Settings,        label: t('nav_settings'), adminOnly: true },
   ]
 
   return (
@@ -82,6 +85,20 @@ export default function Layout({ children }) {
              profile?.role === 'viewer_ect' ? 'ECT' :
              (profile?.role || '').toUpperCase()}
           </span>
+          {/* Language selector */}
+          <div className="flex items-center gap-0.5 ml-1">
+            {LANGUAGES.map(l => (
+              <button
+                key={l.code}
+                onClick={() => setLang(l.code)}
+                title={l.label}
+                className={`text-base leading-none px-0.5 transition-all ${
+                  lang === l.code ? 'opacity-100 scale-110' : 'opacity-40 hover:opacity-70'
+                }`}>
+                {l.flag}
+              </button>
+            ))}
+          </div>
           <button onClick={handleSignOut} className="text-white/60 hover:text-white transition-colors ml-1">
             <LogOut size={16} />
           </button>
