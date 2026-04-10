@@ -248,6 +248,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
   const [addingAct, setAddingAct] = useState(false)
   const [dealHistory, setDealHistory] = useState([])
   const [showHistory, setShowHistory] = useState(false)
+  const [changeReason, setChangeReason] = useState('')
+  const [showReasonModal, setShowReasonModal] = useState(false)
+  const [pendingSave, setPendingSave] = useState(false)
 
   const isMaint = form.deal_type === 'Maintenance'
 
@@ -365,9 +368,21 @@ export default function DealForm({ deal, onClose, onSaved }) {
     setIcPreview(preview.map(v => Math.round((v / total) * icVal * 100) / 100))
   }, [hasIC, form.intercompany_value, preview])
 
-  async function handleSave() {
-    if (!form.bu || !form.client || !form.stage) { setError('BU, Client and Stage are required'); return }
+  // Detectar se a alteração é crítica e requer motivo
+  function needsReason() {
+    if (!deal?.id) return false  // novo deal — sem motivo necessário
+    const oldVal = parseFloat(deal.value_total) || 0
+    const newVal = parseFloat(form.value_total) || 0
+    const valueDrop = oldVal > 0 && newVal < oldVal * 0.9  // >10% drop
+    const stageLost = form.stage === 'Lost' && deal.stage !== 'Lost'
+    const stageDown = ['Lost','Lead'].includes(form.stage) &&
+      ['BackLog','Invoiced','Offer Presented','Pipeline'].includes(deal.stage)
+    return valueDrop || stageLost || stageDown
+  }
+
+  async function executeSave() {
     setSaving(true); setError('')
+    setPendingSave(false)
 
     const monthly = isMaint && preview
       ? Object.fromEntries(MONTHS_K.map((m, i) => [m, preview[i] || 0]))
@@ -432,8 +447,31 @@ export default function DealForm({ deal, onClose, onSaved }) {
     }
 
     if (result.error) setError(result.error.message)
-    else { onSaved(); onClose() }
+    else {
+      // Guardar motivo na deal_history se existir
+      if (changeReason && deal?.id) {
+        await supabase.from('deal_history').insert({
+          deal_id: deal.id,
+          changed_by: null,
+          field_name: 'change_reason',
+          old_value: null,
+          new_value: changeReason,
+        })
+      }
+      setChangeReason('')
+      onSaved(); onClose()
+    }
     setSaving(false)
+  }
+
+  async function handleSave() {
+    if (!form.bu || !form.client || !form.stage) { setError('BU, Client and Stage are required'); return }
+    if (needsReason() && !changeReason) {
+      setShowReasonModal(true)
+      setPendingSave(true)
+      return
+    }
+    executeSave()
   }
 
   return (
@@ -1237,6 +1275,50 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </div>
         )}
       </div>
+
+      {/* ── CHANGE REASON MODAL ─────────────────────────────────────── */}
+      {showReasonModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">⚠️</span>
+              <h3 className="font-bold text-gray-900">{tr("df_reason_title")}</h3>
+            </div>
+            <p className="text-sm text-gray-500">{tr("df_reason_desc")}</p>
+            {form.stage === 'Lost' && deal?.stage !== 'Lost' && (
+              <p className="text-xs bg-red-50 text-red-700 rounded-lg px-3 py-2">
+                Stage: <strong>{deal?.stage}</strong> → <strong>Lost</strong>
+              </p>
+            )}
+            {parseFloat(form.value_total) < parseFloat(deal?.value_total) * 0.9 && (
+              <p className="text-xs bg-amber-50 text-amber-700 rounded-lg px-3 py-2">
+                Value: <strong>€{Number(deal?.value_total).toLocaleString()}</strong> → <strong>€{Number(form.value_total).toLocaleString()}</strong>
+              </p>
+            )}
+            <textarea
+              className="input resize-none text-sm"
+              rows={3}
+              placeholder={tr("df_reason_placeholder")}
+              value={changeReason}
+              onChange={e => setChangeReason(e.target.value)}
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setShowReasonModal(false); setPendingSave(false); }}
+                className="btn-secondary flex-1 text-sm">
+                {tr("df_cancel")}
+              </button>
+              <button
+                onClick={() => { setShowReasonModal(false); executeSave(); }}
+                disabled={!changeReason.trim()}
+                className="btn-primary flex-1 text-sm">
+                {tr("df_reason_confirm")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Modal>
   )
 }
