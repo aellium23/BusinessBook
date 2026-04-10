@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { BUBadge, StageBadge, SalesTypeBadge, Spinner, EmptyState, formatK, CurrencyBadge } from '../components/ui'
 import DealForm from '../components/DealForm'
 import { Plus, Search, Trash2, Pencil, ChevronDown, ChevronUp, Link, AlertTriangle, Clock, Download, RefreshCw } from 'lucide-react'
+import { useTranslation } from '../hooks/useTranslation'
 
 const STAGES  = ['','Lead','Pipeline','Offer Presented','BackLog','Invoiced','Lost']
 const WEIGHTS = { Lead: 0.10, Pipeline: 0.30, 'Offer Presented': 0.60, BackLog: 0.80, Invoiced: 1.0, Lost: 0 }
@@ -173,7 +174,7 @@ function DealCard({ deal, onEdit, onDelete, canEdit }) {
           </div>
         )}
         {isIC && (
-          <span className="text-xs text-gray-400 italic">auto-generated</span>
+          <span className="text-xs text-gray-400 italic">{t('deals_auto')}</span>
         )}
       </div>
 
@@ -249,7 +250,7 @@ export default function Deals() {
     <div className="p-4 space-y-4 max-w-4xl mx-auto">
       <div className="flex items-center justify-between pt-1">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Deals</h1>
+          <h1 className="text-xl font-bold text-gray-900">{t('deals_title')}</h1>
           <p className="text-sm text-gray-400">{deals.length} records</p>
         </div>
         <div className="flex items-center gap-2">
@@ -258,7 +259,7 @@ export default function Deals() {
           </button>
           {canEdit && (
             <button onClick={() => { setEditDeal(null); setFormOpen(true) }} className="btn-primary">
-              <Plus size={16}/> <span className="hidden sm:inline">New</span> Deal
+              <Plus size={16}/> <span className="hidden sm:inline">{t('deals_new')}</span> {t('deals_title')}
             </button>
           )}
         </div>
@@ -291,11 +292,11 @@ export default function Deals() {
       {/* Weighted forecast summary */}
       <div className="flex gap-4 overflow-x-auto pb-1">
         {[
-          { l:'Pipeline', v:totals.pipeline, c:'text-amber-700' },
-          { l:'BackLog',  v:totals.backlog,  c:'text-blue-700'  },
-          { l:'Actuals',  v:totals.invoiced, c:'text-green-700' },
-          { l:'Forecast', v:totals.forecast, c:'text-vgt font-bold' },
-          { l:'Weighted', v:deals.filter(d=>!d.is_intercompany_mirror).reduce((s,d)=>{
+          { l:t('deals_pipeline'), v:totals.pipeline, c:'text-amber-700' },
+          { l:t('deals_backlog'),  v:totals.backlog,  c:'text-blue-700'  },
+          { l:t('deals_actuals'),  v:totals.invoiced, c:'text-green-700' },
+          { l:t('deals_fc'), v:totals.forecast, c:'text-vgt font-bold' },
+          { l:t('deals_weighted'), v:deals.filter(d=>!d.is_intercompany_mirror).reduce((s,d)=>{
               const fy=MONTHS_K.reduce((ms,m)=>ms+(d[m]||0),0)
               const baseRaw=['BackLog','Invoiced'].includes(d.stage)?fy:(d.value_total||0)
               const base = baseRaw * ((!d.currency || d.currency==='EUR') ? 1 : (d.exchange_rate||1))
@@ -315,7 +316,7 @@ export default function Deals() {
       {/* List */}
       {loading ? <Spinner /> : deals.length === 0
         ? <EmptyState icon="📋" title="No deals found" description="Adjust filters or add a new deal"
-            action={canEdit && <button onClick={() => setFormOpen(true)} className="btn-primary">Add deal</button>}/>
+            action={canEdit && <button onClick={() => setFormOpen(true)} className="btn-primary"{t('deals_add')}</button>}/>
         : <div className="space-y-2">
             {deals.map(d => (
               <DealCard key={d.id} deal={d} canEdit={canEdit}
@@ -336,7 +337,7 @@ export default function Deals() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmDel(null)} />
           <div className="relative bg-white rounded-2xl p-6 max-w-xs w-full shadow-xl">
-            <h3 className="font-semibold text-gray-900 mb-2">Delete deal?</h3>
+            <h3 className="font-semibold text-gray-900 mb-2">{t('deals_delete_q')}</h3>
             <p className="text-sm text-gray-500 mb-1">
               <strong>{confirmDel.client}</strong> will be permanently removed.
             </p>
@@ -346,8 +347,8 @@ export default function Deals() {
               </p>
             )}
             <div className="flex gap-2 mt-4">
-              <button onClick={() => setConfirmDel(null)} className="btn-secondary flex-1">Cancel</button>
-              <button onClick={confirmDelete} className="btn-danger flex-1">Delete</button>
+              <button onClick={() => setConfirmDel(null)} className="btn-secondary flex-1"{t('deals_cancel')}</button>
+              <button onClick={confirmDelete} className="btn-danger flex-1"{t('deals_delete')}</button>
             </div>
           </div>
         </div>
