@@ -10,6 +10,8 @@ import Quotas from './pages/Quotas'
 import Budget from './pages/Budget'
 import Users from './pages/Users'
 import Settings from './pages/Settings'
+import Tasks from './pages/Tasks'
+import Tenders from './pages/Tenders'
 import { Spinner } from './components/ui'
 
 function AppRoutes() {
@@ -39,6 +41,8 @@ function AppRoutes() {
         <Route path="/budget"    element={<Budget />} />
         <Route path="/users"     element={<Users />} />
         <Route path="/settings"  element={<Settings />} />
+        <Route path="/tasks"     element={<Tasks />} />
+        <Route path="/tenders"   element={<Tenders />} />
         <Route path="/login"  element={<Navigate to="/" replace />} />
         <Route path="*"       element={<Navigate to="/" replace />} />
       </Routes>
