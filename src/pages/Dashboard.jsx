@@ -288,8 +288,8 @@ export default function Dashboard() {
         })
         return {
           month: m,
-          [t("dash_actuals")]:  Math.round(actuals * 10) / 10,
-          [t("dash_forecast")]: Math.round(forecast * 10) / 10,
+          Actuals:  Math.round(actuals * 10) / 10,
+          Forecast: Math.round(forecast * 10) / 10,
           Plan:     Math.round(getPlan(bu, i, displayCycle) * 10) / 10,
           FY25:     Math.round(getPY(bu, i) * 10) / 10,
         }
@@ -461,8 +461,8 @@ export default function Dashboard() {
                   <YAxis tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={TOOLTIP_STYLE}
                     formatter={(v, name) => [`€${v}K`, name]} />
-                  <Bar dataKey={t("dash_actuals")}  fill={actColor} radius={[3,3,0,0]} />
-                  <Bar dataKey={t("dash_forecast")} fill={fcColor}  radius={[3,3,0,0]} />
+                  <Bar dataKey="Actuals"  fill={actColor} radius={[3,3,0,0]} />
+                  <Bar dataKey="Forecast" fill={fcColor}  radius={[3,3,0,0]} />
                   <Line dataKey="Plan" type="monotone" stroke="#9CA3AF"
                     strokeWidth={1.5} dot={false} />
                   <Line dataKey="FY25" type="monotone" stroke="#A78BFA"
