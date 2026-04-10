@@ -6,7 +6,7 @@ import { Modal, Spinner } from '../components/ui'
 import {
   Plus, CheckCircle2, Circle, Clock, Flag, User, Link2,
   Trash2, Edit3, Bell, BellOff, ChevronDown, ChevronUp,
-  AlertCircle, Calendar, Filter, X
+  AlertCircle, Calendar, Filter, X, FileText
 } from 'lucide-react'
 
 const PRIORITY_CONFIG = {
@@ -41,7 +41,7 @@ function DeadlineBadge({ deadline }) {
 }
 
 // ── Task Form Modal ────────────────────────────────────────────────────────────
-function TaskModal({ task, onClose, onSaved, users, deals, canAssign, pushNotification }) {
+function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, pushNotification }) {
   const { user } = useAuth()
   const isEdit = !!task?.id
   const [form, setForm] = useState({
@@ -51,6 +51,7 @@ function TaskModal({ task, onClose, onSaved, users, deals, canAssign, pushNotifi
     priority:    task?.priority    ?? 'medium',
     assigned_to: task?.assigned_to ?? '',
     deal_id:     task?.deal_id     ?? '',
+    tender_id:   task?.tender_id   ?? '',
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState(null)
@@ -66,7 +67,8 @@ function TaskModal({ task, onClose, onSaved, users, deals, canAssign, pushNotifi
       deadline:    form.deadline || null,
       priority:    form.priority,
       assigned_to: form.assigned_to || null,
-      deal_id:     form.deal_id || null,
+      deal_id:     form.deal_id     || null,
+      tender_id:   form.tender_id   || null,
       owner_id:    user.id,
     }
     let err
@@ -142,13 +144,25 @@ function TaskModal({ task, onClose, onSaved, users, deals, canAssign, pushNotifi
           </div>
         )}
 
-        {/* Link to deal */}
-        <div>
+        {/* Link to deal or tender — mutually exclusive */}
+        <div className="space-y-2">
           <label className="label">Link to deal <span className="text-gray-400">(optional)</span></label>
-          <select className="select" value={form.deal_id} onChange={e => set('deal_id', e.target.value)}>
+          <select className="select" value={form.deal_id}
+            onChange={e => { set('deal_id', e.target.value); if (e.target.value) set('tender_id', '') }}>
             <option value="">— No deal —</option>
             {deals.map(d => (
               <option key={d.id} value={d.id}>[{d.bu}] {d.client}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <label className="label">Link to tender <span className="text-gray-400">(optional)</span></label>
+          <select className="select" value={form.tender_id}
+            onChange={e => { set('tender_id', e.target.value); if (e.target.value) set('deal_id', '') }}>
+            <option value="">— No tender —</option>
+            {tenders.map(t => (
+              <option key={t.id} value={t.id}>{t.title}</option>
             ))}
           </select>
         </div>
@@ -229,6 +243,12 @@ function TaskRow({ task, onEdit, onDelete, currentUserId, canAssign }) {
           {task.deal && (
             <span className="flex items-center gap-1 text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">
               <Link2 size={9} /> {task.deal.client}
+            </span>
+          )}
+          {/* Tender link */}
+          {task.tender && (
+            <span className="flex items-center gap-1 text-[10px] text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded-full">
+              <FileText size={9} /> {task.tender.title}
             </span>
           )}
         </div>
@@ -326,10 +346,12 @@ export default function Tasks() {
 
   const [users, setUsers]   = useState([])
   const [deals, setDeals]   = useState([])
+  const [tenders, setTenders] = useState([])
 
   useEffect(() => {
     supabase.from('profiles').select('id, full_name, email').then(({ data }) => setUsers(data ?? []))
     supabase.from('deals').select('id, client, bu').order('client').then(({ data }) => setDeals(data ?? []))
+    supabase.from('tenders').select('id, title').order('title').then(({ data }) => setTenders(data ?? []))
   }, [])
 
   function filterTasks(list) {
@@ -447,6 +469,7 @@ export default function Tasks() {
           onSaved={refetch}
           users={users}
           deals={deals}
+          tenders={tenders}
           canAssign={canAssign}
           pushNotification={pushNotification}
         />
