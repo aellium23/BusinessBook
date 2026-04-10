@@ -176,7 +176,7 @@ export default function History() {
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t("hist_monthly_det")}</p>
         </div>
         <div className="overflow-x-auto -mx-4 px-4">
-          <table className="w-full text-xs">
+          <div className="overflow-x-auto"><table className="w-full text-xs">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
                 <th className="text-left px-4 py-2 font-semibold text-gray-500 w-28">{t("hist_metric")}</th>
@@ -253,7 +253,7 @@ export default function History() {
                 </tr>
               )}
             </tbody>
-          </table>
+          </table></div>
         </div>
       </div>
     </div>
