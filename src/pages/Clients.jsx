@@ -128,30 +128,55 @@ function ClientCard({ client, deals }) {
   )
 }
 
+const CLIENT_PAGE_SIZE_OPTIONS = [5, 10, 25]
+const CLIENT_SORT_OPTIONS = [
+  { value: 'fy26_desc', label: 'FY26 value ↓' },
+  { value: 'fy26_asc',  label: 'FY26 value ↑' },
+  { value: 'alpha',     label: 'A → Z' },
+  { value: 'deals',     label: 'Most deals' },
+]
+
 export default function Clients() {
   const { isAdmin, profile } = useAuth()
   const { t } = useTranslation()
-  const [deals, setDeals]   = useState([])
+
+  const [deals, setDeals]     = useState([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
+
+  // Filtros
+  const [search, setSearch]   = useState('')
   const [buFilter, setBuFilter] = useState('all')
   const [slaOnly, setSlaOnly] = useState(false)
+  const [countryF, setCountryF] = useState('')
+  const [sortBy, setSortBy]   = useState('fy26_desc')
+  const [showFilters, setShowFilters] = useState(false)
+
+  // Paginação
+  const [page, setPage]       = useState(1)
+  const [pageSize, setPageSize] = useState(5)
 
   useEffect(() => {
     let q = supabase.from('deals').select("*")
       .eq('is_intercompany_mirror', false)
       .order('client')
-
     if (!isAdmin && profile?.role === 'vgt') q = q.eq('bu', 'VGT')
     if (!isAdmin && profile?.role === 'ect') q = q.eq('bu', 'ECT')
-
     q.then(({ data }) => { setDeals(data || []); setLoading(false) })
   }, [profile, isAdmin])
+
+  const resetPage = () => setPage(1)
+
+  // Países únicos para filtro
+  const countries = useMemo(() => {
+    const s = new Set(deals.map(d => d.country).filter(Boolean))
+    return Array.from(s).sort()
+  }, [deals])
 
   const grouped = useMemo(() => {
     let filtered = deals
     if (buFilter !== 'all') filtered = filtered.filter(d => d.bu === buFilter)
     if (slaOnly) filtered = filtered.filter(d => d.is_sla)
+    if (countryF) filtered = filtered.filter(d => d.country === countryF)
     if (search) filtered = filtered.filter(d =>
       d.client?.toLowerCase().includes(search.toLowerCase()) ||
       d.country?.toLowerCase().includes(search.toLowerCase())
@@ -163,13 +188,21 @@ export default function Clients() {
       map[d.client].push(d)
     })
 
-    return Object.entries(map)
-      .sort((a, b) => {
-        const aFY = a[1].reduce((s,d) => s + MONTHS_K.reduce((ms,m) => ms + (d[m]||0), 0), 0)
-        const bFY = b[1].reduce((s,d) => s + MONTHS_K.reduce((ms,m) => ms + (d[m]||0), 0), 0)
-        return bFY - aFY
-      })
-  }, [deals, buFilter, slaOnly, search])
+    const entries = Object.entries(map)
+
+    // Ordenação
+    entries.sort((a, b) => {
+      const aFY = a[1].reduce((s,d) => s + MONTHS_K.reduce((ms,m) => ms + (d[m]||0), 0), 0)
+      const bFY = b[1].reduce((s,d) => s + MONTHS_K.reduce((ms,m) => ms + (d[m]||0), 0), 0)
+      if (sortBy === 'fy26_desc') return bFY - aFY
+      if (sortBy === 'fy26_asc')  return aFY - bFY
+      if (sortBy === 'alpha')     return a[0].localeCompare(b[0])
+      if (sortBy === 'deals')     return b[1].length - a[1].length
+      return bFY - aFY
+    })
+
+    return entries
+  }, [deals, buFilter, slaOnly, countryF, search, sortBy])
 
   const stats = useMemo(() => ({
     total: grouped.length,
@@ -178,50 +211,161 @@ export default function Clients() {
       s + ds.reduce((ds2,d) => ds2 + MONTHS_K.reduce((ms,m) => ms+(d[m]||0),0), 0), 0),
   }), [grouped])
 
+  // Paginação
+  const totalPages = Math.max(1, Math.ceil(grouped.length / pageSize))
+  const paginated  = grouped.slice((page-1)*pageSize, page*pageSize)
+
+  // Filtros activos
+  const activeFilters = [
+    search, buFilter !== 'all', slaOnly, countryF, sortBy !== 'fy26_desc'
+  ].filter(Boolean).length
+
   if (loading) return <Spinner/>
 
   return (
     <div className="p-4 space-y-4 max-w-4xl mx-auto">
+
+      {/* Header */}
       <div className="flex items-center justify-between pt-1">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Clients</h1>
+          <h1 className="text-xl font-bold text-gray-900">{t("clients_title")}</h1>
           <p className="text-sm text-gray-400">
-            {stats.total} clients · {stats.withSLA} with SLA · {formatK(stats.totalFY26)} FY26
+            {stats.total} {t("clients_count")} · {stats.withSLA} SLA · {formatK(stats.totalFY26)} FY26
+            {activeFilters > 0 && <span className="ml-1 text-blue-500">· {activeFilters} {t("clients_filters_active")}</span>}
           </p>
         </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex gap-2 flex-wrap items-center">
-        <div className="relative flex-1 min-w-32">
-          <Search size={14} className="absolute left-2.5 top-2.5 text-gray-400"/>
-          <input className="input pl-8" placeholder="Search client or country…"
-            value={search} onChange={e => setSearch(e.target.value)}/>
-        </div>
-        {isAdmin && (
-          <select className="select w-24" value={buFilter} onChange={e => setBuFilter(e.target.value)}>
-            <option value="all">{t("clients_all_bu")}</option>
-            <option value="VGT">VGT</option>
-            <option value="ECT">ECT</option>
-          </select>
-        )}
-        <button onClick={() => setSlaOnly(o => !o)}
-          className={`btn text-xs gap-1.5 ${slaOnly ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'btn-secondary'}`}>
-          <RefreshCw size={12}/> SLA only
+        <button
+          onClick={() => setShowFilters(o => !o)}
+          className={`btn-secondary text-xs gap-1 ${activeFilters > 0 ? 'ring-2 ring-blue-400' : ''}`}>
+          <Search size={13}/>
+          {t("deals_filters")}
+          {activeFilters > 0 && (
+            <span className="bg-blue-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
+              {activeFilters}
+            </span>
+          )}
         </button>
       </div>
 
-      {/* Client list */}
+      {/* Search sempre visível */}
+      <div className="relative">
+        <Search size={14} className="absolute left-2.5 top-2.5 text-gray-400"/>
+        <input className="input pl-8 w-full" placeholder="Search client or country…"
+          value={search} onChange={e => { setSearch(e.target.value); resetPage() }}/>
+        {search && (
+          <button onClick={() => { setSearch(''); resetPage() }}
+            className="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600">×</button>
+        )}
+      </div>
+
+      {/* Filtros avançados — colapsáveis */}
+      {showFilters && (
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+
+            {/* BU */}
+            {isAdmin && (
+              <div>
+                <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">BU</label>
+                <select className="select text-xs w-full" value={buFilter} onChange={e => { setBuFilter(e.target.value); resetPage() }}>
+                  <option value="all">{t("clients_all_bu")}</option>
+                  <option value="VGT">VGT</option>
+                  <option value="ECT">ECT</option>
+                </select>
+              </div>
+            )}
+
+            {/* País */}
+            <div>
+              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Country</label>
+              <select className="select text-xs w-full" value={countryF} onChange={e => { setCountryF(e.target.value); resetPage() }}>
+                <option value="">All countries</option>
+                {countries.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            {/* Ordenação */}
+            <div>
+              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Sort by</label>
+              <select className="select text-xs w-full" value={sortBy} onChange={e => { setSortBy(e.target.value); resetPage() }}>
+                {CLIENT_SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+
+            {/* Cards por página */}
+            <div>
+              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">{t("deals_per_page")}</label>
+              <select className="select text-xs w-full" value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); resetPage() }}>
+                {CLIENT_PAGE_SIZE_OPTIONS.map(n => <option key={n} value={n}>{n} {t("deals_per_page_suffix")}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* SLA toggle + Reset */}
+          <div className="flex items-center justify-between">
+            <button onClick={() => { setSlaOnly(o => !o); resetPage() }}
+              className={`btn text-xs gap-1.5 ${slaOnly ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'btn-secondary'}`}>
+              <RefreshCw size={12}/> SLA only
+            </button>
+            {activeFilters > 0 && (
+              <button onClick={() => {
+                setSearch(''); setBuFilter('all'); setSlaOnly(false)
+                setCountryF(''); setSortBy('fy26_desc'); resetPage()
+              }} className="text-xs text-red-500 hover:text-red-700 font-medium">
+                {t("deals_clear_filters")}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Lista paginada */}
       {grouped.length === 0
         ? <div className="text-center py-12 text-gray-400">
             <Building2 size={32} className="mx-auto mb-2 opacity-30"/>
             <p>{t("clients_none")}</p>
           </div>
-        : <div className="space-y-2 pb-2">
-            {grouped.map(([client, ds]) => (
-              <ClientCard key={client} client={client} deals={ds}/>
-            ))}
-          </div>
+        : <>
+            <div className="space-y-2 pb-2">
+              {paginated.map(([client, ds]) => (
+                <ClientCard key={client} client={client} deals={ds}/>
+              ))}
+            </div>
+
+            {/* Paginação */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-1">
+                <p className="text-xs text-gray-400">
+                  {t("deals_showing")} {(page-1)*pageSize+1}–{Math.min(page*pageSize, grouped.length)} {t("deals_of")} {grouped.length}
+                </p>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p-1))}
+                    disabled={page === 1}
+                    className="btn-secondary text-xs px-2 py-1 disabled:opacity-30">←</button>
+                  {Array.from({length: totalPages}, (_, i) => i+1)
+                    .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                    .reduce((acc, p, i, arr) => {
+                      if (i > 0 && p - arr[i-1] > 1) acc.push('…')
+                      acc.push(p)
+                      return acc
+                    }, [])
+                    .map((p, i) => p === '…'
+                      ? <span key={`e-${i}`} className="text-xs text-gray-300 px-1">…</span>
+                      : <button key={p} onClick={() => setPage(p)}
+                          className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors ${
+                            p === page ? 'bg-navy text-white' : 'text-gray-500 hover:bg-gray-100'
+                          }`}>{p}</button>
+                    )
+                  }
+                  <button
+                    onClick={() => setPage(p => Math.min(totalPages, p+1))}
+                    disabled={page === totalPages}
+                    className="btn-secondary text-xs px-2 py-1 disabled:opacity-30">→</button>
+                </div>
+              </div>
+            )}
+          </>
       }
     </div>
   )
