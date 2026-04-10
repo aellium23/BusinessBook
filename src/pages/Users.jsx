@@ -33,7 +33,7 @@ const PERMISSIONS = {
 function PermissionsLegend() {
   const [open, setOpen] = useState(false)
   const { t } = useTranslation()
-  const cols = [t('users_deals'),t('users_edit_deals'),t('users_sales_t'),t('users_edit_t'),'Budget',t('users_manage')]
+  const cols = [t("users_deals"),t("users_edit_deals"),t("users_sales_t"),t("users_edit_t"),'Budget',t("users_manage")]
   const keys = ['deals','dealEdit','targets','targetEdit','budget','users']
 
   return (
@@ -52,7 +52,7 @@ function PermissionsLegend() {
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-gray-50">
-                <th className="text-left px-4 py-2 font-semibold text-gray-500 w-28">{t('users_role')}</th>
+                <th className="text-left px-4 py-2 font-semibold text-gray-500 w-28">{t("users_role")}</th>
                 {cols.map(c => (
                   <th key={c} className="px-3 py-2 font-semibold text-gray-500 text-center whitespace-nowrap">{c}</th>
                 ))}
@@ -103,7 +103,7 @@ function RoleBadge({ role }) {
 }
 
 function Avatar({ name, color }) {
-  const initials = (name || '?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()
+  const initials = (name || '?').split(" ").map(w=>w[0]).slice(0,2).join('').toUpperCase()
   return (
     <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
       style={{ background: color || '#0D2137' }}>
@@ -143,8 +143,8 @@ function UserCard({ profile, onRoleChange, onOwnerChange, currentUserId, isAdmin
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="font-semibold text-gray-900 truncate">
-                {profile.full_name || profile.email?.split('@')[0]}
-                {isSelf && <span className="ml-1 text-[10px] text-amber-600 font-medium">{t('users_you')}</span>}
+                {profile.full_name || profile.email?.split("@")[0]}
+                {isSelf && <span className="ml-1 text-[10px] text-amber-600 font-medium">{t("users_you")}</span>}
               </p>
               <p className="text-xs text-gray-400 truncate">{profile.email}</p>
               {profile.sales_owner_name && (
@@ -193,10 +193,10 @@ function UserCard({ profile, onRoleChange, onOwnerChange, currentUserId, isAdmin
                     <p className="text-[10px] text-gray-500 mb-1.5">{r.desc}</p>
                     {isSelected && (
                       <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 mt-1 p-2 bg-white/60 rounded-lg">
-                        <span className="text-[10px] text-gray-400">{t('users_sees')}<strong className="text-gray-600">{p.deals}</strong></span>
-                        <span className="text-[10px] text-gray-400">{t('users_edits')}<strong className={p.dealEdit==='None'?'text-red-500':p.dealEdit==='Own only'?'text-amber-600':'text-gray-600'}>{p.dealEdit}</strong></span>
-                        <span className="text-[10px] text-gray-400">{t('users_targets')}<strong className="text-gray-600">{p.targets}</strong></span>
-                        <span className="text-[10px] text-gray-400">{t('users_budget')}<strong className={p.budget?'text-green-600':'text-red-500'}>{p.budget?'Yes':'No'}</strong></span>
+                        <span className="text-[10px] text-gray-400">{t("users_sees")}<strong className="text-gray-600">{p.deals}</strong></span>
+                        <span className="text-[10px] text-gray-400">{t("users_edits")}<strong className={p.dealEdit==='None'?'text-red-500':p.dealEdit==='Own only'?'text-amber-600':'text-gray-600'}>{p.dealEdit}</strong></span>
+                        <span className="text-[10px] text-gray-400">{t("users_targets")}<strong className="text-gray-600">{p.targets}</strong></span>
+                        <span className="text-[10px] text-gray-400">{t("users_budget")}<strong className={p.budget?'text-green-600':'text-red-500'}>{p.budget?'Yes':'No'}</strong></span>
                       </div>
                     )}
                   </div>
@@ -257,13 +257,13 @@ export default function Users() {
   const [filterBU, setFilterBU] = useState('all')
 
   async function loadProfiles() {
-    const { data } = await supabase.from('profiles').select('*').order('created_at')
+    const { data } = await supabase.from('profiles').select("*").order('created_at')
     setProfiles(data || [])
     setLoading(false)
   }
   useEffect(() => { loadProfiles() }, [])
 
-  if (!isAdmin) return <div className="p-8 text-center text-gray-400">{t('users_admin')}</div>
+  if (!isAdmin) return <div className="p-8 text-center text-gray-400">{t("users_admin")}</div>
 
   async function handleInvite(e) {
     e.preventDefault()
@@ -292,7 +292,7 @@ export default function Users() {
   return (
     <div className="p-4 space-y-5 max-w-3xl mx-auto">
       <div className="pt-1">
-        <h1 className="text-xl font-bold text-gray-900">{t('users_title')}</h1>
+        <h1 className="text-xl font-bold text-gray-900">{t("users_title")}</h1>
         <p className="text-sm text-gray-400">
           {stats.total} users · {stats.editors} with edit access · {stats.viewers} read-only
         </p>
