@@ -191,6 +191,7 @@ const AGING_DAYS = 90
 // ── Current FY month index (0=Apr, 1=May, ... 11=Mar) ────────────────────
 export default function Dashboard() {
   const { profile, isAdmin } = useAuth()
+  const { t } = useTranslation()
   const { deals, loading }   = useDeals()
   const [budget, setBudget]  = useState([])
   const [fy25, setFy25]      = useState([])
