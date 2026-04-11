@@ -114,11 +114,19 @@ function TenderModal({ tender, onClose, onSaved, deals, users }) {
   }
 
   return (
-    <Modal open onClose={onClose} title={isEdit ? 'Edit Tender / RFP' : 'New Tender / RFP'}>
-      <div className="space-y-4 p-1 max-h-[70vh] overflow-y-auto">
+    <Modal open onClose={onClose} title={isEdit ? 'Edit Tender / RFP' : 'New Tender / RFP'}
+      footer={
+        <div className="flex gap-2">
+          <button className="btn-secondary flex-1" onClick={onClose}>Cancel</button>
+          <button className="btn-primary flex-1" onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create tender'}
+          </button>
+        </div>
+      }>
+      <div className="space-y-4">
 
         {/* Title + Reference */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 gap-2">
           <div className="col-span-2">
             <label className="label">Title *</label>
             <input className="input" value={form.title} onChange={e => set('title', e.target.value)}
@@ -151,7 +159,7 @@ function TenderModal({ tender, onClose, onSaved, deals, users }) {
         </div>
 
         {/* Dates */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="label">Submission deadline</label>
             <input className="input" type="date" value={form.submission_deadline}
@@ -165,7 +173,7 @@ function TenderModal({ tender, onClose, onSaved, deals, users }) {
         </div>
 
         {/* Value + Currency + Status */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 gap-2">
           <div className="col-span-2">
             <label className="label">Estimated value</label>
             <input className="input" type="number" value={form.estimated_value}
@@ -217,12 +225,6 @@ function TenderModal({ tender, onClose, onSaved, deals, users }) {
           </p>
         )}
 
-        <div className="flex gap-2 pt-1">
-          <button className="btn-primary flex-1" onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create tender'}
-          </button>
-          <button className="btn-secondary" onClick={onClose}>Cancel</button>
-        </div>
       </div>
     </Modal>
   )
