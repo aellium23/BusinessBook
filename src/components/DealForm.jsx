@@ -1294,7 +1294,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
 
       {/* ── CHANGE REASON MODAL ─────────────────────────────────────── */}
       {showReasonModal && (
-        <div className="fixed inset-0 bg-black/50 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-end sm:items-center justify-center pb-[60px] sm:pb-0 sm:p-4">
           <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-xl w-full sm:max-w-sm flex flex-col"
             style={{ maxHeight: '90dvh' }}>
             {/* Drag handle mobile */}
