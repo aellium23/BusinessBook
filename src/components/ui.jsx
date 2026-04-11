@@ -85,7 +85,7 @@ export function formatK(n) {
 export function Modal({ open, onClose, title, children, footer }) {
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center pb-[60px] sm:pb-0 sm:p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white w-full sm:max-w-xl sm:rounded-2xl rounded-t-3xl shadow-2xl flex flex-col"
         style={{ maxHeight: '92dvh' }}>
