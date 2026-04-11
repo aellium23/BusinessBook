@@ -10,12 +10,12 @@
 
 @layer components {
   .card  { @apply bg-white rounded-xl border border-gray-200 shadow-sm; }
-  .btn   { @apply inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors; }
+  /* .btn definido abaixo com mobile styles */
   .btn-primary   { @apply btn bg-navy text-white hover:bg-navy-light; }
   .btn-secondary { @apply btn bg-gray-100 text-gray-700 hover:bg-gray-200; }
   .btn-danger    { @apply btn bg-red-50 text-red-700 hover:bg-red-100; }
-  .input  { @apply w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy/30; }
-  .select { @apply input bg-white; }
+  /* .input definido abaixo com mobile styles */
+  /* .select definido abaixo com mobile styles */
   .label  { @apply block text-xs font-medium text-gray-500 mb-1; }
   .badge-vgt  { @apply inline-flex px-2 py-0.5 rounded text-xs font-bold bg-vgt text-white; }
   .badge-ect  { @apply inline-flex px-2 py-0.5 rounded text-xs font-bold bg-ect text-white; }
@@ -25,4 +25,51 @@
   .badge-pipeline { @apply inline-flex px-2 py-0.5 rounded text-xs font-bold bg-amber-200 text-amber-900; }
   .badge-backlog  { @apply inline-flex px-2 py-0.5 rounded text-xs font-bold bg-blue-200 text-blue-900; }
   .badge-invoiced { @apply inline-flex px-2 py-0.5 rounded text-xs font-bold bg-green-200 text-green-900; }
+}
+
+@layer base {
+  /* Mobile touch targets — mínimo 44px para iOS */
+  input, select, textarea, button {
+    -webkit-appearance: none;
+    touch-action: manipulation;
+  }
+  /* Prevenir zoom no input focus em iOS */
+  input[type="text"],
+  input[type="email"],
+  input[type="number"],
+  input[type="date"],
+  input[type="password"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+  /* Smooth scroll no iOS */
+  .overflow-y-auto, .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@layer components {
+  /* Inputs e selects touch-friendly em mobile */
+  .input  {
+    @apply w-full border border-gray-200 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-navy/30;
+    padding-top: 0.625rem;
+    padding-bottom: 0.625rem;
+    min-height: 44px;
+  }
+  .select {
+    @apply input bg-white;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+  }
+  /* Botões touch-friendly */
+  .btn {
+    @apply inline-flex items-center gap-2 px-3 rounded-lg text-sm font-medium transition-colors;
+    min-height: 44px;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
 }
