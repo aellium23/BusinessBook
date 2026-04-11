@@ -123,19 +123,29 @@ function TenderModal({ tender, onClose, onSaved, deals, users }) {
           </button>
         </div>
       }>
-      <div className="space-y-4 w-full">
+      <div className="space-y-3">
 
-        {/* Title + Reference */}
-        <div className="grid grid-cols-1 gap-2">
-          <div className="col-span-2">
-            <label className="label">Title *</label>
-            <input className="input" value={form.title} onChange={e => set('title', e.target.value)}
-              placeholder="Tender title…" autoFocus />
-          </div>
+        {/* Title */}
+        <div>
+          <label className="label">Title *</label>
+          <input className="input" value={form.title} onChange={e => set('title', e.target.value)}
+            placeholder="Tender title…" />
+        </div>
+
+        {/* Reference + Deal — 2 cols em sm, stack em mobile */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="label">Reference</label>
             <input className="input" value={form.reference} onChange={e => set('reference', e.target.value)}
               placeholder="Ref. nº" />
+          </div>
+          <div>
+            <label className="label">Status</label>
+            <select className="select" value={form.status} onChange={e => set('status', e.target.value)}>
+              {Object.entries(STATUS_CONFIG).map(([k, v]) => (
+                <option key={k} value={k}>{v.label}</option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -153,12 +163,12 @@ function TenderModal({ tender, onClose, onSaved, deals, users }) {
         {/* Description */}
         <div>
           <label className="label">Description</label>
-          <textarea className="input min-h-[72px] resize-none" value={form.description}
+          <textarea className="input min-h-[64px] resize-none" value={form.description}
             onChange={e => set('description', e.target.value)}
             placeholder="Scope, requirements, notes…" />
         </div>
 
-        {/* Dates */}
+        {/* Dates — 2 cols em sm, stack em mobile */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="label">Submission deadline</label>
@@ -172,9 +182,9 @@ function TenderModal({ tender, onClose, onSaved, deals, users }) {
           </div>
         </div>
 
-        {/* Value + Currency + Status */}
-        <div className="grid grid-cols-1 gap-2">
-          <div className="col-span-2">
+        {/* Value + Currency — 2 cols em sm, stack em mobile */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
             <label className="label">Estimated value</label>
             <input className="input" type="number" value={form.estimated_value}
               onChange={e => set('estimated_value', e.target.value)} placeholder="0" />
@@ -187,16 +197,6 @@ function TenderModal({ tender, onClose, onSaved, deals, users }) {
           </div>
         </div>
 
-        {/* Status */}
-        <div>
-          <label className="label">Status</label>
-          <select className="select" value={form.status} onChange={e => set('status', e.target.value)}>
-            {Object.entries(STATUS_CONFIG).map(([k, v]) => (
-              <option key={k} value={k}>{v.label}</option>
-            ))}
-          </select>
-        </div>
-
         {/* Collaborators */}
         <div>
           <label className="label">Collaborators</label>
@@ -207,9 +207,8 @@ function TenderModal({ tender, onClose, onSaved, deals, users }) {
                 <button key={u.id} type="button"
                   onClick={() => toggleCollab(u.id)}
                   className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full border transition-all ${
-                    active
-                      ? 'bg-navy text-white border-navy'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                    active ? 'bg-navy text-white border-navy'
+                           : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
                   }`}>
                   <Users size={10} />
                   {u.full_name || u.email?.split("@")[0]}
