@@ -1294,32 +1294,42 @@ export default function DealForm({ deal, onClose, onSaved }) {
 
       {/* ── CHANGE REASON MODAL ─────────────────────────────────────── */}
       {showReasonModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-xl p-5 w-full sm:max-w-sm space-y-4">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">⚠️</span>
-              <h3 className="font-bold text-gray-900">{tr("df_reason_title")}</h3>
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-xl w-full sm:max-w-sm flex flex-col"
+            style={{ maxHeight: '90dvh' }}>
+            {/* Drag handle mobile */}
+            <div className="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0">
+              <div className="w-10 h-1 bg-gray-300 rounded-full"/>
             </div>
-            <p className="text-sm text-gray-500">{tr("df_reason_desc")}</p>
-            {form.stage === 'Lost' && deal?.stage !== 'Lost' && (
-              <p className="text-xs bg-red-50 text-red-700 rounded-lg px-3 py-2">
-                Stage: <strong>{deal?.stage}</strong> → <strong>Lost</strong>
-              </p>
-            )}
-            {parseFloat(form.value_total) < parseFloat(deal?.value_total) * 0.9 && (
-              <p className="text-xs bg-amber-50 text-amber-700 rounded-lg px-3 py-2">
-                Value: <strong>€{Number(deal?.value_total).toLocaleString()}</strong> → <strong>€{Number(form.value_total).toLocaleString()}</strong>
-              </p>
-            )}
-            <textarea
-              className="input resize-none text-sm"
-              rows={3}
-              placeholder={tr("df_reason_placeholder")}
-              value={changeReason}
-              onChange={e => setChangeReason(e.target.value)}
-              autoFocus
-            />
-            <div className="flex gap-2">
+            {/* Scroll content */}
+            <div className="p-5 space-y-3 overflow-y-auto flex-1 min-h-0">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">⚠️</span>
+                <h3 className="font-bold text-gray-900">{tr("df_reason_title")}</h3>
+              </div>
+              <p className="text-sm text-gray-500">{tr("df_reason_desc")}</p>
+              {form.stage === 'Lost' && deal?.stage !== 'Lost' && (
+                <p className="text-xs bg-red-50 text-red-700 rounded-lg px-3 py-2">
+                  Stage: <strong>{deal?.stage}</strong> → <strong>Lost</strong>
+                </p>
+              )}
+              {parseFloat(form.value_total) < parseFloat(deal?.value_total) * 0.9 && (
+                <p className="text-xs bg-amber-50 text-amber-700 rounded-lg px-3 py-2">
+                  Value: <strong>€{Number(deal?.value_total).toLocaleString()}</strong> → <strong>€{Number(form.value_total).toLocaleString()}</strong>
+                </p>
+              )}
+              <textarea
+                className="input resize-none text-sm"
+                rows={3}
+                placeholder={tr("df_reason_placeholder")}
+                value={changeReason}
+                onChange={e => setChangeReason(e.target.value)}
+                autoFocus
+              />
+            </div>
+            {/* Footer fixo — sempre visível */}
+            <div className="flex gap-2 px-5 py-3 border-t border-gray-100 shrink-0 bg-white rounded-b-3xl sm:rounded-b-2xl"
+              style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
               <button
                 onClick={() => { setShowReasonModal(false); setPendingSave(false); }}
                 className="btn-secondary flex-1 text-sm">
