@@ -196,7 +196,7 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
         <div>
           <label className="label">Title *</label>
           <input className="input" value={form.title} onChange={e => set('title', e.target.value)}
-            placeholder="What needs to be done?" autoFocus />
+            placeholder="What needs to be done?" />
         </div>
 
         {/* Notes */}
