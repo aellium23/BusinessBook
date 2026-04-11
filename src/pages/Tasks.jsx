@@ -86,7 +86,7 @@ function SearchableSelect({ value, onChange, options, placeholder = 'Search…',
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+        <div className="absolute z-50 mt-1 left-0 right-0 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
           {/* Search input */}
           <div className="p-2 border-b border-gray-100">
             <input
@@ -182,7 +182,15 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
   }
 
   return (
-    <Modal open onClose={onClose} title={isEdit ? 'Edit Task' : 'New Task'}>
+    <Modal open onClose={onClose} title={isEdit ? 'Edit Task' : 'New Task'}
+      footer={
+        <div className="flex gap-2">
+          <button className="btn-secondary flex-1" onClick={onClose}>Cancel</button>
+          <button className="btn-primary flex-1" onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create task'}
+          </button>
+        </div>
+      }>
       <div className="space-y-4 p-1">
         {/* Title */}
         <div>
@@ -198,7 +206,7 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
             onChange={e => set('notes', e.target.value)} placeholder="Additional context…" />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* Deadline */}
           <div>
             <label className="label">Deadline</label>
@@ -257,12 +265,6 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
           </p>
         )}
 
-        <div className="flex gap-2 pt-1">
-          <button className="btn-primary flex-1" onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create task'}
-          </button>
-          <button className="btn-secondary" onClick={onClose}>Cancel</button>
-        </div>
       </div>
     </Modal>
   )
