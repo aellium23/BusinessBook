@@ -88,18 +88,26 @@ export function Modal({ open, onClose, title, children, footer }) {
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white w-full sm:max-w-xl sm:rounded-2xl rounded-t-3xl shadow-2xl flex flex-col"
-        style={{ maxHeight: '94svh', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        style={{ maxHeight: '96svh', paddingBottom: 'env(safe-area-inset-bottom)' }}>
         {/* Drag handle on mobile */}
-        <div className="sm:hidden flex justify-center pt-3 pb-1 shrink-0">
+        <div className="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0">
           <div className="w-10 h-1 bg-gray-300 rounded-full"/>
         </div>
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 shrink-0">
-          <h2 className="font-semibold text-gray-900 text-base">{title}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-xl leading-none">&times;</button>
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-gray-100 shrink-0">
+          <h2 className="font-semibold text-gray-900 text-base truncate pr-2">{title}</h2>
+          <button onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-xl leading-none shrink-0">
+            &times;
+          </button>
         </div>
-        <div className="px-5 py-4 overflow-y-auto flex-1 overscroll-contain">{children}</div>
+        {/* Scrollable content */}
+        <div className="px-4 sm:px-5 py-4 overflow-y-auto flex-1 overscroll-contain -webkit-overflow-scrolling-touch">
+          {children}
+        </div>
+        {/* Footer */}
         {footer && (
-          <div className="px-5 py-3 border-t border-gray-100 shrink-0 bg-white">
+          <div className="px-4 sm:px-5 py-3 border-t border-gray-100 shrink-0 bg-white">
             {footer}
           </div>
         )}
