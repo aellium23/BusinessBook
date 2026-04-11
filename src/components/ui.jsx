@@ -88,7 +88,7 @@ export function Modal({ open, onClose, title, children, footer }) {
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white w-full sm:max-w-xl sm:rounded-2xl rounded-t-3xl shadow-2xl flex flex-col"
-        style={{ maxHeight: '96svh', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        style={{ maxHeight: '92dvh' }}>
         {/* Drag handle on mobile */}
         <div className="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0">
           <div className="w-10 h-1 bg-gray-300 rounded-full"/>
@@ -101,15 +101,21 @@ export function Modal({ open, onClose, title, children, footer }) {
             &times;
           </button>
         </div>
-        {/* Scrollable content */}
-        <div className="px-4 sm:px-5 py-4 overflow-y-auto flex-1 overscroll-contain -webkit-overflow-scrolling-touch">
+        {/* Scrollable content — flex-1 para ocupar espaço disponível */}
+        <div className="px-4 sm:px-5 py-4 overflow-y-auto flex-1 overscroll-contain"
+          style={{ WebkitOverflowScrolling: 'touch' }}>
           {children}
         </div>
-        {/* Footer */}
+        {/* Footer — sempre visível, fora do scroll, com safe area */}
         {footer && (
-          <div className="px-4 sm:px-5 py-3 border-t border-gray-100 shrink-0 bg-white">
+          <div className="px-4 sm:px-5 py-3 border-t border-gray-100 shrink-0 bg-white rounded-b-3xl sm:rounded-b-2xl"
+            style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
             {footer}
           </div>
+        )}
+        {/* Safe area quando não há footer */}
+        {!footer && (
+          <div style={{ height: 'env(safe-area-inset-bottom)' }} className="shrink-0"/>
         )}
       </div>
     </div>
