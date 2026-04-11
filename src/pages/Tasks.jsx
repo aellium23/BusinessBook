@@ -191,7 +191,7 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
           </button>
         </div>
       }>
-      <div className="space-y-4 p-1">
+      <div className="space-y-4 w-full">
         {/* Title */}
         <div>
           <label className="label">Title *</label>
@@ -386,7 +386,7 @@ function NotificationsPanel({ onClose, notifications, markRead, markAllRead }) {
     tender_deadline:  '📝',
   }
   return (
-    <div className="absolute right-0 top-10 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+    <div className="absolute right-0 top-10 w-[min(320px,calc(100vw-2rem))] bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <span className="font-semibold text-sm text-gray-800">Notifications</span>
         <div className="flex gap-2 items-center">
