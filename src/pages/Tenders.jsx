@@ -123,7 +123,7 @@ function TenderModal({ tender, onClose, onSaved, deals, users }) {
           </button>
         </div>
       }>
-      <div className="space-y-4">
+      <div className="space-y-4 w-full">
 
         {/* Title + Reference */}
         <div className="grid grid-cols-1 gap-2">
