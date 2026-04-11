@@ -463,13 +463,13 @@ export default function Tasks() {
   return (
     <div className="max-w-2xl mx-auto p-4 sm:p-6 space-y-6">
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Tasks</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Your to-dos and team tasks</p>
-        </div>
-        <div className="flex items-center gap-2">
+      {/* Header — mobile-first: título + acções em coluna em mobile */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Tasks</h1>
+            <p className="text-sm text-gray-400 mt-0.5">Your to-dos and team tasks</p>
+          </div>
           {/* Notifications bell */}
           <div className="relative">
             <button onClick={() => setShowNotif(s => !s)}
@@ -483,18 +483,17 @@ export default function Tasks() {
             </button>
             {showNotif && <NotificationsPanel onClose={() => setShowNotif(false)} notifications={notifications} markRead={markRead} markAllRead={markAllRead} />}
           </div>
-
-          {/* Filter */}
-          <select className="select text-sm py-1.5" value={filter} onChange={e => setFilter(e.target.value)}>
+        </div>
+        {/* Filter + New task — linha separada em mobile */}
+        <div className="flex items-center gap-2">
+          <select className="select text-sm flex-1" value={filter} onChange={e => setFilter(e.target.value)}>
             <option value="all">All tasks</option>
             <option value="open">Open only</option>
             <option value="done">Done only</option>
           </select>
-
-          {/* New task */}
-          <button className="btn-primary flex items-center gap-1.5 py-1.5 px-3 text-sm"
+          <button className="btn-primary flex items-center gap-1.5 py-2 px-3 text-sm shrink-0"
             onClick={() => setModal('new')}>
-            <Plus size={15} /> New task
+            <Plus size={15} /> <span>New task</span>
           </button>
         </div>
       </div>
