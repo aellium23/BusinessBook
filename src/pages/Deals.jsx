@@ -566,9 +566,9 @@ export default function Deals() {
       )}
 
       {confirmDel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmDel(null)} />
-          <div className="relative bg-white rounded-2xl p-6 max-w-xs w-full shadow-xl">
+          <div className="relative bg-white rounded-t-3xl sm:rounded-2xl p-6 w-full sm:max-w-xs shadow-xl">
             <h3 className="font-semibold text-gray-900 mb-2">{t("deals_delete_q")}</h3>
             <p className="text-sm text-gray-500 mb-1">
               <strong>{confirmDel.client}</strong> will be permanently removed.
