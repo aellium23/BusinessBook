@@ -102,7 +102,7 @@ export function Modal({ open, onClose, title, children, footer }) {
           </button>
         </div>
         {/* Scrollable content — flex-1 para ocupar espaço disponível */}
-        <div className="px-4 sm:px-5 py-4 overflow-y-auto flex-1 overscroll-contain"
+        <div className="px-4 sm:px-5 py-4 overflow-y-auto flex-1 min-h-0 overscroll-contain"
           style={{ WebkitOverflowScrolling: 'touch' }}>
           {children}
         </div>
