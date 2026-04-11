@@ -406,13 +406,23 @@ export default function Tenders() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2 flex-wrap">
-        <div className="relative flex-1 min-w-40">
+      <div className="space-y-2">
+        {/* Search */}
+        <div className="relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input className="input pl-8 py-1.5 text-sm" placeholder="Search tenders…"
+          <input className="input pl-8 py-1.5 text-sm w-full" placeholder="Search tenders…"
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        {['active','all','open','submitted','won','lost'].map(s => (
+        {/* Status filter — select em mobile, pills em desktop */}
+        <div className="flex gap-2">
+          <select className="select text-xs sm:hidden flex-1"
+            value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+            {['active','all','open','submitted','won','lost'].map(s => (
+              <option key={s} value={s} className="capitalize">{s.charAt(0).toUpperCase()+s.slice(1)}</option>
+            ))}
+          </select>
+          <div className="hidden sm:flex gap-2 flex-wrap">
+            {['active','all','open','submitted','won','lost'].map(s => (
           <button key={s}
             onClick={() => setStatusFilter(s)}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all capitalize ${
@@ -422,7 +432,9 @@ export default function Tenders() {
             }`}>
             {s}
           </button>
-        ))}
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Tender list */}
