@@ -115,13 +115,13 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
       </div>
 
       {/* Actions */}
-      {(isAdmin || isOwnCard) && (
-        <div className="px-4 pb-3 flex gap-2 flex-wrap">
+      {(isAdmin || isOwnCard) && !isManager && (
+        <div className="px-4 pb-3 flex gap-2">
           <button onClick={() => setEditing(true)}
             className="flex-1 text-xs bg-gray-50 hover:bg-gray-100 text-gray-600 py-1.5 rounded-lg transition-colors">
             Edit target
           </button>
-          {isAdmin && !isManager && <button onClick={() => onDelete(quota.id)}
+          {isAdmin && <button onClick={() => onDelete(quota.id)}
             className="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg transition-colors">
             <Trash2 size={12}/>
           </button>}
@@ -131,21 +131,12 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
   )
 }
 
-function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, profile, salesOwners = [] }) {
+function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, profile }) {
   const { t } = useTranslation()
   const { color, manager } = TEAM_STRUCTURE[bu]
   const [addingNew, setAddingNew] = useState(false)
   const [newName, setNewName] = useState('')
   const [newTarget, setNewTarget] = useState('')
-
-  // Owners já com quota neste BU (para não duplicar)
-  const existingOwners = quotas.filter(q => q.bu === bu).map(q => q.sales_owner)
-  // Sales owners disponíveis para adicionar: mesmo BU (ou ALL), sem quota ainda
-  const availableOwners = salesOwners.filter(o =>
-    (o.bu === bu || o.bu === 'ALL') &&
-    !existingOwners.includes(o.name) &&
-    o.name !== manager
-  )
 
   const teamQuotas = quotas.filter(q => q.bu === bu)
   // Flexible match: exact or first name match
@@ -240,16 +231,8 @@ function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, profil
         <div className="border border-gray-200 rounded-xl p-3 space-y-2 bg-gray-50">
           <p className="text-xs font-medium text-gray-600">Add team member — {bu}</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <select className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-navy/20"
-              value={newName} onChange={e => setNewName(e.target.value)}>
-              <option value="">— Select member —</option>
-              {availableOwners.map(o => (
-                <option key={o.id} value={o.name}>{o.name}</option>
-              ))}
-              {availableOwners.length === 0 && (
-                <option disabled>All sales owners have quotas</option>
-              )}
-            </select>
+            <input className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-navy/20"
+              placeholder="Name" value={newName} onChange={e => setNewName(e.target.value)}/>
             <input type="number" className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-navy/20"
               placeholder="Target €" value={newTarget} onChange={e => setNewTarget(e.target.value)}/>
           </div>
@@ -272,38 +255,36 @@ export default function Quotas() {
   const [deals, setDeals]   = useState([])
   const [loading, setLoading] = useState(true)
 
-  const [salesOwners, setSalesOwners] = useState([])
-
   async function load() {
     let qQuery = supabase.from('quotas').select("*").order('bu').order('sales_owner')
-    let dQuery = supabase.from('deals').select('bu,sales_owner,stage,value_total,currency,exchange_rate,' + MONTHS_K.join(',')).eq('is_intercompany_mirror', false)
-    let oQuery = supabase.from('sales_owners').select('id,name,bu,active').eq('active', true).order('bu').order('name')
+    let dQuery = supabase.from('deals').select('bu,sales_owner,stage,company_id,' + MONTHS_K.join(',')).eq('is_intercompany_mirror', false)
 
-    // Non-admin: filter to own BU deals only
-    if (!isAdmin && profile?.role === 'vgt_editor') dQuery = dQuery.eq('bu','VGT')
-    if (!isAdmin && profile?.role === 'ect_editor') dQuery = dQuery.eq('bu','ECT')
+    // Filtros por role
+    if (!isAdmin) {
+      if (profile?.role === 'distributor' && profile?.company_id) {
+        // Distribuidor: ver só o seu target e os seus deals
+        qQuery = qQuery.eq('company_id', profile.company_id)
+        dQuery = dQuery.eq('company_id', profile.company_id)
+      } else if (profile?.bu === 'VGT') {
+        dQuery = dQuery.eq('bu','VGT')
+      } else if (profile?.bu === 'ECT') {
+        dQuery = dQuery.eq('bu','ECT')
+      }
+    }
 
-    const [qRes, dRes, oRes] = await Promise.all([qQuery, dQuery, oQuery])
+    const [qRes, dRes] = await Promise.all([qQuery, dQuery])
     setQuotas(qRes.data || [])
     setDeals(dRes.data || [])
-    setSalesOwners(oRes.data || [])
     setLoading(false)
   }
   useEffect(() => { if (profile !== undefined) load() }, [profile])
-
-  // Helper: valor do deal em EUR (meses ou value_total como fallback)
-  function dealValue(d) {
-    const monthly = MONTHS_K.reduce((s,m) => s + (d[m]||0), 0)
-    const base = monthly > 0 ? monthly : (d.value_total || 0)
-    return base * ((!d.currency || d.currency === 'EUR') ? 1 : (d.exchange_rate || 1))
-  }
 
   const actuals = useMemo(() => {
     const map = {}
     deals.forEach(d => {
       if (d.stage !== 'Invoiced') return
       const key = `${d.bu}::${d.sales_owner || 'Unassigned'}`
-      map[key] = (map[key]||0) + dealValue(d)
+      map[key] = (map[key]||0) + MONTHS_K.reduce((s,m)=>s+(d[m]||0),0)
     })
     return map
   }, [deals])
@@ -313,7 +294,7 @@ export default function Quotas() {
     deals.forEach(d => {
       if (!['BackLog','Invoiced'].includes(d.stage)) return
       const key = `${d.bu}::${d.sales_owner || 'Unassigned'}`
-      map[key] = (map[key]||0) + dealValue(d)
+      map[key] = (map[key]||0) + MONTHS_K.reduce((s,m)=>s+(d[m]||0),0)
     })
     return map
   }, [deals])
@@ -330,11 +311,11 @@ export default function Quotas() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <div className="space-y-3">
           <TeamSection bu="VGT" quotas={quotas} actuals={actuals} forecast={forecast}
-            onRefresh={load} isAdmin={isAdmin} profile={profile} salesOwners={salesOwners}/>
+            onRefresh={load} isAdmin={isAdmin} profile={profile}/>
         </div>
         <div className="space-y-3 lg:border-l lg:border-gray-100 lg:pl-6">
           <TeamSection bu="ECT" quotas={quotas} actuals={actuals} forecast={forecast}
-            onRefresh={load} isAdmin={isAdmin} profile={profile} salesOwners={salesOwners}/>
+            onRefresh={load} isAdmin={isAdmin} profile={profile}/>
         </div>
       </div>
     </div>
