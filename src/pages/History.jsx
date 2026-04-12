@@ -6,7 +6,6 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, Legend, Cell
 } from 'recharts'
-import { useTranslation } from '../hooks/useTranslation'
 
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
@@ -23,15 +22,143 @@ function KpiBox({ label, value, sub, color }) {
   )
 }
 
+
+// ── History do Distribuidor ───────────────────────────────────────────────────
+function DistributorHistory({ profile }) {
+  const { t } = useTranslation()
+  const [deals, setDeals]   = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
+  const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
+
+  useEffect(() => {
+    if (!profile?.company_id) { setLoading(false); return }
+    supabase.from('deals')
+      .select('*')
+      .eq('company_id', profile.company_id)
+      .eq('is_intercompany_mirror', false)
+      .then(({ data }) => {
+        setDeals(data || [])
+        setLoading(false)
+      })
+  }, [profile])
+
+  const { invoiced, byClient, monthly } = useMemo(() => {
+    const rate = d => (!d.currency || d.currency === 'EUR') ? 1 : (d.exchange_rate || 1)
+    const fyVal = d => {
+      const raw = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
+      return ((raw === 0 && d.value_total > 0) ? d.value_total : raw) * rate(d)
+    }
+
+    const invoiced = deals.filter(d => d.stage === 'Invoiced')
+    const total = invoiced.reduce((s, d) => s + fyVal(d), 0)
+
+    // Por cliente
+    const clientMap = {}
+    invoiced.forEach(d => {
+      if (!clientMap[d.client]) clientMap[d.client] = 0
+      clientMap[d.client] += fyVal(d)
+    })
+    const byClient = Object.entries(clientMap)
+      .sort((a,b) => b[1]-a[1])
+      .map(([client, value]) => ({ client, value }))
+
+    // Por mês
+    const monthly = MONTHS_K.map((m, i) => ({
+      month: MONTHS[i],
+      value: Math.round(invoiced.reduce((s, d) => s + (d[m] || 0) * rate(d), 0) / 1000 * 10) / 10,
+    }))
+
+    return { invoiced, total, byClient, monthly }
+  }, [deals])
+
+  if (loading) return (
+    <div className="flex items-center justify-center p-16">
+      <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin"/>
+    </div>
+  )
+
+  const total = invoiced.reduce((s, d) => {
+    const rate = (!d.currency || d.currency === 'EUR') ? 1 : (d.exchange_rate || 1)
+    const raw = MONTHS_K.reduce((sum, m) => sum + (d[m] || 0), 0)
+    return s + ((raw === 0 && d.value_total > 0) ? d.value_total : raw) * rate
+  }, 0)
+
+  return (
+    <div className="p-4 space-y-5 max-w-3xl mx-auto">
+      <div className="pt-1">
+        <h1 className="text-xl font-bold text-gray-900">{t('hist_title')}</h1>
+        <p className="text-sm text-gray-400 mt-0.5">Histórico de vendas · FY26</p>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
+          <p className="text-2xl font-bold text-gray-900">{Math.round(total/1000)}K€</p>
+          <p className="text-xs text-gray-400 mt-0.5">Total Invoiced</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
+          <p className="text-2xl font-bold text-gray-900">{invoiced.length}</p>
+          <p className="text-xs text-gray-400 mt-0.5">Deals fechados</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
+          <p className="text-2xl font-bold text-gray-900">{byClient.length}</p>
+          <p className="text-xs text-gray-400 mt-0.5">Clientes</p>
+        </div>
+      </div>
+
+      {/* Gráfico mensal */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <p className="text-sm font-semibold text-gray-700 mb-3">Vendas mensais · K€</p>
+        <ResponsiveContainer width="100%" height={160}>
+          <BarChart data={monthly} margin={{top:5,right:5,bottom:0,left:0}}>
+            <XAxis dataKey="month" tick={{fontSize:10}} tickLine={false} axisLine={false}/>
+            <YAxis tick={{fontSize:10}} tickLine={false} axisLine={false} width={30}/>
+            <Tooltip formatter={v => [`${v}K€`]} contentStyle={{fontSize:11,borderRadius:8}}/>
+            <Bar dataKey="value" fill="#1D9E75" radius={[3,3,0,0]} name="Invoiced"/>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Por cliente */}
+      {byClient.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <p className="text-sm font-semibold text-gray-700 mb-3">Por cliente</p>
+          <div className="space-y-2">
+            {byClient.slice(0,10).map(({ client, value }) => (
+              <div key={client} className="flex items-center gap-3">
+                <p className="text-sm text-gray-700 w-40 truncate">{client}</p>
+                <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-vgt rounded-full"
+                    style={{ width: `${Math.min(value / byClient[0].value * 100, 100)}%` }}/>
+                </div>
+                <p className="text-sm font-medium text-gray-700 w-16 text-right">
+                  {Math.round(value/1000*10)/10}K€
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {deals.length === 0 && (
+        <div className="text-center py-12 text-gray-400">
+          <p className="text-sm">Sem dados históricos disponíveis.</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function History() {
   const { isAdmin, profile } = useAuth()
-  const { t } = useTranslation()
   const [fy25, setFy25]   = useState([])
   const [loading, setLoading] = useState(true)
   const [activeBU, setActiveBU] = useState('both')
 
   useEffect(() => {
-    supabase.from('fy25_actuals').select("*").then(({ data }) => {
+    supabase.from('fy25_actuals').select('*').then(({ data }) => {
       setFy25(data || [])
       setLoading(false)
     })
@@ -78,6 +205,11 @@ export default function History() {
     </div>
   )
 
+  // Vista distribuidor: mostrar os seus deals invoiced
+  if (profile?.role === 'distributor') {
+    return <DistributorHistory profile={profile} />
+  }
+
   const showVGT = activeBU === 'both' || activeBU === 'VGT'
   const showECT = activeBU === 'both' || activeBU === 'ECT'
 
@@ -87,8 +219,8 @@ export default function History() {
       {/* Header */}
       <div className="flex items-center justify-between pt-1">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">{t("hist_title")}</h1>
-          <p className="text-sm text-gray-400">{t("hist_subtitle")}</p>
+          <h1 className="text-xl font-bold text-gray-900">History · FY25</h1>
+          <p className="text-sm text-gray-400">Apr 2025 – Mar 2026 · Actual results</p>
         </div>
         {isAdmin && (
           <div className="flex gap-1.5">
@@ -101,7 +233,7 @@ export default function History() {
                     : 'bg-navy text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}>
-                {b === 'both' ? t("hist_iberia") : b}
+                {b === 'both' ? 'Iberia' : b}
               </button>
             ))}
           </div>
@@ -112,26 +244,26 @@ export default function History() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {activeBU !== 'ECT' && (
           <>
-            <KpiBox label={t("hist_vgt_ns")} value={formatK(totals.vgt.ns * 1000)}
+            <KpiBox label="VGT Net Sales" value={formatK(totals.vgt.ns * 1000)}
               sub={`GM: ${formatK(totals.vgt.gm * 1000)}`} color="#1D9E75"/>
-            <KpiBox label={t("hist_vgt_gm")} value={`${totals.vgt.ns > 0 ? (totals.vgt.gm/totals.vgt.ns*100).toFixed(1) : '—'}%`}
-              sub={t("hist_gm_rate")} color="#1D9E75"/>
+            <KpiBox label="VGT GM%" value={`${totals.vgt.ns > 0 ? (totals.vgt.gm/totals.vgt.ns*100).toFixed(1) : '—'}%`}
+              sub="Gross Margin rate" color="#1D9E75"/>
           </>
         )}
         {activeBU !== 'VGT' && (
           <>
-            <KpiBox label={t("hist_ect_ns")} value={formatK(totals.ect.ns * 1000)}
+            <KpiBox label="ECT Net Sales" value={formatK(totals.ect.ns * 1000)}
               sub={`GM: ${formatK(totals.ect.gm * 1000)}`} color="#D85A30"/>
-            <KpiBox label={t("hist_ect_gm")} value={`${totals.ect.ns > 0 ? (totals.ect.gm/totals.ect.ns*100).toFixed(1) : '—'}%`}
-              sub={t("hist_gm_rate")} color="#D85A30"/>
+            <KpiBox label="ECT GM%" value={`${totals.ect.ns > 0 ? (totals.ect.gm/totals.ect.ns*100).toFixed(1) : '—'}%`}
+              sub="Gross Margin rate" color="#D85A30"/>
           </>
         )}
         {activeBU === 'both' && (
           <>
-            <KpiBox label={t("hist_iberia_ns")} value={formatK(totals.total.ns * 1000)}
+            <KpiBox label="Iberia Net Sales" value={formatK(totals.total.ns * 1000)}
               sub={`GM: ${formatK(totals.total.gm * 1000)}`} color="#0D2137"/>
-            <KpiBox label={t("hist_iberia_gm")} value={`${totals.total.ns > 0 ? (totals.total.gm/totals.total.ns*100).toFixed(1) : '—'}%`}
-              sub={t("hist_comb_rate")} color="#0D2137"/>
+            <KpiBox label="Iberia GM%" value={`${totals.total.ns > 0 ? (totals.total.gm/totals.total.ns*100).toFixed(1) : '—'}%`}
+              sub="Combined rate" color="#0D2137"/>
           </>
         )}
       </div>
@@ -139,7 +271,7 @@ export default function History() {
       {/* Monthly Net Sales chart */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-          {t("hist_monthly_ns")}
+          Monthly Net Sales · K€ · FY25
         </p>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={monthlyChart} barGap={2} margin={{ top:4, right:4, left:-20, bottom:0 }}>
@@ -156,7 +288,7 @@ export default function History() {
       {/* Monthly GM chart */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-          {t("hist_monthly_gm")}
+          Monthly Gross Margin · K€ · FY25
         </p>
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={monthlyChart} barGap={2} margin={{ top:4, right:4, left:-20, bottom:0 }}>
@@ -173,13 +305,13 @@ export default function History() {
       {/* Monthly table */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-gray-100">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t("hist_monthly_det")}</p>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Monthly detail · K€</p>
         </div>
         <div className="overflow-x-auto -mx-4 px-4">
-          <div className="overflow-x-auto"><table className="w-full text-xs">
+          <table className="w-full text-xs">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="text-left px-4 py-2 font-semibold text-gray-500 w-28">{t("hist_metric")}</th>
+                <th className="text-left px-4 py-2 font-semibold text-gray-500 w-28">Metric</th>
                 {MONTHS.map(m => (
                   <th key={m} className="px-2 py-2 font-semibold text-gray-500 text-center w-12">{m}</th>
                 ))}
@@ -241,7 +373,7 @@ export default function History() {
               )}
               {activeBU === 'both' && (
                 <tr className="bg-navy/5 font-bold">
-                  <td className="px-4 py-2 text-navy">{t("hist_iberia")} NS</td>
+                  <td className="px-4 py-2 text-navy">Iberia NS</td>
                   {MONTHS_K.map(m => (
                     <td key={m} className="px-2 py-2 text-center text-navy">
                       {(get('VGT','ns',m) + get('ECT','ns',m)).toFixed(1)}
@@ -253,7 +385,7 @@ export default function History() {
                 </tr>
               )}
             </tbody>
-          </table></div>
+          </table>
         </div>
       </div>
     </div>
