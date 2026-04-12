@@ -18,6 +18,7 @@ import AuthCallback from './pages/AuthCallback'
 import SetPassword from './pages/SetPassword'
 
 // Lazy load — não bloqueia o build se o ficheiro não existir
+const MyAccount   = lazy(() => import('./pages/MyAccount').catch(() => ({ default: () => null })))
 const Permissions = lazy(() =>
   import('./pages/Permissions').catch(() => ({ default: () => (
     <div className="flex items-center justify-center h-64 text-gray-400">
@@ -67,6 +68,7 @@ function AppRoutes() {
           <Route path="/users"        element={<Guard page="users"       element={<Users />} />} />
           <Route path="/settings"     element={<Guard page="settings"    element={<Settings />} />} />
           <Route path="/permissions"  element={<Permissions />} />
+          <Route path="/account"       element={<MyAccount />} />
           <Route path="/auth/callback"     element={<AuthCallback />} />
           <Route path="/auth/set-password" element={<SetPassword />} />
           <Route path="/login"              element={<Navigate to="/" replace />} />
