@@ -172,6 +172,7 @@ function MagicLinkForm() {
 
 // ── Página principal de Login ─────────────────────────────────────────────────
 export default function Login() {
+  const { t } = useTranslation()
   const [tab, setTab] = useState('password')
 
   return (
