@@ -577,7 +577,7 @@ function InviteSection({ companies, salesOwners, onSaved }) {
 
 // ── Página principal ──────────────────────────────────────────────────────────
 export default function Permissions() {
-  const { isAdmin, profile: currentProfile, user } = useAuth()
+  const { isAdmin, profile: currentProfile, user, loading: authLoading } = useAuth()
   const [companies, setCompanies]   = useState([])
   const [profiles, setProfiles]     = useState([])
   const [salesOwners, setSalesOwners] = useState([])
@@ -598,6 +598,9 @@ export default function Permissions() {
   }
 
   useEffect(() => { load() }, [])
+
+  // Aguardar o auth carregar antes de verificar permissões
+  if (authLoading) return <Spinner/>
 
   if (!isAdmin) return (
     <div className="flex items-center justify-center h-64 text-gray-400">
