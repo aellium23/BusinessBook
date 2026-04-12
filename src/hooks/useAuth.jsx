@@ -30,7 +30,7 @@ export const ROLE_PERMISSIONS = {
     manageUsers: false,
   },
   distributor: {
-    pages:    ['dashboard','deals','tasks'],
+    pages:    ['dashboard','deals','tasks','tenders','clients','history','quotas'],
     canEdit:  true,
     editOwn:  true,
     seeBU:    null,
