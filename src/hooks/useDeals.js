@@ -42,7 +42,11 @@ export function useDeals(filters = {}) {
     setLoading(false)
   }, [profile, isAdmin, JSON.stringify(filters)])
 
-  useEffect(() => { if (profile !== undefined) fetch() }, [fetch])
+  useEffect(() => {
+    // Aguardar profile carregar antes de fazer o fetch
+    // profile=undefined = ainda a carregar, profile=null = não logado, profile={...} = carregado
+    if (profile !== undefined && profile !== null) fetch()
+  }, [profile?.id, profile?.role, profile?.company_id, isAdmin])
 
   const totals = deals.reduce((acc, d) => {
     const fy26 = MONTHS.reduce((s, m) => s + (d[m] || 0), 0)
