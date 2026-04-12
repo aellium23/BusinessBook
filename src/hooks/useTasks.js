@@ -115,7 +115,7 @@ export function useNotifications() {
 
 // ── useTenders ────────────────────────────────────────────────────────────────
 export function useTenders(dealId = null) {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const [tenders, setTenders] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -133,6 +133,10 @@ export function useTenders(dealId = null) {
         `)
         .order('submission_deadline', { ascending: true, nullsFirst: false })
       if (dealId) q = q.eq('deal_id', dealId)
+      // Distribuidor: filtrar por company_id
+      if (profile?.role === 'distributor' && profile?.company_id) {
+        q = q.eq('company_id', profile.company_id)
+      }
       const { data, error } = await q
       if (!error) setTenders(data ?? [])
     } catch (e) {
