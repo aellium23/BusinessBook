@@ -6,7 +6,7 @@ import { Spinner } from '../components/ui'
 import {
   Shield, Building2, Users, Plus, Edit3, Trash2, Check, X,
   Mail, Lock, Globe, RefreshCw, AlertCircle, CheckCircle2,
-  ChevronDown, ChevronUp, Search
+  ChevronDown, ChevronUp, Search, Target
 } from 'lucide-react'
 
 // ── Permissões por role ───────────────────────────────────────────────────────
@@ -461,6 +461,141 @@ function InviteSection({ companies, salesOwners, onSaved }) {
 }
 
 // ── Página principal ──────────────────────────────────────────────────────────
+
+// ── Sales Targets por empresa ─────────────────────────────────────────────────
+function SalesTargetsSection({ companies, onRefresh }) {
+  const { t } = useTranslation()
+  const [quotas, setQuotas]   = useState([])
+  const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState(null)  // company_id em edição
+  const [editVal, setEditVal] = useState('')
+  const [saving, setSaving]   = useState(false)
+
+  async function load() {
+    const { data } = await supabase.from('quotas').select('*').not('company_id', 'is', null)
+    setQuotas(data || [])
+    setLoading(false)
+  }
+
+  useEffect(() => { load() }, [])
+
+  // Distribuidores e parceiros (não internos)
+  const distCompanies = companies.filter(c => 
+    !['internal_vgt','internal_ect'].includes(c.type) && c.active
+  )
+
+  async function handleSave(companyId) {
+    setSaving(true)
+    const val = parseFloat(editVal) * 1000  // input em K€, guardar em €
+    const existing = quotas.find(q => q.company_id === companyId)
+    if (existing) {
+      await supabase.from('quotas').update({ target_eur: val }).eq('id', existing.id)
+    } else {
+      // Criar novo quota para este distribuidor
+      const co = companies.find(c => c.id === companyId)
+      await supabase.from('quotas').insert({
+        company_id: companyId,
+        bu: co?.bu || 'VGT',
+        sales_owner: co?.name || '',
+        target_eur: val,
+        cycle: 'BUD',
+      })
+    }
+    setSaving(false)
+    setEditing(null)
+    setEditVal('')
+    load()
+    onRefresh()
+  }
+
+  function getTarget(companyId) {
+    return quotas.find(q => q.company_id === companyId)?.target_eur || 0
+  }
+
+  if (loading) return <div className="flex justify-center p-8"><div className="w-5 h-5 border-2 border-navy border-t-transparent rounded-full animate-spin"/></div>
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+          <Target size={15} className="text-navy"/>
+          Sales Targets por empresa
+        </h2>
+        <p className="text-xs text-gray-400 mt-0.5">Define o objetivo anual FY26 para cada distribuidor/parceiro.</p>
+      </div>
+
+      {distCompanies.length === 0 ? (
+        <div className="bg-gray-50 rounded-xl p-8 text-center">
+          <p className="text-gray-400 text-sm">Sem distribuidores ou parceiros activos.</p>
+          <p className="text-gray-300 text-xs mt-1">Adiciona empresas na tab Empresas.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {distCompanies.map(co => {
+            const target = getTarget(co.id)
+            const isEditing = editing === co.id
+            const cfg = COMPANY_TYPES[co.type] || { icon: '🏢', label: co.type }
+
+            return (
+              <div key={co.id} className="bg-white rounded-xl border border-gray-200 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center text-lg shrink-0">
+                    {cfg.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900">{co.name}</p>
+                    <p className="text-xs text-gray-400">{cfg.label} · {co.bu || co.country || '—'}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    {isEditing ? (
+                      <div className="flex items-center gap-2">
+                        <div className="relative">
+                          <input
+                            className="input w-28 text-right pr-8 text-sm"
+                            type="number"
+                            value={editVal}
+                            onChange={e => setEditVal(e.target.value)}
+                            placeholder="0"
+                            style={{fontSize:'16px'}}
+                            autoFocus
+                          />
+                          <span className="absolute right-2 top-2.5 text-xs text-gray-400">K€</span>
+                        </div>
+                        <button onClick={() => handleSave(co.id)} disabled={saving}
+                          className="btn-primary text-xs px-3 py-1.5">
+                          {saving ? '…' : 'Guardar'}
+                        </button>
+                        <button onClick={() => setEditing(null)}
+                          className="btn-secondary text-xs px-3 py-1.5">
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <p className="text-sm font-bold text-gray-900">
+                            {target > 0 ? `${Math.round(target/1000)}K€` : '—'}
+                          </p>
+                          <p className="text-[10px] text-gray-400">Target FY26</p>
+                        </div>
+                        <button
+                          onClick={() => { setEditing(co.id); setEditVal(target > 0 ? String(Math.round(target/1000)) : '') }}
+                          className="text-gray-300 hover:text-navy transition-colors p-1">
+                          <Edit3 size={14}/>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Permissions() {
   const { t } = useTranslation()
   const { isAdmin, user, loading: authLoading } = useAuth()
@@ -509,6 +644,7 @@ export default function Permissions() {
   const TABS = [
     { id:'users',    label:`Utilizadores`, count: profiles.length },
     { id:'companies',label:'Empresas',     count: companies.length },
+    { id:'targets',  label:'Sales Targets' },
     { id:'matrix',   label:'Access Matrix' },
     { id:'invite',   label:'+ Convidar' },
   ]
@@ -584,6 +720,11 @@ export default function Permissions() {
       {/* Tab: Empresas */}
       {tab === 'companies' && (
         <CompaniesSection companies={companies} onRefresh={load}/>
+      )}
+
+      {/* Tab: Sales Targets */}
+      {tab === 'targets' && (
+        <SalesTargetsSection companies={companies} onRefresh={load}/>
       )}
 
       {/* Tab: Access Matrix */}
