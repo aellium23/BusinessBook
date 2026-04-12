@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { signOut } from '../lib/supabase'
 import { useNotifications } from '../hooks/useTasks'
 import { useTasks } from '../hooks/useTasks'
-import { LayoutDashboard, List, DollarSign, Users, LogOut, ChevronRight, History, Building2, Target, Settings, CheckSquare, FileText, MoreHorizontal } from 'lucide-react'
+import { LayoutDashboard, List, DollarSign, Users, User, LogOut, ChevronRight, History, Building2, Target, Settings, CheckSquare, FileText, MoreHorizontal, Shield } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 import { LANGUAGES, setLang } from '../lib/i18n'
 
