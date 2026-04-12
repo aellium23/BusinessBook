@@ -15,10 +15,15 @@ import Tasks from './pages/Tasks'
 import Tenders from './pages/Tenders'
 import { Spinner } from './components/ui'
 
-// Lazy load — só importa se o ficheiro existir e quando a rota é acedida
-const Permissions = lazy(() => import('./pages/Permissions').catch(() => ({ default: () => null })))
+// Lazy load — não bloqueia o build se o ficheiro não existir
+const Permissions = lazy(() =>
+  import('./pages/Permissions').catch(() => ({ default: () => (
+    <div className="flex items-center justify-center h-64 text-gray-400">
+      <p>Página não disponível.</p>
+    </div>
+  )}))
+)
 
-// ── Route Guard ────────────────────────────────────────────────────────────
 function Guard({ page, element }) {
   const { canAccessPage } = useAuth()
   return canAccessPage(page) ? element : <Navigate to="/" replace />
