@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from '../hooks/useTranslation'
 import { useNavigate } from 'react-router-dom'
 import { supabase, updatePassword } from '../lib/supabase'
 import { Lock, Eye, EyeOff, CheckCircle2, AlertCircle } from 'lucide-react'
 
 // Página para definir password após convite ou reset
 export default function SetPassword() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [password, setPassword]   = useState('')
   const [confirm, setConfirm]     = useState('')
@@ -83,7 +85,7 @@ export default function SetPassword() {
                 <input
                   type={showPw ? 'text' : 'password'} required
                   value={password} onChange={e => setPassword(e.target.value)}
-                  placeholder="Mínimo 8 caracteres"
+                  placeholder={t('setpw_placeholder')}
                   className="input pr-10"
                   style={{ fontSize: '16px' }}
                 />
@@ -101,7 +103,7 @@ export default function SetPassword() {
               <input
                 type={showPw ? 'text' : 'password'} required
                 value={confirm} onChange={e => setConfirm(e.target.value)}
-                placeholder="Repete a password"
+                placeholder={t('setpw_placeholder2')}
                 className="input"
                 style={{ fontSize: '16px' }}
               />
@@ -111,10 +113,10 @@ export default function SetPassword() {
             {password.length > 0 && (
               <div className="space-y-1.5">
                 {[
-                  { key: 'length',  label: 'Mínimo 8 caracteres' },
-                  { key: 'upper',   label: 'Pelo menos uma maiúscula' },
-                  { key: 'number',  label: 'Pelo menos um número' },
-                  { key: 'match',   label: 'Passwords coincidem' },
+                  { key: 'length',  label: t('setpw_check_length') },
+                  { key: 'upper',   label: t('setpw_check_upper') },
+                  { key: 'number',  label: t('setpw_check_number') },
+                  { key: 'match',   label: t('setpw_check_match') },
                 ].map(({ key, label }) => (
                   <div key={key} className={`flex items-center gap-2 text-xs ${
                     checks[key] ? 'text-green-600' : 'text-gray-400'
@@ -135,7 +137,7 @@ export default function SetPassword() {
 
             <button type="submit" disabled={!isValid || loading}
               className="btn-primary w-full justify-center py-2.5 disabled:opacity-50">
-              {loading ? 'A guardar…' : <><Lock size={14}/> Definir password</>}
+              {loading ? t('setpw_submitting') : <><Lock size={14}/> {t('setpw_submit')}</>}
             </button>
           </form>
         </div>
