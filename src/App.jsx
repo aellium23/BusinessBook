@@ -66,7 +66,7 @@ function AppRoutes() {
           <Route path="/budget"       element={<Guard page="budget"      element={<Budget />} />} />
           <Route path="/users"        element={<Guard page="users"       element={<Users />} />} />
           <Route path="/settings"     element={<Guard page="settings"    element={<Settings />} />} />
-          <Route path="/permissions"  element={<Guard page="permissions" element={<Permissions />} />} />
+          <Route path="/permissions"  element={<Permissions />} />
           <Route path="/auth/callback"     element={<AuthCallback />} />
           <Route path="/auth/set-password" element={<SetPassword />} />
           <Route path="/login"              element={<Navigate to="/" replace />} />
