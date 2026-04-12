@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useTranslation } from '../hooks/useTranslation'
 import { supabase } from '../lib/supabase'
 import { useAuth, ROLE_PERMISSIONS } from '../hooks/useAuth'
 import { Spinner } from '../components/ui'
@@ -45,6 +46,7 @@ function RoleBadge({ role }) {
 
 // ── Componente: Matriz de permissões ─────────────────────────────────────────
 function PermissionsMatrix() {
+  const { t } = useTranslation()
   const allPages = Object.keys(PAGE_LABELS)
   const roles = Object.keys(ROLE_CONFIG)
 
@@ -101,6 +103,7 @@ function PermissionsMatrix() {
 
 // ── Componente: Gestão de Companies ──────────────────────────────────────────
 function CompaniesSection({ companies, onRefresh }) {
+  const { t } = useTranslation()
   const [adding, setAdding] = useState(false)
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState({ name:'', type:'distributor', bu:'VGT', country:'' })
@@ -196,10 +199,10 @@ function CompaniesSection({ companies, onRefresh }) {
             </div>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setAdding(false)} className="btn-secondary text-xs flex-1">Cancelar</button>
+            <button onClick={() => setAdding(false)} className="btn-secondary text-xs flex-1">{t('perm_cancel')}</button>
             <button onClick={handleAdd} disabled={!form.name.trim() || saving}
               className="btn-primary text-xs flex-1">
-              {saving ? 'A guardar…' : 'Adicionar empresa'}
+              {saving ? t('perm_saving') : 'Adicionar empresa'}
             </button>
           </div>
         </div>
@@ -251,6 +254,7 @@ function CompaniesSection({ companies, onRefresh }) {
 
 // ── Componente: User card com edição inline ───────────────────────────────────
 function UserPermCard({ profile, companies, salesOwners, onSaved, currentUserId }) {
+  const { t } = useTranslation()
   const [editing, setEditing]   = useState(false)
   const [role, setRole]         = useState(profile.role || 'viewer')
   const [companyId, setCompany] = useState(profile.company_id || '')
@@ -349,7 +353,7 @@ function UserPermCard({ profile, companies, salesOwners, onSaved, currentUserId 
 
           {/* Role */}
           <div>
-            <label className="label">Role</label>
+            <label className="label">{t('perm_role')}</label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
               {Object.entries(ROLE_CONFIG).map(([r, cfg]) => (
                 <button key={r} onClick={() => setRole(r)}
@@ -370,7 +374,7 @@ function UserPermCard({ profile, companies, salesOwners, onSaved, currentUserId 
 
           {/* Empresa */}
           <div>
-            <label className="label">Empresa</label>
+            <label className="label">{t('perm_company')}</label>
             <select className="select text-sm" value={companyId}
               onChange={e => setCompany(e.target.value)}>
               <option value="">— Sem empresa —</option>
@@ -387,7 +391,7 @@ function UserPermCard({ profile, companies, salesOwners, onSaved, currentUserId 
           {/* Sales Owner (só para roles comerciais) */}
           {['manager','member','distributor'].includes(role) && (
             <div>
-              <label className="label">Sales Owner (Sales Target)</label>
+              <label className="label">{t('perm_owner')}</label>
               <select className="select text-sm" value={ownerId}
                 onChange={e => setOwner(e.target.value)}>
                 <option value="">— Sem ligação —</option>
@@ -400,7 +404,7 @@ function UserPermCard({ profile, companies, salesOwners, onSaved, currentUserId 
 
           {/* Activo */}
           <div className="flex items-center justify-between">
-            <label className="text-xs font-medium text-gray-500">Conta activa</label>
+            <label className="text-xs font-medium text-gray-500">{t('perm_active')}</label>
             <button onClick={() => setActive(o => !o)}
               className={`w-10 h-5 rounded-full transition-colors relative ${active ? 'bg-green-400' : 'bg-gray-200'}`}>
               <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${active ? 'translate-x-5' : 'translate-x-0.5'}`}/>
@@ -408,13 +412,13 @@ function UserPermCard({ profile, companies, salesOwners, onSaved, currentUserId 
           </div>
 
           <div className="flex gap-2 pt-1">
-            <button onClick={() => setEditing(false)} className="btn-secondary flex-1 text-xs">Cancelar</button>
+            <button onClick={() => setEditing(false)} className="btn-secondary flex-1 text-xs">{t('perm_cancel')}</button>
             <button onClick={save} disabled={saving || isSelf}
               className="btn-primary flex-1 text-xs">
-              {saving ? 'A guardar…' : saved ? '✓ Guardado' : 'Guardar'}
+              {saving ? t('perm_saving') : saved ? t('perm_saved') : 'Guardar'}
             </button>
           </div>
-          {isSelf && <p className="text-[10px] text-amber-600 text-center">Não podes editar o teu próprio role.</p>}
+          {isSelf && <p className="text-[10px] text-amber-600 text-center">{t('perm_no_edit_self')}</p>}
         </div>
       ) : (
         <div className="px-4 pb-3">
@@ -430,6 +434,7 @@ function UserPermCard({ profile, companies, salesOwners, onSaved, currentUserId 
 
 // ── Componente: Invite user ───────────────────────────────────────────────────
 function InviteSection({ companies, salesOwners, onSaved }) {
+  const { t } = useTranslation()
   const [email, setEmail]       = useState('')
   const [role, setRole]         = useState('member')
   const [companyId, setCompany] = useState('')
@@ -496,12 +501,12 @@ function InviteSection({ companies, salesOwners, onSaved }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="label">Nome (opcional)</label>
-            <input className="input" placeholder="Nome completo"
+            <input className="input" placeholder={t('perm_invite_name')}
               value={displayName} onChange={e => setDisplayName(e.target.value)}/>
           </div>
           <div>
             <label className="label">Email *</label>
-            <input className="input" type="email" placeholder="user@empresa.com"
+            <input className="input" type="email" placeholder={t('perm_invite_email')}
               value={email} onChange={e => setEmail(e.target.value)}/>
           </div>
           <div>
@@ -513,7 +518,7 @@ function InviteSection({ companies, salesOwners, onSaved }) {
             </select>
           </div>
           <div>
-            <label className="label">Empresa</label>
+            <label className="label">{t('perm_company')}</label>
             <select className="select" value={companyId} onChange={e => setCompany(e.target.value)}>
               <option value="">— Sem empresa —</option>
               {companies.filter(c => c.active).map(co => {
@@ -550,7 +555,7 @@ function InviteSection({ companies, salesOwners, onSaved }) {
         <button onClick={handleInvite} disabled={!email.trim() || sending}
           className="btn-primary w-full text-sm">
           {sending ? <RefreshCw size={14} className="animate-spin"/> : <Mail size={14}/>}
-          {sending ? 'A processar…' : 'Criar perfil'}
+          {sending ? t('perm_invite_creating') : t('perm_invite_btn')}
         </button>
         <p className="text-[10px] text-gray-400 text-center">
           O utilizador recebe um email com um link para definir a password e aceder à app.
@@ -588,7 +593,7 @@ export default function Permissions() {
     <div className="flex items-center justify-center h-64 text-gray-400">
       <div className="text-center">
         <Lock size={32} className="mx-auto mb-2 opacity-30"/>
-        <p>Acesso restrito — apenas admin.</p>
+        <p>{t('perm_no_access')}</p>
       </div>
     </div>
   )
@@ -616,7 +621,7 @@ export default function Permissions() {
           Permissions
         </h1>
         <p className="text-sm text-gray-400 mt-0.5">
-          Gestão de utilizadores, empresas e controlo de acesso.
+          {t('perm_subtitle')}
         </p>
       </div>
 
@@ -639,7 +644,7 @@ export default function Permissions() {
       {tab === 'users' && (
         <div className="space-y-4">
           <div className="relative">
-            <input className="input pl-8" placeholder="Pesquisar por email ou nome…"
+            <input className="input pl-8" placeholder={t('perm_search')}
               value={search} onChange={e => setSearch(e.target.value)}/>
             <Users size={14} className="absolute left-2.5 top-3 text-gray-400"/>
           </div>
