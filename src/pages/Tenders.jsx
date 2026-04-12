@@ -114,38 +114,20 @@ function TenderModal({ tender, onClose, onSaved, deals, users }) {
   }
 
   return (
-    <Modal open onClose={onClose} title={isEdit ? 'Edit Tender / RFP' : 'New Tender / RFP'}
-      footer={
-        <div className="flex gap-2">
-          <button className="btn-secondary flex-1" onClick={onClose}>Cancel</button>
-          <button className="btn-primary flex-1" onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create tender'}
-          </button>
-        </div>
-      }>
-      <div className="space-y-3">
+    <Modal open onClose={onClose} title={isEdit ? 'Edit Tender / RFP' : 'New Tender / RFP'}>
+      <div className="space-y-4 p-1 max-h-[70vh] overflow-y-auto">
 
-        {/* Title */}
-        <div>
-          <label className="label">Title *</label>
-          <input className="input" value={form.title} onChange={e => set('title', e.target.value)}
-            placeholder="Tender title…" />
-        </div>
-
-        {/* Reference + Deal — 2 cols em sm, stack em mobile */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Title + Reference */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className="col-span-2">
+            <label className="label">Title *</label>
+            <input className="input" value={form.title} onChange={e => set('title', e.target.value)}
+              placeholder="Tender title…" autoFocus />
+          </div>
           <div>
             <label className="label">Reference</label>
             <input className="input" value={form.reference} onChange={e => set('reference', e.target.value)}
               placeholder="Ref. nº" />
-          </div>
-          <div>
-            <label className="label">Status</label>
-            <select className="select" value={form.status} onChange={e => set('status', e.target.value)}>
-              {Object.entries(STATUS_CONFIG).map(([k, v]) => (
-                <option key={k} value={k}>{v.label}</option>
-              ))}
-            </select>
           </div>
         </div>
 
@@ -163,13 +145,13 @@ function TenderModal({ tender, onClose, onSaved, deals, users }) {
         {/* Description */}
         <div>
           <label className="label">Description</label>
-          <textarea className="input min-h-[64px] resize-none" value={form.description}
+          <textarea className="input min-h-[72px] resize-none" value={form.description}
             onChange={e => set('description', e.target.value)}
             placeholder="Scope, requirements, notes…" />
         </div>
 
-        {/* Dates — 2 cols em sm, stack em mobile */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Dates */}
+        <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="label">Submission deadline</label>
             <input className="input" type="date" value={form.submission_deadline}
@@ -182,9 +164,9 @@ function TenderModal({ tender, onClose, onSaved, deals, users }) {
           </div>
         </div>
 
-        {/* Value + Currency — 2 cols em sm, stack em mobile */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
+        {/* Value + Currency + Status */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className="col-span-2">
             <label className="label">Estimated value</label>
             <input className="input" type="number" value={form.estimated_value}
               onChange={e => set('estimated_value', e.target.value)} placeholder="0" />
@@ -197,6 +179,16 @@ function TenderModal({ tender, onClose, onSaved, deals, users }) {
           </div>
         </div>
 
+        {/* Status */}
+        <div>
+          <label className="label">Status</label>
+          <select className="select" value={form.status} onChange={e => set('status', e.target.value)}>
+            {Object.entries(STATUS_CONFIG).map(([k, v]) => (
+              <option key={k} value={k}>{v.label}</option>
+            ))}
+          </select>
+        </div>
+
         {/* Collaborators */}
         <div>
           <label className="label">Collaborators</label>
@@ -207,8 +199,9 @@ function TenderModal({ tender, onClose, onSaved, deals, users }) {
                 <button key={u.id} type="button"
                   onClick={() => toggleCollab(u.id)}
                   className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full border transition-all ${
-                    active ? 'bg-navy text-white border-navy'
-                           : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                    active
+                      ? 'bg-navy text-white border-navy'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
                   }`}>
                   <Users size={10} />
                   {u.full_name || u.email?.split("@")[0]}
@@ -224,6 +217,12 @@ function TenderModal({ tender, onClose, onSaved, deals, users }) {
           </p>
         )}
 
+        <div className="flex gap-2 pt-1">
+          <button className="btn-primary flex-1" onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create tender'}
+          </button>
+          <button className="btn-secondary" onClick={onClose}>Cancel</button>
+        </div>
       </div>
     </Modal>
   )
@@ -347,7 +346,12 @@ export default function Tenders() {
   const [users, setUsers] = useState([])
 
   useEffect(() => {
-    supabase.from('deals').select("id, client, bu, country").order('client').then(({ data }) => setDeals(data ?? []))
+    // Carregar deals filtrados por company_id para distribuidores
+    let dealsQ = supabase.from('deals').select("id, client, bu, country, company_id").order('client')
+    if (profile?.role === 'distributor' && profile?.company_id) {
+      dealsQ = dealsQ.eq('company_id', profile.company_id)
+    }
+    dealsQ.then(({ data }) => setDeals(data ?? []))
     supabase.from('profiles').select("id, full_name, email").then(({ data }) => setUsers(data ?? []))
   }, [])
 
@@ -390,7 +394,7 @@ export default function Tenders() {
       </div>
 
       {/* Stats bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 gap-3">
         {[
           { label: 'Total',     value: tenders.length,                         color: 'text-gray-700' },
           { label: 'Open',      value: tenders.filter(t=>t.status==='open').length,      color: 'text-blue-600' },
@@ -405,23 +409,13 @@ export default function Tenders() {
       </div>
 
       {/* Filters */}
-      <div className="space-y-2">
-        {/* Search */}
-        <div className="relative">
+      <div className="flex gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-40">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input className="input pl-8 py-1.5 text-sm w-full" placeholder="Search tenders…"
+          <input className="input pl-8 py-1.5 text-sm" placeholder="Search tenders…"
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        {/* Status filter — select em mobile, pills em desktop */}
-        <div className="flex gap-2">
-          <select className="select text-xs sm:hidden flex-1"
-            value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-            {['active','all','open','submitted','won','lost'].map(s => (
-              <option key={s} value={s} className="capitalize">{s.charAt(0).toUpperCase()+s.slice(1)}</option>
-            ))}
-          </select>
-          <div className="hidden sm:flex gap-2 flex-wrap">
-            {['active','all','open','submitted','won','lost'].map(s => (
+        {['active','all','open','submitted','won','lost'].map(s => (
           <button key={s}
             onClick={() => setStatusFilter(s)}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all capitalize ${
@@ -431,9 +425,7 @@ export default function Tenders() {
             }`}>
             {s}
           </button>
-            ))}
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Tender list */}
