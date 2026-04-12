@@ -329,10 +329,10 @@ export default function DealForm({ deal, onClose, onSaved }) {
   const isECT   = form.bu === 'ECT'
   const hasIC   = isECT && parseFloat(form.intercompany_value) > 0
 
-  // Auto-set BU=VGT for distributors
+  // Auto-set BU=VGT for distributors (default, mas podem mudar para ECT)
   useEffect(() => {
     if (isDistributor && !form.bu) set('bu', 'VGT')
-  }, [isDistributor])
+  }, [isDistributor, form.bu])
 
   function set(k, v) {
     setForm(f => {
@@ -459,7 +459,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div>
             <label className="label">{t("df_bu")} *</label>
-            <select className="select" value={form.bu} onChange={e => set('bu', e.target.value)} disabled={!isAdmin}>
+            <select className="select" value={form.bu} onChange={e => set('bu', e.target.value)} disabled={!isAdmin && !isDistributor}>
               <option value="">—</option>
               <option value="VGT">VGT</option>
               <option value="ECT">ECT</option>
