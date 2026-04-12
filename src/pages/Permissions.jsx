@@ -1,104 +1,330 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useTranslation } from '../hooks/useTranslation'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useTranslation } from '../hooks/useTranslation'
 import { Spinner } from '../components/ui'
 import {
   Shield, Building2, Users, Plus, Edit3, Trash2, Check, X,
-  ChevronDown, ChevronUp, Mail, Eye, EyeOff, Globe, Save,
-  AlertCircle, CheckCircle2, RefreshCw, Lock
+  Mail, Lock, Globe, RefreshCw, AlertCircle, CheckCircle2,
+  ChevronDown, ChevronUp, Search
 } from 'lucide-react'
 
-// ── Permissões por role (cópia local — não depende do useAuth) ───────────────
+// ── Permissões por role ───────────────────────────────────────────────────────
 const ROLE_PERMISSIONS = {
-  admin:       { pages: ['dashboard','deals','clients','history','quotas','budget','users','settings','tasks','tenders','permissions'], canEdit: true,  editOwn: false },
-  manager:     { pages: ['dashboard','deals','clients','history','quotas','tasks','tenders'],                                          canEdit: true,  editOwn: false },
-  member:      { pages: ['dashboard','deals','clients','history','quotas','tasks','tenders'],                                          canEdit: true,  editOwn: true  },
-  distributor: { pages: ['dashboard','deals','tasks'],                                                                                  canEdit: true,  editOwn: true  },
-  viewer:      { pages: ['dashboard','deals','clients','history'],                                                                      canEdit: false, editOwn: false },
-  partner:     { pages: ['dashboard','deals','clients','tasks','tenders'],                                                              canEdit: false, editOwn: false },
+  admin:       { pages: ['dashboard','deals','clients','history','quotas','budget','users','settings','tasks','tenders','permissions'], canEdit: true,  editOwn: false, seesAll: true  },
+  manager:     { pages: ['dashboard','deals','clients','history','quotas','tasks','tenders'],                                          canEdit: true,  editOwn: false, seesAll: false },
+  member:      { pages: ['dashboard','deals','clients','history','quotas','tasks','tenders'],                                          canEdit: true,  editOwn: true,  seesAll: false },
+  distributor: { pages: ['dashboard','deals','tasks'],                                                                                  canEdit: true,  editOwn: true,  seesAll: false },
+  viewer:      { pages: ['dashboard','deals','clients','history'],                                                                      canEdit: false, editOwn: false, seesAll: false },
+  partner:     { pages: ['dashboard','deals','clients','tasks','tenders'],                                                              canEdit: false, editOwn: false, seesAll: false },
 }
 
-// ── Configurações visuais dos roles ─────────────────────────────────────────
 const ROLE_CONFIG = {
-  admin:       { label:'Admin',       color:'#B45309', bg:'#FEF3C7', desc:'Acesso total — todas as BUs, tudo editável' },
-  manager:     { label:'Manager',     color:'#0F6E56', bg:'#E1F5EE', desc:'Gestor de equipa — edita todos os deals da BU' },
-  member:      { label:'Member',      color:'#1D9E75', bg:'#F0FDF9', desc:'Membro — edita só os seus próprios deals' },
-  distributor: { label:'Distributor', color:'#7C3AED', bg:'#F5F3FF', desc:'Parceiro externo — vê só os seus deals' },
-  viewer:      { label:'Viewer',      color:'#185FA5', bg:'#E6F1FB', desc:'Leitura — sem edição' },
-  partner:     { label:'Partner',     color:'#6B7280', bg:'#F3F4F6', desc:'Parceiro — dashboard + deals linkados' },
+  admin:       { label:'Admin',       color:'#B45309', bg:'#FEF3C7' },
+  manager:     { label:'Manager',     color:'#0F6E56', bg:'#E1F5EE' },
+  member:      { label:'Member',      color:'#1D9E75', bg:'#F0FDF9' },
+  distributor: { label:'Distributor', color:'#7C3AED', bg:'#F5F3FF' },
+  viewer:      { label:'Viewer',      color:'#185FA5', bg:'#E6F1FB' },
+  partner:     { label:'Partner',     color:'#6B7280', bg:'#F3F4F6' },
 }
 
-const COMPANY_TYPE_CONFIG = {
-  internal_vgt: { label:'VGT (Portugal)', color:'#0F6E56', icon:'🇵🇹' },
-  internal_ect: { label:'ECT (Spain)',    color:'#D85A30', icon:'🇪🇸' },
-  distributor:  { label:'Distribuidor',   color:'#7C3AED', icon:'🤝' },
-  partner:      { label:'Parceiro',       color:'#6B7280', icon:'🏢' },
-  client:       { label:'Cliente',        color:'#185FA5', icon:'🏥' },
+const COMPANY_TYPES = {
+  internal_vgt: { label:'VGT (Portugal)', icon:'🇵🇹', color:'#0F6E56' },
+  internal_ect: { label:'ECT (Spain)',    icon:'🇪🇸', color:'#D85A30' },
+  distributor:  { label:'Distribuidor',   icon:'🤝', color:'#7C3AED' },
+  partner:      { label:'Parceiro',       icon:'🏢', color:'#6B7280' },
+  client:       { label:'Cliente',        icon:'🏥', color:'#185FA5' },
 }
 
-const PAGE_LABELS = {
-  dashboard: 'Dashboard', deals: 'Deals', clients: 'Clients',
-  history: 'History', quotas: 'Targets', budget: 'Budget',
-  users: 'Users', settings: 'Settings', tasks: 'Tasks', tenders: 'Tenders',
-}
-
-// ── Componente: Badge de role ─────────────────────────────────────────────────
+// ── Badge ─────────────────────────────────────────────────────────────────────
 function RoleBadge({ role }) {
   const cfg = ROLE_CONFIG[role] || { label: role, color:'#6B7280', bg:'#F3F4F6' }
   return (
     <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full"
       style={{ color: cfg.color, background: cfg.bg }}>
-      <Shield size={9} />{cfg.label}
+      {cfg.label}
     </span>
   )
 }
 
-// ── Componente: Matriz de permissões ─────────────────────────────────────────
-function PermissionsMatrix() {
+// ── User Card ─────────────────────────────────────────────────────────────────
+function UserCard({ profile, companies, salesOwners, onSaved, isSelf }) {
   const { t } = useTranslation()
-  const allPages = Object.keys(PAGE_LABELS)
+  const [open, setOpen]         = useState(false)
+  const [role, setRole]         = useState(profile.role || 'viewer')
+  const [companyId, setCompany] = useState(profile.company_id || '')
+  const [ownerId, setOwner]     = useState(profile.sales_owner_id || '')
+  const [active, setActive]     = useState(profile.active !== false)
+  const [saving, setSaving]     = useState(false)
+  const [saved, setSaved]       = useState(false)
+
+  const company = companies.find(c => c.id === profile.company_id)
+  const roleCfg = ROLE_CONFIG[profile.role] || ROLE_CONFIG.viewer
+
+  async function save() {
+    setSaving(true)
+    const co = companies.find(c => c.id === companyId)
+    const bu = role === 'admin' ? 'ALL'
+             : co?.type === 'internal_vgt' ? 'VGT'
+             : co?.type === 'internal_ect' ? 'ECT'
+             : co?.bu || null
+    await supabase.from('profiles').update({
+      role, company_id: companyId || null,
+      sales_owner_id: ownerId || null,
+      sales_owner_name: salesOwners.find(o => o.id === ownerId)?.name || null,
+      bu, active,
+    }).eq('id', profile.id)
+    setSaving(false); setSaved(true)
+    setTimeout(() => { setSaved(false); setOpen(false) }, 1500)
+    onSaved()
+  }
+
+  return (
+    <div className={`bg-white rounded-xl border overflow-hidden transition-shadow hover:shadow-sm ${
+      isSelf ? 'border-amber-300 border-2' : 'border-gray-200'
+    } ${!active ? 'opacity-60' : ''}`}>
+
+      {/* Row principal */}
+      <div className="p-3 flex items-center gap-3">
+        {/* Avatar */}
+        <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+          style={{ background: roleCfg.bg, color: roleCfg.color }}>
+          {(profile.full_name || profile.email || '?')[0].toUpperCase()}
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm font-semibold text-gray-900 truncate">
+              {profile.full_name || profile.email?.split('@')[0]}
+              {isSelf && <span className="ml-1 text-[10px] text-amber-600">(you)</span>}
+            </p>
+            <RoleBadge role={profile.role} />
+            {!active && <span className="text-[10px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded">inactive</span>}
+          </div>
+          <p className="text-xs text-gray-400 truncate">{profile.email}</p>
+          {company && (
+            <p className="text-[10px] text-gray-400 mt-0.5">
+              {COMPANY_TYPES[company.type]?.icon} {company.name}
+              {profile.bu && <span className="ml-1.5 font-medium text-gray-500">{profile.bu}</span>}
+            </p>
+          )}
+        </div>
+
+        {/* Toggle editar */}
+        <button onClick={() => setOpen(o => !o)}
+          className="shrink-0 text-gray-300 hover:text-navy transition-colors p-1">
+          {open ? <ChevronUp size={16}/> : <Edit3 size={14}/>}
+        </button>
+      </div>
+
+      {/* Painel de edição */}
+      {open && (
+        <div className="border-t border-gray-100 p-3 space-y-3 bg-gray-50">
+
+          {/* Role */}
+          <div>
+            <label className="label mb-1.5">Role</label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {Object.entries(ROLE_CONFIG).map(([r, cfg]) => (
+                <button key={r} onClick={() => setRole(r)}
+                  className={`py-1.5 px-2 rounded-lg text-xs font-semibold border transition-all ${
+                    role === r ? 'border-2' : 'border-gray-200 bg-white hover:border-gray-300'
+                  }`}
+                  style={role === r ? { borderColor: cfg.color, background: cfg.bg, color: cfg.color } : {}}>
+                  {cfg.label}
+                </button>
+              ))}
+            </div>
+            {role && (
+              <p className="text-[10px] text-gray-400 mt-1">
+                Acesso: {ROLE_PERMISSIONS[role]?.pages.join(', ')}
+              </p>
+            )}
+          </div>
+
+          {/* Empresa */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label className="label">Empresa</label>
+              <select className="select text-sm" value={companyId}
+                onChange={e => setCompany(e.target.value)}>
+                <option value="">— Sem empresa —</option>
+                {companies.filter(c => c.active).map(co => (
+                  <option key={co.id} value={co.id}>
+                    {COMPANY_TYPES[co.type]?.icon} {co.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {['manager','member','distributor'].includes(role) && (
+              <div>
+                <label className="label">Sales Owner</label>
+                <select className="select text-sm" value={ownerId}
+                  onChange={e => setOwner(e.target.value)}>
+                  <option value="">— Sem ligação —</option>
+                  {salesOwners.filter(o => o.active).map(o => (
+                    <option key={o.id} value={o.id}>{o.name} · {o.bu}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
+          {/* Activo */}
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-gray-500">Conta activa</label>
+            <button onClick={() => setActive(o => !o)} disabled={isSelf}
+              className={`w-10 h-5 rounded-full transition-colors relative ${active ? 'bg-green-400' : 'bg-gray-200'} disabled:opacity-40`}>
+              <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${active ? 'translate-x-5' : 'translate-x-0.5'}`}/>
+            </button>
+          </div>
+
+          <div className="flex gap-2">
+            <button onClick={() => setOpen(false)} className="btn-secondary flex-1 text-xs">Cancelar</button>
+            <button onClick={save} disabled={saving || isSelf}
+              className="btn-primary flex-1 text-xs">
+              {saving ? <RefreshCw size={12} className="animate-spin mx-auto"/> : saved ? '✓ Guardado' : 'Guardar'}
+            </button>
+          </div>
+          {isSelf && <p className="text-[10px] text-amber-600 text-center">Não podes editar o teu próprio role.</p>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Companies Section ─────────────────────────────────────────────────────────
+function CompaniesSection({ companies, onRefresh }) {
+  const [adding, setAdding] = useState(false)
+  const [form, setForm]     = useState({ name:'', type:'distributor', country:'' })
+  const [saving, setSaving] = useState(false)
+
+  async function handleAdd() {
+    if (!form.name.trim()) return
+    setSaving(true)
+    await supabase.from('companies').insert({
+      name: form.name.trim(), type: form.type,
+      bu: form.type === 'internal_vgt' ? 'VGT' : form.type === 'internal_ect' ? 'ECT' : null,
+      country: form.country || null, active: true,
+    })
+    setForm({ name:'', type:'distributor', country:'' })
+    setAdding(false); setSaving(false); onRefresh()
+  }
+
+  const grouped = useMemo(() => {
+    const g = {}
+    companies.forEach(co => { if (!g[co.type]) g[co.type] = []; g[co.type].push(co) })
+    return g
+  }, [companies])
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+          <Building2 size={15} className="text-navy"/>
+          Empresas
+        </h2>
+        <button onClick={() => setAdding(o => !o)} className="btn-primary text-xs gap-1">
+          <Plus size={12}/> Nova empresa
+        </button>
+      </div>
+
+      {adding && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="label">Nome *</label>
+              <input className="input" placeholder="ex: Distribuidor X"
+                value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))}
+                style={{fontSize:'16px'}}/>
+            </div>
+            <div>
+              <label className="label">Tipo *</label>
+              <select className="select" value={form.type}
+                onChange={e => setForm(f => ({...f, type: e.target.value}))}>
+                {Object.entries(COMPANY_TYPES).map(([k,v]) => (
+                  <option key={k} value={k}>{v.icon} {v.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="label">País</label>
+              <input className="input" placeholder="ex: Portugal"
+                value={form.country} onChange={e => setForm(f => ({...f, country: e.target.value}))}
+                style={{fontSize:'16px'}}/>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => setAdding(false)} className="btn-secondary flex-1 text-xs">Cancelar</button>
+            <button onClick={handleAdd} disabled={!form.name.trim() || saving}
+              className="btn-primary flex-1 text-xs">
+              {saving ? 'A guardar…' : 'Adicionar'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {Object.entries(grouped).map(([type, list]) => {
+          const cfg = COMPANY_TYPES[type] || { label: type, icon:'🏢', color:'#6B7280' }
+          return (
+            <div key={type} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+              <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+                <span>{cfg.icon}</span>
+                <p className="text-xs font-bold text-gray-700">{cfg.label}</p>
+                <span className="ml-auto text-xs text-gray-400">{list.filter(c=>c.active).length} activas</span>
+              </div>
+              {list.map(co => (
+                <div key={co.id} className={`px-3 py-2.5 flex items-center gap-2 border-b border-gray-50 last:border-0 ${!co.active ? 'opacity-40' : ''}`}>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">{co.name}</p>
+                    {co.country && <p className="text-[10px] text-gray-400">{co.country}</p>}
+                  </div>
+                  <button onClick={async () => { await supabase.from('companies').update({active:!co.active}).eq('id',co.id); onRefresh() }}
+                    className={`w-7 h-3.5 rounded-full transition-colors relative shrink-0 ${co.active ? 'bg-green-400' : 'bg-gray-200'}`}>
+                    <span className={`absolute top-0.5 w-2.5 h-2.5 bg-white rounded-full shadow transition-transform ${co.active ? 'translate-x-3.5' : 'translate-x-0.5'}`}/>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ── Access Matrix ─────────────────────────────────────────────────────────────
+function AccessMatrix() {
+  const pages = ['dashboard','deals','clients','history','quotas','budget','users','settings','tasks','tenders','permissions']
+  const labels = { dashboard:'Dashboard', deals:'Deals', clients:'Clients', history:'History', quotas:'Targets', budget:'Budget', users:'Users', settings:'Settings', tasks:'Tasks', tenders:'Tenders', permissions:'Permissions' }
   const roles = Object.keys(ROLE_CONFIG)
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-        <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
-          <Lock size={14} className="text-blue-500" />
-          Access Matrix — páginas por role
-        </h3>
-      </div>
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-gray-100">
-              <th className="text-left px-4 py-2.5 font-semibold text-gray-500 w-28 sticky left-0 bg-white">Página</th>
-              {roles.map(r => {
-                const cfg = ROLE_CONFIG[r]
-                return (
-                  <th key={r} className="px-3 py-2.5 font-bold text-center whitespace-nowrap"
-                    style={{ color: cfg.color }}>
-                    {cfg.label}
-                  </th>
-                )
-              })}
+            <tr className="border-b border-gray-100 bg-gray-50">
+              <th className="text-left px-3 py-2.5 font-semibold text-gray-500 sticky left-0 bg-gray-50 w-24">Página</th>
+              {roles.map(r => (
+                <th key={r} className="px-2 py-2.5 font-bold text-center"
+                  style={{ color: ROLE_CONFIG[r].color }}>
+                  {ROLE_CONFIG[r].label}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {allPages.map((page, i) => (
-              <tr key={page} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
-                <td className="px-4 py-2 font-medium text-gray-700 sticky left-0 bg-inherit">
-                  {PAGE_LABELS[page]}
-                </td>
+            {pages.map((page, i) => (
+              <tr key={page} className={i%2===0?'bg-white':'bg-gray-50/50'}>
+                <td className="px-3 py-2 font-medium text-gray-700 sticky left-0 bg-inherit">{labels[page]}</td>
                 {roles.map(r => {
-                  const perms = ROLE_PERMISSIONS[r]
-                  const hasAccess = r === 'admin' || perms.pages.includes(page)
+                  const has = r==='admin' || (ROLE_PERMISSIONS[r]?.pages||[]).includes(page)
                   return (
-                    <td key={r} className="px-3 py-2 text-center">
-                      {hasAccess
-                        ? <Check size={13} className="text-green-500 mx-auto" />
-                        : <X    size={13} className="text-red-300 mx-auto" />
-                      }
+                    <td key={r} className="px-2 py-2 text-center">
+                      {has ? <Check size={12} className="text-green-500 mx-auto"/> : <X size={12} className="text-gray-200 mx-auto"/>}
                     </td>
                   )
                 })}
@@ -111,357 +337,22 @@ function PermissionsMatrix() {
   )
 }
 
-// ── Componente: Gestão de Companies ──────────────────────────────────────────
-function CompaniesSection({ companies, onRefresh }) {
-  const { t } = useTranslation()
-  const [adding, setAdding] = useState(false)
-  const [editId, setEditId] = useState(null)
-  const [form, setForm] = useState({ name:'', type:'distributor', bu:'VGT', country:'' })
-  const [saving, setSaving] = useState(false)
-
-  async function handleAdd() {
-    if (!form.name.trim()) return
-    setSaving(true)
-    await supabase.from('companies').insert({
-      name: form.name.trim(), type: form.type,
-      bu: ['internal_vgt','internal_ect'].includes(form.type)
-          ? (form.type === 'internal_vgt' ? 'VGT' : 'ECT')
-          : (form.bu || null),
-      country: form.country || null,
-      active: true,
-    })
-    setForm({ name:'', type:'distributor', bu:'VGT', country:'' })
-    setAdding(false); setSaving(false); onRefresh()
-  }
-
-  async function handleToggle(co) {
-    await supabase.from('companies').update({ active: !co.active }).eq('id', co.id)
-    onRefresh()
-  }
-
-  async function handleDelete(id) {
-    if (!confirm('Remover esta empresa? Os users ligados ficarão sem empresa.')) return
-    await supabase.from('companies').delete().eq('id', id)
-    onRefresh()
-  }
-
-  const grouped = useMemo(() => {
-    const g = {}
-    companies.forEach(co => {
-      const t = co.type || 'partner'
-      if (!g[t]) g[t] = []
-      g[t].push(co)
-    })
-    return g
-  }, [companies])
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <Building2 size={18} className="text-navy" />
-            Empresas
-          </h2>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Fujifilm Portugal, Fujifilm España, distribuidores, parceiros e clientes.
-          </p>
-        </div>
-        <button onClick={() => setAdding(o => !o)} className="btn-primary text-xs gap-1">
-          <Plus size={13}/> Nova empresa
-        </button>
-      </div>
-
-      {/* Formulário de adicionar */}
-      {adding && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
-          <p className="text-xs font-semibold text-blue-700">Nova empresa</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="label">Nome *</label>
-              <input className="input" placeholder="ex: Distribuidor X" value={form.name}
-                onChange={e => setForm(f => ({...f, name: e.target.value}))} />
-            </div>
-            <div>
-              <label className="label">Tipo *</label>
-              <select className="select" value={form.type}
-                onChange={e => setForm(f => ({...f, type: e.target.value}))}>
-                {Object.entries(COMPANY_TYPE_CONFIG).map(([k,v]) => (
-                  <option key={k} value={k}>{v.icon} {v.label}</option>
-                ))}
-              </select>
-            </div>
-            {!['internal_vgt','internal_ect'].includes(form.type) && (
-              <div>
-                <label className="label">BU associada</label>
-                <select className="select" value={form.bu}
-                  onChange={e => setForm(f => ({...f, bu: e.target.value}))}>
-                  <option value="VGT">VGT</option>
-                  <option value="ECT">ECT</option>
-                  <option value="ALL">Ambas</option>
-                </select>
-              </div>
-            )}
-            <div>
-              <label className="label">País</label>
-              <input className="input" placeholder="ex: Portugal" value={form.country}
-                onChange={e => setForm(f => ({...f, country: e.target.value}))} />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => setAdding(false)} className="btn-secondary text-xs flex-1">{t('perm_cancel')}</button>
-            <button onClick={handleAdd} disabled={!form.name.trim() || saving}
-              className="btn-primary text-xs flex-1">
-              {saving ? t('perm_saving') : 'Adicionar empresa'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Lista agrupada por tipo */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {Object.entries(grouped).map(([type, list]) => {
-          const cfg = COMPANY_TYPE_CONFIG[type] || { label: type, icon: '🏢', color: '#6B7280' }
-          return (
-            <div key={type} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-              <div className="px-4 py-2.5 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
-                <span>{cfg.icon}</span>
-                <p className="text-xs font-bold text-gray-700">{cfg.label}</p>
-                <span className="ml-auto text-xs text-gray-400">{list.filter(c => c.active).length} activas</span>
-              </div>
-              <div className="divide-y divide-gray-50">
-                {list.map(co => (
-                  <div key={co.id} className={`px-4 py-2.5 flex items-center gap-3 ${!co.active ? 'opacity-40' : ''}`}>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-800 truncate">{co.name}</p>
-                      <p className="text-xs text-gray-400">
-                        {co.bu && <span className="mr-2">{co.bu}</span>}
-                        {co.country}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button onClick={() => handleToggle(co)}
-                        className={`w-8 h-4 rounded-full transition-colors relative ${co.active ? 'bg-green-400' : 'bg-gray-200'}`}>
-                        <span className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${co.active ? 'translate-x-4' : 'translate-x-0.5'}`}/>
-                      </button>
-                      {!['internal_vgt','internal_ect'].includes(co.type) && (
-                        <button onClick={() => handleDelete(co.id)}
-                          className="text-gray-300 hover:text-red-500 p-1">
-                          <Trash2 size={12}/>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-// ── Componente: User card com edição inline ───────────────────────────────────
-function UserPermCard({ profile, companies, salesOwners, onSaved, currentUserId }) {
-  const { t } = useTranslation()
-  const [editing, setEditing]   = useState(false)
-  const [role, setRole]         = useState(profile.role || 'viewer')
-  const [companyId, setCompany] = useState(profile.company_id || '')
-  const [ownerId, setOwner]     = useState(profile.sales_owner_id || '')
-  const [active, setActive]     = useState(profile.active !== false)
-  const [saving, setSaving]     = useState(false)
-  const [saved, setSaved]       = useState(false)
-
-  const isSelf = profile.id === currentUserId
-  const company = companies.find(c => c.id === (editing ? companyId : profile.company_id))
-  const roleCfg = ROLE_CONFIG[profile.role] || ROLE_CONFIG.viewer
-  const perms   = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.viewer
-
-  // BU derivado da empresa seleccionada
-  const derivedBU = company?.type === 'internal_vgt' ? 'VGT'
-                  : company?.type === 'internal_ect' ? 'ECT'
-                  : company?.bu || null
-
-  async function save() {
-    setSaving(true)
-    await supabase.from('profiles').update({
-      role,
-      company_id:       companyId || null,
-      sales_owner_id:   ownerId   || null,
-      sales_owner_name: salesOwners.find(o => o.id === ownerId)?.name || null,
-      bu:               role === 'admin' ? 'ALL' : (derivedBU || null),
-      active,
-    }).eq('id', profile.id)
-    setSaving(false); setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-    setEditing(false); onSaved()
-  }
-
-  return (
-    <div className={`bg-white rounded-xl border shadow-sm overflow-hidden ${
-      isSelf ? 'border-amber-300 border-2' : 'border-gray-200'
-    } ${!active ? 'opacity-60' : ''}`}>
-
-      {/* Header */}
-      <div className="p-4 flex items-start gap-3">
-        {/* Avatar */}
-        <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
-          style={{ background: roleCfg.bg, color: roleCfg.color }}>
-          {(profile.full_name || profile.email || '?')[0].toUpperCase()}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="font-semibold text-gray-900 truncate text-sm">
-                {profile.full_name || profile.email?.split('@')[0]}
-                {isSelf && <span className="ml-1 text-[10px] text-amber-600 font-medium">(tu)</span>}
-              </p>
-              <p className="text-xs text-gray-400 truncate">{profile.email}</p>
-              {company && (
-                <p className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1">
-                  <Building2 size={9}/>
-                  {company.name}
-                  {profile.bu && <span className="ml-1 font-medium text-gray-500">{profile.bu}</span>}
-                </p>
-              )}
-            </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <RoleBadge role={profile.role} />
-              {!active && <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">inactivo</span>}
-            </div>
-          </div>
-
-          {/* Páginas acessíveis */}
-          <div className="mt-2 flex flex-wrap gap-1">
-            {Object.keys(PAGE_LABELS).map(page => {
-              const permsForRole = ROLE_PERMISSIONS[profile.role]
-              const hasAccess = profile.role === 'admin' ||
-                (permsForRole?.pages || []).includes(page)
-              return (
-                <span key={page}
-                  className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
-                    hasAccess ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-300'
-                  }`}>
-                  {PAGE_LABELS[page]}
-                </span>
-              )
-            })}
-            {!ROLE_PERMISSIONS[profile.role] && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 font-medium">
-                ⚠ role desconhecido
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Painel de edição */}
-      {editing ? (
-        <div className="px-4 pb-4 space-y-3 border-t border-gray-50 pt-3">
-
-          {/* Role */}
-          <div>
-            <label className="label">{t('perm_role')}</label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-              {Object.entries(ROLE_CONFIG).map(([r, cfg]) => (
-                <button key={r} onClick={() => setRole(r)}
-                  className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium border transition-all text-left ${
-                    role === r ? 'border-2' : 'border-gray-100 hover:border-gray-200'
-                  }`}
-                  style={role === r ? { borderColor: cfg.color, background: cfg.bg, color: cfg.color } : {}}>
-                  <Shield size={10}/>{cfg.label}
-                </button>
-              ))}
-            </div>
-            {role && (
-              <p className="text-[10px] text-gray-400 mt-1 ml-1">
-                {ROLE_CONFIG[role]?.desc} · Páginas: {perms.pages.map(p => PAGE_LABELS[p]).join(', ')}
-              </p>
-            )}
-          </div>
-
-          {/* Empresa */}
-          <div>
-            <label className="label">{t('perm_company')}</label>
-            <select className="select text-sm" value={companyId}
-              onChange={e => setCompany(e.target.value)}>
-              <option value="">— Sem empresa —</option>
-              {companies.filter(c => c.active).map(co => {
-                const cfg = COMPANY_TYPE_CONFIG[co.type] || {}
-                return <option key={co.id} value={co.id}>{cfg.icon} {co.name} ({co.bu || co.type})</option>
-              })}
-            </select>
-            {derivedBU && (
-              <p className="text-[10px] text-gray-400 mt-1 ml-1">BU derivada: <strong>{derivedBU}</strong></p>
-            )}
-          </div>
-
-          {/* Sales Owner (só para roles comerciais) */}
-          {['manager','member','distributor'].includes(role) && (
-            <div>
-              <label className="label">{t('perm_owner')}</label>
-              <select className="select text-sm" value={ownerId}
-                onChange={e => setOwner(e.target.value)}>
-                <option value="">— Sem ligação —</option>
-                {salesOwners.filter(o => o.active).map(o => (
-                  <option key={o.id} value={o.id}>{o.name} · {o.bu}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Activo */}
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-medium text-gray-500">{t('perm_active')}</label>
-            <button onClick={() => setActive(o => !o)}
-              className={`w-10 h-5 rounded-full transition-colors relative ${active ? 'bg-green-400' : 'bg-gray-200'}`}>
-              <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${active ? 'translate-x-5' : 'translate-x-0.5'}`}/>
-            </button>
-          </div>
-
-          <div className="flex gap-2 pt-1">
-            <button onClick={() => setEditing(false)} className="btn-secondary flex-1 text-xs">{t('perm_cancel')}</button>
-            <button onClick={save} disabled={saving || isSelf}
-              className="btn-primary flex-1 text-xs">
-              {saving ? t('perm_saving') : saved ? t('perm_saved') : 'Guardar'}
-            </button>
-          </div>
-          {isSelf && <p className="text-[10px] text-amber-600 text-center">{t('perm_no_edit_self')}</p>}
-        </div>
-      ) : (
-        <div className="px-4 pb-3">
-          <button onClick={() => setEditing(true)}
-            className="w-full text-xs bg-gray-50 hover:bg-gray-100 text-gray-600 py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors">
-            <Edit3 size={11}/> Editar permissões
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── Componente: Invite user ───────────────────────────────────────────────────
+// ── Invite Section ────────────────────────────────────────────────────────────
 function InviteSection({ companies, salesOwners, onSaved }) {
   const { t } = useTranslation()
-  const [email, setEmail]       = useState('')
-  const [role, setRole]         = useState('member')
-  const [companyId, setCompany] = useState('')
-  const [ownerId, setOwner]     = useState('')
-  const [displayName, setDisplayName] = useState('')
-  const [sending, setSending]   = useState(false)
-  const [result, setResult]     = useState(null)
+  const [email, setEmail]           = useState('')
+  const [displayName, setName]      = useState('')
+  const [role, setRole]             = useState('member')
+  const [companyId, setCompany]     = useState('')
+  const [ownerId, setOwner]         = useState('')
+  const [sending, setSending]       = useState(false)
+  const [result, setResult]         = useState(null)
 
   async function handleInvite() {
     if (!email.trim()) return
     setSending(true); setResult(null)
-
-    const company = companies.find(co => co.id === companyId)
-    const bu = role === 'admin' ? 'ALL'
-             : company?.type === 'internal_vgt' ? 'VGT'
-             : company?.type === 'internal_ect' ? 'ECT'
-             : company?.bu || null
+    const co = companies.find(c => c.id === companyId)
+    const bu = role === 'admin' ? 'ALL' : co?.type === 'internal_vgt' ? 'VGT' : co?.type === 'internal_ect' ? 'ECT' : co?.bu || null
     const ownerName = salesOwners.find(o => o.id === ownerId)?.name || null
 
     try {
@@ -475,66 +366,66 @@ function InviteSection({ companies, salesOwners, onSaved }) {
             'Authorization': `Bearer ${session?.access_token}`,
             'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
           },
-          body: JSON.stringify({
-            email: email.toLowerCase().trim(),
-            role,
-            company_id:       companyId   || null,
-            sales_owner_id:   ownerId     || null,
-            sales_owner_name: ownerName,
-            bu,
-            display_name:     displayName || null,
-          }),
+          body: JSON.stringify({ email: email.toLowerCase().trim(), role, company_id: companyId||null, sales_owner_id: ownerId||null, sales_owner_name: ownerName, bu, display_name: displayName||null }),
         }
       )
       const json = await res.json()
       setSending(false)
       if (json.success) {
-        setResult({ type: 'success', msg: json.message })
-        setEmail(''); setRole('member'); setCompany(''); setOwner(''); setDisplayName('')
+        setResult({ ok: true, msg: json.message })
+        setEmail(''); setName(''); setRole('member'); setCompany(''); setOwner('')
         onSaved()
       } else {
-        setResult({ type: 'error', msg: json.error || 'Erro desconhecido' })
+        setResult({ ok: false, msg: json.error || 'Erro desconhecido' })
       }
     } catch (err) {
       setSending(false)
-      setResult({ type: 'error', msg: err.message })
+      setResult({ ok: false, msg: err.message })
     }
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
-        <Mail size={14} className="text-navy"/>
-        <h3 className="text-sm font-bold text-gray-700">Adicionar utilizador</h3>
-      </div>
-      <div className="p-4 space-y-3">
+    <div className="space-y-4">
+      <h2 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+        <Mail size={15} className="text-navy"/>
+        Adicionar utilizador
+      </h2>
+
+      <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="label">Nome (opcional)</label>
-            <input className="input" placeholder={t('perm_invite_name')}
-              value={displayName} onChange={e => setDisplayName(e.target.value)}/>
+            <input className="input" placeholder="Nome completo" value={displayName}
+              onChange={e => setName(e.target.value)} style={{fontSize:'16px'}}/>
           </div>
           <div>
             <label className="label">Email *</label>
-            <input className="input" type="email" placeholder={t('perm_invite_email')}
-              value={email} onChange={e => setEmail(e.target.value)}/>
+            <input className="input" type="email" placeholder="user@empresa.com" value={email}
+              onChange={e => setEmail(e.target.value)} style={{fontSize:'16px'}}/>
           </div>
           <div>
             <label className="label">Role *</label>
             <select className="select" value={role} onChange={e => setRole(e.target.value)}>
               {Object.entries(ROLE_CONFIG).map(([r,cfg]) => (
-                <option key={r} value={r}>{cfg.label} — {cfg.desc.substring(0,40)}</option>
+                <option key={r} value={r}>{cfg.label}</option>
               ))}
             </select>
+            <p className="text-[10px] text-gray-400 mt-1">
+              {role === 'admin' && 'Acesso total — todas as BUs'}
+              {role === 'manager' && 'Gestor — edita todos os deals da BU'}
+              {role === 'member' && 'Membro — edita os seus próprios deals'}
+              {role === 'distributor' && 'Parceiro externo — vê só os seus deals'}
+              {role === 'viewer' && 'Leitura apenas — sem edição'}
+              {role === 'partner' && 'Parceiro — dashboard + deals linkados'}
+            </p>
           </div>
           <div>
-            <label className="label">{t('perm_company')}</label>
+            <label className="label">Empresa</label>
             <select className="select" value={companyId} onChange={e => setCompany(e.target.value)}>
               <option value="">— Sem empresa —</option>
-              {companies.filter(c => c.active).map(co => {
-                const cfg = COMPANY_TYPE_CONFIG[co.type] || {}
-                return <option key={co.id} value={co.id}>{cfg.icon} {co.name}</option>
-              })}
+              {companies.filter(c=>c.active).map(co => (
+                <option key={co.id} value={co.id}>{COMPANY_TYPES[co.type]?.icon} {co.name}</option>
+              ))}
             </select>
           </div>
           {['manager','member','distributor'].includes(role) && (
@@ -542,7 +433,7 @@ function InviteSection({ companies, salesOwners, onSaved }) {
               <label className="label">Sales Owner (opcional)</label>
               <select className="select" value={ownerId} onChange={e => setOwner(e.target.value)}>
                 <option value="">— Sem ligação —</option>
-                {salesOwners.filter(o => o.active).map(o => (
+                {salesOwners.filter(o=>o.active).map(o => (
                   <option key={o.id} value={o.id}>{o.name} · {o.bu}</option>
                 ))}
               </select>
@@ -551,24 +442,18 @@ function InviteSection({ companies, salesOwners, onSaved }) {
         </div>
 
         {result && (
-          <div className={`flex items-start gap-2 p-3 rounded-lg text-sm ${
-            result.type === 'error' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
-          }`}>
-            {result.type === 'error'
-              ? <AlertCircle size={14} className="shrink-0 mt-0.5"/>
-              : <CheckCircle2 size={14} className="shrink-0 mt-0.5"/>
-            }
+          <div className={`flex items-start gap-2 p-3 rounded-lg text-sm ${result.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+            {result.ok ? <CheckCircle2 size={14} className="shrink-0 mt-0.5"/> : <AlertCircle size={14} className="shrink-0 mt-0.5"/>}
             {result.msg}
           </div>
         )}
 
         <button onClick={handleInvite} disabled={!email.trim() || sending}
-          className="btn-primary w-full text-sm">
-          {sending ? <RefreshCw size={14} className="animate-spin"/> : <Mail size={14}/>}
-          {sending ? t('perm_invite_creating') : t('perm_invite_btn')}
+          className="btn-primary w-full disabled:opacity-50">
+          {sending ? <><RefreshCw size={14} className="animate-spin"/><span>A processar…</span></> : <><Mail size={14}/><span>Convidar utilizador</span></>}
         </button>
         <p className="text-[10px] text-gray-400 text-center">
-          O utilizador recebe um email com um link para definir a password e aceder à app.
+          O utilizador recebe email com link para definir a password.
         </p>
       </div>
     </div>
@@ -578,77 +463,80 @@ function InviteSection({ companies, salesOwners, onSaved }) {
 // ── Página principal ──────────────────────────────────────────────────────────
 export default function Permissions() {
   const { t } = useTranslation()
-  const { isAdmin, profile: currentProfile, user, loading: authLoading } = useAuth()
-  const [companies, setCompanies]   = useState([])
-  const [profiles, setProfiles]     = useState([])
+  const { isAdmin, user, loading: authLoading } = useAuth()
+  const [companies, setCompanies]     = useState([])
+  const [profiles, setProfiles]       = useState([])
   const [salesOwners, setSalesOwners] = useState([])
-  const [loading, setLoading]       = useState(true)
-  const [tab, setTab]               = useState('users')
-  const [search, setSearch]         = useState('')
+  const [loading, setLoading]         = useState(true)
+  const [tab, setTab]                 = useState('users')
+  const [buFilter, setBuFilter]       = useState('all')
+  const [search, setSearch]           = useState('')
 
   async function load() {
-    const [compRes, profRes, ownRes] = await Promise.all([
+    const [c, p, o] = await Promise.all([
       supabase.from('companies').select('*').order('type').order('name'),
       supabase.from('profiles').select('*').order('role').order('email'),
       supabase.from('sales_owners').select('*').eq('active', true).order('bu').order('name'),
     ])
-    setCompanies(compRes.data || [])
-    setProfiles(profRes.data || [])
-    setSalesOwners(ownRes.data || [])
+    setCompanies(c.data || [])
+    setProfiles(p.data || [])
+    setSalesOwners(o.data || [])
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { if (!authLoading) load() }, [authLoading])
 
-  // Aguardar o auth carregar antes de verificar permissões
-  if (authLoading) return <Spinner/>
+  if (authLoading || loading) return (
+    <div className="flex items-center justify-center h-64"><Spinner/></div>
+  )
 
   if (!isAdmin) return (
     <div className="flex items-center justify-center h-64 text-gray-400">
       <div className="text-center">
         <Lock size={32} className="mx-auto mb-2 opacity-30"/>
-        <p>{t('perm_no_access')}</p>
+        <p className="text-sm">Acesso restrito — apenas admin.</p>
       </div>
     </div>
   )
 
-  if (loading) return <Spinner/>
-
-  const filteredProfiles = profiles.filter(p =>
-    !search ||
-    p.email?.toLowerCase().includes(search.toLowerCase()) ||
-    p.full_name?.toLowerCase().includes(search.toLowerCase())
-  )
+  // Filtrar profiles
+  const filtered = profiles.filter(p => {
+    const matchBU = buFilter === 'all' || p.bu === buFilter || (buFilter === 'ALL' && p.bu === 'ALL')
+    const matchSearch = !search || p.email?.toLowerCase().includes(search.toLowerCase()) || p.full_name?.toLowerCase().includes(search.toLowerCase())
+    return matchBU && matchSearch
+  })
 
   const TABS = [
-    { id:'users',    label:'Utilizadores', count: profiles.length },
+    { id:'users',    label:`Utilizadores`, count: profiles.length },
     { id:'companies',label:'Empresas',     count: companies.length },
     { id:'matrix',   label:'Access Matrix' },
-    { id:'invite',   label:'+ Adicionar'  },
+    { id:'invite',   label:'+ Convidar' },
   ]
 
   return (
-    <div className="p-4 space-y-5 max-w-4xl mx-auto">
-      <div className="pt-1">
+    <div className="p-4 space-y-5 max-w-3xl mx-auto">
+
+      {/* Header */}
+      <div>
         <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
           <Shield size={20} className="text-navy"/>
           Permissions
         </h1>
         <p className="text-sm text-gray-400 mt-0.5">
-          {t('perm_subtitle')}
+          {profiles.length} utilizadores · {profiles.filter(p=>['admin','manager','member'].includes(p.role)).length} com acesso de edição
         </p>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-xl overflow-x-auto">
-        {TABS.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)}
+        {TABS.map(tab_ => (
+          <button key={tab_.id} onClick={() => setTab(tab_.id)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-              tab === t.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              tab === tab_.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}>
-            {t.label}
-            {t.count !== undefined && (
-              <span className="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">{t.count}</span>
+            {tab_.label}
+            {tab_.count !== undefined && (
+              <span className="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">{tab_.count}</span>
             )}
           </button>
         ))}
@@ -656,18 +544,39 @@ export default function Permissions() {
 
       {/* Tab: Utilizadores */}
       {tab === 'users' && (
-        <div className="space-y-4">
-          <div className="relative">
-            <input className="input pl-8" placeholder={t('perm_search')}
-              value={search} onChange={e => setSearch(e.target.value)}/>
-            <Users size={14} className="absolute left-2.5 top-3 text-gray-400"/>
+        <div className="space-y-3">
+          {/* Filtros */}
+          <div className="flex gap-2 flex-wrap">
+            {/* Search */}
+            <div className="relative flex-1 min-w-48">
+              <input className="input pl-8 text-sm" placeholder="Pesquisar…"
+                value={search} onChange={e => setSearch(e.target.value)}
+                style={{fontSize:'16px'}}/>
+              <Search size={14} className="absolute left-2.5 top-3 text-gray-400"/>
+            </div>
+            {/* BU Filter */}
+            <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+              {['all','VGT','ECT','ALL'].map(bu => (
+                <button key={bu} onClick={() => setBuFilter(bu)}
+                  className={`px-2.5 py-1 rounded text-xs font-semibold transition-all ${
+                    buFilter === bu ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+                  }`}>
+                  {bu === 'all' ? 'Todos' : bu}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="space-y-3">
-            {filteredProfiles.map(p => (
-              <UserPermCard key={p.id} profile={p}
+
+          {/* Lista */}
+          <div className="space-y-2">
+            {filtered.map(p => (
+              <UserCard key={p.id} profile={p}
                 companies={companies} salesOwners={salesOwners}
-                onSaved={load} currentUserId={user?.id}/>
+                onSaved={load} isSelf={p.id === user?.id}/>
             ))}
+            {filtered.length === 0 && (
+              <p className="text-center text-gray-400 text-sm py-8">Nenhum utilizador encontrado.</p>
+            )}
           </div>
         </div>
       )}
@@ -678,9 +587,9 @@ export default function Permissions() {
       )}
 
       {/* Tab: Access Matrix */}
-      {tab === 'matrix' && <PermissionsMatrix/>}
+      {tab === 'matrix' && <AccessMatrix/>}
 
-      {/* Tab: Invite */}
+      {/* Tab: Convidar */}
       {tab === 'invite' && (
         <InviteSection companies={companies} salesOwners={salesOwners} onSaved={load}/>
       )}
