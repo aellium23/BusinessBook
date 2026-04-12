@@ -69,13 +69,25 @@ export function AuthProvider({ children }) {
       .single()
 
     if (data) {
+      // Verificar se a conta está activa
+      if (data.active === false) {
+        await supabase.auth.signOut()
+        setProfile(null); setCompany(null)
+        return
+      }
       const { company: co, ...prof } = data
       setProfile(prof)
       setCompany(co || null)
     } else {
+      // Novo user — criar profile básico
       const { data: upserted } = await supabase
         .from('profiles')
-        .upsert({ id: userId, email: userEmail, role: 'viewer', active: true }, { onConflict: 'id' })
+        .upsert({
+          id: userId,
+          email: userEmail,
+          role: 'viewer',
+          active: true
+        }, { onConflict: 'id' })
         .select()
         .single()
       setProfile(upserted || { id: userId, email: userEmail, role: 'viewer' })
