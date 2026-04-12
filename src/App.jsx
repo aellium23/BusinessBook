@@ -11,6 +11,7 @@ import Quotas from './pages/Quotas'
 import Budget from './pages/Budget'
 import Users from './pages/Users'
 import Settings from './pages/Settings'
+import MyAccount from './pages/MyAccount'
 import Tasks from './pages/Tasks'
 import Tenders from './pages/Tenders'
 import { Spinner } from './components/ui'
@@ -18,7 +19,6 @@ import AuthCallback from './pages/AuthCallback'
 import SetPassword from './pages/SetPassword'
 
 // Lazy load — não bloqueia o build se o ficheiro não existir
-const MyAccount   = lazy(() => import('./pages/MyAccount').catch(() => ({ default: () => null })))
 const Permissions = lazy(() =>
   import('./pages/Permissions').catch(() => ({ default: () => (
     <div className="flex items-center justify-center h-64 text-gray-400">
