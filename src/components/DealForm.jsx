@@ -61,6 +61,7 @@ const EMPTY = {
   distributor: '',
   hub: '',
   end_customer_value: '',
+  company_id: '',
   list_price: '',
   discount_requested: '',
   discount_note_dist: '',
@@ -145,7 +146,7 @@ function calcSLARecognition({ startDay, startMonth, startYear, endDay, endMonth,
 }
 
 function DiscountApprovalPanel({ deal, onSave }) {
-  const { t: tr } = useTranslation()
+  const { t } = useTranslation()
   const [approved, setApproved] = useState(deal.discount_approved ?? '')
   const [transfer, setTransfer] = useState(deal.transfer_price ?? '')
   const [note, setNote]         = useState(deal.discount_note || '')
@@ -167,37 +168,37 @@ function DiscountApprovalPanel({ deal, onSave }) {
   return (
     <div className="border-t border-gray-200 pt-3 space-y-3">
       <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">VGT Response</p>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <div>
-          <label className="label">{tr("df_decision")}</label>
+          <label className="label">{t("df_decision")}</label>
           <select className="select" value={status} onChange={e => setStatus(e.target.value)}>
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
-            <option value="counter">{tr("df_counter")}</option>
+            <option value="counter">{t("df_counter")}</option>
             <option value="rejected">Rejected</option>
           </select>
         </div>
         <div>
-          <label className="label">{tr("df_approved_disc")}</label>
+          <label className="label">{t("df_approved_disc")}</label>
           <input className="input" type="number" min="0" max="100"
             value={approved} onChange={e => setApproved(e.target.value)}
             placeholder="e.g. 12"/>
         </div>
         <div>
-          <label className="label">{tr("df_transfer")}</label>
+          <label className="label">{t("df_transfer")}</label>
           <input className="input" type="number"
             value={transfer} onChange={e => setTransfer(e.target.value)}
             placeholder="Price to distributor"/>
         </div>
       </div>
       <div>
-        <label className="label">{tr("df_note_dist")}</label>
+        <label className="label">{t("df_note_dist")}</label>
         <input className="input" value={note} onChange={e => setNote(e.target.value)}
           placeholder="Reason, conditions, expiry…"/>
       </div>
       <button onClick={save} disabled={saving}
         className="w-full btn-primary text-xs">
-        {saving ? tr("df_saving") : tr("df_save")}
+        {saving ? t("df_saving") : t("df_save")}
       </button>
     </div>
   )
@@ -205,7 +206,7 @@ function DiscountApprovalPanel({ deal, onSave }) {
 
 export default function DealForm({ deal, onClose, onSaved }) {
   const { profile, isAdmin } = useAuth()
-  const { t: tr } = useTranslation()
+  const { t } = useTranslation()
   const { getRate } = useFxRates()
   const [form, setForm] = useState(() => deal ? {
     ...deal,
@@ -233,9 +234,11 @@ export default function DealForm({ deal, onClose, onSaved }) {
     equipment_count: deal.equipment_count || '',
     annual_studies: deal.annual_studies || '',
     annual_exams: deal.annual_exams || '',
+    company_id: deal.company_id || '',
   } : {
     ...EMPTY,
     bu: isAdmin ? '' : profile?.role?.toUpperCase() || '',
+    company_id: profile?.role === 'distributor' ? (profile?.company_id || '') : '',
   })
   const [saving, setSaving]   = useState(false)
   const [error, setError]     = useState('')
@@ -248,10 +251,6 @@ export default function DealForm({ deal, onClose, onSaved }) {
   const [addingAct, setAddingAct] = useState(false)
   const [dealHistory, setDealHistory] = useState([])
   const [showHistory, setShowHistory] = useState(false)
-  const [salesProfiles, setSalesProfiles] = useState([])
-  const [changeReason, setChangeReason] = useState('')
-  const [showReasonModal, setShowReasonModal] = useState(false)
-  const [pendingSave, setPendingSave] = useState(false)
 
   const isMaint = form.deal_type === 'Maintenance'
 
@@ -294,16 +293,6 @@ export default function DealForm({ deal, onClose, onSaved }) {
     { value: 'Command Center',  label: 'Command Center',          hasEquipment: false, hasStudies: false, hasExams: true  },
   ]
   const selectedProduct = PRODUCTS.find(p => p.value === form.product)
-
-  // Load sales_owners for Sales Owner dropdown (once)
-  useEffect(() => {
-    supabase.from('sales_owners')
-      .select('id,name,bu,active')
-      .eq('active', true)
-      .order('bu')
-      .order('name')
-      .then(({ data }) => setSalesProfiles(data || []))
-  }, [])
 
   // Load activity log and change history for existing deal
   useEffect(() => {
@@ -379,21 +368,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
     setIcPreview(preview.map(v => Math.round((v / total) * icVal * 100) / 100))
   }, [hasIC, form.intercompany_value, preview])
 
-  // Detectar se a alteração é crítica e requer motivo
-  function needsReason() {
-    if (!deal?.id) return false  // novo deal — sem motivo necessário
-    const oldVal = parseFloat(deal.value_total) || 0
-    const newVal = parseFloat(form.value_total) || 0
-    const valueDrop = oldVal > 0 && newVal < oldVal * 0.9  // >10% drop
-    const stageLost = form.stage === 'Lost' && deal.stage !== 'Lost'
-    const stageDown = ['Lost','Lead'].includes(form.stage) &&
-      ['BackLog','Invoiced','Offer Presented','Pipeline'].includes(deal.stage)
-    return valueDrop || stageLost || stageDown
-  }
-
-  async function executeSave() {
+  async function handleSave() {
+    if (!form.bu || !form.client || !form.stage) { setError('BU, Client and Stage are required'); return }
     setSaving(true); setError('')
-    setPendingSave(false)
 
     const monthly = isMaint && preview
       ? Object.fromEntries(MONTHS_K.map((m, i) => [m, preview[i] || 0]))
@@ -443,6 +420,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
         : (parseFloat(form.win_probability) || null),
       // Lost
       lost_reason: form.stage === 'Lost' ? (form.lost_reason || null) : null,
+      // company_id: ligar ao distribuidor que criou o deal
+      company_id: form.company_id || null,
+      created_by: profile?.id || null,
       ...monthly,
     }
 
@@ -458,40 +438,17 @@ export default function DealForm({ deal, onClose, onSaved }) {
     }
 
     if (result.error) setError(result.error.message)
-    else {
-      // Guardar motivo na deal_history se existir
-      if (changeReason && deal?.id) {
-        await supabase.from('deal_history').insert({
-          deal_id: deal.id,
-          changed_by: null,
-          field_name: 'change_reason',
-          old_value: null,
-          new_value: changeReason,
-        })
-      }
-      setChangeReason('')
-      onSaved(); onClose()
-    }
+    else { onSaved(); onClose() }
     setSaving(false)
-  }
-
-  async function handleSave() {
-    if (!form.bu || !form.client || !form.stage) { setError('BU, Client and Stage are required'); return }
-    if (needsReason() && !changeReason) {
-      setShowReasonModal(true)
-      setPendingSave(true)
-      return
-    }
-    executeSave()
   }
 
   return (
     <Modal open title={deal?.id ? 'Edit deal' : 'New deal'} onClose={onClose}
       footer={
         <div className="flex gap-2">
-          <button onClick={onClose} className="btn-secondary flex-1">{tr("df_cancel")}</button>
+          <button onClick={onClose} className="btn-secondary flex-1">{t("df_cancel")}</button>
           <button onClick={handleSave} disabled={saving} className="btn-primary flex-1">
-            {saving ? tr("df_saving") : tr("df_save")}
+            {saving ? t("df_saving") : t("df_save")}
           </button>
         </div>
       }>
@@ -499,9 +456,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
         {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 
         {/* BU + Sales Type + Stage */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div>
-            <label className="label">{tr("df_bu")} *</label>
+            <label className="label">{t("df_bu")} *</label>
             <select className="select" value={form.bu} onChange={e => set('bu', e.target.value)} disabled={!isAdmin}>
               <option value="">—</option>
               <option value="VGT">VGT</option>
@@ -509,14 +466,14 @@ export default function DealForm({ deal, onClose, onSaved }) {
             </select>
           </div>
           <div>
-            <label className="label">{tr("df_sales_type")}</label>
+            <label className="label">{t("df_sales_type")}</label>
             <select className="select" value={form.sales_type} onChange={e => set('sales_type', e.target.value)}>
               <option>Internal</option>
               <option>External</option>
             </select>
           </div>
           <div>
-            <label className="label">{tr("df_stage")} *</label>
+            <label className="label">{t("df_stage")} *</label>
             <select className="select" value={form.stage} onChange={e => set('stage', e.target.value)}>
               {(isDistributor ? DIST_STAGES : ['Lead','Pipeline','Offer Presented','BackLog','Invoiced','Lost']).map(s => <option key={s}>{s}</option>)}
             </select>
@@ -525,20 +482,20 @@ export default function DealForm({ deal, onClose, onSaved }) {
 
         {/* Client */}
         <div>
-          <label className="label">{tr("df_client")} *</label>
+          <label className="label">{t("df_client")} *</label>
           <input className="input" value={form.client} onChange={e => set('client', e.target.value)} placeholder="Hospital or organisation" />
         </div>
 
         {/* Region + Country */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">{tr("df_region")}</label>
+            <label className="label">{t("df_region")}</label>
             <select className="select" value={form.region} onChange={e => { set('region', e.target.value); set('country','') }}>
               {REGIONS.map(r => <option key={r}>{r}</option>)}
             </select>
           </div>
           <div>
-            <label className="label">{tr("df_country")}</label>
+            <label className="label">{t("df_country")}</label>
             <select className="select" value={form.country} onChange={e => set('country', e.target.value)}>
               <option value="">—</option>
               {(COUNTRY_MAP[form.region] || []).map(c => <option key={c}>{c}</option>)}
@@ -547,18 +504,13 @@ export default function DealForm({ deal, onClose, onSaved }) {
         </div>
 
         {/* Owner + Type */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">{tr("df_owner")}</label>
-            <select className="select" value={form.sales_owner} onChange={e => set('sales_owner', e.target.value)}>
-              <option value="">— Select owner —</option>
-              {salesProfiles.map(p => (
-                <option key={p.id} value={p.name}>{p.name} · {p.bu}</option>
-              ))}
-            </select>
+            <label className="label">{t("df_owner")}</label>
+            <input className="input" value={form.sales_owner} onChange={e => set('sales_owner', e.target.value)} />
           </div>
           <div>
-            <label className="label">{tr("df_deal_type")}</label>
+            <label className="label">{t("df_deal_type")}</label>
             <select className="select" value={form.deal_type} onChange={e => set('deal_type', e.target.value)}>
               <option>One-Shot</option>
               <option>Maintenance</option>
@@ -568,7 +520,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
 
         {/* Description */}
         <div>
-          <label className="label">{tr("df_description")}</label>
+          <label className="label">{t("df_description")}</label>
           <input className="input" value={form.description} onChange={e => set('description', e.target.value)} placeholder="Project details" />
         </div>
 
@@ -580,7 +532,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
               <option value="">— Select reason —</option>
               <option>Price too high</option>
               <option>Lost to competitor</option>
-              <option>{tr("df_budget_freeze")}</option>
+              <option>{t("df_budget_freeze")}</option>
               <option>Project cancelled</option>
               <option>No decision</option>
               <option>Technical requirements not met</option>
@@ -596,7 +548,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
         {/* Currency selector */}
         <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
           <div className="flex-1">
-            <label className="label">{tr("df_currency")}</label>
+            <label className="label">{t("df_currency")}</label>
             <div className="flex gap-2 mt-1">
               {['EUR','USD','GBP'].map(c => (
                 <button key={c} type="button"
@@ -624,7 +576,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </div>
           {form.currency !== 'EUR' && (
             <div className="shrink-0">
-              <label className="label">{tr("df_rate")}</label>
+              <label className="label">{t("df_rate")}</label>
               <div className="flex items-center gap-1.5 mt-1">
                 <span className="text-xs text-gray-400">1 {form.currency} =</span>
                 <input className="input w-20 text-center" type="number" step="0.0001"
@@ -648,22 +600,22 @@ export default function DealForm({ deal, onClose, onSaved }) {
         </div>
 
         {/* Value + GM + Win Probability */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div>
             <label className="label">
-              {tr("df_value")} {form.currency === 'EUR' ? '€' : form.currency === 'USD' ? '$' : '£'}
+              {t("df_value")} {form.currency === 'EUR' ? '€' : form.currency === 'USD' ? '$' : '£'}
             </label>
             <input className="input" type="number" value={form.value_total} onChange={e => set('value_total', e.target.value)} placeholder="0" />
           </div>
           <div>
-            <label className="label">{tr("df_gm")}</label>
+            <label className="label">{t("df_gm")}</label>
             <input className="input" type="number" value={form.gm_pct} onChange={e => set('gm_pct', e.target.value)} placeholder="0.0" />
           </div>
           <div>
             <label className="label">
-              {tr("df_win_prob")}
+              {t("df_win_prob")}
               {['Lead','Pipeline','Offer Presented'].includes(form.stage) && (
-                <span className="ml-1 text-purple-500 font-normal">{tr("df_editable")}</span>
+                <span className="ml-1 text-purple-500 font-normal">{t("df_editable")}</span>
               )}
             </label>
             <input
@@ -685,12 +637,12 @@ export default function DealForm({ deal, onClose, onSaved }) {
 
         {/* ── PRODUCT ──────────────────────────────────────────── */}
         <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-          <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{tr("df_product_lbl")}</p>
+          <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{t("df_product_lbl")}</p>
 
           <div>
-            <label className="label">{tr("df_product")} *</label>
+            <label className="label">{t("df_product")} *</label>
             <select className="select" value={form.product} onChange={e => set('product', e.target.value)}>
-              <option value="">{tr("df_select_product")}</option>
+              <option value="">{t("df_select_product")}</option>
               {PRODUCTS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
               <option value="Other">Other</option>
             </select>
@@ -698,11 +650,11 @@ export default function DealForm({ deal, onClose, onSaved }) {
 
           {/* Dose-specific fields */}
           {selectedProduct?.hasEquipment && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="label">
-                  {tr("df_equipment")}
-                  <span className="text-gray-400 font-normal ml-1">{tr("df_total_units")}</span>
+                  {t("df_equipment")}
+                  <span className="text-gray-400 font-normal ml-1">{t("df_total_units")}</span>
                 </label>
                 <input className="input" type="number" min="0"
                   value={form.equipment_count}
@@ -711,8 +663,8 @@ export default function DealForm({ deal, onClose, onSaved }) {
               </div>
               <div>
                 <label className="label">
-                  {tr("df_annual_studies")}
-                  <span className="text-gray-400 font-normal ml-1">{tr("df_studies_year")}</span>
+                  {t("df_annual_studies")}
+                  <span className="text-gray-400 font-normal ml-1">{t("df_studies_year")}</span>
                 </label>
                 <input className="input" type="number" min="0"
                   value={form.annual_studies}
@@ -726,8 +678,8 @@ export default function DealForm({ deal, onClose, onSaved }) {
           {selectedProduct?.hasExams && (
             <div>
               <label className="label">
-                {tr("df_annual_exams")}
-                <span className="text-gray-400 font-normal ml-1">{tr("df_exams_year")}</span>
+                {t("df_annual_exams")}
+                <span className="text-gray-400 font-normal ml-1">{t("df_exams_year")}</span>
               </label>
               <input className="input" type="number" min="0"
                 value={form.annual_exams}
@@ -766,7 +718,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{tr("df_dist_chain")}</p>
+                <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{t("df_dist_chain")}</p>
                 <p className="text-[10px] text-gray-400 mt-0.5">
                   {form.client} = who VGT invoices ·
                   {form.hub ? ` via ${form.hub}` : form.distributor ? ` direct to distributor` : ' direct'}
@@ -774,30 +726,30 @@ export default function DealForm({ deal, onClose, onSaved }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="label">{tr("df_end_customer")}</label>
+                <label className="label">{t("df_end_customer")}</label>
                 <input className="input" value={form.end_customer}
                   onChange={e => set('end_customer', e.target.value)}
                   placeholder="e.g. Hospital La Paz"/>
               </div>
               <div>
-                <label className="label">{tr("df_ec_value")}</label>
+                <label className="label">{t("df_ec_value")}</label>
                 <input className="input" type="number" value={form.end_customer_value}
                   onChange={e => set('end_customer_value', e.target.value)}
                   placeholder="Full project value"/>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="label">{tr("df_distributor")} <span className="text-gray-400 font-normal">{tr("df_optional")}</span></label>
+                <label className="label">{t("df_distributor")} <span className="text-gray-400 font-normal">{t("df_optional")}</span></label>
                 <input className="input" value={form.distributor}
                   onChange={e => set('distributor', e.target.value)}
                   placeholder="e.g. Fujifilm Mexico"/>
               </div>
               <div>
-                <label className="label">{tr("df_hub")} <span className="text-gray-400 font-normal">{tr("df_optional")}</span></label>
+                <label className="label">{t("df_hub")} <span className="text-gray-400 font-normal">{t("df_optional")}</span></label>
                 <input className="input" value={form.hub}
                   onChange={e => set('hub', e.target.value)}
                   list="hub-list"
@@ -841,7 +793,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
           }`}>
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
-                {tr("df_disc_request")}
+                {t("df_disc_request")}
               </p>
               {deal?.discount_status && (
                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
@@ -860,9 +812,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
             </div>
 
             {/* Distributor fills these */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div>
-                <label className="label">{tr("df_list_price")}</label>
+                <label className="label">{t("df_list_price")}</label>
                 <input className="input" type="number"
                   value={form.list_price}
                   onChange={e => set('list_price', e.target.value)}
@@ -870,7 +822,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                   placeholder="Catalogue price"/>
               </div>
               <div>
-                <label className="label">{tr("df_disc_req")}</label>
+                <label className="label">{t("df_disc_req")}</label>
                 <input className="input" type="number" min="0" max="100"
                   value={form.discount_requested}
                   onChange={e => set('discount_requested', e.target.value)}
@@ -878,7 +830,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                   placeholder="e.g. 15"/>
               </div>
               <div>
-                <label className="label">{tr("df_your_price")}</label>
+                <label className="label">{t("df_your_price")}</label>
                 <div className="input bg-gray-50 text-gray-600 text-sm">
                   {form.list_price && form.discount_requested
                     ? `€${(Number(form.list_price) * (1 - Number(form.discount_requested)/100)).toLocaleString('pt-PT', {maximumFractionDigits:0})}`
@@ -890,7 +842,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
             {/* Distributor note */}
             <div>
               <label className="label">
-                {isDistributor ? tr("df_your_note") : tr("df_dist_note")}
+                {isDistributor ? t("df_your_note") : t("df_dist_note")}
               </label>
               <input className="input" value={form.discount_note_dist}
                 onChange={e => set('discount_note_dist', e.target.value)}
@@ -912,7 +864,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 <p className="text-xs font-semibold text-gray-700 mb-1">VGT response</p>
                 {deal.discount_approved !== null && (
                   <p className="text-sm font-bold text-gray-900">
-                    {tr("df_approved_pct")} {deal.discount_approved}%
+                    {t("df_approved_pct")} {deal.discount_approved}%
                     {deal.transfer_price && ` → Transfer price: €${deal.transfer_price.toLocaleString()}`}
                   </p>
                 )}
@@ -939,9 +891,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </div>
           {form.is_sla && (
             <div className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="label">{tr("df_sla_type")}</label>
+                  <label className="label">{t("df_sla_type")}</label>
                   <select className="select bg-white" value={form.sla_type||''} onChange={e => set('sla_type', e.target.value)}>
                     <option value="">— Select type —</option>
                     <option>Software Maintenance</option>
@@ -953,7 +905,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                   </select>
                 </div>
                 <div>
-                  <label className="label">{tr("df_sla_annual")}</label>
+                  <label className="label">{t("df_sla_annual")}</label>
                   <input className="input bg-white" type="number"
                     value={form.sla_annual_value||''} onChange={e => set('sla_annual_value', e.target.value)}
                     placeholder="Annual contract value"/>
@@ -961,7 +913,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
               </div>
               {/* Billing month — when the invoice is issued */}
               <div>
-                <label className="label">{tr("df_billing")} <span className="text-gray-400 font-normal">{tr("df_billing_note")}</span></label>
+                <label className="label">{t("df_billing")} <span className="text-gray-400 font-normal">{t("df_billing_note")}</span></label>
                 <div className="flex gap-1.5">
                   <select className="select flex-1 bg-white" value={form.sla_billing_month||''} onChange={e => set('sla_billing_month', e.target.value)}>
                     <option value="">— Month —</option>
@@ -973,13 +925,13 @@ export default function DealForm({ deal, onClose, onSaved }) {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="label">{tr("df_sla_owner")}</label>
+                  <label className="label">{t("df_sla_owner")}</label>
                   <input className="input bg-white" value={form.sla_owner} onChange={e => set('sla_owner', e.target.value)} placeholder="Responsible for renewal"/>
                 </div>
                 <div>
-                  <label className="label">{tr("df_renewal")}</label>
+                  <label className="label">{t("df_renewal")}</label>
                   <input className="input bg-white" type="number" min="0" max="100"
                     value={form.sla_renewal_target} onChange={e => set('sla_renewal_target', e.target.value)}
                     placeholder="e.g. 5"/>
@@ -1003,9 +955,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
               If ECT purchases from VGT to deliver this deal, enter the VGT amount below.
               A linked VGT Internal deal will be created automatically.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="label">{tr("df_vgt_cost")}</label>
+                <label className="label">{t("df_vgt_cost")}</label>
                 <input className="input bg-white" type="number"
                   value={form.intercompany_value}
                   onChange={e => set('intercompany_value', e.target.value)}
@@ -1052,7 +1004,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
           <div className="rounded-xl border border-gray-200 overflow-hidden">
             {/* Header */}
             <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-              <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{tr("df_contract")}</p>
+              <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{t("df_contract")}</p>
             </div>
 
             <div className="p-4 space-y-4">
@@ -1060,7 +1012,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="label mb-1">Start date</label>
-                  <div className="flex gap-1 flex-wrap">
+                  <div className="flex gap-1">
                     <select className="select w-16 text-sm" value={form.cs_day||1} onChange={e => set('cs_day', e.target.value)}>
                       {Array.from({length:31},(_,i)=>i+1).map(d=><option key={d}>{d}</option>)}
                     </select>
@@ -1076,7 +1028,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 </div>
                 <div>
                   <label className="label mb-1">End date</label>
-                  <div className="flex gap-1 flex-wrap">
+                  <div className="flex gap-1">
                     <select className="select w-16 text-sm" value={form.ce_day||31} onChange={e => set('ce_day', e.target.value)}>
                       {Array.from({length:31},(_,i)=>i+1).map(d=><option key={d}>{d}</option>)}
                     </select>
@@ -1140,7 +1092,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                       </span>
                     </div>
                     {/* 12 month grid - 2 rows of 6 */}
-                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                    <div className="grid grid-cols-6 gap-1.5">
                       {FY26_MONTHS.map(m => {
                         const r = result.recognition[m]
                         const v = Math.round(r?.value || 0)
@@ -1163,8 +1115,8 @@ export default function DealForm({ deal, onClose, onSaved }) {
                     </div>
                     <div className="flex gap-3 text-[10px] text-gray-400">
                       <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-blue-600 inline-block"/> Billing (catchup {catchupMonths}m)</span>
-                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-blue-50 border border-blue-100 inline-block"/>{tr("df_linear")}</span>
-                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-gray-50 border border-gray-100 inline-block"/>{tr("df_deferred")}</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-blue-50 border border-blue-100 inline-block"/>{t("df_linear")}</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-gray-50 border border-gray-100 inline-block"/>{t("df_deferred")}</span>
                     </div>
                   </div>
                 )
@@ -1197,9 +1149,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
               onClick={() => setShowHistory(h => !h)}
               className="label flex items-center gap-1.5 w-full text-left hover:text-gray-700 transition-colors">
               <History size={12}/>
-              {tr("df_change_history")}
+              {t("df_change_history")}
               <span className="ml-auto text-[10px] text-gray-400 font-normal">
-                {dealHistory.length} {tr("df_changes")}
+                {dealHistory.length} {t("df_changes")}
               </span>
               <span className="text-gray-300 text-[10px]">{showHistory ? '▲' : '▼'}</span>
             </button>
@@ -1207,14 +1159,14 @@ export default function DealForm({ deal, onClose, onSaved }) {
               <div className="space-y-1 max-h-52 overflow-y-auto">
                 {dealHistory.map(h => {
                   const fieldLabels = {
-                    stage: tr("df_stage"), value_total: tr("df_value"),
-                    gm_pct: tr("df_gm"), client: tr("df_client"),
-                    country: tr("df_country"), region: tr("df_region"),
-                    sales_owner: tr("df_owner"), deal_type: tr("df_deal_type"),
-                    currency: tr("df_currency"), win_probability: tr("df_win_prob"),
+                    stage: t("df_stage"), value_total: t("df_value"),
+                    gm_pct: t("df_gm"), client: t("df_client"),
+                    country: t("df_country"), region: t("df_region"),
+                    sales_owner: t("df_owner"), deal_type: t("df_deal_type"),
+                    currency: t("df_currency"), win_probability: t("df_win_prob"),
                     lost_reason: 'Lost reason', discount_status: 'Discount status',
-                    discount_approved: tr("df_approved_disc"), sla_annual_value: tr("df_sla_annual"),
-                    description: tr("df_description"), bu: tr("df_bu"),
+                    discount_approved: t("df_approved_disc"), sla_annual_value: t("df_sla_annual"),
+                    description: t("df_description"), bu: t("df_bu"),
                   }
                   const fieldLabel = fieldLabels[h.field_name] || h.field_name
                   const user = h.changed_by_profile?.full_name || h.changed_by_profile?.email?.split('@')[0] || '—'
@@ -1250,7 +1202,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
         {/* Activity Log (only for existing deals) */}
         {deal?.id && (
           <div className="space-y-2">
-            <p className="label flex items-center gap-1.5"><Clock size={12}/> {tr("df_activity")}</p>
+            <p className="label flex items-center gap-1.5"><Clock size={12}/> {t("df_activity")}</p>
 
             {/* Add activity */}
             <div className="bg-gray-50 rounded-lg p-3 space-y-2">
@@ -1291,60 +1243,6 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </div>
         )}
       </div>
-
-      {/* ── CHANGE REASON MODAL ─────────────────────────────────────── */}
-      {showReasonModal && (
-        <div className="fixed inset-0 bg-black/50 z-[60] flex items-end sm:items-center justify-center pb-[60px] sm:pb-0 sm:p-4">
-          <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-xl w-full sm:max-w-sm flex flex-col"
-            style={{ maxHeight: '90dvh' }}>
-            {/* Drag handle mobile */}
-            <div className="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0">
-              <div className="w-10 h-1 bg-gray-300 rounded-full"/>
-            </div>
-            {/* Scroll content */}
-            <div className="p-5 space-y-3 overflow-y-auto flex-1 min-h-0">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">⚠️</span>
-                <h3 className="font-bold text-gray-900">{tr("df_reason_title")}</h3>
-              </div>
-              <p className="text-sm text-gray-500">{tr("df_reason_desc")}</p>
-              {form.stage === 'Lost' && deal?.stage !== 'Lost' && (
-                <p className="text-xs bg-red-50 text-red-700 rounded-lg px-3 py-2">
-                  Stage: <strong>{deal?.stage}</strong> → <strong>Lost</strong>
-                </p>
-              )}
-              {parseFloat(form.value_total) < parseFloat(deal?.value_total) * 0.9 && (
-                <p className="text-xs bg-amber-50 text-amber-700 rounded-lg px-3 py-2">
-                  Value: <strong>€{Number(deal?.value_total).toLocaleString()}</strong> → <strong>€{Number(form.value_total).toLocaleString()}</strong>
-                </p>
-              )}
-              <textarea
-                className="input resize-none text-sm"
-                rows={3}
-                placeholder={tr("df_reason_placeholder")}
-                value={changeReason}
-                onChange={e => setChangeReason(e.target.value)}
-                autoFocus
-              />
-            </div>
-            {/* Footer fixo — sempre visível */}
-            <div className="flex gap-2 px-5 py-3 border-t border-gray-100 shrink-0 bg-white rounded-b-3xl sm:rounded-b-2xl"
-              style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
-              <button
-                onClick={() => { setShowReasonModal(false); setPendingSave(false); }}
-                className="btn-secondary flex-1 text-sm">
-                {tr("df_cancel")}
-              </button>
-              <button
-                onClick={() => { setShowReasonModal(false); executeSave(); }}
-                disabled={!changeReason.trim()}
-                className="btn-primary flex-1 text-sm">
-                {tr("df_reason_confirm")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </Modal>
   )
 }
