@@ -577,6 +577,7 @@ function InviteSection({ companies, salesOwners, onSaved }) {
 
 // ── Página principal ──────────────────────────────────────────────────────────
 export default function Permissions() {
+  const { t } = useTranslation()
   const { isAdmin, profile: currentProfile, user, loading: authLoading } = useAuth()
   const [companies, setCompanies]   = useState([])
   const [profiles, setProfiles]     = useState([])
