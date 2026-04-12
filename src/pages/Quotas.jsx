@@ -248,6 +248,95 @@ function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, profil
   )
 }
 
+
+// ── Sales Target do Distribuidor ─────────────────────────────────────────────
+function DistributorQuota({ quotas, actuals, forecast, profile }) {
+  const { t } = useTranslation()
+  const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
+  const MONTHS_L = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
+
+  // Quota deste distribuidor
+  const myQuota = quotas[0] || null
+  const target  = myQuota?.target_eur || 0
+
+  // Actuals e forecast deste distribuidor
+  const myActuals  = Object.values(actuals)[0]  || 0
+  const myForecast = Object.values(forecast)[0] || 0
+
+  const actPct = target > 0 ? Math.round(myActuals  / target * 100) : 0
+  const fcPct  = target > 0 ? Math.round(myForecast / target * 100) : 0
+
+  const COLOR = '#1D9E75'
+
+  return (
+    <div className="p-4 space-y-5 max-w-lg mx-auto">
+      <div className="pt-1">
+        <h1 className="text-xl font-bold text-gray-900">{t('quotas_title')}</h1>
+        <p className="text-sm text-gray-400 mt-0.5">O teu objetivo de vendas FY26</p>
+      </div>
+
+      {!target ? (
+        <div className="bg-gray-50 rounded-xl p-8 text-center">
+          <p className="text-gray-400 text-sm">Nenhum Sales Target definido ainda.</p>
+          <p className="text-gray-300 text-xs mt-1">Contacta o teu gestor Fujifilm.</p>
+        </div>
+      ) : (
+        <>
+          {/* Target card */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">Target FY26</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">
+                  {Math.round(target/1000)}K€
+                </p>
+              </div>
+              <ProgressRing pct={actPct} color={COLOR} size={72}/>
+            </div>
+
+            {/* Barras */}
+            <div className="space-y-3">
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-gray-600">Actuals (Invoiced)</span>
+                  <span className="font-bold" style={{color: COLOR}}>
+                    {Math.round(myActuals/1000)}K€ · {actPct}%
+                  </span>
+                </div>
+                <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all"
+                    style={{width: `${Math.min(actPct,100)}%`, background: COLOR}}/>
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-gray-600">Forecast (BL + Inv)</span>
+                  <span className="font-bold text-blue-600">
+                    {Math.round(myForecast/1000)}K€ · {fcPct}%
+                  </span>
+                </div>
+                <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full bg-blue-400 transition-all"
+                    style={{width: `${Math.min(fcPct,100)}%`}}/>
+                </div>
+              </div>
+            </div>
+
+            {/* Gap */}
+            <div className="pt-1 border-t border-gray-100">
+              <p className="text-xs text-gray-400">
+                Gap para target: <span className="font-semibold text-gray-600">
+                  {Math.round((target - myForecast)/1000)}K€
+                </span>
+              </p>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function Quotas() {
   const { isAdmin, canSeeAll, profile } = useAuth()
   const { t } = useTranslation()
@@ -300,6 +389,11 @@ export default function Quotas() {
   }, [deals])
 
   if (loading) return <Spinner/>
+
+  // Vista dedicada para distribuidores
+  if (profile?.role === 'distributor') {
+    return <DistributorQuota quotas={quotas} actuals={actuals} forecast={forecast} profile={profile}/>
+  }
 
   return (
     <div className="p-4 space-y-8 max-w-4xl mx-auto">
