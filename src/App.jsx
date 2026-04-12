@@ -9,7 +9,6 @@ import History from './pages/History'
 import Clients from './pages/Clients'
 import Quotas from './pages/Quotas'
 import Budget from './pages/Budget'
-import Users from './pages/Users'
 import Settings from './pages/Settings'
 import MyAccount from './pages/MyAccount'
 import Tasks from './pages/Tasks'
@@ -65,7 +64,6 @@ function AppRoutes() {
           <Route path="/tasks"        element={<Guard page="tasks"       element={<Tasks />} />} />
           <Route path="/tenders"      element={<Guard page="tenders"     element={<Tenders />} />} />
           <Route path="/budget"       element={<Guard page="budget"      element={<Budget />} />} />
-          <Route path="/users"        element={<Guard page="users"       element={<Users />} />} />
           <Route path="/settings"     element={<Guard page="settings"    element={<Settings />} />} />
           <Route path="/permissions"  element={<Permissions />} />
           <Route path="/account"       element={<MyAccount />} />
