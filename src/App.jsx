@@ -14,6 +14,8 @@ import Settings from './pages/Settings'
 import Tasks from './pages/Tasks'
 import Tenders from './pages/Tenders'
 import { Spinner } from './components/ui'
+import AuthCallback from './pages/AuthCallback'
+import SetPassword from './pages/SetPassword'
 
 // Lazy load — não bloqueia o build se o ficheiro não existir
 const Permissions = lazy(() =>
@@ -38,12 +40,17 @@ function AppRoutes() {
     </div>
   )
 
+  // Rotas de auth — acessíveis sem sessão
   if (!user) return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="*"      element={<Navigate to="/login" replace />} />
+      <Route path="/login"           element={<Login />} />
+      <Route path="/auth/callback"   element={<AuthCallback />} />
+      <Route path="/auth/set-password" element={<SetPassword />} />
+      <Route path="*"                element={<Navigate to="/login" replace />} />
     </Routes>
   )
+
+  // Rotas auth acessíveis mesmo com sessão (ex: set-password após invite)
 
   return (
     <Layout>
@@ -60,7 +67,9 @@ function AppRoutes() {
           <Route path="/users"        element={<Guard page="users"       element={<Users />} />} />
           <Route path="/settings"     element={<Guard page="settings"    element={<Settings />} />} />
           <Route path="/permissions"  element={<Guard page="permissions" element={<Permissions />} />} />
-          <Route path="/login"        element={<Navigate to="/" replace />} />
+          <Route path="/auth/callback"     element={<AuthCallback />} />
+          <Route path="/auth/set-password" element={<SetPassword />} />
+          <Route path="/login"              element={<Navigate to="/" replace />} />
           <Route path="*"             element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
