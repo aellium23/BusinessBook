@@ -486,20 +486,22 @@ function SalesTargetsSection({ companies, onRefresh }) {
 
   async function handleSave(companyId) {
     setSaving(true)
-    const val = parseFloat(editVal) * 1000  // input em K€, guardar em €
+    const val = parseFloat(editVal) || 0  // input em €, guardar em €
     const existing = quotas.find(q => q.company_id === companyId)
     if (existing) {
-      await supabase.from('quotas').update({ target_eur: val }).eq('id', existing.id)
+      const { error: updErr } = await supabase.from('quotas').update({ target_eur: val }).eq('id', existing.id)
+      if (updErr) { console.error('Update error:', updErr); setSaving(false); return }
     } else {
       // Criar novo quota para este distribuidor
       const co = companies.find(c => c.id === companyId)
-      await supabase.from('quotas').insert({
+      const { error: insErr } = await supabase.from('quotas').insert({
         company_id: companyId,
         bu: co?.bu || 'VGT',
         sales_owner: co?.name || '',
         target_eur: val,
-        cycle: 'BUD',
+        fiscal_year: 2026,
       })
+      if (insErr) { console.error('Insert error:', insErr); setSaving(false); return }
     }
     setSaving(false)
     setEditing(null)
@@ -559,7 +561,7 @@ function SalesTargetsSection({ companies, onRefresh }) {
                             style={{fontSize:'16px'}}
                             autoFocus
                           />
-                          <span className="absolute right-2 top-2.5 text-xs text-gray-400">K€</span>
+                          <span className="absolute right-2 top-2.5 text-xs text-gray-400">€</span>
                         </div>
                         <button onClick={() => handleSave(co.id)} disabled={saving}
                           className="btn-primary text-xs px-3 py-1.5">
@@ -574,12 +576,12 @@ function SalesTargetsSection({ companies, onRefresh }) {
                       <div className="flex items-center gap-3">
                         <div className="text-right">
                           <p className="text-sm font-bold text-gray-900">
-                            {target > 0 ? `${Math.round(target/1000)}K€` : '—'}
+                            {target > 0 ? `${target >= 1000 ? Math.round(target/1000) + 'K€' : target + '€'}` : '—'}
                           </p>
                           <p className="text-[10px] text-gray-400">Target FY26</p>
                         </div>
                         <button
-                          onClick={() => { setEditing(co.id); setEditVal(target > 0 ? String(Math.round(target/1000)) : '') }}
+                          onClick={() => { setEditing(co.id); setEditVal(target > 0 ? String(target) : '') }}
                           className="text-gray-300 hover:text-navy transition-colors p-1">
                           <Edit3 size={14}/>
                         </button>
