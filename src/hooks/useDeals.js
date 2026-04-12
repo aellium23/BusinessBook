@@ -20,8 +20,17 @@ export function useDeals(filters = {}) {
     setLoading(true)
     let q = supabase.from('deals').select('*').order('created_at', { ascending: false })
 
-    if (!isAdmin && ['vgt_editor','vgt_member','viewer_vgt'].includes(profile?.role)) q = q.eq('bu', 'VGT')
-    if (!isAdmin && ['ect_editor','ect_member','viewer_ect'].includes(profile?.role)) q = q.eq('bu', 'ECT')
+    // Filtros por role
+    if (!isAdmin) {
+      if (profile?.role === 'distributor' && profile?.company_id) {
+        // Distribuidor: só vê os seus próprios deals (pela company_id)
+        q = q.eq('company_id', profile.company_id)
+      } else if (profile?.bu === 'VGT') {
+        q = q.eq('bu', 'VGT')
+      } else if (profile?.bu === 'ECT') {
+        q = q.eq('bu', 'ECT')
+      }
+    }
     if (filters.bu)     q = q.eq('bu', filters.bu)
     if (filters.stage)  q = q.eq('stage', filters.stage)
     if (filters.region) q = q.eq('region', filters.region)
