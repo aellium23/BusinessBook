@@ -1,8 +1,113 @@
 import { useState } from 'react'
-import { signIn } from '../lib/supabase'
-import { Mail, ArrowRight } from 'lucide-react'
+import { signInWithPassword, signInWithMagicLink, resetPassword } from '../lib/supabase'
+import { Mail, ArrowRight, Lock, Eye, EyeOff, KeyRound, CheckCircle2, AlertCircle } from 'lucide-react'
 
-export default function Login() {
+// ── Sub-componente: Password login ────────────────────────────────────────────
+function PasswordForm({ onSuccess }) {
+  const [email, setEmail]     = useState('')
+  const [password, setPassword] = useState('')
+  const [showPw, setShowPw]   = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError]     = useState('')
+  const [showReset, setShowReset] = useState(false)
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (!email || !password) return
+    setLoading(true); setError('')
+    const { error: err } = await signInWithPassword(email, password)
+    if (err) {
+      setError(
+        err.message.includes('Invalid login') ? 'Email ou password incorrectos.' :
+        err.message.includes('Email not confirmed') ? 'Confirma o teu email primeiro.' :
+        err.message
+      )
+    }
+    setLoading(false)
+  }
+
+  async function handleReset(e) {
+    e.preventDefault()
+    if (!email) { setError('Introduz o teu email primeiro.'); return }
+    setLoading(true); setError('')
+    const { error: err } = await resetPassword(email)
+    if (err) setError(err.message)
+    else setShowReset('sent')
+    setLoading(false)
+  }
+
+  if (showReset === 'sent') return (
+    <div className="text-center py-4 space-y-3">
+      <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+        <CheckCircle2 size={24} className="text-green-600" />
+      </div>
+      <div>
+        <h3 className="font-semibold text-gray-900">Email enviado</h3>
+        <p className="text-sm text-gray-500 mt-1">
+          Verifica a tua caixa de entrada em <strong>{email}</strong> para redefinir a password.
+        </p>
+      </div>
+      <button onClick={() => setShowReset(false)} className="text-sm text-navy hover:underline">
+        ← Voltar ao login
+      </button>
+    </div>
+  )
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Email */}
+      <div>
+        <label className="label">Email</label>
+        <input
+          type="email" required
+          value={email} onChange={e => setEmail(e.target.value)}
+          placeholder="you@fujifilm.com"
+          className="input"
+          style={{ fontSize: '16px' }}
+        />
+      </div>
+
+      {/* Password */}
+      <div>
+        <label className="label">Password</label>
+        <div className="relative">
+          <input
+            type={showPw ? 'text' : 'password'} required
+            value={password} onChange={e => setPassword(e.target.value)}
+            placeholder="••••••••"
+            className="input pr-10"
+            style={{ fontSize: '16px' }}
+          />
+          <button type="button" tabIndex={-1}
+            onClick={() => setShowPw(o => !o)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+            {showPw ? <EyeOff size={16}/> : <Eye size={16}/>}
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+          <AlertCircle size={14} className="shrink-0 mt-0.5"/>
+          {error}
+        </div>
+      )}
+
+      <button type="submit" disabled={loading || !email || !password}
+        className="btn-primary w-full justify-center py-2.5 disabled:opacity-50">
+        {loading ? 'A entrar…' : <><Lock size={14}/> Entrar</>}
+      </button>
+
+      <button type="button" onClick={handleReset}
+        className="w-full text-center text-sm text-gray-400 hover:text-navy transition-colors">
+        Esqueceste a password?
+      </button>
+    </form>
+  )
+}
+
+// ── Sub-componente: Magic link ────────────────────────────────────────────────
+function MagicLinkForm() {
   const [email, setEmail]   = useState('')
   const [sent, setSent]     = useState(false)
   const [loading, setLoading] = useState(false)
@@ -12,63 +117,105 @@ export default function Login() {
     e.preventDefault()
     if (!email) return
     setLoading(true); setError('')
-    const { error } = await signIn(email)
-    if (error) setError(error.message)
+    const { error: err } = await signInWithMagicLink(email)
+    if (err) setError(err.message)
     else setSent(true)
     setLoading(false)
   }
 
+  if (sent) return (
+    <div className="text-center py-4 space-y-3">
+      <div className="w-12 h-12 bg-vgt/10 rounded-full flex items-center justify-center mx-auto">
+        <Mail size={24} className="text-vgt" />
+      </div>
+      <div>
+        <h3 className="font-semibold text-gray-900">Verifica o teu email</h3>
+        <p className="text-sm text-gray-500 mt-1">
+          Enviámos um link para <strong>{email}</strong>.<br/>
+          Clica no link para entrar — sem password.
+        </p>
+      </div>
+      <button onClick={() => setSent(false)} className="text-sm text-navy hover:underline">
+        Usar email diferente
+      </button>
+    </div>
+  )
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="label">Email</label>
+        <input
+          type="email" required
+          value={email} onChange={e => setEmail(e.target.value)}
+          placeholder="you@fujifilm.com"
+          className="input"
+          style={{ fontSize: '16px' }}
+        />
+      </div>
+      {error && (
+        <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+          <AlertCircle size={14} className="shrink-0 mt-0.5"/>
+          {error}
+        </div>
+      )}
+      <button type="submit" disabled={loading || !email}
+        className="btn-primary w-full justify-center py-2.5 disabled:opacity-50">
+        {loading ? 'A enviar…' : <><Mail size={14}/> Enviar link de acesso</>}
+      </button>
+    </form>
+  )
+}
+
+// ── Página principal de Login ─────────────────────────────────────────────────
+export default function Login() {
+  const [tab, setTab] = useState('password')
+
   return (
     <div className="min-h-screen bg-navy flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        {/* Logo */}
+
+        {/* Logo + Título */}
         <div className="text-center mb-8">
-          <img
-            src="data:image/jpeg;base64,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"
-            alt="Business Book"
-            className="w-24 h-24 rounded-2xl object-cover mx-auto mb-4"
-            style={{ objectPosition: 'center 15%' }}
-          />
+          <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <KeyRound size={32} className="text-white" />
+          </div>
           <h1 className="text-white text-2xl font-bold">Business Book · FY26</h1>
           <p className="text-white/50 text-sm mt-1">VGT & ECT · Iberia</p>
         </div>
 
-        <div className="card p-6">
-          {sent ? (
-            <div className="text-center py-4">
-              <div className="w-12 h-12 bg-vgt/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Mail size={24} className="text-vgt" />
-              </div>
-              <h2 className="font-semibold text-gray-900 mb-1">Check your email</h2>
-              <p className="text-sm text-gray-500">
-                We sent a magic link to <strong>{email}</strong>.<br />
-                Click it to sign in — no password needed.
-              </p>
-              <button onClick={() => setSent(false)} className="mt-4 text-sm text-navy hover:underline">
-                Use a different email
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <h2 className="font-semibold text-gray-900 mb-1">Sign in</h2>
-                <p className="text-sm text-gray-500">Enter your email to receive a magic link.</p>
-              </div>
-              <div>
-                <label className="label">Work email</label>
-                <input
-                  type="email" required
-                  value={email} onChange={e => setEmail(e.target.value)}
-                  placeholder="you@fujifilm.com"
-                  className="input"
-                />
-              </div>
-              {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
-              <button type="submit" disabled={loading} className="btn-primary w-full justify-center py-2.5">
-                {loading ? 'Sending…' : (<><span>Send magic link</span><ArrowRight size={16} /></>)}
-              </button>
-            </form>
-          )}
+        {/* Card */}
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+
+          {/* Tabs */}
+          <div className="flex border-b border-gray-100">
+            <button
+              onClick={() => setTab('password')}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 ${
+                tab === 'password'
+                  ? 'text-navy border-b-2 border-navy bg-white'
+                  : 'text-gray-400 hover:text-gray-600 bg-gray-50'
+              }`}>
+              <Lock size={13}/> Password
+            </button>
+            <button
+              onClick={() => setTab('magic')}
+              className={`flex-1 py-3 text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 ${
+                tab === 'magic'
+                  ? 'text-navy border-b-2 border-navy bg-white'
+                  : 'text-gray-400 hover:text-gray-600 bg-gray-50'
+              }`}>
+              <Mail size={13}/> Magic Link
+            </button>
+          </div>
+
+          {/* Conteúdo */}
+          <div className="p-6">
+            {tab === 'password'
+              ? <PasswordForm />
+              : <MagicLinkForm />
+            }
+          </div>
         </div>
 
         <p className="text-center text-white/30 text-xs mt-6">
