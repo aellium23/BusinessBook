@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from '../hooks/useTranslation'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { Spinner } from '../components/ui'
 
 // Página intermediária que trata o redirect após magic link ou invite
 export default function AuthCallback() {
+  const { t } = useTranslation()
   const navigate  = useNavigate()
   const [error, setError] = useState(null)
 
@@ -30,7 +32,7 @@ export default function AuthCallback() {
       } else {
         // Se não há sessão após 3 segundos, mostrar erro
         setTimeout(() => {
-          setError('Link inválido ou expirado. Por favor tenta novamente.')
+          setError(t('auth_invalid'))
         }, 3000)
       }
     })
