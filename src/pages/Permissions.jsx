@@ -1,13 +1,23 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from '../hooks/useTranslation'
 import { supabase } from '../lib/supabase'
-import { useAuth, ROLE_PERMISSIONS } from '../hooks/useAuth'
+import { useAuth } from '../hooks/useAuth'
 import { Spinner } from '../components/ui'
 import {
   Shield, Building2, Users, Plus, Edit3, Trash2, Check, X,
   ChevronDown, ChevronUp, Mail, Eye, EyeOff, Globe, Save,
   AlertCircle, CheckCircle2, RefreshCw, Lock
 } from 'lucide-react'
+
+// ── Permissões por role (cópia local — não depende do useAuth) ───────────────
+const ROLE_PERMISSIONS = {
+  admin:       { pages: ['dashboard','deals','clients','history','quotas','budget','users','settings','tasks','tenders','permissions'], canEdit: true,  editOwn: false },
+  manager:     { pages: ['dashboard','deals','clients','history','quotas','tasks','tenders'],                                          canEdit: true,  editOwn: false },
+  member:      { pages: ['dashboard','deals','clients','history','quotas','tasks','tenders'],                                          canEdit: true,  editOwn: true  },
+  distributor: { pages: ['dashboard','deals','tasks'],                                                                                  canEdit: true,  editOwn: true  },
+  viewer:      { pages: ['dashboard','deals','clients','history'],                                                                      canEdit: false, editOwn: false },
+  partner:     { pages: ['dashboard','deals','clients','tasks','tenders'],                                                              canEdit: false, editOwn: false },
+}
 
 // ── Configurações visuais dos roles ─────────────────────────────────────────
 const ROLE_CONFIG = {
