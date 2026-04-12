@@ -322,8 +322,9 @@ function UserPermCard({ profile, companies, salesOwners, onSaved, currentUserId 
           {/* Páginas acessíveis */}
           <div className="mt-2 flex flex-wrap gap-1">
             {Object.keys(PAGE_LABELS).map(page => {
+              const permsForRole = ROLE_PERMISSIONS[profile.role]
               const hasAccess = profile.role === 'admin' ||
-                (ROLE_PERMISSIONS[profile.role]?.pages || []).includes(page)
+                (permsForRole?.pages || []).includes(page)
               return (
                 <span key={page}
                   className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
@@ -333,6 +334,11 @@ function UserPermCard({ profile, companies, salesOwners, onSaved, currentUserId 
                 </span>
               )
             })}
+            {!ROLE_PERMISSIONS[profile.role] && (
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 font-medium">
+                ⚠ role desconhecido
+              </span>
+            )}
           </div>
         </div>
       </div>
