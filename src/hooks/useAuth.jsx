@@ -3,31 +3,83 @@ import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext(null)
 
+// ── Permissões por role ───────────────────────────────────────────────────────
+export const ROLE_PERMISSIONS = {
+  admin: {
+    pages:    ['dashboard','deals','clients','history','quotas','budget','users','settings','tasks','tenders','permissions'],
+    canEdit:  true,
+    editOwn:  false,
+    seeBU:    'ALL',
+    seeAll:   true,
+    manageUsers: true,
+  },
+  manager: {
+    pages:    ['dashboard','deals','clients','history','quotas','tasks','tenders'],
+    canEdit:  true,
+    editOwn:  false,
+    seeBU:    null,   // derivado do bu do profile
+    seeAll:   false,
+    manageUsers: false,
+  },
+  member: {
+    pages:    ['dashboard','deals','clients','history','quotas','tasks','tenders'],
+    canEdit:  true,
+    editOwn:  true,
+    seeBU:    null,
+    seeAll:   false,
+    manageUsers: false,
+  },
+  distributor: {
+    pages:    ['dashboard','deals','tasks'],
+    canEdit:  true,
+    editOwn:  true,
+    seeBU:    null,
+    seeAll:   false,
+    manageUsers: false,
+  },
+  viewer: {
+    pages:    ['dashboard','deals','clients','history'],
+    canEdit:  false,
+    editOwn:  false,
+    seeBU:    null,
+    seeAll:   false,
+    manageUsers: false,
+  },
+  partner: {
+    pages:    ['dashboard','deals','clients','tasks','tenders'],
+    canEdit:  false,
+    editOwn:  false,
+    seeBU:    null,
+    seeAll:   false,
+    manageUsers: false,
+  },
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null)
   const [profile, setProfile] = useState(null)
+  const [company, setCompany] = useState(null)
   const [loading, setLoading] = useState(true)
 
   async function loadProfile(userId, userEmail) {
-    // Try to get profile
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('profiles')
-      .select('*')
+      .select('*, company:company_id(*)')
       .eq('id', userId)
       .single()
 
     if (data) {
-      setProfile(data)
+      const { company: co, ...prof } = data
+      setProfile(prof)
+      setCompany(co || null)
     } else {
-      // Profile not readable via RLS — use email-based fallback
-      // Check auth.users metadata or use a service role workaround
-      // For now: if we can't read profile, try upsert to create it
       const { data: upserted } = await supabase
         .from('profiles')
-        .upsert({ id: userId, email: userEmail, role: 'viewer' }, { onConflict: 'id' })
+        .upsert({ id: userId, email: userEmail, role: 'viewer', active: true }, { onConflict: 'id' })
         .select()
         .single()
       setProfile(upserted || { id: userId, email: userEmail, role: 'viewer' })
+      setCompany(null)
     }
   }
 
@@ -41,7 +93,7 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
       if (session?.user) loadProfile(session.user.id, session.user.email)
-      else { setProfile(null); setLoading(false) }
+      else { setProfile(null); setCompany(null); setLoading(false) }
     })
 
     return () => subscription.unsubscribe()
@@ -51,15 +103,31 @@ export function AuthProvider({ children }) {
     if (profile !== null) setLoading(false)
   }, [profile])
 
-  const isAdmin   = profile?.role === 'admin'
-  const isVGT     = ['vgt_editor','vgt_member','viewer_vgt','distributor'].includes(profile?.role) || isAdmin
-  const isECT     = ['ect_editor','ect_member','viewer_ect'].includes(profile?.role) || isAdmin
-  const canSeeAll = ['admin','viewer_all'].includes(profile?.role)
-  const canEdit   = ['admin','vgt_editor','ect_editor','vgt_member','ect_member','distributor'].includes(profile?.role)
-  const editOwnOnly = ['vgt_member','ect_member','distributor'].includes(profile?.role)
+  const role   = profile?.role || 'viewer'
+  const perms  = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.viewer
+  const bu     = profile?.bu || company?.bu || null
+
+  // Flags de conveniência (retrocompatíveis)
+  const isAdmin    = role === 'admin'
+  const isVGT      = isAdmin || bu === 'VGT'
+  const isECT      = isAdmin || bu === 'ECT'
+  const canSeeAll  = isAdmin || perms.seeAll
+  const canEdit    = perms.canEdit
+  const editOwnOnly = perms.editOwn
+
+  // Verificar se o user pode aceder a uma página
+  function canAccessPage(page) {
+    return isAdmin || perms.pages.includes(page)
+  }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, isAdmin, isVGT, isECT, canSeeAll, editOwnOnly, canEdit }}>
+    <AuthContext.Provider value={{
+      user, profile, company, loading,
+      role, bu, perms,
+      isAdmin, isVGT, isECT,
+      canSeeAll, canEdit, editOwnOnly,
+      canAccessPage,
+    }}>
       {children}
     </AuthContext.Provider>
   )
