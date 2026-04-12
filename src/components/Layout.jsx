@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { signOut } from '../lib/supabase'
 import { useNotifications } from '../hooks/useTasks'
 import { useTasks } from '../hooks/useTasks'
-import { LayoutDashboard, List, DollarSign, Users, LogOut, ChevronRight, History, Building2, Target, Settings, CheckSquare, FileText, MoreHorizontal, Shield } from 'lucide-react'
+import { LayoutDashboard, List, DollarSign, Users, LogOut, ChevronRight, History, Building2, Target, Settings, CheckSquare, FileText, MoreHorizontal } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 import { LANGUAGES, setLang } from '../lib/i18n'
 
@@ -55,22 +55,18 @@ export default function Layout({ children }) {
     navigate('/login')
   }
 
-  const { canAccessPage } = useAuth()
-
-  const ALL_NAV = [
-    { to: '/',         page: 'dashboard', icon: LayoutDashboard, label: t("nav_dashboard") },
-    { to: '/deals',    page: 'deals',     icon: List,            label: t("nav_deals") },
-    { to: '/tasks',    page: 'tasks',     icon: CheckSquare,     label: t("nav_tasks"),   badge: taskBadge },
-    { to: '/tenders',  page: 'tenders',   icon: FileText,        label: t("nav_tenders") },
-    { to: '/clients',  page: 'clients',   icon: Building2,       label: t("nav_clients") },
-    { to: '/history',  page: 'history',   icon: History,         label: t("nav_history") },
-    { to: '/quotas',   page: 'quotas',    icon: Target,          label: t("nav_targets") },
-    { to: '/budget',   page: 'budget',    icon: DollarSign,      label: t("nav_budget") },
-    { to: '/users',    page: 'users',     icon: Users,           label: t("nav_users") },
-    { to: '/settings',     page: 'settings',     icon: Settings,        label: t("nav_settings") },
-    { to: '/permissions',  page: 'permissions',  icon: Shield,          label: 'Permissions' },
+  const nav = [
+    { to: '/',        icon: LayoutDashboard, label: t("nav_dashboard") },
+    { to: '/deals',   icon: List,            label: t("nav_deals") },
+    { to: '/tasks',   icon: CheckSquare,     label: t("nav_tasks"),    badge: taskBadge },
+    { to: '/tenders', icon: FileText,        label: t("nav_tenders") },
+    { to: '/clients', icon: Building2,       label: t("nav_clients") },
+    { to: '/history', icon: History,         label: t("nav_history") },
+    { to: '/quotas',  icon: Target,          label: t("nav_targets") },
+    { to: '/budget',  icon: DollarSign,      label: t("nav_budget"),   adminOnly: true },
+    { to: '/users',   icon: Users,           label: t("nav_users"),    adminOnly: true },
+    { to: '/settings',icon: Settings,        label: t("nav_settings"), adminOnly: true },
   ]
-  const nav = ALL_NAV.filter(n => canAccessPage(n.page))
 
   return (
     <div className="min-h-screen flex flex-col overflow-x-hidden">
@@ -118,7 +114,12 @@ export default function Layout({ children }) {
               </button>
             ))}
           </div>
-          <button onClick={handleSignOut} className="text-white/60 hover:text-white transition-colors ml-1">
+          <a href="/account"
+            className="text-white/60 hover:text-white transition-colors ml-1"
+            title="My Account">
+            <User size={16} />
+          </a>
+          <button onClick={handleSignOut} className="text-white/60 hover:text-white transition-colors ml-1" title="Sign out">
             <LogOut size={16} />
           </button>
         </div>
@@ -166,7 +167,7 @@ export default function Layout({ children }) {
       {/* Bottom nav — mobile */}
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex z-40" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         {(() => {
-          const filtered = nav
+          const filtered = nav.filter(n => !n.adminOnly || isAdmin)
           const primary = filtered.slice(0, 4)  // 4 items + More button
           const secondary = filtered.slice(4)    // restantes no More menu
 
