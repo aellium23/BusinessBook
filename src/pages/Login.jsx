@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { useTranslation } from '../hooks/useTranslation'
 import { signInWithPassword, signInWithMagicLink, resetPassword } from '../lib/supabase'
 import { Mail, ArrowRight, Lock, Eye, EyeOff, KeyRound, CheckCircle2, AlertCircle } from 'lucide-react'
 
 // ── Sub-componente: Password login ────────────────────────────────────────────
 function PasswordForm({ onSuccess }) {
+  const { t } = useTranslation()
   const [email, setEmail]     = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw]   = useState(false)
@@ -18,8 +20,8 @@ function PasswordForm({ onSuccess }) {
     const { error: err } = await signInWithPassword(email, password)
     if (err) {
       setError(
-        err.message.includes('Invalid login') ? 'Email ou password incorrectos.' :
-        err.message.includes('Email not confirmed') ? 'Confirma o teu email primeiro.' :
+        err.message.includes('Invalid login') ? t('login_wrong') :
+        err.message.includes('Email not confirmed') ? t('login_unconfirmed') :
         err.message
       )
     }
@@ -28,7 +30,7 @@ function PasswordForm({ onSuccess }) {
 
   async function handleReset(e) {
     e.preventDefault()
-    if (!email) { setError('Introduz o teu email primeiro.'); return }
+    if (!email) { setError(t('login_wrong')); return }
     setLoading(true); setError('')
     const { error: err } = await resetPassword(email)
     if (err) setError(err.message)
@@ -42,9 +44,9 @@ function PasswordForm({ onSuccess }) {
         <CheckCircle2 size={24} className="text-green-600" />
       </div>
       <div>
-        <h3 className="font-semibold text-gray-900">Email enviado</h3>
+        <h3 className="font-semibold text-gray-900">{t('login_reset_sent')}</h3>
         <p className="text-sm text-gray-500 mt-1">
-          Verifica a tua caixa de entrada em <strong>{email}</strong> para redefinir a password.
+          {t('login_reset_desc')} <strong>{email}</strong> {t('login_reset_nodesc')}
         </p>
       </div>
       <button onClick={() => setShowReset(false)} className="text-sm text-navy hover:underline">
@@ -57,7 +59,7 @@ function PasswordForm({ onSuccess }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Email */}
       <div>
-        <label className="label">Email</label>
+        <label className="label">{t('login_email')}</label>
         <input
           type="email" required
           value={email} onChange={e => setEmail(e.target.value)}
@@ -69,7 +71,7 @@ function PasswordForm({ onSuccess }) {
 
       {/* Password */}
       <div>
-        <label className="label">Password</label>
+        <label className="label">{t('login_password')}</label>
         <div className="relative">
           <input
             type={showPw ? 'text' : 'password'} required
@@ -95,7 +97,7 @@ function PasswordForm({ onSuccess }) {
 
       <button type="submit" disabled={loading || !email || !password}
         className="btn-primary w-full justify-center py-2.5 disabled:opacity-50">
-        {loading ? 'A entrar…' : <><Lock size={14}/> Entrar</>}
+        {loading ? t('login_entering') : <><Lock size={14}/> {t('login_enter')}</>}
       </button>
 
       <button type="button" onClick={handleReset}
@@ -108,6 +110,7 @@ function PasswordForm({ onSuccess }) {
 
 // ── Sub-componente: Magic link ────────────────────────────────────────────────
 function MagicLinkForm() {
+  const { t } = useTranslation()
   const [email, setEmail]   = useState('')
   const [sent, setSent]     = useState(false)
   const [loading, setLoading] = useState(false)
@@ -131,12 +134,12 @@ function MagicLinkForm() {
       <div>
         <h3 className="font-semibold text-gray-900">Verifica o teu email</h3>
         <p className="text-sm text-gray-500 mt-1">
-          Enviámos um link para <strong>{email}</strong>.<br/>
-          Clica no link para entrar — sem password.
+          {t('login_magic_desc')} <strong>{email}</strong>.<br/>
+          {t('login_magic_nodesc')}
         </p>
       </div>
       <button onClick={() => setSent(false)} className="text-sm text-navy hover:underline">
-        Usar email diferente
+        {t('login_magic_other')}
       </button>
     </div>
   )
@@ -144,7 +147,7 @@ function MagicLinkForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="label">Email</label>
+        <label className="label">{t('login_email')}</label>
         <input
           type="email" required
           value={email} onChange={e => setEmail(e.target.value)}
@@ -161,7 +164,7 @@ function MagicLinkForm() {
       )}
       <button type="submit" disabled={loading || !email}
         className="btn-primary w-full justify-center py-2.5 disabled:opacity-50">
-        {loading ? 'A enviar…' : <><Mail size={14}/> Enviar link de acesso</>}
+        {loading ? t('login_magic_sending') : <><Mail size={14}/> {t('login_magic_send')}</>}
       </button>
     </form>
   )
@@ -181,7 +184,7 @@ export default function Login() {
             <KeyRound size={32} className="text-white" />
           </div>
           <h1 className="text-white text-2xl font-bold">Business Book · FY26</h1>
-          <p className="text-white/50 text-sm mt-1">VGT & ECT · Iberia</p>
+          <p className="text-white/50 text-sm mt-1">{t('login_subtitle')}</p>
         </div>
 
         {/* Card */}
@@ -219,7 +222,7 @@ export default function Login() {
         </div>
 
         <p className="text-center text-white/30 text-xs mt-6">
-          Fujifilm Medical IT · Iberia & VGT
+          {t('login_footer')}
         </p>
       </div>
     </div>
