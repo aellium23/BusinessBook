@@ -17,7 +17,7 @@ const ALL_PAGES = [
   { id:'tasks',       label:'Tasks',        group:'core' },
   { id:'tenders',     label:'Tenders',      group:'core' },
   { id:'history',     label:'History',      group:'reports' },
-  { id:'quotas',      label:'Sales Targets',group:'reports' },
+  { id:'quotas',      label:t('nav_targets'),group:'reports' },
   { id:'budget',      label:'Budget',       group:'admin' },
   { id:'users',       label:'Users',        group:'admin' },
   { id:'settings',    label:'Settings',     group:'admin' },
@@ -137,9 +137,9 @@ function PSEditor({ ps, onSave, onCancel, existingNames }) {
         {/* Nome + Cor */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="sm:col-span-2">
-            <label className="label">Nome *</label>
+            <label className="label">{t('perm_name')}</label>
             <input className="input" value={name} onChange={e => setName(e.target.value)}
-              placeholder="ex: Distribuidor Europa" style={{fontSize:'16px'}}/>
+              placeholder={t('perm_name_ph')} style={{fontSize:'16px'}}/>
           </div>
           <div>
             <label className="label">Cor</label>
@@ -155,14 +155,14 @@ function PSEditor({ ps, onSave, onCancel, existingNames }) {
 
         {/* Descrição */}
         <div>
-          <label className="label">Descrição (opcional)</label>
+          <label className="label">{t('perm_desc')}</label>
           <input className="input" value={desc} onChange={e => setDesc(e.target.value)}
-            placeholder="Para que serve este conjunto de permissões…" style={{fontSize:'16px'}}/>
+            placeholder={t('perm_desc_ph')} style={{fontSize:'16px'}}/>
         </div>
 
         {/* Páginas */}
         <div>
-          <label className="label mb-2">Páginas acessíveis</label>
+          <label className="label mb-2">{t('perm_pages')}</label>
           {Object.entries(PAGE_GROUPS).map(([groupId, group]) => {
             const groupPages = ALL_PAGES.filter(p => p.group === groupId)
             const selectedCount = groupPages.filter(p => pages.includes(p.id)).length
@@ -202,13 +202,13 @@ function PSEditor({ ps, onSave, onCancel, existingNames }) {
 
         {/* Acções */}
         <div>
-          <label className="label mb-2">O que pode fazer</label>
+          <label className="label mb-2">{t('perm_actions')}</label>
           <div className="grid grid-cols-2 gap-2">
             {[
-              { key:'edit',   label:'Editar registos',          val: canEdit,   set: setCanEdit },
+              { key:'edit',   label:t('perm_can_edit'),          val: canEdit,   set: setCanEdit },
               { key:'own',    label:'Só os seus (edit own)',     val: editOwn,   set: setEditOwn },
-              { key:'delete', label:'Apagar registos',           val: canDelete, set: setCanDel },
-              { key:'all',    label:'Ver todas as BUs',          val: seeAll,    set: setSeeAll },
+              { key:'delete', label:t('perm_can_delete'),           val: canDelete, set: setCanDel },
+              { key:'all',    label:t('perm_see_all_bu'),          val: seeAll,    set: setSeeAll },
             ].map(({ key, label, val, set }) => (
               <button key={key} onClick={() => set(o => !o)}
                 className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs font-medium text-left transition-all ${
@@ -319,7 +319,7 @@ function PermissionSetsTab({ permSets, profiles, onRefresh }) {
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-bold text-gray-900">{ps.name}</p>
                       {ps.is_system && (
-                        <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-medium">sistema</span>
+                        <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-medium">{t('perm_system')}</span>
                       )}
                       <span className="text-[10px] text-gray-400">{userCount} utilizador{userCount !== 1 ? 'es' : ''}</span>
                     </div>
@@ -438,7 +438,7 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
               {isSelf && <span className="ml-1 text-[10px] text-amber-600">(you)</span>}
             </p>
             {ps && <PSBadge ps={ps}/>}
-            {!active && <span className="text-[10px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded">inactivo</span>}
+            {!active && <span className="text-[10px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded">{t('perm_inactive')}</span>}
           </div>
           <p className="text-xs text-gray-400 truncate">{profile.email}</p>
           {company && (
@@ -477,7 +477,7 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
 
           {/* Permission Set */}
           <div>
-            <label className="label">Permission Set</label>
+            <label className="label">{t('perm_set_label')}</label>
             <div className="space-y-1.5">
               {permSets.map(p => {
                 const active = psId === p.id
@@ -504,7 +504,7 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
 
           {/* Sales Owner */}
           <div>
-            <label className="label">Sales Owner (opcional)</label>
+            <label className="label">{t('perm_sales_owner')}</label>
             <select className="select text-sm" value={ownerId}
               onChange={e => setOwner(e.target.value)}>
               <option value="">— Sem ligação —</option>
@@ -516,7 +516,7 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
 
           {/* Activo */}
           <div className="flex items-center justify-between">
-            <label className="text-xs font-medium text-gray-500">Conta activa</label>
+            <label className="text-xs font-medium text-gray-500">{t('perm_account_active')}</label>
             <button onClick={() => setActive(o => !o)} disabled={isSelf}
               className={`w-10 h-5 rounded-full transition-colors relative ${active ? 'bg-green-400' : 'bg-gray-200'} disabled:opacity-40`}>
               <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${active ? 'translate-x-5' : 'translate-x-0.5'}`}/>
@@ -577,13 +577,13 @@ function CompaniesSection({ companies, onRefresh }) {
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="label">Nome *</label>
+              <label className="label">{t('perm_name')}</label>
               <input className="input" value={form.name}
                 onChange={e => setForm(f => ({...f, name: e.target.value}))}
-                placeholder="ex: Distribuidor X" style={{fontSize:'16px'}}/>
+                placeholder={t('perm_company_ph')} style={{fontSize:'16px'}}/>
             </div>
             <div>
-              <label className="label">Tipo *</label>
+              <label className="label">{t('perm_type')}</label>
               <select className="select" value={form.type}
                 onChange={e => setForm(f => ({...f, type: e.target.value}))}>
                 {Object.entries(COMPANY_TYPES).map(([k,v]) => (
@@ -595,7 +595,7 @@ function CompaniesSection({ companies, onRefresh }) {
               <label className="label">País</label>
               <input className="input" value={form.country}
                 onChange={e => setForm(f => ({...f, country: e.target.value}))}
-                placeholder="ex: Portugal" style={{fontSize:'16px'}}/>
+                placeholder={t('perm_country_ph')} style={{fontSize:'16px'}}/>
             </div>
           </div>
           <div className="flex gap-2">
@@ -736,7 +736,7 @@ function SalesTargetsSection({ companies, onRefresh }) {
                         <p className="text-sm font-bold text-gray-900">
                           {target > 0 ? `${target >= 1000 ? Math.round(target/1000)+'K€' : target+'€'}` : '—'}
                         </p>
-                        <p className="text-[10px] text-gray-400">Target FY26</p>
+                        <p className="text-[10px] text-gray-400">{t('perm_target_fy26')}</p>
                       </div>
                       <button onClick={() => { setEditing(co.id); setEditVal(target > 0 ? String(target) : '') }}
                         className="text-gray-300 hover:text-navy p-1 transition-colors">
@@ -828,7 +828,7 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
               style={{fontSize:'16px'}}/>
           </div>
           <div>
-            <label className="label">Email *</label>
+            <label className="label">{t('perm_email_req')}</label>
             <input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)}
               style={{fontSize:'16px'}}/>
           </div>
@@ -849,7 +849,7 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
             </div>
           </div>
           <div>
-            <label className="label">Empresa</label>
+            <label className="label">{t('perm_companies')}</label>
             <select className="select" value={companyId} onChange={e => setComp(e.target.value)}>
               <option value="">— Sem empresa —</option>
               {companies.filter(c=>c.active).map(co => (
@@ -860,7 +860,7 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
             </select>
           </div>
           <div>
-            <label className="label">Sales Owner</label>
+            <label className="label">{t('perm_sales_owner').replace(' (opcional)','')}</label>
             <select className="select" value={ownerId} onChange={e => setOwner(e.target.value)}>
               <option value="">— Sem ligação —</option>
               {salesOwners.filter(o=>o.active).map(o => (
@@ -933,11 +933,11 @@ export default function Permissions() {
   })
 
   const TABS = [
-    { id:'sets',     label:'Permission Sets', count: permSets.length },
+    { id:'sets',     label:t('perm_sets_title'), count: permSets.length },
     { id:'users',    label:'Utilizadores',    count: profiles.length },
-    { id:'companies',label:'Empresas',        count: companies.length },
-    { id:'targets',  label:'Sales Targets' },
-    { id:'invite',   label:'+ Convidar' },
+    { id:'companies',label:t('perm_companies'),        count: companies.length },
+    { id:'targets',  label:t('nav_targets') },
+    { id:'invite',   label:t('perm_invite_title') },
   ]
 
   return (
@@ -976,7 +976,7 @@ export default function Permissions() {
         <div className="space-y-3">
           <div className="flex gap-2 flex-wrap">
             <div className="relative flex-1 min-w-48">
-              <input className="input pl-8 text-sm" placeholder="Pesquisar…"
+              <input className="input pl-8 text-sm" placeholder={t('perm_search_ph')}
                 value={search} onChange={e => setSearch(e.target.value)} style={{fontSize:'16px'}}/>
               <Search size={14} className="absolute left-2.5 top-3 text-gray-400"/>
             </div>
