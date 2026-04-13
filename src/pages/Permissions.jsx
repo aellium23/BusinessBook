@@ -9,7 +9,7 @@ import {
   Search, Target, Copy, ChevronRight, Settings
 } from 'lucide-react'
 
-// ── Configuração das páginas  disponíveis ──────────────────────────────────────
+// ── Configuração das páginas disponíveis ──────────────────────────────────────
 const ALL_PAGES = [
   { id:'dashboard',   label:'Dashboard',    group:'core' },
   { id:'deals',       label:'Deals',        group:'core' },
