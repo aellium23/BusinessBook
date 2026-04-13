@@ -90,18 +90,18 @@ function DistributorHistory({ profile }) {
     <div className="p-4 space-y-5 max-w-3xl mx-auto">
       <div className="pt-1">
         <h1 className="text-xl font-bold text-gray-900">{t('hist_title')}</h1>
-        <p className="text-sm text-gray-400 mt-0.5">Histórico de vendas · FY26</p>
+        <p className="text-sm text-gray-400 mt-0.5">{t('dist_hist_subtitle')}</p>
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
           <p className="text-2xl font-bold text-gray-900">{Math.round(total/1000)}K€</p>
-          <p className="text-xs text-gray-400 mt-0.5">Total Invoiced</p>
+          <p className="text-xs text-gray-400 mt-0.5">{t('dist_hist_invoiced')}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
           <p className="text-2xl font-bold text-gray-900">{invoiced.length}</p>
-          <p className="text-xs text-gray-400 mt-0.5">Deals fechados</p>
+          <p className="text-xs text-gray-400 mt-0.5">{t('dist_hist_closed')}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
           <p className="text-2xl font-bold text-gray-900">{byClient.length}</p>
@@ -111,7 +111,7 @@ function DistributorHistory({ profile }) {
 
       {/* Gráfico mensal */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <p className="text-sm font-semibold text-gray-700 mb-3">Vendas mensais · K€</p>
+        <p className="text-sm font-semibold text-gray-700 mb-3">{t('dist_monthly')}</p>
         <ResponsiveContainer width="100%" height={160}>
           <BarChart data={monthly} margin={{top:5,right:5,bottom:0,left:0}}>
             <XAxis dataKey="month" tick={{fontSize:10}} tickLine={false} axisLine={false}/>
@@ -125,7 +125,7 @@ function DistributorHistory({ profile }) {
       {/* Por cliente */}
       {byClient.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-sm font-semibold text-gray-700 mb-3">Por cliente</p>
+          <p className="text-sm font-semibold text-gray-700 mb-3">{t('dist_hist_by_client')}</p>
           <div className="space-y-2">
             {byClient.slice(0,10).map(({ client, value }) => (
               <div key={client} className="flex items-center gap-3">
@@ -145,7 +145,7 @@ function DistributorHistory({ profile }) {
 
       {deals.length === 0 && (
         <div className="text-center py-12 text-gray-400">
-          <p className="text-sm">Sem dados históricos disponíveis.</p>
+          <p className="text-sm">{t('dist_hist_no_data')}</p>
         </div>
       )}
     </div>
