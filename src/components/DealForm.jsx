@@ -257,10 +257,15 @@ export default function DealForm({ deal, onClose, onSaved }) {
 
   // Auto-calculate SLA monthly recognition
   useEffect(() => {
-    supabase.from('profiles').select('display_name, full_name, email')
-      .eq('active', true).order('display_name')
+    // Carregar sales owners da tabela quotas (nomes únicos por BU)
+    supabase.from('quotas')
+      .select('sales_owner, bu')
+      .order('bu').order('sales_owner')
       .then(({ data }) => {
-        if (data) setOwners(data.map(p => p.display_name || p.full_name || p.email).filter(Boolean))
+        if (data) {
+          const unique = [...new Set(data.map(q => q.sales_owner).filter(Boolean))].sort()
+          setOwners(unique)
+        }
       })
   }, [])
 
