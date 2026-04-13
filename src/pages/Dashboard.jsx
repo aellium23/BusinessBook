@@ -37,7 +37,7 @@ function PctBadge({ value, reference, label }) {
   )
 }
 
-function BUPerformanceCard({ bu, color, label, actMTD, actYTD, planMTD, planYTD, pyMTD, pyYTD, cycle, mtdLabel, ytdLabel }) {
+function BUPerformanceCard({ bu, color, label, actMTD, actYTD, actExtMTD, actIntMTD, actExtYTD, actIntYTD, fcExtYTD, fcIntYTD, planMTD, planYTD, planExtYTD, planIntYTD, pyMTD, pyYTD, cycle, mtdLabel, ytdLabel }) {
   function Bar({ value, max, c }) {
     const p = max > 0 ? Math.min(value/max*100, 140) : 0
     return (
