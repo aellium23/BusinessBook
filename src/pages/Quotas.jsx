@@ -272,13 +272,13 @@ function DistributorQuota({ quotas, actuals, forecast, profile }) {
     <div className="p-4 space-y-5 max-w-lg mx-auto">
       <div className="pt-1">
         <h1 className="text-xl font-bold text-gray-900">{t('quotas_title')}</h1>
-        <p className="text-sm text-gray-400 mt-0.5">O teu objetivo de vendas FY26</p>
+        <p className="text-sm text-gray-400 mt-0.5">{t('dist_target_sub')}</p>
       </div>
 
       {!target ? (
         <div className="bg-gray-50 rounded-xl p-8 text-center">
-          <p className="text-gray-400 text-sm">Nenhum Sales Target definido ainda.</p>
-          <p className="text-gray-300 text-xs mt-1">Contacta o teu gestor Fujifilm.</p>
+          <p className="text-gray-400 text-sm">{t('dist_no_target')}</p>
+          <p className="text-gray-300 text-xs mt-1">{t('dist_contact_mgr')}</p>
         </div>
       ) : (
         <>
@@ -286,7 +286,7 @@ function DistributorQuota({ quotas, actuals, forecast, profile }) {
           <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">Target FY26</p>
+                <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">{t('dist_target_fy26')}</p>
                 <p className="text-3xl font-bold text-gray-900 mt-1">
                   {Math.round(target/1000)}K€
                 </p>
@@ -298,7 +298,7 @@ function DistributorQuota({ quotas, actuals, forecast, profile }) {
             <div className="space-y-3">
               <div>
                 <div className="flex justify-between text-xs mb-1">
-                  <span className="font-medium text-gray-600">Actuals (Invoiced)</span>
+                  <span className="font-medium text-gray-600">{t('dist_actuals_inv')}</span>
                   <span className="font-bold" style={{color: COLOR}}>
                     {Math.round(myActuals/1000)}K€ · {actPct}%
                   </span>
@@ -310,7 +310,7 @@ function DistributorQuota({ quotas, actuals, forecast, profile }) {
               </div>
               <div>
                 <div className="flex justify-between text-xs mb-1">
-                  <span className="font-medium text-gray-600">Forecast (BL + Inv)</span>
+                  <span className="font-medium text-gray-600">{t('dist_forecast_bl')}</span>
                   <span className="font-bold text-blue-600">
                     {Math.round(myForecast/1000)}K€ · {fcPct}%
                   </span>
@@ -325,7 +325,7 @@ function DistributorQuota({ quotas, actuals, forecast, profile }) {
             {/* Gap */}
             <div className="pt-1 border-t border-gray-100">
               <p className="text-xs text-gray-400">
-                Gap para target: <span className="font-semibold text-gray-600">
+                {t('dist_gap')} <span className="font-semibold text-gray-600">
                   {Math.round((target - myForecast)/1000)}K€
                 </span>
               </p>
