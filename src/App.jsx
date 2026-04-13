@@ -1,4 +1,3 @@
-import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import Layout from './components/Layout'
@@ -17,14 +16,7 @@ import { Spinner } from './components/ui'
 import AuthCallback from './pages/AuthCallback'
 import SetPassword from './pages/SetPassword'
 
-// Lazy load — não bloqueia o build se o ficheiro não existir
-const Permissions = lazy(() =>
-  import('./pages/Permissions').catch(() => ({ default: () => (
-    <div className="flex items-center justify-center h-64 text-gray-400">
-      <p>Página não disponível.</p>
-    </div>
-  )}))
-)
+import Permissions from './pages/Permissions'
 
 function Guard({ page, element }) {
   const { canAccessPage } = useAuth()
@@ -54,7 +46,6 @@ function AppRoutes() {
 
   return (
     <Layout>
-      <Suspense fallback={<div className="flex items-center justify-center p-8"><Spinner /></div>}>
         <Routes>
           <Route path="/"             element={<Guard page="dashboard"   element={<Dashboard />} />} />
           <Route path="/deals"        element={<Guard page="deals"       element={<Deals />} />} />
@@ -65,14 +56,14 @@ function AppRoutes() {
           <Route path="/tenders"      element={<Guard page="tenders"     element={<Tenders />} />} />
           <Route path="/budget"       element={<Guard page="budget"      element={<Budget />} />} />
           <Route path="/settings"     element={<Guard page="settings"    element={<Settings />} />} />
-          <Route path="/permissions"  element={<Permissions />} />
+          <Route path="/permissions"  element={<Guard page="permissions" element={<Permissions />} />} />
           <Route path="/account"       element={<MyAccount />} />
           <Route path="/auth/callback"     element={<AuthCallback />} />
           <Route path="/auth/set-password" element={<SetPassword />} />
           <Route path="/login"              element={<Navigate to="/" replace />} />
           <Route path="*"             element={<Navigate to="/" replace />} />
         </Routes>
-      </Suspense>
+      
     </Layout>
   )
 }

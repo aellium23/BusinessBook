@@ -65,7 +65,7 @@ export default function Layout({ children }) {
     { to: '/quotas',  icon: Target,          label: t("nav_targets") },
     { to: '/budget',  icon: DollarSign,      label: t("nav_budget"),   adminOnly: true },
     { to: '/settings',    icon: Settings, label: t("nav_settings"),    adminOnly: true },
-    { to: '/permissions',  icon: Shield,   label: 'Permissions',        adminOnly: true },
+    { to: '/permissions',  icon: Shield,   label: t('nav_permissions'), adminOnly: true },
   ]
 
   return (
