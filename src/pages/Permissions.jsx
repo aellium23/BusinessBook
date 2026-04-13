@@ -17,7 +17,7 @@ const ALL_PAGES = [
   { id:'tasks',       label:'Tasks',        group:'core' },
   { id:'tenders',     label:'Tenders',      group:'core' },
   { id:'history',     label:'History',      group:'reports' },
-  { id:'quotas',      label:t('nav_targets'),group:'reports' },
+  { id:'quotas',      label:'Sales Targets',group:'reports' },
   { id:'budget',      label:'Budget',       group:'admin' },
   { id:'users',       label:'Users',        group:'admin' },
   { id:'settings',    label:'Settings',     group:'admin' },
@@ -860,7 +860,7 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
             </select>
           </div>
           <div>
-            <label className="label">{t('perm_sales_owner').replace(' (opcional)','')}</label>
+            <label className="label">Sales Owner</label>
             <select className="select" value={ownerId} onChange={e => setOwner(e.target.value)}>
               <option value="">— Sem ligação —</option>
               {salesOwners.filter(o=>o.active).map(o => (
