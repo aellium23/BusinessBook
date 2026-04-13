@@ -56,15 +56,16 @@ export const ROLE_PERMISSIONS = {
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser]       = useState(null)
-  const [profile, setProfile] = useState(null)
-  const [company, setCompany] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser]             = useState(null)
+  const [profile, setProfile]       = useState(null)
+  const [company, setCompany]       = useState(null)
+  const [permSet, setPermSet]       = useState(null)
+  const [loading, setLoading]       = useState(true)
 
   async function loadProfile(userId, userEmail) {
     const { data } = await supabase
       .from('profiles')
-      .select('*, company:company_id(*)')
+      .select('*, company:company_id(*), permission_set:permission_set_id(*)')
       .eq('id', userId)
       .single()
 
@@ -72,12 +73,13 @@ export function AuthProvider({ children }) {
       // Verificar se a conta está activa
       if (data.active === false) {
         await supabase.auth.signOut()
-        setProfile(null); setCompany(null)
+        setProfile(null); setCompany(null); setPermSet(null)
         return
       }
-      const { company: co, ...prof } = data
+      const { company: co, permission_set: ps, ...prof } = data
       setProfile(prof)
       setCompany(co || null)
+      setPermSet(ps || null)
     } else {
       // Novo user — criar profile básico
       const { data: upserted } = await supabase
@@ -116,11 +118,23 @@ export function AuthProvider({ children }) {
   }, [profile])
 
   const role   = profile?.role || 'viewer'
-  const perms  = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.viewer
   const bu     = profile?.bu || company?.bu || null
 
+  // Usar permSet dinâmico se disponível, senão fallback para ROLE_PERMISSIONS estático
+  const resolvedPages = permSet?.pages
+    ? (Array.isArray(permSet.pages) ? permSet.pages : JSON.parse(permSet.pages || '[]'))
+    : (ROLE_PERMISSIONS[role]?.pages || ROLE_PERMISSIONS.viewer.pages)
+
+  const perms = {
+    pages:    resolvedPages,
+    canEdit:  permSet ? permSet.can_edit  : (ROLE_PERMISSIONS[role]?.canEdit  ?? false),
+    editOwn:  permSet ? permSet.edit_own  : (ROLE_PERMISSIONS[role]?.editOwn  ?? true),
+    canDelete:permSet ? permSet.can_delete: (ROLE_PERMISSIONS[role]?.canEdit  ?? false),
+    seeAll:   permSet ? permSet.see_all_bu: (ROLE_PERMISSIONS[role]?.seeAll   ?? false),
+  }
+
   // Flags de conveniência (retrocompatíveis)
-  const isAdmin    = role === 'admin'
+  const isAdmin    = role === 'admin' || (permSet?.see_all_bu === true && permSet?.can_delete === true)
   const isVGT      = isAdmin || bu === 'VGT'
   const isECT      = isAdmin || bu === 'ECT'
   const canSeeAll  = isAdmin || perms.seeAll
@@ -129,12 +143,13 @@ export function AuthProvider({ children }) {
 
   // Verificar se o user pode aceder a uma página
   function canAccessPage(page) {
-    return isAdmin || perms.pages.includes(page)
+    if (role === 'admin') return true
+    return resolvedPages.includes(page)
   }
 
   return (
     <AuthContext.Provider value={{
-      user, profile, company, loading,
+      user, profile, company, permSet, loading,
       role, bu, perms,
       isAdmin, isVGT, isECT,
       canSeeAll, canEdit, editOwnOnly,
