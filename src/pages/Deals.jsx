@@ -303,8 +303,9 @@ export default function Deals() {
   const [ownerF, setOwnerF]     = useState('')
   const [slaF, setSlaF]         = useState(false)
   const [periodF, setPeriodF]   = useState(0)   // dias; 0 = todos
-  const [pageSize, setPageSize] = useState(5)
-  const [page, setPage]         = useState(1)
+  const [pageSize, setPageSize]             = useState(5)
+  const [page, setPage]                     = useState(1)
+  const [invoicedMonthF, setInvoicedMonthF] = useState('')
 
   // Modal states
   const [editDeal, setEditDeal] = useState(null)
@@ -331,8 +332,11 @@ export default function Deals() {
       cutoff.setDate(cutoff.getDate() - periodF)
       d = d.filter(x => x.updated_at && new Date(x.updated_at) >= cutoff)
     }
+    if (invoicedMonthF) {
+      d = d.filter(x => x.stage === 'Invoiced' && (x[invoicedMonthF] || 0) > 0)
+    }
     return d
-  }, [rawDeals, slaF, ownerF, periodF, profile])
+  }, [rawDeals, slaF, ownerF, periodF, invoicedMonthF, profile])
 
   // Reset página quando filtros mudam
   const resetPage = () => setPage(1)
@@ -342,7 +346,8 @@ export default function Deals() {
   const handleBu     = v => { setBuF(v); resetPage() }
   const handleOwner  = v => { setOwnerF(v); resetPage() }
   const handleSla    = ()  => { setSlaF(o => !o); resetPage() }
-  const handlePeriod = v => { setPeriodF(Number(v)); resetPage() }
+  const handlePeriod        = v => { setPeriodF(Number(v)); resetPage() }
+  const handleInvoicedMonth = v => { setInvoicedMonthF(v); resetPage() }
 
   // Paginação
   const totalPages = Math.max(1, Math.ceil(deals.length / pageSize))
@@ -355,7 +360,7 @@ export default function Deals() {
   }, [rawDeals])
 
   // Contagem de filtros activos
-  const activeFilters = [search, stageF, regionF, buF, ownerF, slaF, periodF > 0].filter(Boolean).length
+  const activeFilters = [search, stageF, regionF, buF, ownerF, slaF, periodF > 0, invoicedMonthF].filter(Boolean).length
 
   async function confirmDelete() {
     await deleteDeal(confirmDel.id)
@@ -448,6 +453,25 @@ export default function Deals() {
               </select>
             </div>
 
+            {/* Invoiced Month */}
+            <div>
+              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">
+                Invoiced Month
+              </label>
+              <select className="select text-xs w-full" value={invoicedMonthF} onChange={e => handleInvoicedMonth(e.target.value)}>
+                <option value="">All months</option>
+                {[
+                  {k:'apr',l:'Apr'},  {k:'may',l:'May'}, {k:'jun',l:'Jun'},
+                  {k:'jul',l:'Jul'},  {k:'aug',l:'Aug'}, {k:'sep',l:'Sep'},
+                  {k:'oct',l:'Oct'},  {k:'nov',l:'Nov'}, {k:'dec',l:'Dec'},
+                  {k:'jan',l:'Jan'},  {k:'feb',l:'Feb'}, {k:'mar',l:'Mar'},
+                ].map(m => <option key={m.k} value={m.k}>{m.l}</option>)}
+              </select>
+              {invoicedMonthF && (
+                <p className="text-[9px] text-blue-500 mt-0.5">Showing Invoiced deals with revenue in this month</p>
+              )}
+            </div>
+
             {/* Período */}
             <div>
               <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">{t("deals_period")}</label>
@@ -474,7 +498,7 @@ export default function Deals() {
             {activeFilters > 0 && (
               <button onClick={() => {
                 setSearch(''); setStageF(''); setRegionF(''); setBuF('')
-                setOwnerF(''); setSlaF(false); setPeriodF(0); resetPage()
+                setOwnerF(''); setSlaF(false); setPeriodF(0); setInvoicedMonthF(''); resetPage()
               }} className="text-xs text-red-500 hover:text-red-700 font-medium">
                 {t("deals_clear_filters")}
               </button>
