@@ -275,7 +275,7 @@ function DistributorDashboard({ deals, profile }) {
       {/* Header */}
       <div className="pt-1">
         <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-400 mt-0.5">FY26 · Apr 2026 – Mar 2027</p>
+        <p className="text-sm text-gray-400 mt-0.5">{t('dist_dash_subtitle')}</p>
       </div>
 
       {/* KPI Cards principais */}
@@ -285,12 +285,12 @@ function DistributorDashboard({ deals, profile }) {
         <div className="bg-white rounded-xl border border-gray-200 p-4 col-span-2">
           <div className="flex items-start justify-between mb-3">
             <div>
-              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Actuals vs Target</p>
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">{t('dist_actuals_target')}</p>
               <p className="text-2xl font-bold text-gray-900 mt-0.5">{formatK(stats.actuals)}</p>
-              <p className="text-sm text-gray-400">de {formatK(quotaTarget)} objetivo</p>
+              <p className="text-sm text-gray-400">t('dist_of_target') + ' ' + formatK(quotaTarget)</p>
             </div>
             <div className="text-right">
-              <p className="text-xs text-gray-400">Forecast</p>
+              <p className="text-xs text-gray-400">{t('dash_forecast')}</p>
               <p className="text-lg font-bold text-navy">{formatK(stats.fc)}</p>
               <p className="text-xs text-gray-400">{fcPct}% do target</p>
             </div>
@@ -312,7 +312,7 @@ function DistributorDashboard({ deals, profile }) {
 
         {/* Pipeline */}
         <div className="bg-white rounded-xl border border-gray-200 p-3">
-          <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">Pipeline</p>
+          <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">{t('dist_pipeline')}</p>
           <p className="text-xl font-bold text-gray-900 mt-1">{formatK(stats.pipeVal)}</p>
           <p className="text-xs text-gray-500 mt-0.5">{stats.pipelineCount} deals ativos</p>
         </div>
@@ -321,13 +321,13 @@ function DistributorDashboard({ deals, profile }) {
         <div className="bg-white rounded-xl border border-gray-200 p-3">
           <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">Clientes</p>
           <p className="text-xl font-bold text-gray-900 mt-1">{stats.clients.length}</p>
-          <p className="text-xs text-gray-500 mt-0.5">clientes activos</p>
+          <p className="text-xs text-gray-500 mt-0.5">{t('dist_active_clients')}</p>
         </div>
       </div>
 
       {/* Funil de deals */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <p className="text-sm font-semibold text-gray-700 mb-3">Estado dos deals</p>
+        <p className="text-sm font-semibold text-gray-700 mb-3">{t('dist_deal_status')}</p>
         <div className="grid grid-cols-4 gap-2">
           {[
             { label: 'Invoiced', count: stats.invoicedCount, color: '#1D9E75', bg: '#F0FDF9' },
@@ -345,7 +345,7 @@ function DistributorDashboard({ deals, profile }) {
 
       {/* Gráfico mensal */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <p className="text-sm font-semibold text-gray-700 mb-3">Vendas mensais · K€</p>
+        <p className="text-sm font-semibold text-gray-700 mb-3">{t('dist_monthly')}</p>
         <ResponsiveContainer width="100%" height={160}>
           <ComposedChart data={monthlyData} margin={{top:5,right:5,bottom:0,left:0}}>
             <XAxis dataKey="month" tick={{fontSize:10}} tickLine={false} axisLine={false}/>
@@ -367,7 +367,7 @@ function DistributorDashboard({ deals, profile }) {
             <span className="text-white text-xs font-bold">★</span>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Produto mais vendido</p>
+            <p className="text-xs text-gray-500">{t('dist_top_product')}</p>
             <p className="text-sm font-bold text-gray-900">{stats.topProduct}</p>
           </div>
         </div>
