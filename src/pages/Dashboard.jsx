@@ -99,12 +99,24 @@ function PerformanceSection({ deals, budget, fy25, activeCycle, isAdmin }) {
   const mtdLabel = MONTHS_LABEL[fyIdx]
   const ytdLabel = fyIdx === 0 ? MONTHS_LABEL[0] : `${MONTHS_LABEL[0]}–${MONTHS_LABEL[fyIdx]}`
 
-  function sumDeals(bu, months) {
-    return deals.filter(d=>d.bu===bu&&d.stage==='Invoiced'&&!d.is_intercompany_mirror)
+  function sumDeals(bu, months, salesType = null) {
+    return deals
+      .filter(d => d.bu===bu && d.stage==='Invoiced' && !d.is_intercompany_mirror
+        && (salesType === null || (salesType === 'External' ? d.sales_type !== 'Internal' : d.sales_type === 'Internal')))
       .reduce((s,d)=>{
         const rate = (!d.currency||d.currency==='EUR') ? 1 : (d.exchange_rate||1)
         const monthSum = months.reduce((ms,m)=>ms+(d[m]||0),0)
-        // Fallback: if monthly fields empty but value_total set, use value_total
+        const val = (monthSum === 0 && d.value_total > 0) ? d.value_total : monthSum
+        return s + val * rate
+      },0)/1000
+  }
+  function sumForecast(bu, months, salesType = null) {
+    return deals
+      .filter(d => d.bu===bu && d.stage==='BackLog' && !d.is_intercompany_mirror
+        && (salesType === null || (salesType === 'External' ? d.sales_type !== 'Internal' : d.sales_type === 'Internal')))
+      .reduce((s,d)=>{
+        const rate = (!d.currency||d.currency==='EUR') ? 1 : (d.exchange_rate||1)
+        const monthSum = months.reduce((ms,m)=>ms+(d[m]||0),0)
         const val = (monthSum === 0 && d.value_total > 0) ? d.value_total : monthSum
         return s + val * rate
       },0)/1000
@@ -123,12 +135,20 @@ function PerformanceSection({ deals, budget, fy25, activeCycle, isAdmin }) {
   const cards = ['VGT','ECT'].map(bu=>({
     bu, label: bu==='VGT'?'VGT · Portugal':'ECT · Spain',
     color: bu==='VGT'?'#1D9E75':'#D85A30',
-    actMTD:  sumDeals(bu,[curMonth]),
-    actYTD:  sumDeals(bu,ytdMonths),
-    planMTD: sumPlan(bu,[curMonth]),
-    planYTD: sumPlan(bu,ytdMonths),
-    pyMTD:   sumPY(bu,[curMonth]),
-    pyYTD:   sumPY(bu,ytdMonths),
+    actMTD:     sumDeals(bu,[curMonth]),
+    actYTD:     sumDeals(bu,ytdMonths),
+    actExtMTD:  sumDeals(bu,[curMonth],'External'),
+    actIntMTD:  sumDeals(bu,[curMonth],'Internal'),
+    actExtYTD:  sumDeals(bu,ytdMonths,'External'),
+    actIntYTD:  sumDeals(bu,ytdMonths,'Internal'),
+    fcExtYTD:   sumDeals(bu,ytdMonths,'External') + sumForecast(bu,ytdMonths,'External'),
+    fcIntYTD:   sumDeals(bu,ytdMonths,'Internal') + sumForecast(bu,ytdMonths,'Internal'),
+    planMTD:    sumPlan(bu,[curMonth]),
+    planYTD:    sumPlan(bu,ytdMonths),
+    planExtYTD: ['ns_ext'].reduce((s,k)=>{ const r=budget.find(r=>r.bu===bu&&r.cycle===activeCycle&&r.pl_key===k); return s+ytdMonths.reduce((ms,m)=>ms+(r?.[m]||0),0) },0),
+    planIntYTD: ['ns_int'].reduce((s,k)=>{ const r=budget.find(r=>r.bu===bu&&r.cycle===activeCycle&&r.pl_key===k); return s+ytdMonths.reduce((ms,m)=>ms+(r?.[m]||0),0) },0),
+    pyMTD:      sumPY(bu,[curMonth]),
+    pyYTD:      sumPY(bu,ytdMonths),
   }))
 
   const iberia = {
@@ -431,20 +451,29 @@ export default function Dashboard() {
       vgt_fc:0, ect_fc:0, vgt_act:0, ect_act:0,
       vgt_bl:0, ect_bl:0, vgt_pipe:0, ect_pipe:0,
       vgt_gm:0, ect_gm:0,
+      // Por sales_type
+      vgt_act_ext:0, vgt_act_int:0, ect_act_ext:0, ect_act_int:0,
+      vgt_fc_ext:0,  vgt_fc_int:0,  ect_fc_ext:0,  ect_fc_int:0,
     }
     deals.forEach(d => {
       if (d.is_intercompany_mirror) return
       const bu = d.bu?.toLowerCase()
       if (!bu) return
-      // Currency conversion to EUR
       const rate = (!d.currency || d.currency === 'EUR') ? 1 : (d.exchange_rate || 1)
-      // Monthly sum — for SLA deals with empty months, fall back to value_total
       const fyRaw = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
       const fy = (fyRaw === 0 && d.value_total > 0) ? d.value_total : fyRaw
       const fyEUR = fy * rate
       const valEUR = (d.value_total || 0) * rate
-      if (['BackLog','Invoiced'].includes(d.stage)) result[`${bu}_fc`]   += fyEUR / 1000
-      if (d.stage === 'Invoiced')                   result[`${bu}_act`]  += fyEUR / 1000
+      const isExt = d.sales_type !== 'Internal'
+      const typeKey = isExt ? 'ext' : 'int'
+      if (['BackLog','Invoiced'].includes(d.stage)) {
+        result[`${bu}_fc`]   += fyEUR / 1000
+        result[`${bu}_fc_${typeKey}`] += fyEUR / 1000
+      }
+      if (d.stage === 'Invoiced') {
+        result[`${bu}_act`]  += fyEUR / 1000
+        result[`${bu}_act_${typeKey}`] += fyEUR / 1000
+      }
       if (d.stage === 'BackLog')                    result[`${bu}_bl`]   += fyEUR / 1000
       if (d.stage === 'Pipeline' || d.stage === 'Offer Presented') result[`${bu}_pipe`] += valEUR / 1000
       if (['BackLog','Invoiced'].includes(d.stage)) result[`${bu}_gm`]   += (fyEUR / 1000) * (d.gm_pct || 0)
