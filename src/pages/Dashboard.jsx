@@ -37,8 +37,8 @@ function PctBadge({ value, reference, label }) {
   )
 }
 
-function BUPerformanceCard({ bu, color, label, actMTD, actYTD, actExtMTD, actIntMTD, actExtYTD, actIntYTD, fcExtYTD, fcIntYTD, planMTD, planYTD, planExtYTD, planIntYTD, pyMTD, pyYTD, cycle, mtdLabel, ytdLabel }) {
-  function Bar({ value, max, c }) {
+function BUPerformanceCard({ bu, color, label, actMTD, actYTD, actExtMTD=0, actIntMTD=0, actExtYTD=0, actIntYTD=0, fcExtYTD=0, fcIntYTD=0, planMTD, planYTD, planExtYTD=0, planIntYTD=0, pyMTD, pyYTD, cycle, mtdLabel, ytdLabel }) {
+  function BarChart({ value, max, c }) {
     const p = max > 0 ? Math.min(value/max*100, 140) : 0
     return (
       <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -52,38 +52,54 @@ function BUPerformanceCard({ bu, color, label, actMTD, actYTD, actExtMTD, actInt
       <div className="px-4 pt-3 pb-2 flex items-center justify-between" style={{ background: `${color}12` }}>
         <div>
           <p className="text-xs font-bold" style={{ color }}>{label}</p>
-          <p className="text-[10px] text-gray-400">{cycle} · {new Date().toLocaleString('en',{month:'short',year:'numeric'})}</p>
+          <p className="text-[10px] text-gray-400">{cycle} · {new Date().toLocaleString('en',{month:'short',year:'2-digit'})}</p>
         </div>
         <span className="text-[10px] text-gray-400">K€</span>
       </div>
+      {/* MTD */}
       <div className="px-4 py-3 border-b border-gray-50">
         <div className="flex items-start justify-between mb-1.5">
           <div>
             <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">Actuals · {mtdLabel}</p>
             <p className="text-2xl font-bold text-gray-900">{formatK(actMTD*1000)}</p>
+            <div className="flex gap-2 mt-1">
+              <span className="text-[9px] bg-green-50 text-green-700 px-1.5 py-0.5 rounded font-semibold">Ext {formatK(actExtMTD*1000)}</span>
+              <span className="text-[9px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-semibold">Int {formatK(actIntMTD*1000)}</span>
+            </div>
           </div>
           <div className="text-right space-y-0.5 mt-1">
             <PctBadge value={actMTD} reference={planMTD} label="Plan"/>
             <div/><PctBadge value={actMTD} reference={pyMTD} label="PY"/>
           </div>
         </div>
-        <Bar value={actMTD} max={planMTD} c={color}/>
+        <BarChart value={actMTD} max={planMTD} c={color}/>
         <div className="flex justify-between text-[9px] text-gray-400 mt-0.5">
           <span>Plan: {formatK(planMTD*1000)}</span><span>PY: {formatK(pyMTD*1000)}</span>
         </div>
       </div>
+      {/* YTD */}
       <div className="px-4 py-3">
+        <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1.5">Actuals YTD · {ytdLabel}</p>
         <div className="flex items-start justify-between mb-1.5">
-          <div>
-            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">Actuals YTD · {ytdLabel}</p>
-            <p className="text-2xl font-bold text-gray-900">{formatK(actYTD*1000)}</p>
-          </div>
-          <div className="text-right space-y-0.5 mt-1">
+          <p className="text-2xl font-bold text-gray-900">{formatK(actYTD*1000)}</p>
+          <div className="text-right space-y-0.5">
             <PctBadge value={actYTD} reference={planYTD} label="Plan"/>
             <div/><PctBadge value={actYTD} reference={pyYTD} label="PY"/>
           </div>
         </div>
-        <Bar value={actYTD} max={planYTD} c={color}/>
+        <div className="grid grid-cols-2 gap-1.5 mb-2">
+          <div className="bg-green-50 rounded-lg p-2">
+            <p className="text-[9px] text-green-600 font-bold uppercase mb-0.5">External</p>
+            <p className="text-sm font-bold text-gray-800">{formatK(actExtYTD*1000)}</p>
+            <p className="text-[9px] text-gray-400">FC {formatK(fcExtYTD*1000)}{planExtYTD > 0 ? ` · Plan ${formatK(planExtYTD*1000)}` : ''}</p>
+          </div>
+          <div className="bg-blue-50 rounded-lg p-2">
+            <p className="text-[9px] text-blue-600 font-bold uppercase mb-0.5">Internal</p>
+            <p className="text-sm font-bold text-gray-800">{formatK(actIntYTD*1000)}</p>
+            <p className="text-[9px] text-gray-400">FC {formatK(fcIntYTD*1000)}{planIntYTD > 0 ? ` · Plan ${formatK(planIntYTD*1000)}` : ''}</p>
+          </div>
+        </div>
+        <BarChart value={actYTD} max={planYTD} c={color}/>
         <div className="flex justify-between text-[9px] text-gray-400 mt-0.5">
           <span>Plan: {formatK(planYTD*1000)}</span><span>PY: {formatK(pyYTD*1000)}</span>
         </div>
@@ -102,7 +118,7 @@ function PerformanceSection({ deals, budget, fy25, activeCycle, isAdmin }) {
   function sumDeals(bu, months, salesType = null) {
     return deals
       .filter(d => d.bu===bu && d.stage==='Invoiced' && !d.is_intercompany_mirror
-        && (salesType === null || (salesType === 'External' ? d.sales_type !== 'Internal' : d.sales_type === 'Internal')))
+        && (salesType===null || (salesType==='External' ? d.sales_type!=='Internal' : d.sales_type==='Internal')))
       .reduce((s,d)=>{
         const rate = (!d.currency||d.currency==='EUR') ? 1 : (d.exchange_rate||1)
         const monthSum = months.reduce((ms,m)=>ms+(d[m]||0),0)
@@ -113,7 +129,7 @@ function PerformanceSection({ deals, budget, fy25, activeCycle, isAdmin }) {
   function sumForecast(bu, months, salesType = null) {
     return deals
       .filter(d => d.bu===bu && d.stage==='BackLog' && !d.is_intercompany_mirror
-        && (salesType === null || (salesType === 'External' ? d.sales_type !== 'Internal' : d.sales_type === 'Internal')))
+        && (salesType===null || (salesType==='External' ? d.sales_type!=='Internal' : d.sales_type==='Internal')))
       .reduce((s,d)=>{
         const rate = (!d.currency||d.currency==='EUR') ? 1 : (d.exchange_rate||1)
         const monthSum = months.reduce((ms,m)=>ms+(d[m]||0),0)
@@ -145,8 +161,8 @@ function PerformanceSection({ deals, budget, fy25, activeCycle, isAdmin }) {
     fcIntYTD:   sumDeals(bu,ytdMonths,'Internal') + sumForecast(bu,ytdMonths,'Internal'),
     planMTD:    sumPlan(bu,[curMonth]),
     planYTD:    sumPlan(bu,ytdMonths),
-    planExtYTD: ['ns_ext'].reduce((s,k)=>{ const r=budget.find(r=>r.bu===bu&&r.cycle===activeCycle&&r.pl_key===k); return s+ytdMonths.reduce((ms,m)=>ms+(r?.[m]||0),0) },0),
-    planIntYTD: ['ns_int'].reduce((s,k)=>{ const r=budget.find(r=>r.bu===bu&&r.cycle===activeCycle&&r.pl_key===k); return s+ytdMonths.reduce((ms,m)=>ms+(r?.[m]||0),0) },0),
+    planExtYTD: (() => { const r=budget.find(r=>r.bu===bu&&r.cycle===activeCycle&&r.pl_key==='ns_ext'); return ytdMonths.reduce((s,m)=>s+(r?.[m]||0),0) })(),
+    planIntYTD: (() => { const r=budget.find(r=>r.bu===bu&&r.cycle===activeCycle&&r.pl_key==='ns_int'); return ytdMonths.reduce((s,m)=>s+(r?.[m]||0),0) })(),
     pyMTD:      sumPY(bu,[curMonth]),
     pyYTD:      sumPY(bu,ytdMonths),
   }))
@@ -451,29 +467,20 @@ export default function Dashboard() {
       vgt_fc:0, ect_fc:0, vgt_act:0, ect_act:0,
       vgt_bl:0, ect_bl:0, vgt_pipe:0, ect_pipe:0,
       vgt_gm:0, ect_gm:0,
-      // Por sales_type
-      vgt_act_ext:0, vgt_act_int:0, ect_act_ext:0, ect_act_int:0,
-      vgt_fc_ext:0,  vgt_fc_int:0,  ect_fc_ext:0,  ect_fc_int:0,
     }
     deals.forEach(d => {
       if (d.is_intercompany_mirror) return
       const bu = d.bu?.toLowerCase()
       if (!bu) return
+      // Currency conversion to EUR
       const rate = (!d.currency || d.currency === 'EUR') ? 1 : (d.exchange_rate || 1)
+      // Monthly sum — for SLA deals with empty months, fall back to value_total
       const fyRaw = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
       const fy = (fyRaw === 0 && d.value_total > 0) ? d.value_total : fyRaw
       const fyEUR = fy * rate
       const valEUR = (d.value_total || 0) * rate
-      const isExt = d.sales_type !== 'Internal'
-      const typeKey = isExt ? 'ext' : 'int'
-      if (['BackLog','Invoiced'].includes(d.stage)) {
-        result[`${bu}_fc`]   += fyEUR / 1000
-        result[`${bu}_fc_${typeKey}`] += fyEUR / 1000
-      }
-      if (d.stage === 'Invoiced') {
-        result[`${bu}_act`]  += fyEUR / 1000
-        result[`${bu}_act_${typeKey}`] += fyEUR / 1000
-      }
+      if (['BackLog','Invoiced'].includes(d.stage)) result[`${bu}_fc`]   += fyEUR / 1000
+      if (d.stage === 'Invoiced')                   result[`${bu}_act`]  += fyEUR / 1000
       if (d.stage === 'BackLog')                    result[`${bu}_bl`]   += fyEUR / 1000
       if (d.stage === 'Pipeline' || d.stage === 'Offer Presented') result[`${bu}_pipe`] += valEUR / 1000
       if (['BackLog','Invoiced'].includes(d.stage)) result[`${bu}_gm`]   += (fyEUR / 1000) * (d.gm_pct || 0)
