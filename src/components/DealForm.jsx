@@ -251,10 +251,19 @@ export default function DealForm({ deal, onClose, onSaved }) {
   const [addingAct, setAddingAct] = useState(false)
   const [dealHistory, setDealHistory] = useState([])
   const [showHistory, setShowHistory] = useState(false)
+  const [owners, setOwners]           = useState([])
 
   const isMaint = form.deal_type === 'Maintenance'
 
   // Auto-calculate SLA monthly recognition
+  useEffect(() => {
+    supabase.from('profiles').select('display_name, full_name, email')
+      .eq('active', true).order('display_name')
+      .then(({ data }) => {
+        if (data) setOwners(data.map(p => p.display_name || p.full_name || p.email).filter(Boolean))
+      })
+  }, [])
+
   useEffect(() => {
     if (!form.is_sla || !form.sla_annual_value || !form.cs_month || !form.cs_year ||
         !form.ce_month || !form.ce_year || !form.sla_billing_month || !form.sla_billing_year) return
@@ -507,7 +516,10 @@ export default function DealForm({ deal, onClose, onSaved }) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="label">{t("df_owner")}</label>
-            <input className="input" value={form.sales_owner} onChange={e => set('sales_owner', e.target.value)} />
+            <select className="select" value={form.sales_owner} onChange={e => set('sales_owner', e.target.value)}>
+              <option value="">— select —</option>
+              {owners.map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
           </div>
           <div>
             <label className="label">{t("df_deal_type")}</label>
