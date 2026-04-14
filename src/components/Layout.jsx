@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { signOut } from '../lib/supabase'
 import { useNotifications } from '../hooks/useTasks'
 import { useTasks } from '../hooks/useTasks'
-import { LayoutDashboard, List, DollarSign, Users, User, LogOut, ChevronRight, History, Building2, Target, Settings, CheckSquare, FileText, MoreHorizontal, Shield, Contact } from 'lucide-react'
+import { LayoutDashboard, List, DollarSign, Users, User, LogOut, ChevronRight, History, Building2, Target, Settings, CheckSquare, FileText, MoreHorizontal, Shield, Contact, GitBranch, LayoutGrid } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 import { LANGUAGES, setLang } from '../lib/i18n'
 
@@ -60,11 +60,14 @@ export default function Layout({ children }) {
     { to: '/deals',   icon: List,            label: t("nav_deals") },
     { to: '/tasks',   icon: CheckSquare,     label: t("nav_tasks"),    badge: taskBadge },
     { to: '/tenders', icon: FileText,        label: t("nav_tenders") },
-    { to: '/clients', icon: Building2,       label: t("nav_clients") },
-    { to: '/contacts',icon: Contact,         label: t("nav_contacts") },
-    { to: '/history', icon: History,         label: t("nav_history") },
+    { to: '/clients',  icon: Building2,       label: t("nav_clients") },
+    { to: '/contacts', icon: Contact,         label: t("nav_contacts") },
+    { to: '/accounts', icon: GitBranch,       label: t("nav_accounts") },
+    { to: '/whitespace', icon: LayoutGrid,    label: t("nav_whitespace") },
+    { to: '/history',  icon: History,         label: t("nav_history") },
     { to: '/quotas',  icon: Target,          label: t("nav_targets") },
     { to: '/budget',  icon: DollarSign,      label: t("nav_budget"),   adminOnly: true },
+    { to: '/audit',   icon: Shield,          label: t("nav_audit"),    adminOnly: true },
     { to: '/settings',    icon: Settings, label: t("nav_settings"),    adminOnly: true },
     { to: '/permissions',  icon: Shield,   label: t('nav_permissions'), adminOnly: true },
   ]

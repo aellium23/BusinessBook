@@ -254,8 +254,10 @@ export default function DealForm({ deal, onClose, onSaved }) {
   const [addingAct, setAddingAct] = useState(false)
   const [timelineNonce, setTimelineNonce] = useState(0) // bump to force DealTimeline refetch
   const [owners, setOwners]           = useState([])
+  const [accounts, setAccounts]       = useState([])
 
   const isMaint = form.deal_type === 'Maintenance'
+  const accountsForBU = accounts.filter(a => !form.bu || a.bu === form.bu)
 
   // Auto-calculate SLA monthly recognition
   useEffect(() => {
@@ -269,6 +271,11 @@ export default function DealForm({ deal, onClose, onSaved }) {
           setOwners(unique)
         }
       })
+    // Load accounts (for the optional "Account" link). Scoped by RLS to the
+    // user's BU server-side, so we don't need to filter here.
+    supabase.from('accounts').select('id, name, bu').order('name')
+      .then(({ data }) => { if (data) setAccounts(data) })
+      .catch(e => console.warn('Failed to load accounts:', e?.message))
   }, [])
 
   useEffect(() => {
@@ -381,6 +388,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
       ...(deal?.id ? { id: deal.id } : {}),
       bu: form.bu, sales_type: form.sales_type, stage: form.stage,
       forecast_category: form.forecast_category || null,
+      account_id: form.account_id || null,
       client: form.client, region: form.region, country: form.country,
       sales_owner: form.sales_owner, deal_type: form.deal_type,
       description: form.description,
@@ -515,6 +523,22 @@ export default function DealForm({ deal, onClose, onSaved }) {
           <label className="label">{t("df_client")} *</label>
           <input className="input" value={form.client} onChange={e => set('client', e.target.value)} placeholder="Hospital or organisation" />
         </div>
+
+        {/* Account (optional link to the Accounts hierarchy) */}
+        {form.bu && (
+          <div>
+            <label className="label">
+              Account <span className="text-[10px] text-gray-400 font-normal">(optional — links this deal to the Accounts tree)</span>
+            </label>
+            <select className="select" value={form.account_id || ''}
+              onChange={e => set('account_id', e.target.value || null)}>
+              <option value="">— Not linked —</option>
+              {accountsForBU.map(a => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Region + Country */}
         <div className="grid grid-cols-2 gap-3">
