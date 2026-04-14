@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { Modal, Spinner } from '../components/ui'
 import SearchableSelect from '../components/SearchableSelect'
+import QuickDealForm from '../components/QuickDealForm'
 import { useTranslation } from '../hooks/useTranslation'
 import {
   Plus, CheckCircle2, Circle, Clock, Flag, User, Link2,
@@ -43,7 +44,7 @@ function DeadlineBadge({ deadline }) {
 }
 
 // ── TaskModal ──────────────────────────────────────────────────────────────────
-function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, pushNotification }) {
+function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, pushNotification, onDealsChanged }) {
   const { user } = useAuth()
   const isEdit = !!task?.id
   const [form, setForm] = useState({
@@ -57,6 +58,8 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState(null)
+  const [creatingDeal, setCreatingDeal]     = useState(false)
+  const [prefillClient, setPrefillClient]   = useState('')
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
@@ -155,7 +158,7 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
             </select>
             {users.length === 0 && (
               <p className="text-[11px] text-gray-400 mt-1">
-                No sales owners available. Add entries to <strong>Sales Target</strong> first.
+                No active users available to assign.
               </p>
             )}
           </div>
@@ -164,13 +167,28 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
         {/* Link to deal or tender — mutually exclusive */}
         <div className="space-y-2">
           <label className="label">Link to deal <span className="text-gray-400">(optional)</span></label>
-          <SearchableSelect
-            value={form.deal_id}
-            onChange={val => { set('deal_id', val); if (val) set('tender_id', '') }}
-            options={deals.map(d => ({ value: d.id, label: `[${d.bu}] ${d.client}` }))}
-            placeholder="Search deals…"
-            emptyLabel="— No deal —"
-          />
+          {creatingDeal ? (
+            <QuickDealForm
+              initialClient={prefillClient}
+              onCancel={() => { setCreatingDeal(false); setPrefillClient('') }}
+              onCreated={newDeal => {
+                setCreatingDeal(false); setPrefillClient('')
+                set('deal_id', newDeal.id)
+                if (newDeal.id) set('tender_id', '')
+                onDealsChanged && onDealsChanged(newDeal)
+              }}
+            />
+          ) : (
+            <SearchableSelect
+              value={form.deal_id}
+              onChange={val => { set('deal_id', val); if (val) set('tender_id', '') }}
+              options={deals.map(d => ({ value: d.id, label: `[${d.bu}] ${d.client}` }))}
+              placeholder="Search deals…"
+              emptyLabel="— No deal —"
+              createLabel="Create new deal"
+              onCreateNew={query => { setPrefillClient(query || ''); setCreatingDeal(true) }}
+            />
+          )}
         </div>
 
         <div className="space-y-2">
@@ -363,29 +381,45 @@ export default function Tasks() {
 
   useEffect(() => {
     if (!profile) return
-    // "Assign to" list: sales owners from the quotas table, matched to their
-    // profiles.id when possible (tasks.assigned_to is a profile UUID).
+    // "Assign to" list: every authenticated user can be assigned a task.
+    // We prefer the quota sales-owner name + BU when we can match them, to
+    // make the dropdown look cleaner, but we NEVER filter out real users —
+    // that used to hide everyone when the match heuristic missed.
     Promise.all([
       supabase.from('quotas').select('sales_owner, bu').order('bu').order('sales_owner'),
-      supabase.from('profiles').select('id, full_name, email, sales_owner_name'),
+      supabase.from('profiles').select('id, full_name, email, sales_owner_name, bu, active'),
     ]).then(([qRes, pRes]) => {
-      const profiles = pRes.data ?? []
-      const seen = new Set()
-      const merged = (qRes.data ?? []).flatMap(q => {
-        const key = `${q.bu}::${q.sales_owner}`
-        if (seen.has(key)) return []
-        seen.add(key)
-        const match = profiles.find(p =>
-          (p.sales_owner_name && p.sales_owner_name.toLowerCase() === (q.sales_owner || '').toLowerCase()) ||
-          (p.full_name && p.full_name.toLowerCase() === (q.sales_owner || '').toLowerCase())
-        )
-        if (!match) return [] // cannot assign tasks to someone without a user account
-        return [{
-          id: match.id,
-          full_name: q.sales_owner,
-          email: match.email,
-          bu: q.bu,
-        }]
+      const allProfiles = (pRes.data ?? []).filter(p => p.active !== false)
+      const quotas      = qRes.data ?? []
+
+      // Helpers for fuzzy matching between "Elio Santos" quota → "Elio Santos" profile
+      const norm = s => (s || '').toLowerCase().trim()
+      const firstName = s => norm(s).split(/\s+/)[0]
+
+      function findQuotaFor(profile) {
+        // Try, in order: sales_owner_name exact, full_name exact, first-name exact
+        return quotas.find(q =>
+          profile.sales_owner_name && norm(profile.sales_owner_name) === norm(q.sales_owner)
+        ) || quotas.find(q =>
+          profile.full_name && norm(profile.full_name) === norm(q.sales_owner)
+        ) || quotas.find(q =>
+          profile.full_name && firstName(profile.full_name) === firstName(q.sales_owner)
+        ) || null
+      }
+
+      const merged = allProfiles.map(p => {
+        const match = findQuotaFor(p)
+        return {
+          id:         p.id,
+          full_name:  match?.sales_owner || p.full_name || p.email,
+          email:      p.email,
+          bu:         match?.bu || p.bu || null,
+        }
+      })
+      // Stable sort: BU-tagged first, then by name
+      merged.sort((a, b) => {
+        if (!!a.bu !== !!b.bu) return a.bu ? -1 : 1
+        return (a.full_name || '').localeCompare(b.full_name || '')
       })
       setUsers(merged)
     }).catch(e => console.error('Failed to load assignees:', e))
@@ -514,6 +548,7 @@ export default function Tasks() {
           tenders={tenders}
           canAssign={canAssign}
           pushNotification={pushNotification}
+          onDealsChanged={newDeal => setDeals(ds => [...ds, newDeal])}
         />
       )}
     </div>
