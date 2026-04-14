@@ -73,13 +73,34 @@ function dealScore(deal) {
   return { score, color: 'red', label: 'Critical' }
 }
 
+// ── Discount status chip ───────────────────────────────────────────────────
+function DiscountChip({ deal }) {
+  if (!deal.discount_status) return null
+  const map = {
+    pending:  { cls: 'bg-purple-100 text-purple-800', text: `⏳ Pending ${deal.discount_requested ?? ''}%` },
+    approved: { cls: 'bg-green-100 text-green-700',   text: `✓ ${deal.discount_approved ?? ''}% approved` },
+    counter:  { cls: 'bg-amber-100 text-amber-700',   text: `↔ Counter: ${deal.discount_approved ?? ''}%` },
+    rejected: { cls: 'bg-red-100 text-red-700',       text: '✗ Rejected' },
+  }
+  const m = map[deal.discount_status]
+  if (!m) return null
+  return <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${m.cls}`}>{m.text}</span>
+}
+
+// ── Deal card ─────────────────────────────────────────────────────────────
+// Compact by default; taps expand "Details" (extra badges, description,
+// distribution chain, monthly breakdown). Keeps the Monthly toggle as a
+// subset of the full details — one chevron, one state.
 function DealCard({ deal, onEdit, onDelete, canEdit }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const fy26 = MONTHS_K.reduce((s, m) => s + (deal[m] || 0), 0)
-  const isIC  = deal.is_intercompany_mirror
-  const hasIC = deal.intercompany_value > 0
-  const score = dealScore(deal)
+  const isIC    = deal.is_intercompany_mirror
+  const hasIC   = deal.intercompany_value > 0
+  const score   = dealScore(deal)
+  const aging   = agingDays(deal)
+  // Only surface the discount chip on the compact row when it's actionable
+  const showDiscount = ['pending','counter'].includes(deal.discount_status)
 
   const scoreBorderClass = score.color === 'green' ? 'border-l-4 border-green-400' :
     score.color === 'amber' ? 'border-l-4 border-amber-400' :
@@ -88,97 +109,25 @@ function DealCard({ deal, onEdit, onDelete, canEdit }) {
 
   return (
     <div className={`card p-3 space-y-2 ${isIC ? 'border-l-4 border-vgt' : scoreBorderClass}`}>
+      {/* Compact header — essential info only */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap mb-1">
             <BUBadge bu={deal.bu} />
             <StageBadge stage={deal.stage} />
             <ForecastBadge deal={deal} />
-            <SalesTypeBadge type={deal.sales_type} />
-            <AgingBadge days={agingDays(deal)} />
-            {deal.product && (
-              <span className="inline-flex px-2 py-0.5 rounded text-xs font-bold bg-navy/10 text-navy">
-                {deal.product}
-              </span>
-            )}
-            {deal.win_probability !== null && deal.win_probability !== undefined && (
-              <span className={`inline-flex px-2 py-0.5 rounded text-xs font-bold ${
-                deal.win_probability >= 80 ? 'bg-green-100 text-green-700' :
-                deal.win_probability >= 50 ? 'bg-purple-100 text-purple-700' :
-                deal.win_probability >= 20 ? 'bg-amber-100 text-amber-700' :
-                'bg-gray-100 text-gray-500'
-              }`}>{deal.win_probability}%</span>
-            )}
-            {deal.is_sla && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800">
-                <RefreshCw size={9}/> SLA
-              </span>
-            )}
-            {deal.discount_status === 'pending' && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-purple-100 text-purple-800">
-                ⏳ Discount pending {deal.discount_requested}%
-              </span>
-            )}
-            {deal.discount_status === 'approved' && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-green-100 text-green-700">
-                ✓ {deal.discount_approved}% approved
-              </span>
-            )}
-            {deal.discount_status === 'counter' && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-700">
-                ↔ Counter: {deal.discount_approved}%
-              </span>
-            )}
-            {deal.discount_status === 'rejected' && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700">
-                ✗ Rejected
-              </span>
-            )}
+            {aging !== null && (aging >= 45 || open) && <AgingBadge days={aging} />}
             {isIC && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-vgt/10 text-vgt">
                 <Link size={10}/> IC mirror
               </span>
             )}
-            {hasIC && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-800">
-                <Link size={10}/> IC →VGT
-              </span>
-            )}
+            {showDiscount && <DiscountChip deal={deal} />}
           </div>
           <p className="font-semibold text-sm text-gray-900 truncate">{deal.client}</p>
-          <p className="text-xs text-gray-400">{[deal.country, deal.region, deal.sales_owner].filter(Boolean).join(' · ')}</p>
-          {deal.description && <p className="text-xs text-gray-500 truncate mt-0.5">{deal.description}</p>}
-          {deal.stage === 'Lost' && deal.lost_reason && (
-            <p className="text-xs text-red-500 mt-0.5">Lost: {deal.lost_reason}</p>
-          )}
-          {(deal.equipment_count || deal.annual_studies || deal.annual_exams) && (
-            <div className="flex items-center gap-2 flex-wrap mt-0.5">
-              {deal.equipment_count && (
-                <span className="text-[10px] text-gray-400">📡 {deal.equipment_count} equip.</span>
-              )}
-              {deal.annual_studies && (
-                <span className="text-[10px] text-gray-400">📊 {Number(deal.annual_studies).toLocaleString()} studies/yr</span>
-              )}
-              {deal.annual_exams && (
-                <span className="text-[10px] text-gray-400">📋 {Number(deal.annual_exams).toLocaleString()} exams/yr</span>
-              )}
-            </div>
-          )}
-          {(deal.end_customer || deal.distributor || deal.hub) && (
-            <div className="flex items-center gap-1 flex-wrap mt-1">
-              {deal.end_customer && (
-                <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded truncate max-w-28">{deal.end_customer}</span>
-              )}
-              {(deal.distributor || deal.hub) && <span className="text-gray-300 text-[10px]">→</span>}
-              {deal.distributor && (
-                <span className="text-[10px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded truncate max-w-28">{deal.distributor}</span>
-              )}
-              {deal.hub && (
-                <><span className="text-gray-300 text-[10px]">→</span>
-                <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded truncate max-w-28">{deal.hub}</span></>
-              )}
-            </div>
-          )}
+          <p className="text-xs text-gray-400 truncate">
+            {[deal.country, deal.sales_owner].filter(Boolean).join(' · ') || ' '}
+          </p>
         </div>
         <div className="text-right shrink-0 min-w-0 max-w-28">
           <div className="flex items-center justify-end gap-1">
@@ -189,34 +138,23 @@ function DealCard({ deal, onEdit, onDelete, canEdit }) {
                 : formatK(deal.value_total)}
             </p>
           </div>
-          {deal.currency && deal.currency !== 'EUR' && deal.exchange_rate && (
-            <p className="text-[10px] text-blue-500">≈ {formatK((deal.value_total||0) * (deal.exchange_rate||1))}</p>
-          )}
           <p className="text-xs text-gray-400">FY26: {formatK(fy26)}</p>
-          <p className="text-xs text-blue-600 font-medium">
-            W: {formatK((deal.value_total||0) * (WEIGHTS[deal.stage]||0))}
-          </p>
-          {deal.end_customer_value && (
-            <p className="text-[10px] text-gray-400">
-              Project: {formatK(deal.end_customer_value)}
-            </p>
-          )}
-          {hasIC && (
-            <p className="text-xs text-amber-600 font-medium">
-              VGT cost: {formatK(deal.intercompany_value)}
-            </p>
-          )}
         </div>
       </div>
 
-      <div className="flex items-start sm:items-center justify-between pt-1 gap-2">
-        <button onClick={() => setOpen(o => !o)} className="text-xs text-gray-400 flex items-center gap-1">
-          Monthly {open ? <ChevronUp size={12}/> : <ChevronDown size={12}/>}
+      {/* Footer: expand toggle + health pill + edit/delete */}
+      <div className="flex items-center justify-between pt-1 gap-2">
+        <button
+          type="button"
+          onClick={() => setOpen(o => !o)}
+          aria-expanded={open}
+          className="text-xs text-gray-500 hover:text-gray-800 flex items-center gap-1">
+          {open ? <ChevronUp size={12}/> : <ChevronDown size={12}/>}
+          {open ? t('deals_hide_details') : t('deals_show_details')}
         </button>
-        {canEdit && !isIC && (
-          <div className="flex gap-2">
-            <button onClick={() => onEdit(deal)} className="text-gray-400 hover:text-navy"><Pencil size={14}/></button>
-            <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold mr-1 ${
+        <div className="flex items-center gap-2">
+          {!isIC && (
+            <div className={`hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
               score.color === 'green' ? 'bg-green-100 text-green-700' :
               score.color === 'amber' ? 'bg-amber-100 text-amber-700' :
               score.color === 'red'   ? 'bg-red-100 text-red-700' :
@@ -229,25 +167,123 @@ function DealCard({ deal, onEdit, onDelete, canEdit }) {
               }`}/>
               {score.label}
             </div>
-            <button onClick={() => onDelete(deal)} className="text-gray-400 hover:text-red-500"><Trash2 size={14}/></button>
-          </div>
-        )}
-        {isIC && (
-          <span className="text-xs text-gray-400 italic">{t("deals_auto")}</span>
-        )}
+          )}
+          {canEdit && !isIC && (
+            <>
+              <button onClick={() => onEdit(deal)} className="text-gray-400 hover:text-navy min-h-tap min-w-tap p-1.5" aria-label="Edit">
+                <Pencil size={14}/>
+              </button>
+              <button onClick={() => onDelete(deal)} className="text-gray-400 hover:text-red-500 min-h-tap min-w-tap p-1.5" aria-label="Delete">
+                <Trash2 size={14}/>
+              </button>
+            </>
+          )}
+          {isIC && (
+            <span className="text-xs text-gray-400 italic">{t("deals_auto")}</span>
+          )}
+        </div>
       </div>
 
+      {/* Expanded details */}
       {open && (
-        <div className="grid grid-cols-4 sm:grid-cols-6 gap-1 pt-1">
-          {MONTHS.map((m, i) => {
-            const v = deal[MONTHS_K[i]] || 0
-            return (
-              <div key={m} className={`text-center rounded p-1 ${v > 0 ? (isIC ? 'bg-vgt/10' : 'bg-blue-50') : 'bg-gray-50'}`}>
-                <p className="text-[9px] text-gray-400">{m}</p>
-                <p className="text-[10px] font-bold text-gray-700">{v > 0 ? `${(v/1000).toFixed(1)}K` : '—'}</p>
-              </div>
-            )
-          })}
+        <div className="pt-2 border-t border-gray-100 space-y-2">
+          {/* Extra badges */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <SalesTypeBadge type={deal.sales_type} />
+            {deal.product && (
+              <span className="inline-flex px-2 py-0.5 rounded text-xs font-bold bg-navy/10 text-navy">
+                {deal.product}
+              </span>
+            )}
+            {deal.win_probability != null && (
+              <span className={`inline-flex px-2 py-0.5 rounded text-xs font-bold ${
+                deal.win_probability >= 80 ? 'bg-green-100 text-green-700' :
+                deal.win_probability >= 50 ? 'bg-purple-100 text-purple-700' :
+                deal.win_probability >= 20 ? 'bg-amber-100 text-amber-700' :
+                'bg-gray-100 text-gray-500'
+              }`}>{deal.win_probability}%</span>
+            )}
+            {deal.is_sla && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800">
+                <RefreshCw size={9}/> SLA
+              </span>
+            )}
+            {!showDiscount && <DiscountChip deal={deal} />}
+            {hasIC && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-800">
+                <Link size={10}/> IC → VGT
+              </span>
+            )}
+          </div>
+
+          {/* Description / Lost reason */}
+          {deal.description && <p className="text-xs text-gray-600 whitespace-pre-wrap">{deal.description}</p>}
+          {deal.stage === 'Lost' && deal.lost_reason && (
+            <p className="text-xs text-red-500">Lost: {deal.lost_reason}</p>
+          )}
+
+          {/* Equipment / studies / exams */}
+          {(deal.equipment_count || deal.annual_studies || deal.annual_exams) && (
+            <div className="flex items-center gap-3 flex-wrap">
+              {deal.equipment_count && (
+                <span className="text-micro text-gray-500">📡 {deal.equipment_count} equip.</span>
+              )}
+              {deal.annual_studies && (
+                <span className="text-micro text-gray-500">📊 {Number(deal.annual_studies).toLocaleString()} studies/yr</span>
+              )}
+              {deal.annual_exams && (
+                <span className="text-micro text-gray-500">📋 {Number(deal.annual_exams).toLocaleString()} exams/yr</span>
+              )}
+            </div>
+          )}
+
+          {/* Distribution chain */}
+          {(deal.end_customer || deal.distributor || deal.hub) && (
+            <div className="flex items-center gap-1 flex-wrap">
+              {deal.end_customer && (
+                <span className="text-micro bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded truncate max-w-32">{deal.end_customer}</span>
+              )}
+              {(deal.distributor || deal.hub) && <span className="text-gray-300 text-micro">→</span>}
+              {deal.distributor && (
+                <span className="text-micro bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded truncate max-w-32">{deal.distributor}</span>
+              )}
+              {deal.hub && (
+                <>
+                  <span className="text-gray-300 text-micro">→</span>
+                  <span className="text-micro bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded truncate max-w-32">{deal.hub}</span>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Extra value figures */}
+          <div className="flex items-center gap-3 flex-wrap text-tiny">
+            {deal.currency && deal.currency !== 'EUR' && deal.exchange_rate && (
+              <span className="text-blue-500">≈ {formatK((deal.value_total||0) * (deal.exchange_rate||1))} EUR</span>
+            )}
+            <span className="text-blue-600 font-medium">
+              Weighted: {formatK((deal.value_total||0) * (WEIGHTS[deal.stage]||0))}
+            </span>
+            {deal.end_customer_value && (
+              <span className="text-gray-500">Project: {formatK(deal.end_customer_value)}</span>
+            )}
+            {hasIC && (
+              <span className="text-amber-600 font-medium">VGT cost: {formatK(deal.intercompany_value)}</span>
+            )}
+          </div>
+
+          {/* Monthly breakdown */}
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
+            {MONTHS.map((m, i) => {
+              const v = deal[MONTHS_K[i]] || 0
+              return (
+                <div key={m} className={`text-center rounded p-1 ${v > 0 ? (isIC ? 'bg-vgt/10' : 'bg-blue-50') : 'bg-gray-50'}`}>
+                  <p className="text-[9px] text-gray-400">{m}</p>
+                  <p className="text-micro font-bold text-gray-700">{v > 0 ? `${(v/1000).toFixed(1)}K` : '—'}</p>
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
     </div>
