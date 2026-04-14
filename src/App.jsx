@@ -11,6 +11,7 @@ import Contacts from './pages/Contacts'
 import Accounts from './pages/Accounts'
 import WhiteSpace from './pages/WhiteSpace'
 import AuditLog from './pages/AuditLog'
+import Network from './pages/Network'
 import Quotas from './pages/Quotas'
 import Budget from './pages/Budget'
 import Settings from './pages/Settings'
@@ -58,6 +59,7 @@ function AppRoutes() {
           <Route path="/contacts"     element={<Guard page="contacts"    element={<Contacts />} />} />
           <Route path="/accounts"     element={<Guard page="accounts"    element={<Accounts />} />} />
           <Route path="/whitespace"   element={<Guard page="whitespace"  element={<WhiteSpace />} />} />
+          <Route path="/network"      element={<Guard page="network"     element={<Network />} />} />
           <Route path="/audit"        element={<Guard page="audit"       element={<AuditLog />} />} />
           <Route path="/history"      element={<Guard page="history"     element={<History />} />} />
           <Route path="/quotas"       element={<Guard page="quotas"      element={<Quotas />} />} />
