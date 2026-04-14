@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { safeJsonParse } from '../constants'
 
 const AuthContext = createContext(null)
 
@@ -122,7 +123,7 @@ export function AuthProvider({ children }) {
 
   // Usar permSet dinâmico se disponível, senão fallback para ROLE_PERMISSIONS estático
   const resolvedPages = permSet?.pages
-    ? (Array.isArray(permSet.pages) ? permSet.pages : JSON.parse(permSet.pages || '[]'))
+    ? (Array.isArray(permSet.pages) ? permSet.pages : (safeJsonParse(permSet.pages, []) ?? []))
     : (ROLE_PERMISSIONS[role]?.pages || ROLE_PERMISSIONS.viewer.pages)
 
   const perms = {
