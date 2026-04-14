@@ -1,9 +1,22 @@
 import { createClient } from '@supabase/supabase-js'
 
-export const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-)
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+// Fail loudly at boot if the deploy is missing env vars — silent misconfig is the
+// worst kind of bug, because the UI looks fine but every query returns empty.
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  const missing = [
+    !SUPABASE_URL && 'VITE_SUPABASE_URL',
+    !SUPABASE_ANON_KEY && 'VITE_SUPABASE_ANON_KEY',
+  ].filter(Boolean).join(', ')
+  throw new Error(
+    `[BusinessBook] Missing required environment variable(s): ${missing}. ` +
+    `Set them in your deployment (Vercel / .env.local) and redeploy.`
+  )
+}
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 // ── Auth helpers ──────────────────────────────────────────────────────────────
 

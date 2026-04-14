@@ -1,20 +1,22 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-
-function toEUR(val, currency, rate) {
-  if (!val) return 0
-  if (!currency || currency === 'EUR') return val
-  return val * (rate || 1)
-}
 import { useAuth } from './useAuth'
-
-const MONTHS = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
+import { MONTHS_K } from '../constants'
 
 export function useDeals(filters = {}) {
   const { profile, isAdmin } = useAuth()
   const [deals, setDeals]     = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(null)
+
+  // Stable key for filter changes — avoids `JSON.stringify` as a dep (lint + perf)
+  const filterKey = useMemo(
+    () => [filters.bu, filters.stage, filters.region, filters.search].join('|'),
+    [filters.bu, filters.stage, filters.region, filters.search]
+  )
+
+  const mounted = useRef(true)
+  useEffect(() => () => { mounted.current = false }, [])
 
   const fetch = useCallback(async () => {
     setLoading(true)
@@ -23,7 +25,6 @@ export function useDeals(filters = {}) {
     // Filtros por role
     if (!isAdmin) {
       if (profile?.role === 'distributor' && profile?.company_id) {
-        // Distribuidor: só vê os seus próprios deals (pela company_id)
         q = q.eq('company_id', profile.company_id)
       } else if (profile?.bu === 'VGT') {
         q = q.eq('bu', 'VGT')
@@ -34,22 +35,34 @@ export function useDeals(filters = {}) {
     if (filters.bu)     q = q.eq('bu', filters.bu)
     if (filters.stage)  q = q.eq('stage', filters.stage)
     if (filters.region) q = q.eq('region', filters.region)
-    if (filters.search) q = q.ilike('client', `%${filters.search}%`)
+    if (filters.search) {
+      // Sanitise `%` and `_` before passing into ilike to avoid unintended wildcards
+      const safe = String(filters.search).replace(/[%_\\]/g, m => `\\${m}`)
+      q = q.or(
+        `client.ilike.%${safe}%,description.ilike.%${safe}%,sales_owner.ilike.%${safe}%,country.ilike.%${safe}%`
+      )
+    }
 
     const { data, error } = await q
+    if (!mounted.current) return
     if (error) setError(error.message)
-    else setDeals(data ?? [])
+    else { setDeals(data ?? []); setError(null) }
     setLoading(false)
-  }, [profile, isAdmin, JSON.stringify(filters)])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id, profile?.role, profile?.company_id, profile?.bu, isAdmin, filterKey])
 
   useEffect(() => {
     // Aguardar profile carregar antes de fazer o fetch
-    // profile=undefined = ainda a carregar, profile=null = não logado, profile={...} = carregado
-    if (profile !== undefined && profile !== null) fetch()
-  }, [profile?.id, profile?.role, profile?.company_id, isAdmin])
+    if (profile !== undefined && profile !== null) {
+      fetch().catch(e => {
+        if (mounted.current) { setError(e.message); setLoading(false) }
+      })
+    }
+    // fetch identity changes with profile + filterKey, so this re-runs on both
+  }, [fetch, profile])
 
-  const totals = deals.reduce((acc, d) => {
-    const fy26 = MONTHS.reduce((s, m) => s + (d[m] || 0), 0)
+  const totals = useMemo(() => deals.reduce((acc, d) => {
+    const fy26 = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
     // Exclude intercompany mirrors from totals to avoid double counting
     if (d.is_intercompany_mirror) return acc
     acc.pipeline += d.stage === 'Pipeline' ? (d.value_total || 0) : 0
@@ -57,7 +70,7 @@ export function useDeals(filters = {}) {
     acc.invoiced  += d.stage === 'Invoiced' ? fy26 : 0
     acc.forecast  += ['BackLog','Invoiced'].includes(d.stage) ? fy26 : 0
     return acc
-  }, { pipeline: 0, backlog: 0, invoiced: 0, forecast: 0 })
+  }, { pipeline: 0, backlog: 0, invoiced: 0, forecast: 0 }), [deals])
 
   return { deals, loading, error, refetch: fetch, totals }
 }
@@ -83,8 +96,6 @@ export async function deleteDeal(id) {
 
 // Creates ECT deal + VGT mirror intercompany deal atomically
 export async function upsertDealWithIntercompany(deal, intercompanyValue, existingMirrorId) {
-  const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
-
   // Calculate VGT mirror monthly values proportionally from ECT monthly
   const ectoTotal = MONTHS_K.reduce((s, m) => s + (deal[m] || 0), 0)
   const ratio = ectoTotal > 0 ? intercompanyValue / ectoTotal : 0

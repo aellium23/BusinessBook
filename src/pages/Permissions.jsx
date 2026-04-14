@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useTranslation } from '../hooks/useTranslation'
 import { Spinner } from '../components/ui'
+import { safeJsonParse } from '../constants'
 import {
   Shield, Building2, Users, Plus, Edit3, Trash2, Check, X,
   Mail, Lock, RefreshCw, AlertCircle, CheckCircle2,
@@ -59,7 +60,7 @@ function PSEditor({ ps, onSave, onCancel, existingNames }) {
   const [color, setColor]     = useState(ps?.color || '#6B7280')
   const [pages, setPages]     = useState(() => {
     if (!ps?.pages) return []
-    return Array.isArray(ps.pages) ? ps.pages : JSON.parse(ps.pages || '[]')
+    return Array.isArray(ps.pages) ? ps.pages : (safeJsonParse(ps.pages, []) ?? [])
   })
   const [canEdit, setCanEdit]   = useState(ps?.can_edit   ?? false)
   const [editOwn, setEditOwn]   = useState(ps?.edit_own   ?? false)
@@ -302,7 +303,7 @@ function PermissionSetsTab({ permSets, profiles, onRefresh }) {
 
       <div className="space-y-2">
         {permSets.map(ps => {
-          const pages = Array.isArray(ps.pages) ? ps.pages : JSON.parse(ps.pages || '[]')
+          const pages = Array.isArray(ps.pages) ? ps.pages : (safeJsonParse(ps.pages, []) ?? [])
           const userCount = profiles.filter(p => p.permission_set_id === ps.id).length
 
           return (
@@ -414,7 +415,7 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
   }
 
   const pages = ps?.pages
-    ? (Array.isArray(ps.pages) ? ps.pages : JSON.parse(ps.pages || '[]'))
+    ? (Array.isArray(ps.pages) ? ps.pages : (safeJsonParse(ps.pages, []) ?? []))
     : []
 
   return (

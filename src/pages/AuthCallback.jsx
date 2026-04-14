@@ -11,9 +11,10 @@ export default function AuthCallback() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
+    let timeoutId
     // Supabase trata automaticamente o hash fragment da URL
     // após magic link / invite / password reset
-    supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
         navigate('/', { replace: true })
       }
@@ -26,16 +27,22 @@ export default function AuthCallback() {
     })
 
     // Verificar sessão actual (caso já tenha sido processada)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        navigate('/', { replace: true })
-      } else {
-        // Se não há sessão após 3 segundos, mostrar erro
-        setTimeout(() => {
-          setError(t('auth_invalid'))
-        }, 3000)
-      }
-    })
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (session) {
+          navigate('/', { replace: true })
+        } else {
+          // Se não há sessão após 3 segundos, mostrar erro
+          timeoutId = setTimeout(() => setError(t('auth_invalid')), 3000)
+        }
+      })
+      .catch(e => setError(e.message || 'Authentication failed'))
+
+    return () => {
+      subscription?.unsubscribe()
+      if (timeoutId) clearTimeout(timeoutId)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate])
 
   if (error) return (
