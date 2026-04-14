@@ -412,7 +412,7 @@ function DistributorDashboard({ deals, profile }) {
   )
 }
 
-export default function Dashboard() {
+export default function Dashboard({ hideHeader = false } = {}) {
   const { profile, isAdmin } = useAuth()
   const { t } = useTranslation()
   const { deals, loading }   = useDeals()
@@ -618,9 +618,10 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-4 space-y-5 max-w-5xl mx-auto">
+    <div className={hideHeader ? 'space-y-5' : 'p-4 space-y-5 max-w-5xl mx-auto'}>
 
-      {/* Header */}
+      {/* Header (skipped when embedded inside DashboardIndex) */}
+      {!hideHeader && (
       <div className="flex items-center justify-between pt-1">
         <div>
           <h1 className="text-xl font-bold text-gray-900">{t("dash_title")}</h1>
@@ -642,6 +643,7 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+      )}
 
       {/* ── PERFORMANCE MTD / YTD ─────────────────────────────────────────── */}
       <PerformanceSection

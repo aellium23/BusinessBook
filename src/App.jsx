@@ -3,7 +3,7 @@ import { AuthProvider, useAuth } from './hooks/useAuth'
 import ErrorBoundary from './components/ErrorBoundary'
 import Layout from './components/Layout'
 import Login from './pages/Login'
-import Dashboard from './pages/Dashboard'
+import DashboardIndex from './pages/DashboardIndex'
 import Deals from './pages/Deals'
 import History from './pages/History'
 import Clients from './pages/Clients'
@@ -53,7 +53,7 @@ function AppRoutes() {
   return (
     <Layout>
         <Routes>
-          <Route path="/"             element={<Guard page="dashboard"   element={<Dashboard />} />} />
+          <Route path="/"             element={<Guard page="dashboard"   element={<DashboardIndex />} />} />
           <Route path="/deals"        element={<Guard page="deals"       element={<Deals />} />} />
           <Route path="/clients"      element={<Guard page="clients"     element={<Clients />} />} />
           <Route path="/contacts"     element={<Guard page="contacts"    element={<Contacts />} />} />
