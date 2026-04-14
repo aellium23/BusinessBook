@@ -7,7 +7,7 @@ const AuthContext = createContext(null)
 // ── Permissões por role ───────────────────────────────────────────────────────
 export const ROLE_PERMISSIONS = {
   admin: {
-    pages:    ['dashboard','deals','clients','history','quotas','budget','users','settings','tasks','tenders','permissions'],
+    pages:    ['dashboard','deals','clients','contacts','history','quotas','budget','users','settings','tasks','tenders','permissions'],
     canEdit:  true,
     editOwn:  false,
     seeBU:    'ALL',
@@ -15,7 +15,7 @@ export const ROLE_PERMISSIONS = {
     manageUsers: true,
   },
   manager: {
-    pages:    ['dashboard','deals','clients','history','quotas','tasks','tenders'],
+    pages:    ['dashboard','deals','clients','contacts','history','quotas','tasks','tenders'],
     canEdit:  true,
     editOwn:  false,
     seeBU:    null,   // derivado do bu do profile
@@ -23,7 +23,7 @@ export const ROLE_PERMISSIONS = {
     manageUsers: false,
   },
   member: {
-    pages:    ['dashboard','deals','clients','history','quotas','tasks','tenders'],
+    pages:    ['dashboard','deals','clients','contacts','history','quotas','tasks','tenders'],
     canEdit:  true,
     editOwn:  true,
     seeBU:    null,
@@ -31,7 +31,7 @@ export const ROLE_PERMISSIONS = {
     manageUsers: false,
   },
   distributor: {
-    pages:    ['dashboard','deals','tasks','tenders','clients','history','quotas'],
+    pages:    ['dashboard','deals','tasks','tenders','clients','contacts','history','quotas'],
     canEdit:  true,
     editOwn:  true,
     seeBU:    null,
@@ -39,7 +39,7 @@ export const ROLE_PERMISSIONS = {
     manageUsers: false,
   },
   viewer: {
-    pages:    ['dashboard','deals','clients','history'],
+    pages:    ['dashboard','deals','clients','contacts','history'],
     canEdit:  false,
     editOwn:  false,
     seeBU:    null,
@@ -47,7 +47,7 @@ export const ROLE_PERMISSIONS = {
     manageUsers: false,
   },
   partner: {
-    pages:    ['dashboard','deals','clients','tasks','tenders'],
+    pages:    ['dashboard','deals','clients','contacts','tasks','tenders'],
     canEdit:  false,
     editOwn:  false,
     seeBU:    null,
