@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useTranslation } from '../hooks/useTranslation'
 import { Spinner, EmptyState, formatK } from '../components/ui'
 import { MONTHS_K } from '../constants'
 import {
@@ -260,6 +261,7 @@ function AccountEditor({ account, accounts, defaultBU, onClose, onSaved }) {
 
 export default function Accounts() {
   const { isAdmin, profile, canEdit } = useAuth()
+  const { t } = useTranslation()
   const [accounts, setAccounts] = useState([])
   const [deals, setDeals]       = useState([])
   const [loading, setLoading]   = useState(true)
@@ -402,8 +404,8 @@ export default function Accounts() {
       )}
 
       {topLevel.length === 0 ? (
-        <EmptyState icon="🏥" title="No accounts yet"
-          description="Create your first account to start grouping clients."
+        <EmptyState icon="🏥" title={t("accounts_empty_title")}
+          description={t("accounts_empty_desc")}
           action={canEdit && <button onClick={() => setEditing('new')} className="btn-primary">New account</button>}/>
       ) : (
         <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">

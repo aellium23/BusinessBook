@@ -9,6 +9,7 @@ import { useTranslation } from '../hooks/useTranslation'
 import AttachmentsList from './AttachmentsList'
 import ContactsList from './ContactsList'
 import DealTimeline from './DealTimeline'
+import SearchableSelect from './SearchableSelect'
 import { FORECAST_CATEGORIES, defaultForecastFromStage } from '../constants'
 
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
@@ -524,19 +525,19 @@ export default function DealForm({ deal, onClose, onSaved }) {
           <input className="input" value={form.client} onChange={e => set('client', e.target.value)} placeholder="Hospital or organisation" />
         </div>
 
-        {/* Account (optional link to the Accounts hierarchy) */}
+        {/* Account (optional link to the Accounts hierarchy) — searchable */}
         {form.bu && (
           <div>
             <label className="label">
-              Account <span className="text-[10px] text-gray-400 font-normal">(optional — links this deal to the Accounts tree)</span>
+              {t("df_account")} <span className="text-[10px] text-gray-400 font-normal">{t("df_account_hint")}</span>
             </label>
-            <select className="select" value={form.account_id || ''}
-              onChange={e => set('account_id', e.target.value || null)}>
-              <option value="">— Not linked —</option>
-              {accountsForBU.map(a => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
+            <SearchableSelect
+              value={form.account_id || ''}
+              onChange={v => set('account_id', v || null)}
+              options={accountsForBU.map(a => ({ value: a.id, label: a.name }))}
+              placeholder={t("df_account_search")}
+              emptyLabel={t("df_account_none")}
+            />
           </div>
         )}
 
@@ -550,10 +551,13 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </div>
           <div>
             <label className="label">{t("df_country")}</label>
-            <select className="select" value={form.country} onChange={e => set('country', e.target.value)}>
-              <option value="">—</option>
-              {(COUNTRY_MAP[form.region] || []).map(c => <option key={c}>{c}</option>)}
-            </select>
+            <SearchableSelect
+              value={form.country}
+              onChange={v => set('country', v)}
+              options={(COUNTRY_MAP[form.region] || []).map(c => ({ value: c, label: c }))}
+              placeholder={t("df_country_search")}
+              emptyLabel="—"
+            />
           </div>
         </div>
 
@@ -561,10 +565,13 @@ export default function DealForm({ deal, onClose, onSaved }) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="label">{t("df_owner")}</label>
-            <select className="select" value={form.sales_owner} onChange={e => set('sales_owner', e.target.value)}>
-              <option value="">— select —</option>
-              {owners.map(o => <option key={o} value={o}>{o}</option>)}
-            </select>
+            <SearchableSelect
+              value={form.sales_owner}
+              onChange={v => set('sales_owner', v)}
+              options={owners.map(o => ({ value: o, label: o }))}
+              placeholder={t("df_owner_search")}
+              emptyLabel={t("df_owner_none")}
+            />
           </div>
           <div>
             <label className="label">{t("df_deal_type")}</label>

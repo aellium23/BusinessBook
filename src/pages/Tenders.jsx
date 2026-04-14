@@ -5,97 +5,13 @@ import { supabase } from '../lib/supabase'
 import { Modal, Spinner, StageBadge, BUBadge } from '../components/ui'
 import AttachmentsList from '../components/AttachmentsList'
 import RequirementsMatrix from '../components/RequirementsMatrix'
+import SearchableSelect from '../components/SearchableSelect'
 import {
   Plus, Edit3, Trash2, AlertCircle, Calendar, Link2,
   Users, TrendingUp, CheckCircle2, XCircle, Clock,
   ChevronDown, ChevronUp, Search, FileText, X,
   ListChecks, Paperclip, Info,
 } from 'lucide-react'
-
-// ── SearchableSelect ──────────────────────────────────────────────────────────
-// Same pattern used in Tasks.jsx. Supports an optional "create new" CTA when
-// the search query yields no match.
-function SearchableSelect({
-  value, onChange, options,
-  placeholder = 'Search…',
-  emptyLabel  = '— None —',
-  onCreateNew,
-}) {
-  const [open, setOpen]   = useState(false)
-  const [query, setQuery] = useState('')
-  const containerRef      = useRef(null)
-  const inputRef          = useRef(null)
-
-  const selected = options.find(o => o.value === value)
-  const filtered = query
-    ? options.filter(o => o.label.toLowerCase().includes(query.toLowerCase()))
-    : options
-
-  useEffect(() => {
-    function handler(e) {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setOpen(false); setQuery('')
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
-
-  function select(val) { onChange(val); setOpen(false); setQuery('') }
-
-  return (
-    <div ref={containerRef} className="relative">
-      <button type="button"
-        onClick={() => { setOpen(o => !o); setTimeout(() => inputRef.current?.focus(), 50) }}
-        className="input w-full text-left flex items-center justify-between gap-2 min-h-[38px]">
-        <span className={selected ? 'text-gray-900 truncate' : 'text-gray-400'}>
-          {selected ? selected.label : emptyLabel}
-        </span>
-        <ChevronDown size={14} className={`shrink-0 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && (
-        <div className="absolute z-50 mt-1 left-0 right-0 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-          <div className="p-2 border-b border-gray-100">
-            <input
-              ref={inputRef}
-              type="text"
-              className="input py-1.5 text-sm"
-              placeholder={placeholder}
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              onClick={e => e.stopPropagation()}
-            />
-          </div>
-          <div className="max-h-56 overflow-y-auto">
-            <button type="button"
-              onClick={() => select('')}
-              className="w-full text-left px-3 py-2 text-sm text-gray-400 hover:bg-gray-50">
-              {emptyLabel}
-            </button>
-            {filtered.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-gray-400">No results</p>
-            ) : filtered.map(o => (
-              <button type="button" key={o.value}
-                onClick={() => select(o.value)}
-                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 truncate ${
-                  o.value === value ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
-                }`}>
-                {o.label}
-              </button>
-            ))}
-            {onCreateNew && (
-              <button type="button"
-                onClick={() => { onCreateNew(query); setOpen(false); setQuery('') }}
-                className="w-full text-left px-3 py-2 text-sm border-t border-gray-100 bg-gray-50 hover:bg-gray-100 text-navy font-medium flex items-center gap-1">
-                <Plus size={13}/> Create new deal{query ? `: "${query}"` : ''}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
 
 // ── Inline "Create deal" mini-form ────────────────────────────────────────────
 function QuickDealForm({ initialClient = '', onCancel, onCreated }) {
@@ -344,6 +260,7 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged })
               }))}
               placeholder="Search deals…"
               emptyLabel="— No deal —"
+              createLabel="Create new deal"
               onCreateNew={query => { setPrefillClient(query || ''); setCreatingDeal(true) }}
             />
           )}
