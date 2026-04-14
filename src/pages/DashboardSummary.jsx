@@ -51,12 +51,16 @@ export default function DashboardSummary() {
   // YTD month keys (FY starts in April)
   const ytdKeys = useMemo(() => MONTHS_K.slice(0, fyMonthsElapsed()), [])
 
-  // Budget: ns_ext + ns_int per BU (YTD only)
+  // Budget: ns_ext + ns_int per BU (YTD only).
+  // NB: the budget + fy25_actuals tables store values in THOUSANDS of EUR
+  // (legacy format — see Dashboard.jsx where every budget/PY read is
+  // multiplied by 1000 before display). Deal monthly columns store raw EUR.
+  const K = 1000
   const budgetData = useMemo(() => {
     function bucketFor(bu, plKey) {
       const row = budget.find(r => r.bu === bu && r.cycle === cycle && r.pl_key === plKey)
       if (!row) return 0
-      return sumMonthly(row, ytdKeys)
+      return sumMonthly(row, ytdKeys) * K
     }
     return {
       vgt_ext_ytd: bucketFor('VGT', 'ns_ext'),
@@ -66,7 +70,7 @@ export default function DashboardSummary() {
     }
   }, [budget, cycle, ytdKeys])
 
-  // Actuals: sum of invoiced deals' monthly columns, YTD, by BU + sales_type
+  // Actuals: Invoiced deals YTD, by BU + sales_type (raw EUR from deal columns)
   const actuals = useMemo(() => {
     const result = { vgt_ext: 0, vgt_int: 0, ect_ext: 0, ect_int: 0 }
     for (const d of deals) {
@@ -79,11 +83,26 @@ export default function DashboardSummary() {
     return result
   }, [deals, ytdKeys])
 
-  // Prior year (FY25) for the same months
+  // Forecast YTD: Invoiced + BackLog deals YTD (what we expect to have landed
+  // by now, including signed-but-unbilled). Uses the same monthly columns so
+  // the "FC" figure is directly comparable to actuals/target for the period.
+  const forecastYTD = useMemo(() => {
+    const result = { vgt_ext: 0, vgt_int: 0, ect_ext: 0, ect_int: 0 }
+    for (const d of deals) {
+      if (!['Invoiced', 'BackLog'].includes(d.stage)) continue
+      if (d.is_intercompany_mirror) continue
+      const ytd = sumMonthly(d, ytdKeys)
+      const key = `${String(d.bu || '').toLowerCase()}_${String(d.sales_type || 'External').toLowerCase() === 'internal' ? 'int' : 'ext'}`
+      if (key in result) result[key] += ytd
+    }
+    return result
+  }, [deals, ytdKeys])
+
+  // Prior year (FY25) for the same months — also stored in thousands
   const priorYear = useMemo(() => {
     const result = { vgt_ext: 0, vgt_int: 0, ect_ext: 0, ect_int: 0 }
     for (const r of fy25) {
-      const ytd = sumMonthly(r, ytdKeys)
+      const ytd = sumMonthly(r, ytdKeys) * K
       const key = `${String(r.bu || '').toLowerCase()}_${String(r.sales_type || 'External').toLowerCase() === 'internal' ? 'int' : 'ext'}`
       if (key in result) result[key] += ytd
     }
@@ -110,27 +129,32 @@ export default function DashboardSummary() {
   if (showVGT) {
     gauges.push({
       key: 'vgt-ext', label: 'VGT · External', subLabel: 'Sales to distributors',
-      value: actuals.vgt_ext, target: budgetData.vgt_ext_ytd, py: priorYear.vgt_ext,
+      value: actuals.vgt_ext, forecast: forecastYTD.vgt_ext,
+      target: budgetData.vgt_ext_ytd, py: priorYear.vgt_ext,
     })
     gauges.push({
       key: 'vgt-int', label: 'VGT · Internal', subLabel: 'Intercompany (to ECT)',
-      value: actuals.vgt_int, target: budgetData.vgt_int_ytd, py: priorYear.vgt_int,
+      value: actuals.vgt_int, forecast: forecastYTD.vgt_int,
+      target: budgetData.vgt_int_ytd, py: priorYear.vgt_int,
     })
   }
   if (showECT) {
     gauges.push({
       key: 'ect-ext', label: 'ECT · External', subLabel: 'Sales to customers',
-      value: actuals.ect_ext, target: budgetData.ect_ext_ytd, py: priorYear.ect_ext,
+      value: actuals.ect_ext, forecast: forecastYTD.ect_ext,
+      target: budgetData.ect_ext_ytd, py: priorYear.ect_ext,
     })
   }
   // Consolidated Iberia only for admins
   if (isAdmin) {
-    const ib_actuals = actuals.vgt_ext + actuals.ect_ext
-    const ib_budget  = budgetData.vgt_ext_ytd + budgetData.ect_ext_ytd
-    const ib_py      = priorYear.vgt_ext + priorYear.ect_ext
+    const ib_actuals  = actuals.vgt_ext + actuals.ect_ext
+    const ib_forecast = forecastYTD.vgt_ext + forecastYTD.ect_ext
+    const ib_budget   = budgetData.vgt_ext_ytd + budgetData.ect_ext_ytd
+    const ib_py       = priorYear.vgt_ext + priorYear.ect_ext
     gauges.push({
       key: 'iberia', label: 'Iberia · External', subLabel: 'VGT + ECT consolidated',
-      value: ib_actuals, target: ib_budget, py: ib_py, color: '#0D2137',
+      value: ib_actuals, forecast: ib_forecast, target: ib_budget, py: ib_py,
+      color: '#0D2137',
     })
   }
 
@@ -156,6 +180,7 @@ export default function DashboardSummary() {
                 label={g.label}
                 subLabel={g.subLabel}
                 value={g.value}
+                forecast={g.forecast}
                 target={g.target}
                 py={g.py}
                 color={g.color}
@@ -194,9 +219,10 @@ export default function DashboardSummary() {
       {/* Simple explainer */}
       <div className="card p-4 bg-gray-50 border-dashed">
         <p className="text-xs text-gray-500 leading-relaxed">
-          <strong className="text-gray-700">How to read this:</strong> the gauges compare Invoiced actuals to the Budget for the same months (FY26 year-to-date).
-          Colour reflects performance against target — red &lt; 70%, amber 70–95%, green ≥ 95%.
-          The pill below each gauge is the delta versus the same period last year.
+          <strong className="text-gray-700">How to read this:</strong> the filled arc is Invoiced actuals vs Budget for the months elapsed in FY26.
+          Colour reflects performance — red &lt; 70%, amber 70–95%, green ≥ 95%.
+          The <span className="inline-block w-2 h-2 border-2 border-blue-700 bg-white rounded-full align-middle"/> pointer on the arc is the forecast (Invoiced + BackLog) for the same period.
+          The pill underneath is the delta versus the same period last year.
           Switch to the Classic view any time using the toggle in the header.
         </p>
       </div>
