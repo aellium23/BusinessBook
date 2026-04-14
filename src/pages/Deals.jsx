@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect } from 'react'
-import { useDeals, deleteDeal } from '../hooks/useDeals'
+import { useDeals, deleteDeal, upsertDeal } from '../hooks/useDeals'
 import { useAuth } from '../hooks/useAuth'
-import { BUBadge, StageBadge, SalesTypeBadge, Spinner, EmptyState, formatK, CurrencyBadge } from '../components/ui'
+import { BUBadge, StageBadge, SalesTypeBadge, ForecastBadge, Spinner, EmptyState, formatK, CurrencyBadge } from '../components/ui'
 import DealForm from '../components/DealForm'
-import { Plus, Search, Trash2, Pencil, ChevronDown, ChevronUp, Link, AlertTriangle, Clock, Download, RefreshCw } from 'lucide-react'
+import KanbanBoard from '../components/KanbanBoard'
+import { Plus, Search, Trash2, Pencil, ChevronDown, ChevronUp, Link, AlertTriangle, Clock, Download, RefreshCw, LayoutGrid, List } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
-import { STAGES, WEIGHTS, REGIONS, BUS, MONTHS, MONTHS_K } from '../constants'
+import { STAGES, WEIGHTS, REGIONS, BUS, MONTHS, MONTHS_K, FORECAST_CATEGORIES, resolveForecastCategory } from '../constants'
 
 function agingDays(deal) {
   if (!['Lead','Pipeline','Offer Presented'].includes(deal.stage)) return null
@@ -92,6 +93,7 @@ function DealCard({ deal, onEdit, onDelete, canEdit }) {
           <div className="flex items-center gap-1.5 flex-wrap mb-1">
             <BUBadge bu={deal.bu} />
             <StageBadge stage={deal.stage} />
+            <ForecastBadge deal={deal} />
             <SalesTypeBadge type={deal.sales_type} />
             <AgingBadge days={agingDays(deal)} />
             {deal.product && (
@@ -296,11 +298,20 @@ export default function Deals() {
   const [regionF, setRegionF]   = useState('')
   const [buF, setBuF]           = useState('')
   const [ownerF, setOwnerF]     = useState('')
+  const [forecastF, setForecastF] = useState('') // '' | 'commit' | 'best_case' | 'upside' | 'omit'
   const [slaF, setSlaF]         = useState(false)
   const [periodF, setPeriodF]   = useState(0)   // dias; 0 = todos
   const [pageSize, setPageSize]             = useState(5)
   const [page, setPage]                     = useState(1)
   const [invoicedMonthF, setInvoicedMonthF] = useState('')
+  const [viewMode, setViewMode] = useState(() => {
+    if (typeof window === 'undefined') return 'list'
+    return localStorage.getItem('bb_deals_view') || 'list'
+  })
+
+  useEffect(() => {
+    try { localStorage.setItem('bb_deals_view', viewMode) } catch {}
+  }, [viewMode])
 
   // Debounce search 300ms to avoid a network call on every keystroke
   useEffect(() => {
@@ -328,6 +339,7 @@ export default function Deals() {
       : rawDeals
     if (slaF) d = d.filter(x => x.is_sla)
     if (ownerF) d = d.filter(x => x.sales_owner?.toLowerCase().includes(ownerF.toLowerCase()))
+    if (forecastF) d = d.filter(x => resolveForecastCategory(x) === forecastF)
     if (periodF > 0) {
       const cutoff = new Date()
       cutoff.setDate(cutoff.getDate() - periodF)
@@ -337,7 +349,22 @@ export default function Deals() {
       d = d.filter(x => x.stage === 'Invoiced' && (x[invoicedMonthF] || 0) > 0)
     }
     return d
-  }, [rawDeals, slaF, ownerF, periodF, invoicedMonthF, profile])
+  }, [rawDeals, slaF, ownerF, forecastF, periodF, invoicedMonthF, profile])
+
+  // Forecast roll-up (Commit / Best case / Upside) — excludes IC mirrors + Lost/Omit
+  const forecastTotals = useMemo(() => {
+    const result = { commit: 0, best_case: 0, upside: 0, omit: 0 }
+    deals.forEach(d => {
+      if (d.is_intercompany_mirror) return
+      if (d.stage === 'Lost') return
+      const cat = resolveForecastCategory(d)
+      const fy26 = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
+      const base = ['BackLog','Invoiced'].includes(d.stage) ? fy26 : (d.value_total || 0)
+      const eur  = base * ((!d.currency || d.currency === 'EUR') ? 1 : (d.exchange_rate || 1))
+      result[cat] = (result[cat] || 0) + eur
+    })
+    return result
+  }, [deals])
 
   // Reset página quando filtros mudam
   const resetPage = () => setPage(1)
@@ -361,7 +388,22 @@ export default function Deals() {
   }, [rawDeals])
 
   // Contagem de filtros activos
-  const activeFilters = [search, stageF, regionF, buF, ownerF, slaF, periodF > 0, invoicedMonthF].filter(Boolean).length
+  const activeFilters = [search, stageF, regionF, buF, ownerF, forecastF, slaF, periodF > 0, invoicedMonthF].filter(Boolean).length
+
+  // Drag-drop on the Kanban: moving a card across stages
+  async function handleStageChange(dealId, newStage) {
+    const deal = rawDeals.find(d => d.id === dealId)
+    if (!deal) return
+    const { error } = await upsertDeal({
+      id: dealId,
+      stage: newStage,
+      stage_changed_at: new Date().toISOString(),
+    })
+    if (error) {
+      alert(`Failed to move deal: ${error.message}`)
+    }
+    refetch()
+  }
 
   async function confirmDelete() {
     await deleteDeal(confirmDel.id)
@@ -381,6 +423,28 @@ export default function Deals() {
           </p>
         </div>
         <div className="flex items-center gap-1.5 flex-wrap justify-end">
+          {/* View toggle — List vs Kanban */}
+          <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden" role="group" aria-label="View mode">
+            <button type="button"
+              onClick={() => setViewMode('list')}
+              aria-pressed={viewMode === 'list'}
+              title="List view"
+              className={`px-2.5 py-1.5 text-xs flex items-center gap-1 ${
+                viewMode === 'list' ? 'bg-navy text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
+              }`}>
+              <List size={13}/><span className="hidden sm:inline">List</span>
+            </button>
+            <button type="button"
+              onClick={() => setViewMode('kanban')}
+              aria-pressed={viewMode === 'kanban'}
+              title="Kanban view"
+              className={`px-2.5 py-1.5 text-xs flex items-center gap-1 border-l border-gray-200 ${
+                viewMode === 'kanban' ? 'bg-navy text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
+              }`}>
+              <LayoutGrid size={13}/><span className="hidden sm:inline">Kanban</span>
+            </button>
+          </div>
+
           <button onClick={() => exportToCSV(deals)} className="btn-secondary text-xs">
             <Download size={14}/> Export
           </button>
@@ -457,6 +521,16 @@ export default function Deals() {
               </select>
             </div>
 
+            {/* Forecast category */}
+            <div>
+              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Forecast</label>
+              <select className="select text-xs w-full" value={forecastF}
+                onChange={e => { setForecastF(e.target.value); resetPage() }}>
+                <option value="">All forecasts</option>
+                {FORECAST_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>
+            </div>
+
             {/* Invoiced Month */}
             <div>
               <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">
@@ -502,7 +576,7 @@ export default function Deals() {
             {activeFilters > 0 && (
               <button onClick={() => {
                 setSearch(''); setStageF(''); setRegionF(''); setBuF('')
-                setOwnerF(''); setSlaF(false); setPeriodF(0); setInvoicedMonthF(''); resetPage()
+                setOwnerF(''); setForecastF(''); setSlaF(false); setPeriodF(0); setInvoicedMonthF(''); resetPage()
               }} className="text-xs text-red-500 hover:text-red-700 font-medium">
                 {t("deals_clear_filters")}
               </button>
@@ -510,6 +584,25 @@ export default function Deals() {
           </div>
         </div>
       )}
+
+      {/* Forecast roll-up — Commit / Best case / Upside */}
+      <div className="grid grid-cols-3 gap-2">
+        {FORECAST_CATEGORIES.filter(c => c.id !== 'omit').map(c => {
+          const v = forecastTotals[c.id] || 0
+          const active = forecastF === c.id
+          return (
+            <button key={c.id} type="button"
+              onClick={() => { setForecastF(active ? '' : c.id); resetPage() }}
+              aria-pressed={active}
+              className={`text-left rounded-xl border p-2.5 transition-colors ${
+                active ? 'border-navy ring-2 ring-navy/10' : 'border-gray-200 hover:border-gray-300'
+              } ${c.color.split(' ')[0]}`}>
+              <p className="text-[10px] font-semibold uppercase tracking-wide opacity-70">{c.label}</p>
+              <p className="text-sm font-bold mt-0.5">{formatK(v)}</p>
+            </button>
+          )
+        })}
+      </div>
 
       {/* Totais */}
       <div className="flex gap-4 overflow-x-auto pb-1">
@@ -533,10 +626,18 @@ export default function Deals() {
         ))}
       </div>
 
-      {/* Lista paginada */}
+      {/* Lista paginada ou Kanban */}
       {loading ? <Spinner /> : deals.length === 0
         ? <EmptyState icon="📋" title="No deals found" description="Adjust filters or add a new deal"
             action={canEdit && <button onClick={() => setFormOpen(true)} className="btn-primary">{t("deals_add")}</button>}/>
+        : viewMode === 'kanban'
+          ? <KanbanBoard
+              deals={deals}
+              canEdit={canEdit}
+              onEdit={deal => { setEditDeal(deal); setFormOpen(true) }}
+              onDelete={setConfirmDel}
+              onMove={handleStageChange}
+            />
         : <>
             <div className="space-y-2">
               {paginated.map(d => (
