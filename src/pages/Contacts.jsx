@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useTranslation } from '../hooks/useTranslation'
 import { Spinner, EmptyState } from '../components/ui'
 import { ContactEditor } from '../components/ContactsList'
 import { CONTACT_ROLES, contactRole } from '../constants'
@@ -34,6 +35,7 @@ function exportToCSV(rows) {
 
 export default function Contacts() {
   const { isAdmin, profile, canEdit } = useAuth()
+  const { t } = useTranslation()
   const [items, setItems]     = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(null)
@@ -208,8 +210,8 @@ export default function Contacts() {
 
       {/* Grouped list */}
       {grouped.length === 0 ? (
-        <EmptyState icon="👥" title="No contacts"
-          description={activeFilters > 0 ? 'Adjust the filters or add a new contact.' : 'Add your first stakeholder.'}
+        <EmptyState icon="👥" title={t("contacts_empty_title")}
+          description={activeFilters > 0 ? t("contacts_empty_desc") : 'Add your first stakeholder.'}
           action={canEdit && <button onClick={() => setEditing('new')} className="btn-primary">Add contact</button>}/>
       ) : (
         <div className="space-y-4">

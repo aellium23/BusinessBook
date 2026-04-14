@@ -3,6 +3,8 @@ import { useTasks, createTask, updateTask, deleteTask, useNotifications } from '
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { Modal, Spinner } from '../components/ui'
+import SearchableSelect from '../components/SearchableSelect'
+import { useTranslation } from '../hooks/useTranslation'
 import {
   Plus, CheckCircle2, Circle, Clock, Flag, User, Link2,
   Trash2, Edit3, Bell, BellOff, ChevronDown, ChevronUp,
@@ -37,90 +39,6 @@ function DeadlineBadge({ deadline }) {
     <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${cls}`}>
       <Clock size={9} /> {label}
     </span>
-  )
-}
-
-// ── SearchableSelect ───────────────────────────────────────────────────────────
-// Dropdown com barra de pesquisa — suporta centenas de opções sem perder usabilidade
-function SearchableSelect({ value, onChange, options, placeholder = 'Search…', emptyLabel = '— None —' }) {
-  const [open, setOpen]       = useState(false)
-  const [query, setQuery]     = useState('')
-  const containerRef          = useRef(null)
-  const inputRef              = useRef(null)
-
-  const selected = options.find(o => o.value === value)
-
-  const filtered = query
-    ? options.filter(o => o.label.toLowerCase().includes(query.toLowerCase()))
-    : options
-
-  // Close on outside click
-  useEffect(() => {
-    function handler(e) {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setOpen(false)
-        setQuery('')
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
-
-  function handleSelect(val) {
-    onChange(val)
-    setOpen(false)
-    setQuery('')
-  }
-
-  return (
-    <div ref={containerRef} className="relative">
-      {/* Trigger */}
-      <button type="button"
-        onClick={() => { setOpen(o => !o); setTimeout(() => inputRef.current?.focus(), 50) }}
-        className="input w-full text-left flex items-center justify-between gap-2 min-h-[38px]">
-        <span className={selected ? 'text-gray-900 truncate' : 'text-gray-400'}>
-          {selected ? selected.label : emptyLabel}
-        </span>
-        <ChevronDown size={14} className={`shrink-0 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-
-      {/* Dropdown */}
-      {open && (
-        <div className="absolute z-50 mt-1 left-0 right-0 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-          {/* Search input */}
-          <div className="p-2 border-b border-gray-100">
-            <input
-              ref={inputRef}
-              type="text"
-              className="input py-1.5 text-sm"
-              placeholder={placeholder}
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              onClick={e => e.stopPropagation()}
-            />
-          </div>
-          {/* Options list */}
-          <div className="max-h-48 overflow-y-auto">
-            <button type="button"
-              onClick={() => handleSelect("")}
-              className="w-full text-left px-3 py-2 text-sm text-gray-400 hover:bg-gray-50">
-              {emptyLabel}
-            </button>
-            {filtered.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-gray-400">No results</p>
-            ) : filtered.map(o => (
-              <button type="button" key={o.value}
-                onClick={() => handleSelect(o.value)}
-                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 truncate ${
-                  o.value === value ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
-                }`}>
-                {o.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
   )
 }
 
@@ -429,6 +347,7 @@ function NotificationsPanel({ onClose, notifications, markRead, markAllRead }) {
 // ── Main Tasks Page ────────────────────────────────────────────────────────────
 export default function Tasks() {
   const { user, profile, isAdmin } = useAuth()
+  const { t } = useTranslation()
   const canAssign = isAdmin || ['vgt_editor','ect_editor'].includes(profile?.role)
 
   const { myTasks, assignedToMe, assignedByMe, loading, refetch } = useTasks()
@@ -485,7 +404,7 @@ export default function Tasks() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this task?')) return
+    if (!confirm(t('tasks_delete_confirm'))) return
     await deleteTask(id)
     refetch()
   }
@@ -536,7 +455,7 @@ export default function Tasks() {
 
       {/* My personal tasks */}
       <Section
-        title="My tasks"
+        title={t('tasks_my_tasks')}
         count={filterTasks(myTasks).length}
         overdueCount={overdueIn(myTasks)}
       >
@@ -556,7 +475,7 @@ export default function Tasks() {
       {/* Tasks assigned to me */}
       {assignedToMe.length > 0 && (
         <Section
-          title="Assigned to me"
+          title={t('tasks_assigned_to_me')}
           count={filterTasks(assignedToMe).length}
           overdueCount={overdueIn(assignedToMe)}
         >
@@ -571,7 +490,7 @@ export default function Tasks() {
       {/* Tasks I assigned to others (directors) */}
       {canAssign && assignedByMe.length > 0 && (
         <Section
-          title="Assigned by me"
+          title={t('tasks_assigned_by_me')}
           count={filterTasks(assignedByMe).length}
           overdueCount={overdueIn(assignedByMe)}
           defaultOpen={false}

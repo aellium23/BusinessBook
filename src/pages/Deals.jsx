@@ -428,7 +428,7 @@ export default function Deals() {
             <button type="button"
               onClick={() => setViewMode('list')}
               aria-pressed={viewMode === 'list'}
-              title="List view"
+              title={t("deals_view_list")}
               className={`px-2.5 py-1.5 text-xs flex items-center gap-1 ${
                 viewMode === 'list' ? 'bg-navy text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
               }`}>
@@ -437,7 +437,7 @@ export default function Deals() {
             <button type="button"
               onClick={() => setViewMode('kanban')}
               aria-pressed={viewMode === 'kanban'}
-              title="Kanban view"
+              title={t("deals_view_kanban")}
               className={`px-2.5 py-1.5 text-xs flex items-center gap-1 border-l border-gray-200 ${
                 viewMode === 'kanban' ? 'bg-navy text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
               }`}>
@@ -628,7 +628,7 @@ export default function Deals() {
 
       {/* Lista paginada ou Kanban */}
       {loading ? <Spinner /> : deals.length === 0
-        ? <EmptyState icon="📋" title="No deals found" description="Adjust filters or add a new deal"
+        ? <EmptyState icon="📋" title={t("deals_empty_title")} description={t("deals_empty_desc")}
             action={canEdit && <button onClick={() => setFormOpen(true)} className="btn-primary">{t("deals_add")}</button>}/>
         : viewMode === 'kanban'
           ? <KanbanBoard
