@@ -10,7 +10,43 @@ import AttachmentsList from './AttachmentsList'
 import ContactsList from './ContactsList'
 import DealTimeline from './DealTimeline'
 import SearchableSelect from './SearchableSelect'
-import { FORECAST_CATEGORIES, defaultForecastFromStage } from '../constants'
+import { FORECAST_CATEGORIES, defaultForecastFromStage, DISTRIBUTION_PATHS, computeMargins } from '../constants'
+import { formatK } from './ui'
+
+// ── MarginsPanel — live calculation of margin per level ──────────────────
+function MarginsPanel({ form }) {
+  const m = computeMargins({
+    distribution_path:  form.distribution_path,
+    value_total:        parseFloat(form.value_total) || 0,
+    vgt_cost:           parseFloat(form.vgt_cost) || 0,
+    distributor_price:  parseFloat(form.distributor_price) || 0,
+    end_customer_price: parseFloat(form.end_customer_price) || 0,
+  })
+  if (!m) return null
+  const rows = [
+    { label: 'VGT', value: m.vgt, color: 'bg-vgt/10 text-vgt' },
+    ...(m.hub         ? [{ label: 'Hub',         value: m.hub,         color: 'bg-purple-100 text-purple-700' }] : []),
+    ...(m.distributor ? [{ label: 'Distributor', value: m.distributor, color: 'bg-amber-100 text-amber-700'   }] : []),
+  ]
+  const hasValues = rows.some(r => r.value && (r.value.abs !== 0 || r.value.pct !== 0))
+  if (!hasValues) return null
+  return (
+    <div className="bg-white border border-gray-100 rounded-control p-3">
+      <p className="text-micro font-semibold text-gray-700 uppercase tracking-wide mb-2">
+        Margin per level
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        {rows.map(r => (
+          <div key={r.label} className={`rounded-control px-3 py-2 ${r.color}`}>
+            <p className="text-micro font-semibold uppercase tracking-wide opacity-70">{r.label}</p>
+            <p className="text-sm font-bold mt-0.5">{formatK(r.value.abs)}</p>
+            <p className="text-micro opacity-70">{r.value.pct.toFixed(1)}%</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
@@ -66,6 +102,13 @@ const EMPTY = {
   distributor: '',
   hub: '',
   end_customer_value: '',
+  // Structured distribution network (PR 5)
+  distribution_path:  '',
+  distributor_id:     null,
+  hub_id:             null,
+  vgt_cost:           '',
+  distributor_price:  '',
+  end_customer_price: '',
   company_id: '',
   list_price: '',
   discount_requested: '',
@@ -232,6 +275,13 @@ export default function DealForm({ deal, onClose, onSaved }) {
     distributor: deal.distributor || '',
     hub: deal.hub || '',
     end_customer_value: deal.end_customer_value || '',
+    // Structured distribution network (PR 5)
+    distribution_path:  deal.distribution_path || '',
+    distributor_id:     deal.distributor_id    || null,
+    hub_id:             deal.hub_id            || null,
+    vgt_cost:           deal.vgt_cost          || '',
+    distributor_price:  deal.distributor_price || '',
+    end_customer_price: deal.end_customer_price || '',
     list_price: deal.list_price || '',
     discount_requested: deal.discount_requested || '',
     discount_note_dist: deal.discount_note_dist || '',
@@ -256,6 +306,8 @@ export default function DealForm({ deal, onClose, onSaved }) {
   const [timelineNonce, setTimelineNonce] = useState(0) // bump to force DealTimeline refetch
   const [owners, setOwners]           = useState([])
   const [accounts, setAccounts]       = useState([])
+  const [distributors, setDistributors] = useState([])
+  const [hubs, setHubs]               = useState([])
 
   const isMaint = form.deal_type === 'Maintenance'
   const accountsForBU = accounts.filter(a => !form.bu || a.bu === form.bu)
@@ -277,6 +329,13 @@ export default function DealForm({ deal, onClose, onSaved }) {
     supabase.from('accounts').select('id, name, bu').order('name')
       .then(({ data }) => { if (data) setAccounts(data) })
       .catch(e => console.warn('Failed to load accounts:', e?.message))
+    // Load distribution network (new in PR 5)
+    supabase.from('distributors').select('id, name, country, region, hub_id').order('name')
+      .then(({ data }) => { if (data) setDistributors(data) })
+      .catch(e => console.warn('Failed to load distributors:', e?.message))
+    supabase.from('regional_hubs').select('id, name, region').order('name')
+      .then(({ data }) => { if (data) setHubs(data) })
+      .catch(e => console.warn('Failed to load regional hubs:', e?.message))
   }, [])
 
   useEffect(() => {
@@ -419,6 +478,13 @@ export default function DealForm({ deal, onClose, onSaved }) {
       distributor: form.distributor || null,
       hub: form.hub || null,
       end_customer_value: parseFloat(form.end_customer_value) || null,
+      // Structured distribution network (PR 5)
+      distribution_path:  form.distribution_path || null,
+      distributor_id:     form.distributor_id    || null,
+      hub_id:             form.hub_id            || null,
+      vgt_cost:           parseFloat(form.vgt_cost)           || null,
+      distributor_price:  parseFloat(form.distributor_price)  || null,
+      end_customer_price: parseFloat(form.end_customer_price) || null,
       // Discount
       list_price: parseFloat(form.list_price) || null,
       discount_requested: parseFloat(form.discount_requested) || null,
@@ -777,74 +843,135 @@ export default function DealForm({ deal, onClose, onSaved }) {
           )}
         </div>
 
-        {/* ── DISTRIBUTION CHAIN ───────────────────────────────── */}
-        {form.region !== 'Europe' || form.sales_type === 'External' ? (
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{t("df_dist_chain")}</p>
-                <p className="text-[10px] text-gray-400 mt-0.5">
-                  {form.client} = who VGT invoices ·
-                  {form.hub ? ` via ${form.hub}` : form.distributor ? ` direct to distributor` : ' direct'}
-                </p>
-              </div>
+        {/* ── DISTRIBUTION & MARGINS ──────────────────────────────
+            New structured distribution network:
+              direct:       VGT → Distributor → Client
+              hub_mediated: VGT → Hub → Distributor → Client
+            Legacy free-text fields (distributor/hub) are preserved so
+            old deals keep rendering; new deals use the FK-based selects.
+        */}
+        {(form.region !== 'Europe' || form.sales_type === 'External') && (
+          <div className="bg-gray-50 border border-gray-200 rounded-card p-4 space-y-3">
+            <div>
+              <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                {t("df_distribution_margins")}
+              </p>
+              <p className="text-micro text-gray-400 mt-0.5">
+                {t("df_distribution_hint")}
+              </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="label">{t("df_end_customer")}</label>
-                <input className="input" value={form.end_customer}
-                  onChange={e => set('end_customer', e.target.value)}
-                  placeholder="e.g. Hospital La Paz"/>
-              </div>
-              <div>
-                <label className="label">{t("df_ec_value")}</label>
-                <input className="input" type="number" value={form.end_customer_value}
-                  onChange={e => set('end_customer_value', e.target.value)}
-                  placeholder="Full project value"/>
-              </div>
+            {/* Path selector */}
+            <div className="flex gap-2">
+              {DISTRIBUTION_PATHS.map(p => {
+                const active = form.distribution_path === p.id
+                return (
+                  <button key={p.id} type="button"
+                    onClick={() => {
+                      set('distribution_path', p.id)
+                      if (p.id === 'direct') { set('hub_id', null) }
+                    }}
+                    className={`flex-1 text-left rounded-control border p-3 transition-colors ${
+                      active
+                        ? 'border-navy bg-white ring-2 ring-navy/10'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}>
+                    <p className="text-xs font-bold text-gray-900">{p.label}</p>
+                    <p className="text-micro text-gray-500 mt-0.5">{p.hint}</p>
+                  </button>
+                )
+              })}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="label">{t("df_distributor")} <span className="text-gray-400 font-normal">{t("df_optional")}</span></label>
-                <input className="input" value={form.distributor}
-                  onChange={e => set('distributor', e.target.value)}
-                  placeholder="e.g. Fujifilm Mexico"/>
-              </div>
-              <div>
-                <label className="label">{t("df_hub")} <span className="text-gray-400 font-normal">{t("df_optional")}</span></label>
-                <input className="input" value={form.hub}
-                  onChange={e => set('hub', e.target.value)}
-                  list="hub-list"
-                  placeholder="e.g. HCUS, Fujifilm Spain"/>
-                <datalist id="hub-list">
-                  {['HCUS','Fujifilm Spain','Fujifilm France','Fujifilm Germany',
-                    'Fujifilm Italy','Fujifilm UK','Fujifilm Netherlands',
-                    'Fujifilm Middle East','Fujifilm Australia'].map(h =>
-                    <option key={h} value={h}/>
+            {form.distribution_path && (
+              <>
+                {/* Distributor + Hub selectors */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="label">{t("df_distributor")}</label>
+                    <SearchableSelect
+                      value={form.distributor_id || ''}
+                      onChange={v => set('distributor_id', v || null)}
+                      options={distributors
+                        .filter(d => !form.country || !d.country || d.country.toLowerCase() === form.country.toLowerCase())
+                        .map(d => ({ value: d.id, label: d.name, hint: d.country }))}
+                      placeholder={t("df_distributor_search")}
+                      emptyLabel={t("df_distributor_none")}
+                    />
+                  </div>
+                  {form.distribution_path === 'hub_mediated' && (
+                    <div>
+                      <label className="label">{t("df_hub")}</label>
+                      <SearchableSelect
+                        value={form.hub_id || ''}
+                        onChange={v => set('hub_id', v || null)}
+                        options={hubs.map(h => ({ value: h.id, label: h.name, hint: h.region }))}
+                        placeholder={t("df_hub_search")}
+                        emptyLabel={t("df_hub_none")}
+                      />
+                    </div>
                   )}
-                </datalist>
-              </div>
-            </div>
+                </div>
 
-            {/* Chain visualisation */}
-            {(form.end_customer || form.distributor || form.hub) && (
-              <div className="flex items-center gap-1.5 flex-wrap text-[10px] bg-white border border-gray-100 rounded-lg px-3 py-2">
-                <span className="font-medium text-gray-500">Chain:</span>
-                {form.end_customer && <><span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-medium">{form.end_customer}</span><span className="text-gray-300">→</span></>}
-                {form.distributor && <><span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded font-medium">{form.distributor}</span><span className="text-gray-300">→</span></>}
-                {form.hub && <><span className="bg-purple-50 text-purple-700 px-2 py-0.5 rounded font-medium">{form.hub}</span><span className="text-gray-300">→</span></>}
-                <span className="bg-vgt/10 text-vgt px-2 py-0.5 rounded font-medium">VGT</span>
-                {form.end_customer_value && form.value_total && (
-                  <span className="ml-auto text-gray-400">
-                    Project: €{Number(form.end_customer_value).toLocaleString()} → VGT: €{Number(form.value_total).toLocaleString()}
-                  </span>
-                )}
-              </div>
+                {/* End customer */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="label">{t("df_end_customer")}</label>
+                    <input className="input" value={form.end_customer}
+                      onChange={e => set('end_customer', e.target.value)}
+                      placeholder={t("df_end_customer_hint")}/>
+                  </div>
+                  <div>
+                    <label className="label">{t("df_ec_value")}</label>
+                    <input className="input" type="number" value={form.end_customer_value}
+                      onChange={e => set('end_customer_value', e.target.value)}
+                      placeholder={t("df_ec_value_hint")}/>
+                  </div>
+                </div>
+
+                {/* Price levels */}
+                <div className="bg-white border border-gray-100 rounded-control p-3 space-y-3">
+                  <p className="text-micro font-semibold text-gray-700 uppercase tracking-wide">
+                    {t("df_prices_title")}
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="label">{t("df_vgt_cost")}</label>
+                      <input className="input" type="number" value={form.vgt_cost}
+                        onChange={e => set('vgt_cost', e.target.value)}
+                        placeholder="0"/>
+                    </div>
+                    <div>
+                      <label className="label">
+                        {form.distribution_path === 'hub_mediated' ? t("df_price_vgt_hub") : t("df_price_vgt_distributor")}
+                      </label>
+                      <input className="input" type="number" value={form.value_total}
+                        onChange={e => set('value_total', e.target.value)}
+                        placeholder="0"/>
+                    </div>
+                    {form.distribution_path === 'hub_mediated' && (
+                      <div>
+                        <label className="label">{t("df_price_hub_distributor")}</label>
+                        <input className="input" type="number" value={form.distributor_price}
+                          onChange={e => set('distributor_price', e.target.value)}
+                          placeholder="0"/>
+                      </div>
+                    )}
+                    <div>
+                      <label className="label">{t("df_price_distributor_client")}</label>
+                      <input className="input" type="number" value={form.end_customer_price}
+                        onChange={e => set('end_customer_price', e.target.value)}
+                        placeholder="0"/>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Live margins */}
+                <MarginsPanel form={form}/>
+              </>
             )}
           </div>
-        ) : null}
+        )}
 
         {/* ── DISCOUNT REQUEST ─────────────────────────────────── */}
         {(isDistributor || deal?.discount_status || deal?.discount_requested) && (

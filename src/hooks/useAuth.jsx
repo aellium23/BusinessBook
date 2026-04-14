@@ -7,7 +7,7 @@ const AuthContext = createContext(null)
 // ── Permissões por role ───────────────────────────────────────────────────────
 export const ROLE_PERMISSIONS = {
   admin: {
-    pages:    ['dashboard','deals','clients','contacts','accounts','whitespace','audit','history','quotas','budget','users','settings','tasks','tenders','permissions'],
+    pages:    ['dashboard','deals','clients','contacts','accounts','whitespace','network','audit','history','quotas','budget','users','settings','tasks','tenders','permissions'],
     canEdit:  true,
     editOwn:  false,
     seeBU:    'ALL',
@@ -15,7 +15,7 @@ export const ROLE_PERMISSIONS = {
     manageUsers: true,
   },
   manager: {
-    pages:    ['dashboard','deals','clients','contacts','accounts','whitespace','history','quotas','tasks','tenders'],
+    pages:    ['dashboard','deals','clients','contacts','accounts','whitespace','network','history','quotas','tasks','tenders'],
     canEdit:  true,
     editOwn:  false,
     seeBU:    null,   // derivado do bu do profile
@@ -23,7 +23,7 @@ export const ROLE_PERMISSIONS = {
     manageUsers: false,
   },
   member: {
-    pages:    ['dashboard','deals','clients','contacts','accounts','whitespace','history','quotas','tasks','tenders'],
+    pages:    ['dashboard','deals','clients','contacts','accounts','whitespace','network','history','quotas','tasks','tenders'],
     canEdit:  true,
     editOwn:  true,
     seeBU:    null,
