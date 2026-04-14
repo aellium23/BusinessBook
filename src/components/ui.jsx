@@ -1,7 +1,22 @@
+import { FORECAST_CATEGORIES, resolveForecastCategory } from '../constants'
+
 export function BUBadge({ bu }) {
   return bu === 'VGT'
     ? <span className="badge-vgt">VGT</span>
     : <span className="badge-ect">ECT</span>
+}
+
+export function ForecastBadge({ deal, compact = false }) {
+  const id = resolveForecastCategory(deal)
+  const cat = FORECAST_CATEGORIES.find(c => c.id === id) || FORECAST_CATEGORIES[2]
+  const isInferred = !deal?.forecast_category
+  return (
+    <span
+      title={isInferred ? `Forecast: ${cat.label} (inferred from stage)` : `Forecast: ${cat.label}`}
+      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${cat.color} ${isInferred ? 'opacity-70' : ''}`}>
+      {compact ? cat.short : cat.label}
+    </span>
+  )
 }
 
 export function StageBadge({ stage }) {
