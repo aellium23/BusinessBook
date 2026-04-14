@@ -238,9 +238,8 @@ function DistributorDashboard({ deals, profile }) {
         .select('target_eur')
         .eq('company_id', profile.company_id)
         .single()
-        .then(({ data }) => {
-          if (data?.target_eur) setQuotaTarget(data.target_eur)
-        })
+        .then(({ data }) => { if (data?.target_eur) setQuotaTarget(data.target_eur) })
+        .catch(e => console.warn('Failed to load distributor quota:', e?.message))
     }
   }, [profile])
 
@@ -422,8 +421,12 @@ export default function Dashboard() {
 
   // Load budget from DB
   useEffect(() => {
-    supabase.from('budget').select("*").then(({ data }) => setBudget(data || []))
-    supabase.from('fy25_actuals').select("*").then(({ data }) => setFy25(data || []))
+    supabase.from('budget').select("*")
+      .then(({ data }) => setBudget(data || []))
+      .catch(e => console.warn('Failed to load budget:', e?.message))
+    supabase.from('fy25_actuals').select("*")
+      .then(({ data }) => setFy25(data || []))
+      .catch(e => console.warn('Failed to load FY25 actuals:', e?.message))
   }, [])
 
   // Determine active cycle

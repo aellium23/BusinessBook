@@ -88,7 +88,7 @@ export function useNotifications() {
       await supabase.from('notifications').update({ read: true }).eq('id', id)
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
       setUnread(u => Math.max(0, u - 1))
-    } catch (e) { /* table not ready */ }
+    } catch (e) { console.warn('[notifications]', e?.message) }
   }
 
   async function markAllRead() {
@@ -96,7 +96,7 @@ export function useNotifications() {
       await supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false)
       setNotifications(prev => prev.map(n => ({ ...n, read: true })))
       setUnread(0)
-    } catch (e) { /* table not ready */ }
+    } catch (e) { console.warn('[notifications]', e?.message) }
   }
 
   async function pushNotification({ userId, type, title, body, linkType, linkId }) {
@@ -107,7 +107,7 @@ export function useNotifications() {
         link_type: linkType,
         link_id:   linkId,
       })
-    } catch (e) { /* table not ready */ }
+    } catch (e) { console.warn('[notifications]', e?.message) }
   }
 
   return { notifications, unread, loading: false, markRead, markAllRead, pushNotification, refetch: fetch }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTenders, createTender, updateTender, deleteTender } from '../hooks/useTasks'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
@@ -6,8 +6,164 @@ import { Modal, Spinner, StageBadge, BUBadge } from '../components/ui'
 import {
   Plus, Edit3, Trash2, AlertCircle, Calendar, Link2,
   Users, TrendingUp, CheckCircle2, XCircle, Clock,
-  ChevronDown, ChevronUp, Search, FileText
+  ChevronDown, ChevronUp, Search, FileText, X
 } from 'lucide-react'
+
+// ── SearchableSelect ──────────────────────────────────────────────────────────
+// Same pattern used in Tasks.jsx. Supports an optional "create new" CTA when
+// the search query yields no match.
+function SearchableSelect({
+  value, onChange, options,
+  placeholder = 'Search…',
+  emptyLabel  = '— None —',
+  onCreateNew,
+}) {
+  const [open, setOpen]   = useState(false)
+  const [query, setQuery] = useState('')
+  const containerRef      = useRef(null)
+  const inputRef          = useRef(null)
+
+  const selected = options.find(o => o.value === value)
+  const filtered = query
+    ? options.filter(o => o.label.toLowerCase().includes(query.toLowerCase()))
+    : options
+
+  useEffect(() => {
+    function handler(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false); setQuery('')
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  function select(val) { onChange(val); setOpen(false); setQuery('') }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button type="button"
+        onClick={() => { setOpen(o => !o); setTimeout(() => inputRef.current?.focus(), 50) }}
+        className="input w-full text-left flex items-center justify-between gap-2 min-h-[38px]">
+        <span className={selected ? 'text-gray-900 truncate' : 'text-gray-400'}>
+          {selected ? selected.label : emptyLabel}
+        </span>
+        <ChevronDown size={14} className={`shrink-0 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-1 left-0 right-0 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+          <div className="p-2 border-b border-gray-100">
+            <input
+              ref={inputRef}
+              type="text"
+              className="input py-1.5 text-sm"
+              placeholder={placeholder}
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              onClick={e => e.stopPropagation()}
+            />
+          </div>
+          <div className="max-h-56 overflow-y-auto">
+            <button type="button"
+              onClick={() => select('')}
+              className="w-full text-left px-3 py-2 text-sm text-gray-400 hover:bg-gray-50">
+              {emptyLabel}
+            </button>
+            {filtered.length === 0 ? (
+              <p className="px-3 py-2 text-sm text-gray-400">No results</p>
+            ) : filtered.map(o => (
+              <button type="button" key={o.value}
+                onClick={() => select(o.value)}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 truncate ${
+                  o.value === value ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                }`}>
+                {o.label}
+              </button>
+            ))}
+            {onCreateNew && (
+              <button type="button"
+                onClick={() => { onCreateNew(query); setOpen(false); setQuery('') }}
+                className="w-full text-left px-3 py-2 text-sm border-t border-gray-100 bg-gray-50 hover:bg-gray-100 text-navy font-medium flex items-center gap-1">
+                <Plus size={13}/> Create new deal{query ? `: "${query}"` : ''}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Inline "Create deal" mini-form ────────────────────────────────────────────
+function QuickDealForm({ initialClient = '', onCancel, onCreated }) {
+  const { profile, isAdmin } = useAuth()
+  const [form, setForm] = useState({
+    client:  initialClient,
+    bu:      profile?.bu || 'VGT',
+    country: '',
+    stage:   'Lead',
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError]   = useState(null)
+
+  async function save() {
+    if (!form.client.trim()) { setError('Client is required'); return }
+    setSaving(true)
+    const { data, error: e } = await supabase
+      .from('deals')
+      .insert({
+        client: form.client.trim(),
+        bu: form.bu,
+        country: form.country || null,
+        stage: form.stage,
+      })
+      .select('id, client, bu, country, company_id')
+      .single()
+    setSaving(false)
+    if (e) { setError(e.message); return }
+    onCreated(data)
+  }
+
+  return (
+    <div className="border border-gray-200 rounded-xl p-3 space-y-2 bg-gray-50">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-gray-700">Create new deal</p>
+        <button type="button" onClick={onCancel} className="text-gray-400 hover:text-gray-600">
+          <X size={14}/>
+        </button>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <input className="input text-sm" placeholder="Client *"
+          value={form.client} onChange={e => setForm(f => ({ ...f, client: e.target.value }))} />
+        <input className="input text-sm" placeholder="Country"
+          value={form.country} onChange={e => setForm(f => ({ ...f, country: e.target.value }))} />
+        {isAdmin && (
+          <select className="select text-sm" value={form.bu}
+            onChange={e => setForm(f => ({ ...f, bu: e.target.value }))}>
+            <option value="VGT">VGT</option>
+            <option value="ECT">ECT</option>
+          </select>
+        )}
+        <select className="select text-sm" value={form.stage}
+          onChange={e => setForm(f => ({ ...f, stage: e.target.value }))}>
+          <option value="Lead">Lead</option>
+          <option value="Pipeline">Pipeline</option>
+          <option value="Offer Presented">Offer Presented</option>
+        </select>
+      </div>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+      <div className="flex gap-2 pt-1">
+        <button type="button" onClick={save} disabled={saving}
+          className="btn-primary text-xs py-1.5 px-3">
+          {saving ? 'Saving…' : 'Create deal'}
+        </button>
+        <button type="button" onClick={onCancel} className="btn-secondary text-xs py-1.5 px-3">
+          Cancel
+        </button>
+      </div>
+    </div>
+  )
+}
 
 const STATUS_CONFIG = {
   open:       { label: 'Open',       color: 'text-blue-700',  bg: 'bg-blue-50',  border: 'border-blue-200' },
@@ -45,7 +201,7 @@ function DeadlineChip({ date, label }) {
 }
 
 // ── Tender Form Modal ──────────────────────────────────────────────────────────
-function TenderModal({ tender, onClose, onSaved, deals, users }) {
+function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged }) {
   const { user } = useAuth()
   const isEdit = !!tender?.id
   const [form, setForm] = useState({
@@ -62,6 +218,8 @@ function TenderModal({ tender, onClose, onSaved, deals, users }) {
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState(null)
+  const [creatingDeal, setCreatingDeal] = useState(false)
+  const [prefillClient, setPrefillClient] = useState('')
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
@@ -75,8 +233,7 @@ function TenderModal({ tender, onClose, onSaved, deals, users }) {
   }
 
   async function handleSave() {
-    if (!form.title.trim())  { setError('Title is required');      return }
-    if (!form.deal_id)        { setError('Please link a deal');     return }
+    if (!form.title.trim()) { setError('Title is required'); return }
     setSaving(true)
     const payload = {
       title:               form.title.trim(),
@@ -87,7 +244,7 @@ function TenderModal({ tender, onClose, onSaved, deals, users }) {
       decision_date:       form.decision_date || null,
       estimated_value:     form.estimated_value ? parseFloat(form.estimated_value) : null,
       currency:            form.currency,
-      deal_id:             form.deal_id,
+      deal_id:             form.deal_id || null,
       created_by:          user.id,
     }
     let tenderId = tender?.id
@@ -131,15 +288,32 @@ function TenderModal({ tender, onClose, onSaved, deals, users }) {
           </div>
         </div>
 
-        {/* Deal link */}
+        {/* Deal link — searchable, optional, allows inline creation */}
         <div>
-          <label className="label">Linked deal *</label>
-          <select className="select" value={form.deal_id} onChange={e => set('deal_id', e.target.value)}>
-            <option value="">— Select deal —</option>
-            {deals.map(d => (
-              <option key={d.id} value={d.id}>[{d.bu}] {d.client} — {d.country}</option>
-            ))}
-          </select>
+          <label className="label">Linked deal <span className="text-gray-400">(optional)</span></label>
+          {creatingDeal ? (
+            <QuickDealForm
+              initialClient={prefillClient}
+              onCancel={() => { setCreatingDeal(false); setPrefillClient('') }}
+              onCreated={newDeal => {
+                setCreatingDeal(false); setPrefillClient('')
+                set('deal_id', newDeal.id)
+                onDealsChanged && onDealsChanged(newDeal)
+              }}
+            />
+          ) : (
+            <SearchableSelect
+              value={form.deal_id}
+              onChange={val => set('deal_id', val)}
+              options={deals.map(d => ({
+                value: d.id,
+                label: `[${d.bu}] ${d.client}${d.country ? ` — ${d.country}` : ''}`,
+              }))}
+              placeholder="Search deals…"
+              emptyLabel="— No deal —"
+              onCreateNew={query => { setPrefillClient(query || ''); setCreatingDeal(true) }}
+            />
+          )}
         </div>
 
         {/* Description */}
@@ -189,26 +363,32 @@ function TenderModal({ tender, onClose, onSaved, deals, users }) {
           </select>
         </div>
 
-        {/* Collaborators */}
+        {/* Collaborators — sourced from quotas (sales owners) */}
         <div>
-          <label className="label">Collaborators</label>
-          <div className="flex flex-wrap gap-2 mt-1">
-            {users.map(u => {
-              const active = form.collaborators.includes(u.id)
-              return (
-                <button key={u.id} type="button"
-                  onClick={() => toggleCollab(u.id)}
-                  className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full border transition-all ${
-                    active
-                      ? 'bg-navy text-white border-navy'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
-                  }`}>
-                  <Users size={10} />
-                  {u.full_name || u.email?.split("@")[0]}
-                </button>
-              )
-            })}
-          </div>
+          <label className="label">Collaborators <span className="text-gray-400">(sales owners)</span></label>
+          {users.length === 0 ? (
+            <p className="text-[11px] text-gray-400 mt-1">
+              No sales owners available. Add entries to <strong>Sales Target</strong> first.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2 mt-1">
+              {users.map(u => {
+                const active = form.collaborators.includes(u.id)
+                return (
+                  <button key={u.id} type="button"
+                    onClick={() => toggleCollab(u.id)}
+                    className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full border transition-all ${
+                      active
+                        ? 'bg-navy text-white border-navy'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                    }`}>
+                    <Users size={10} />
+                    {u.full_name}{u.bu ? ` · ${u.bu}` : ''}
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {error && (
@@ -345,15 +525,39 @@ export default function Tenders() {
   const [deals, setDeals] = useState([])
   const [users, setUsers] = useState([])
 
-  useEffect(() => {
-    // Carregar deals filtrados por company_id para distribuidores
+  function loadDeals() {
     let dealsQ = supabase.from('deals').select("id, client, bu, country, company_id").order('client')
     if (profile?.role === 'distributor' && profile?.company_id) {
       dealsQ = dealsQ.eq('company_id', profile.company_id)
     }
-    dealsQ.then(({ data }) => setDeals(data ?? []))
-    supabase.from('profiles').select("id, full_name, email").then(({ data }) => setUsers(data ?? []))
-  }, [])
+    return dealsQ.then(({ data }) => setDeals(data ?? []))
+      .catch(e => console.error('Failed to load deals:', e))
+  }
+
+  useEffect(() => {
+    loadDeals()
+    // Collaborators come from quotas (sales owners) joined with profiles
+    Promise.all([
+      supabase.from('quotas').select('sales_owner, bu').order('bu').order('sales_owner'),
+      supabase.from('profiles').select('id, full_name, email, sales_owner_name'),
+    ]).then(([qRes, pRes]) => {
+      const profiles = pRes.data ?? []
+      const seen = new Set()
+      const merged = (qRes.data ?? []).flatMap(q => {
+        const key = `${q.bu}::${q.sales_owner}`
+        if (seen.has(key)) return []
+        seen.add(key)
+        const match = profiles.find(p =>
+          (p.sales_owner_name && p.sales_owner_name.toLowerCase() === (q.sales_owner || '').toLowerCase()) ||
+          (p.full_name && p.full_name.toLowerCase() === (q.sales_owner || '').toLowerCase())
+        )
+        if (!match) return []
+        return [{ id: match.id, full_name: q.sales_owner, email: match.email, bu: q.bu }]
+      })
+      setUsers(merged)
+    }).catch(e => console.error('Failed to load collaborators:', e))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id, profile?.role, profile?.company_id])
 
   const filtered = tenders.filter(t => {
     const matchSearch = !search || t.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -453,6 +657,7 @@ export default function Tenders() {
           onSaved={refetch}
           deals={deals}
           users={users}
+          onDealsChanged={() => loadDeals()}
         />
       )}
     </div>
