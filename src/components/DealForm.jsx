@@ -7,6 +7,7 @@ import { useFxRates } from '../hooks/useFxRates'
 import { Link, Clock, Plus, AlertCircle, CheckCircle, XCircle, RefreshCw as CounterIcon, History } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 import AttachmentsList from './AttachmentsList'
+import { FORECAST_CATEGORIES, defaultForecastFromStage } from '../constants'
 
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
@@ -394,6 +395,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
     const payload = {
       ...(deal?.id ? { id: deal.id } : {}),
       bu: form.bu, sales_type: form.sales_type, stage: form.stage,
+      forecast_category: form.forecast_category || null,
       client: form.client, region: form.region, country: form.country,
       sales_owner: form.sales_owner, deal_type: form.deal_type,
       description: form.description,
@@ -494,6 +496,34 @@ export default function DealForm({ deal, onClose, onSaved }) {
             </select>
           </div>
         </div>
+
+        {/* Forecast category — Commit / Best case / Upside / Omit */}
+        {!isDistributor && (
+          <div>
+            <label className="label flex items-center gap-1">
+              Forecast category
+              <span className="text-[10px] text-gray-400 font-normal">
+                (Auto from stage: <strong>{FORECAST_CATEGORIES.find(c => c.id === defaultForecastFromStage(form.stage))?.label}</strong>)
+              </span>
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              {[{ id: '', label: 'Auto' }, ...FORECAST_CATEGORIES].map(opt => {
+                const active = (form.forecast_category || '') === opt.id
+                return (
+                  <button key={opt.id || 'auto'} type="button"
+                    onClick={() => set('forecast_category', opt.id || null)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                      active
+                        ? 'bg-navy text-white border-navy'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                    }`}>
+                    {opt.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Client */}
         <div>
