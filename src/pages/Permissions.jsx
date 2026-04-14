@@ -756,6 +756,32 @@ function SalesTargetsSection({ companies, onRefresh }) {
 }
 
 // ── Convidar utilizador ───────────────────────────────────────────────────────
+// Collapsible wrapper around InviteSection used inside the Users tab.
+// Replaces the old standalone "Invite" tab.
+function UsersInviteBlock({ companies, salesOwners, permSets, onSaved }) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="border border-gray-200 rounded-card bg-white overflow-hidden">
+      <button type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-gray-50 transition-colors">
+        <span className="w-8 h-8 rounded-full bg-navy/10 text-navy flex items-center justify-center">+</span>
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-gray-900">{t('perm_invite_title')}</p>
+          <p className="text-micro text-gray-400">{t('perm_invite_subtitle')}</p>
+        </div>
+        <span className="text-gray-300 text-sm">{open ? '▴' : '▾'}</span>
+      </button>
+      {open && (
+        <div className="border-t border-gray-100 px-4 py-4">
+          <InviteSection companies={companies} salesOwners={salesOwners} permSets={permSets} onSaved={onSaved}/>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function InviteSection({ companies, salesOwners, permSets, onSaved }) {
   const { t } = useTranslation()
   const [email, setEmail]     = useState('')
@@ -933,12 +959,12 @@ export default function Permissions() {
     return matchBU && matchSearch
   })
 
+  // Tabs. The old "Sales Targets" tab was removed (duplicated with /quotas),
+  // and "Invite" is merged into "Users" as a primary CTA inside that tab.
   const TABS = [
-    { id:'sets',     label:t('perm_sets_title'), count: permSets.length },
-    { id:'users',    label:'Utilizadores',    count: profiles.length },
-    { id:'companies',label:t('perm_companies'),        count: companies.length },
-    { id:'targets',  label:t('nav_targets') },
-    { id:'invite',   label:t('perm_invite_title') },
+    { id:'sets',      label:t('perm_roles_title'),  count: permSets.length },
+    { id:'users',     label:t('perm_users_title'),  count: profiles.length },
+    { id:'companies', label:t('perm_companies'),    count: companies.length },
   ]
 
   return (
@@ -972,9 +998,17 @@ export default function Permissions() {
         <PermissionSetsTab permSets={permSets} profiles={profiles} onRefresh={load}/>
       )}
 
-      {/* Tab: Utilizadores */}
+      {/* Tab: Users (now includes the Invite flow as a collapsible section) */}
       {tab === 'users' && (
-        <div className="space-y-3">
+        <div className="space-y-4">
+          {/* Invite — was a separate tab before; now lives as a collapsible CTA at the top of Users */}
+          <UsersInviteBlock
+            companies={companies}
+            salesOwners={salesOwners}
+            permSets={permSets}
+            onSaved={load}
+          />
+
           <div className="flex gap-2 flex-wrap">
             <div className="relative flex-1 min-w-48">
               <input className="input pl-8 text-sm" placeholder={t('perm_search_ph')}
@@ -987,7 +1021,7 @@ export default function Permissions() {
                   className={`px-2.5 py-1 rounded text-xs font-semibold transition-all ${
                     buFilter === bu ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
                   }`}>
-                  {bu === 'all' ? 'Todos' : bu}
+                  {bu === 'all' ? t('perm_all') : bu}
                 </button>
               ))}
             </div>
@@ -1002,20 +1036,9 @@ export default function Permissions() {
         </div>
       )}
 
-      {/* Tab: Empresas */}
+      {/* Tab: Companies */}
       {tab === 'companies' && (
         <CompaniesSection companies={companies} onRefresh={load}/>
-      )}
-
-      {/* Tab: Sales Targets */}
-      {tab === 'targets' && (
-        <SalesTargetsSection companies={companies} onRefresh={load}/>
-      )}
-
-      {/* Tab: Convidar */}
-      {tab === 'invite' && (
-        <InviteSection companies={companies} salesOwners={salesOwners}
-          permSets={permSets} onSaved={load}/>
       )}
     </div>
   )
