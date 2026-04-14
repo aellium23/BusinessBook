@@ -68,6 +68,57 @@ export function contactRole(id) {
   return CONTACT_ROLES.find(r => r.id === id) || CONTACT_ROLES[CONTACT_ROLES.length - 1]
 }
 
+// ── Distribution paths ──────────────────────────────────────────────────────
+// Direct:       VGT → Distributor → Client        (e.g. CWM Dose)
+// Hub-mediated: VGT → Hub → Distributor → Client  (e.g. CWM RiS via HCUS)
+export const DISTRIBUTION_PATHS = [
+  { id: 'direct',       label: 'Direct',        hint: 'VGT → Distributor → Client' },
+  { id: 'hub_mediated', label: 'Hub-mediated',  hint: 'VGT → Hub → Distributor → Client' },
+]
+
+/**
+ * Compute the margin at every level of the distribution chain.
+ * Returns { vgt, hub, distributor, total_chain } in absolute terms + pct.
+ *
+ * Values expected (numbers or null):
+ *   value_total         — what VGT invoices (to hub OR distributor)
+ *   vgt_cost            — what it costs VGT to produce
+ *   distributor_price   — hub_mediated: price hub → distributor
+ *   end_customer_price  — what distributor charges client
+ *   distribution_path   — 'direct' | 'hub_mediated'
+ */
+export function computeMargins(deal) {
+  if (!deal) return null
+  const path     = deal.distribution_path || 'direct'
+  const cost     = Number(deal.vgt_cost) || 0
+  const vgtInv   = Number(deal.value_total) || 0
+  const dPrice   = Number(deal.distributor_price) || 0
+  const ecPrice  = Number(deal.end_customer_price) || 0
+
+  // VGT margin is always value_total - cost
+  const vgt = { abs: vgtInv - cost, pct: vgtInv > 0 ? ((vgtInv - cost) / vgtInv) * 100 : 0 }
+
+  let hub = null
+  let distributor = null
+
+  if (path === 'hub_mediated') {
+    // VGT invoices hub at value_total, hub resells to distributor at distributor_price
+    if (dPrice > 0) {
+      hub = { abs: dPrice - vgtInv, pct: dPrice > 0 ? ((dPrice - vgtInv) / dPrice) * 100 : 0 }
+    }
+    if (ecPrice > 0 && dPrice > 0) {
+      distributor = { abs: ecPrice - dPrice, pct: ecPrice > 0 ? ((ecPrice - dPrice) / ecPrice) * 100 : 0 }
+    }
+  } else {
+    // Direct: VGT invoices distributor at value_total, distributor resells at end_customer_price
+    if (ecPrice > 0) {
+      distributor = { abs: ecPrice - vgtInv, pct: ecPrice > 0 ? ((ecPrice - vgtInv) / ecPrice) * 100 : 0 }
+    }
+  }
+
+  return { path, vgt, hub, distributor }
+}
+
 // Safely parse JSON, returning a fallback instead of throwing
 export function safeJsonParse(raw, fallback = null) {
   if (raw === null || raw === undefined) return fallback
