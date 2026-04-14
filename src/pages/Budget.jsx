@@ -88,10 +88,16 @@ export default function Budget() {
   const activeCycleDefault = ACTIVE_CYCLE()
 
   useEffect(() => {
-    supabase.from('budget').select("*").then(({ data }) => {
-      setRows(data || [])
-      setLoading(false)
-    })
+    supabase.from('budget').select("*")
+      .then(({ data, error }) => {
+        if (error) console.warn('Failed to load budget:', error.message)
+        setRows(data || [])
+        setLoading(false)
+      })
+      .catch(e => {
+        console.warn('Failed to load budget:', e?.message)
+        setLoading(false)
+      })
   }, [])
 
   function getVal(bu, cycle, plKey, month) {

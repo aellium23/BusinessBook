@@ -19,11 +19,14 @@ function PasswordForm({ onSuccess }) {
     setLoading(true); setError('')
     const { error: err } = await signInWithPassword(email, password)
     if (err) {
-      setError(
-        err.message.includes('Invalid login') ? t('login_wrong') :
-        err.message.includes('Email not confirmed') ? t('login_unconfirmed') :
-        err.message
-      )
+      // Avoid leaking whether the email exists: collapse "invalid login" and
+      // "email not confirmed" into the same generic message.
+      const msg = err.message || ''
+      const isAuthFailure =
+        msg.includes('Invalid login') ||
+        msg.includes('Email not confirmed') ||
+        msg.toLowerCase().includes('invalid credentials')
+      setError(isAuthFailure ? t('login_wrong') : msg)
     }
     setLoading(false)
   }
@@ -102,7 +105,7 @@ function PasswordForm({ onSuccess }) {
 
       <button type="button" onClick={handleReset}
         className="w-full text-center text-sm text-gray-400 hover:text-navy transition-colors">
-        Esqueceste a password?
+        {t('login_forgot') || 'Forgot your password?'}
       </button>
     </form>
   )

@@ -1,17 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useDeals, deleteDeal } from '../hooks/useDeals'
 import { useAuth } from '../hooks/useAuth'
 import { BUBadge, StageBadge, SalesTypeBadge, Spinner, EmptyState, formatK, CurrencyBadge } from '../components/ui'
 import DealForm from '../components/DealForm'
 import { Plus, Search, Trash2, Pencil, ChevronDown, ChevronUp, Link, AlertTriangle, Clock, Download, RefreshCw } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
-
-const STAGES  = ['','Lead','Pipeline','Offer Presented','BackLog','Invoiced','Lost']
-const WEIGHTS = { Lead: 0.10, Pipeline: 0.30, 'Offer Presented': 0.60, BackLog: 0.80, Invoiced: 1.0, Lost: 0 }
-const REGIONS = ['','Europe','MEA','LATAM','APAC','NA']
-const BUS     = ['','VGT','ECT']
-const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
-const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
+import { STAGES, WEIGHTS, REGIONS, BUS, MONTHS, MONTHS_K } from '../constants'
 
 function agingDays(deal) {
   if (!['Lead','Pipeline','Offer Presented'].includes(deal.stage)) return null
@@ -297,6 +291,7 @@ export default function Deals() {
 
   // Filtros
   const [search, setSearch]     = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [stageF, setStageF]     = useState('')
   const [regionF, setRegionF]   = useState('')
   const [buF, setBuF]           = useState('')
@@ -306,6 +301,12 @@ export default function Deals() {
   const [pageSize, setPageSize]             = useState(5)
   const [page, setPage]                     = useState(1)
   const [invoicedMonthF, setInvoicedMonthF] = useState('')
+
+  // Debounce search 300ms to avoid a network call on every keystroke
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300)
+    return () => clearTimeout(t)
+  }, [search])
 
   // Modal states
   const [editDeal, setEditDeal] = useState(null)
@@ -317,7 +318,7 @@ export default function Deals() {
     stage:  stageF  || undefined,
     region: regionF || undefined,
     bu:     profile?.role === 'distributor' ? undefined : (buF || undefined),
-    search: search  || undefined,
+    search: debouncedSearch || undefined,
   })
 
   // Filtros client-side adicionais
@@ -423,7 +424,8 @@ export default function Deals() {
               <div>
                 <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">BU</label>
                 <select className="select text-xs w-full" value={buF} onChange={e => handleBu(e.target.value)}>
-                  {BUS.map(b => <option key={b} value={b}>{b || t("deals_all_bu")}</option>)}
+                  <option value="">{t("deals_all_bu")}</option>
+                  {BUS.map(b => <option key={b} value={b}>{b}</option>)}
                 </select>
               </div>
             )}
@@ -432,7 +434,8 @@ export default function Deals() {
             <div>
               <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Stage</label>
               <select className="select text-xs w-full" value={stageF} onChange={e => handleStage(e.target.value)}>
-                {STAGES.map(s => <option key={s} value={s}>{s || t("deals_all_stages")}</option>)}
+                <option value="">{t("deals_all_stages")}</option>
+                {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
 
@@ -440,7 +443,8 @@ export default function Deals() {
             <div>
               <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Region</label>
               <select className="select text-xs w-full" value={regionF} onChange={e => handleRegion(e.target.value)}>
-                {REGIONS.map(r => <option key={r} value={r}>{r || t("deals_all_regions")}</option>)}
+                <option value="">{t("deals_all_regions")}</option>
+                {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
 

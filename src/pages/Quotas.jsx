@@ -2,10 +2,9 @@ import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { formatK, Spinner } from '../components/ui'
-import { Target, Plus, Save, Trash2, ChevronDown, ChevronUp, Crown } from 'lucide-react'
+import { Target, Plus, Save, Trash2, ChevronDown, ChevronUp, Crown, Package } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
-
-const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
+import { MONTHS_K, PRODUCTS, safeJsonParse } from '../constants'
 
 // Team structure — manager is first entry, rest are reports
 const TEAM_STRUCTURE = {
@@ -26,11 +25,29 @@ function ProgressRing({ pct, color, size = 64 }) {
   )
 }
 
+// Normalise the `sub_targets` column into a { [product]: number } map
+function readSubTargets(quota) {
+  const raw = quota?.sub_targets
+  const parsed = safeJsonParse(raw, {}) || {}
+  const out = {}
+  PRODUCTS.forEach(p => { out[p] = Number(parsed[p]) || 0 })
+  return out
+}
+
 function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, teamActuals, onEdit, onDelete, isAdmin, ownerName }) {
   const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
+  const [showSubTargets, setShowSubTargets] = useState(false)
   const isOwnCard = ownerName && quota.sales_owner === ownerName
   const [editVal, setEditVal] = useState(quota.target_eur)
+  const [subTargets, setSubTargets] = useState(() => readSubTargets(quota))
+  const [saveError, setSaveError] = useState(null)
+
+  // Reset local state when quota changes externally
+  useEffect(() => {
+    setEditVal(quota.target_eur)
+    setSubTargets(readSubTargets(quota))
+  }, [quota.id, quota.target_eur, quota.sub_targets])
 
   const act = isManager ? teamActuals : (actuals || 0)
   const fc  = isManager ? teamForecast : (forecast || 0)
@@ -38,11 +55,28 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
   const pctAct = target > 0 ? (act / target * 100) : 0
   const pctFC  = target > 0 ? (fc  / target * 100) : 0
 
+  const subTotal = Object.values(subTargets).reduce((s, v) => s + (Number(v) || 0), 0)
+  const hasSubTargets = subTotal > 0
+
   async function save() {
-    await supabase.from('quotas').update({ target_eur: editVal }).eq('id', quota.id)
-    setEditing(false)
+    setSaveError(null)
+    // Try to persist sub_targets too; gracefully degrade if the column is absent.
+    const payload = { target_eur: editVal, sub_targets: subTargets }
+    let { error } = await supabase.from('quotas').update(payload).eq('id', quota.id)
+    if (error && /column .*sub_targets/i.test(error.message || '')) {
+      const res = await supabase.from('quotas').update({ target_eur: editVal }).eq('id', quota.id)
+      error = res.error
+      if (!error) {
+        setSaveError('Sub-targets column missing — only total target saved. Run the SQL migration.')
+      }
+    }
+    if (error) { setSaveError(error.message); return }
+    setEditing(false); setShowSubTargets(false)
     onEdit()
   }
+
+  // Admins can edit any card (including managers); the owner of the card can edit their own
+  const canEdit = isAdmin || isOwnCard
 
   return (
     <div className={`bg-white rounded-xl border shadow-sm overflow-hidden ${isManager ? 'border-2' : 'border border-gray-200'}`}
@@ -62,11 +96,14 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
             {editing ? (
               <div className="flex items-center gap-2 mt-1">
                 <input type="number" className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-28 focus:outline-none focus:ring-2 focus:ring-navy/20"
-                  value={editVal} onChange={e => setEditVal(parseFloat(e.target.value)||0)}/>
-                <button onClick={save} className="text-xs bg-navy text-white px-2 py-1 rounded-lg">
+                  value={editVal} onChange={e => setEditVal(parseFloat(e.target.value)||0)}
+                  aria-label={`Target for ${quota.sales_owner}`}/>
+                <button onClick={save} className="text-xs bg-navy text-white px-2 py-1 rounded-lg"
+                  aria-label="Save target">
                   <Save size={11}/>
                 </button>
-                <button onClick={() => setEditing(false)} className="text-xs text-gray-400">✕</button>
+                <button onClick={() => { setEditing(false); setSaveError(null) }}
+                  className="text-xs text-gray-400" aria-label="Cancel edit">✕</button>
               </div>
             ) : (
               <p className="text-xs text-gray-400">
@@ -74,6 +111,7 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
                 {isManager && <span className="ml-1 text-gray-400">({t("quotas_team_rollup")})</span>}
               </p>
             )}
+            {saveError && <p className="text-[10px] text-red-500 mt-1">{saveError}</p>}
           </div>
 
           {/* Progress ring */}
@@ -112,19 +150,83 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
             </div>
           </div>
         </div>
+
+        {/* Sub-targets summary (always visible when present) */}
+        {hasSubTargets && !showSubTargets && (
+          <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap gap-1.5">
+            {PRODUCTS.filter(p => subTargets[p] > 0).map(p => (
+              <span key={p} className="text-[10px] bg-gray-50 text-gray-600 px-1.5 py-0.5 rounded-full">
+                <strong>{p}</strong>: {formatK(subTargets[p])}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Sub-targets editor */}
+        {showSubTargets && (
+          <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-gray-700 flex items-center gap-1">
+                <Package size={12}/> Sub-targets by product
+              </p>
+              <span className={`text-[10px] font-medium ${
+                Math.abs(subTotal - (Number(editVal) || target)) < 1 ? 'text-green-600' : 'text-amber-600'
+              }`}>
+                Σ {formatK(subTotal)} / {formatK(Number(editVal) || target)}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-1.5">
+              {PRODUCTS.map(p => (
+                <div key={p} className="flex items-center gap-2">
+                  <label className="text-[11px] text-gray-500 flex-1 truncate" htmlFor={`sub-${quota.id}-${p}`}>
+                    {p}
+                  </label>
+                  <input
+                    id={`sub-${quota.id}-${p}`}
+                    type="number"
+                    min={0}
+                    className="border border-gray-200 rounded-lg px-2 py-1 text-xs w-28 focus:outline-none focus:ring-2 focus:ring-navy/20"
+                    value={subTargets[p]}
+                    onChange={e => setSubTargets(s => ({ ...s, [p]: parseFloat(e.target.value) || 0 }))}
+                  />
+                </div>
+              ))}
+            </div>
+            {Math.abs(subTotal - (Number(editVal) || target)) > 1 && (
+              <p className="text-[10px] text-amber-600">
+                Sub-targets don't add up to the total target. Difference: {formatK(Math.abs(subTotal - (Number(editVal) || target)))}.
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Actions */}
-      {(isAdmin || isOwnCard) && !isManager && (
-        <div className="px-4 pb-3 flex gap-2">
-          <button onClick={() => setEditing(true)}
-            className="flex-1 text-xs bg-gray-50 hover:bg-gray-100 text-gray-600 py-1.5 rounded-lg transition-colors">
-            Edit target
+      {canEdit && (
+        <div className="px-4 pb-3 flex gap-2 flex-wrap">
+          {!editing && (
+            <button onClick={() => setEditing(true)}
+              className="flex-1 text-xs bg-gray-50 hover:bg-gray-100 text-gray-600 py-1.5 rounded-lg transition-colors">
+              Edit target
+            </button>
+          )}
+          <button onClick={() => setShowSubTargets(s => !s)}
+            className="text-xs bg-gray-50 hover:bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
+            <Package size={11}/> {showSubTargets ? 'Hide' : 'Sub-targets'}
           </button>
-          {isAdmin && <button onClick={() => onDelete(quota.id)}
-            className="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg transition-colors">
-            <Trash2 size={12}/>
-          </button>}
+          {editing && (
+            <button onClick={save}
+              className="text-xs bg-navy text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
+              <Save size={11}/> Save
+            </button>
+          )}
+          {isAdmin && !isManager && (
+            <button onClick={() => onDelete(quota.id)}
+              className="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg transition-colors"
+              aria-label={`Delete quota for ${quota.sales_owner}`}>
+              <Trash2 size={12}/>
+            </button>
+          )}
         </div>
       )}
     </div>

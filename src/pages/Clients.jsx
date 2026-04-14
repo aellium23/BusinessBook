@@ -168,7 +168,11 @@ export default function Clients() {
         q = q.eq('bu', 'ECT')
       }
     }
-    q.then(({ data }) => { setDeals(data || []); setLoading(false) })
+    q.then(({ data, error }) => {
+        if (error) console.warn('Failed to load clients/deals:', error.message)
+        setDeals(data || []); setLoading(false)
+      })
+      .catch(e => { console.warn('Failed to load clients/deals:', e?.message); setLoading(false) })
   }, [profile, isAdmin])
 
   const resetPage = () => setPage(1)

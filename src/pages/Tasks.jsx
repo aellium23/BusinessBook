@@ -223,16 +223,23 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
           </div>
         </div>
 
-        {/* Assign to (directors only) */}
+        {/* Assign to (directors only) — sourced from quotas (sales owners) */}
         {canAssign && (
           <div>
             <label className="label">Assign to</label>
             <select className="select" value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)}>
               <option value="">— Personal task —</option>
               {users.map(u => (
-                <option key={u.id} value={u.id}>{u.full_name || u.email}</option>
+                <option key={u.id} value={u.id}>
+                  {u.full_name}{u.bu ? ` · ${u.bu}` : ''}
+                </option>
               ))}
             </select>
+            {users.length === 0 && (
+              <p className="text-[11px] text-gray-400 mt-1">
+                No sales owners available. Add entries to <strong>Sales Target</strong> first.
+              </p>
+            )}
           </div>
         )}
 
@@ -437,9 +444,38 @@ export default function Tasks() {
 
   useEffect(() => {
     if (!profile) return
-    supabase.from('profiles').select("id, full_name, email").then(({ data }) => setUsers(data ?? []))
-    supabase.from('deals').select("id, client, bu").order('client').then(({ data }) => setDeals(data ?? []))
-    supabase.from('tenders').select("id, title").order('title').then(({ data }) => setTenders(data ?? []))
+    // "Assign to" list: sales owners from the quotas table, matched to their
+    // profiles.id when possible (tasks.assigned_to is a profile UUID).
+    Promise.all([
+      supabase.from('quotas').select('sales_owner, bu').order('bu').order('sales_owner'),
+      supabase.from('profiles').select('id, full_name, email, sales_owner_name'),
+    ]).then(([qRes, pRes]) => {
+      const profiles = pRes.data ?? []
+      const seen = new Set()
+      const merged = (qRes.data ?? []).flatMap(q => {
+        const key = `${q.bu}::${q.sales_owner}`
+        if (seen.has(key)) return []
+        seen.add(key)
+        const match = profiles.find(p =>
+          (p.sales_owner_name && p.sales_owner_name.toLowerCase() === (q.sales_owner || '').toLowerCase()) ||
+          (p.full_name && p.full_name.toLowerCase() === (q.sales_owner || '').toLowerCase())
+        )
+        if (!match) return [] // cannot assign tasks to someone without a user account
+        return [{
+          id: match.id,
+          full_name: q.sales_owner,
+          email: match.email,
+          bu: q.bu,
+        }]
+      })
+      setUsers(merged)
+    }).catch(e => console.error('Failed to load assignees:', e))
+
+    supabase.from('deals').select('id, client, bu').order('client')
+      .then(({ data }) => setDeals(data ?? []))
+    supabase.from('tenders').select('id, title').order('title')
+      .then(({ data }) => setTenders(data ?? []))
+      .catch(() => setTenders([]))
   }, [profile])
 
   function filterTasks(list) {
