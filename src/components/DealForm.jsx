@@ -4,10 +4,11 @@ import { upsertDeal, upsertDealWithIntercompany } from '../hooks/useDeals'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { useFxRates } from '../hooks/useFxRates'
-import { Link, Clock, Plus, AlertCircle, CheckCircle, XCircle, RefreshCw as CounterIcon, History } from 'lucide-react'
+import { Link, Clock, Plus, AlertCircle, CheckCircle, XCircle, RefreshCw as CounterIcon } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 import AttachmentsList from './AttachmentsList'
 import ContactsList from './ContactsList'
+import DealTimeline from './DealTimeline'
 import { FORECAST_CATEGORIES, defaultForecastFromStage } from '../constants'
 
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
@@ -247,13 +248,11 @@ export default function DealForm({ deal, onClose, onSaved }) {
   const [error, setError]     = useState('')
   const [preview, setPreview] = useState(null)
   const [icPreview, setIcPreview] = useState(null)
-  const [activities, setActivities] = useState([])
   const [nextAction, setNextAction] = useState('')
   const [nextActionDate, setNextActionDate] = useState('')
   const [actNote, setActNote] = useState('')
   const [addingAct, setAddingAct] = useState(false)
-  const [dealHistory, setDealHistory] = useState([])
-  const [showHistory, setShowHistory] = useState(false)
+  const [timelineNonce, setTimelineNonce] = useState(0) // bump to force DealTimeline refetch
   const [owners, setOwners]           = useState([])
 
   const isMaint = form.deal_type === 'Maintenance'
@@ -311,24 +310,11 @@ export default function DealForm({ deal, onClose, onSaved }) {
   ]
   const selectedProduct = PRODUCTS.find(p => p.value === form.product)
 
-  // Load activity log and change history for existing deal
-  useEffect(() => {
-    if (!deal?.id) return
-    supabase.from('deal_activities').select("*")
-      .eq('deal_id', deal.id).order('created_at', { ascending: false })
-      .then(({ data }) => setActivities(data || []))
-    supabase.from('deal_history')
-      .select("*, changed_by_profile:changed_by(full_name, email)")
-      .eq('deal_id', deal.id)
-      .order('changed_at', { ascending: false })
-      .limit(50)
-      .then(({ data }) => setDealHistory(data || []))
-  }, [deal?.id])
-
+  // DealTimeline handles its own fetching; we only need to write new notes here.
   async function addActivity() {
     if (!deal?.id || !actNote) return
     setAddingAct(true)
-    await supabase.from('deal_activities').insert({
+    const { error } = await supabase.from('deal_activities').insert({
       deal_id: deal.id,
       user_id: profile?.id,
       user_name: profile?.full_name || profile?.email,
@@ -337,9 +323,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
       next_action: nextAction || null,
       next_action_date: nextActionDate || null,
     })
-    const { data } = await supabase.from('deal_activities').select("*")
-      .eq('deal_id', deal.id).order('created_at', { ascending: false })
-    setActivities(data || [])
+    if (error) console.warn('Failed to add note:', error.message)
     setActNote(''); setNextAction(''); setNextActionDate('')
     setAddingAct(false)
   }
@@ -1190,70 +1174,12 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </div>
         )}
 
-        {/* Change History (auto-tracked by trigger) */}
-        {deal?.id && dealHistory.length > 0 && (
-          <div className="space-y-2">
-            <button
-              type="button"
-              onClick={() => setShowHistory(h => !h)}
-              className="label flex items-center gap-1.5 w-full text-left hover:text-gray-700 transition-colors">
-              <History size={12}/>
-              {t("df_change_history")}
-              <span className="ml-auto text-[10px] text-gray-400 font-normal">
-                {dealHistory.length} {t("df_changes")}
-              </span>
-              <span className="text-gray-300 text-[10px]">{showHistory ? '▲' : '▼'}</span>
-            </button>
-            {showHistory && (
-              <div className="space-y-1 max-h-52 overflow-y-auto">
-                {dealHistory.map(h => {
-                  const fieldLabels = {
-                    stage: t("df_stage"), value_total: t("df_value"),
-                    gm_pct: t("df_gm"), client: t("df_client"),
-                    country: t("df_country"), region: t("df_region"),
-                    sales_owner: t("df_owner"), deal_type: t("df_deal_type"),
-                    currency: t("df_currency"), win_probability: t("df_win_prob"),
-                    lost_reason: 'Lost reason', discount_status: 'Discount status',
-                    discount_approved: t("df_approved_disc"), sla_annual_value: t("df_sla_annual"),
-                    description: t("df_description"), bu: t("df_bu"),
-                  }
-                  const fieldLabel = fieldLabels[h.field_name] || h.field_name
-                  const user = h.changed_by_profile?.full_name || h.changed_by_profile?.email?.split('@')[0] || '—'
-                  return (
-                    <div key={h.id} className="bg-white border border-gray-100 rounded-lg px-3 py-2">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] font-semibold text-gray-600">{fieldLabel}</span>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] text-gray-400">{user}</span>
-                          <span className="text-[10px] text-gray-300">·</span>
-                          <span className="text-[10px] text-gray-400">
-                            {new Date(h.changed_at).toLocaleDateString('pt-PT', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs">
-                        {h.old_value && (
-                          <span className="text-red-500 line-through text-[11px]">{h.old_value}</span>
-                        )}
-                        {h.old_value && h.new_value && <span className="text-gray-300">→</span>}
-                        {h.new_value && (
-                          <span className="text-green-600 font-medium text-[11px]">{h.new_value}</span>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Activity Log (only for existing deals) */}
+        {/* Unified activity timeline — replaces the old Change History + Activity Log */}
         {deal?.id && (
           <div className="space-y-2">
             <p className="label flex items-center gap-1.5"><Clock size={12}/> {t("df_activity")}</p>
 
-            {/* Add activity */}
+            {/* Add note / next action — writes to deal_activities */}
             <div className="bg-gray-50 rounded-lg p-3 space-y-2">
               <textarea className="input text-xs resize-none" rows={2}
                 placeholder="Note or update…"
@@ -1264,31 +1190,19 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 <input className="input text-xs py-1" type="date"
                   value={nextActionDate} onChange={e => setNextActionDate(e.target.value)}/>
               </div>
-              <button onClick={addActivity} disabled={!actNote || addingAct}
+              <button
+                onClick={async () => {
+                  await addActivity()
+                  setTimelineNonce(n => n + 1) // force DealTimeline to refetch
+                }}
+                disabled={!actNote || addingAct}
                 className="btn-secondary text-xs w-full">
                 <Plus size={11}/> {addingAct ? 'Adding…' : 'Add note'}
               </button>
             </div>
 
-            {/* Activity list */}
-            {activities.length > 0 && (
-              <div className="space-y-1 max-h-40 overflow-y-auto">
-                {activities.map(a => (
-                  <div key={a.id} className="bg-white border border-gray-100 rounded-lg px-3 py-2">
-                    <div className="flex items-center justify-between mb-0.5">
-                      <span className="text-[10px] font-medium text-gray-500">{a.user_name || 'User'}</span>
-                      <span className="text-[10px] text-gray-400">{new Date(a.created_at).toLocaleDateString()}</span>
-                    </div>
-                    <p className="text-xs text-gray-700">{a.note}</p>
-                    {a.next_action && (
-                      <p className="text-[10px] text-blue-600 mt-0.5">
-                        → {a.next_action}{a.next_action_date ? ` · ${new Date(a.next_action_date).toLocaleDateString()}` : ''}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* Unified timeline: notes + auto-tracked field changes + attachments */}
+            <DealTimeline key={timelineNonce} dealId={deal.id}/>
           </div>
         )}
 
