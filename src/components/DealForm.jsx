@@ -7,6 +7,7 @@ import { useFxRates } from '../hooks/useFxRates'
 import { Link, Clock, Plus, AlertCircle, CheckCircle, XCircle, RefreshCw as CounterIcon, History } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 import AttachmentsList from './AttachmentsList'
+import ContactsList from './ContactsList'
 import { FORECAST_CATEGORIES, defaultForecastFromStage } from '../constants'
 
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
@@ -1288,6 +1289,18 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Stakeholders / Contacts — keyed by BU + client name */}
+        {form.bu && form.client && (
+          <div className="pt-3 border-t border-gray-100">
+            <ContactsList
+              bu={form.bu}
+              clientName={form.client}
+              canEdit={canEdit}
+              compact
+            />
           </div>
         )}
 

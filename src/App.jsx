@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard'
 import Deals from './pages/Deals'
 import History from './pages/History'
 import Clients from './pages/Clients'
+import Contacts from './pages/Contacts'
 import Quotas from './pages/Quotas'
 import Budget from './pages/Budget'
 import Settings from './pages/Settings'
@@ -51,6 +52,7 @@ function AppRoutes() {
           <Route path="/"             element={<Guard page="dashboard"   element={<Dashboard />} />} />
           <Route path="/deals"        element={<Guard page="deals"       element={<Deals />} />} />
           <Route path="/clients"      element={<Guard page="clients"     element={<Clients />} />} />
+          <Route path="/contacts"     element={<Guard page="contacts"    element={<Contacts />} />} />
           <Route path="/history"      element={<Guard page="history"     element={<History />} />} />
           <Route path="/quotas"       element={<Guard page="quotas"      element={<Quotas />} />} />
           <Route path="/tasks"        element={<Guard page="tasks"       element={<Tasks />} />} />
