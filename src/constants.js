@@ -54,6 +54,20 @@ export function resolveForecastCategory(deal) {
   return deal?.forecast_category || defaultForecastFromStage(deal?.stage)
 }
 
+// ── Contact / stakeholder roles (DMU map) ──────────────────────────────────
+export const CONTACT_ROLES = [
+  { id: 'decision_maker', label: 'Decision maker', icon: '👑', color: 'bg-purple-100 text-purple-700 border-purple-200' },
+  { id: 'champion',       label: 'Champion',       icon: '🤝', color: 'bg-green-100 text-green-700 border-green-200' },
+  { id: 'influencer',     label: 'Influencer',     icon: '💡', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  { id: 'user',           label: 'End user',       icon: '👤', color: 'bg-gray-100 text-gray-700 border-gray-200' },
+  { id: 'blocker',        label: 'Blocker',        icon: '🚧', color: 'bg-red-100 text-red-700 border-red-200' },
+  { id: 'other',          label: 'Other',          icon: '•',  color: 'bg-gray-50 text-gray-500 border-gray-200' },
+]
+
+export function contactRole(id) {
+  return CONTACT_ROLES.find(r => r.id === id) || CONTACT_ROLES[CONTACT_ROLES.length - 1]
+}
+
 // Safely parse JSON, returning a fallback instead of throwing
 export function safeJsonParse(raw, fallback = null) {
   if (raw === null || raw === undefined) return fallback
