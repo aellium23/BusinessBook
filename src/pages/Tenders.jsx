@@ -3,10 +3,13 @@ import { useTenders, createTender, updateTender, deleteTender } from '../hooks/u
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { Modal, Spinner, StageBadge, BUBadge } from '../components/ui'
+import AttachmentsList from '../components/AttachmentsList'
+import RequirementsMatrix from '../components/RequirementsMatrix'
 import {
   Plus, Edit3, Trash2, AlertCircle, Calendar, Link2,
   Users, TrendingUp, CheckCircle2, XCircle, Clock,
-  ChevronDown, ChevronUp, Search, FileText, X
+  ChevronDown, ChevronUp, Search, FileText, X,
+  ListChecks, Paperclip, Info,
 } from 'lucide-react'
 
 // ── SearchableSelect ──────────────────────────────────────────────────────────
@@ -220,6 +223,7 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged })
   const [error, setError]   = useState(null)
   const [creatingDeal, setCreatingDeal] = useState(false)
   const [prefillClient, setPrefillClient] = useState('')
+  const [tab, setTab]       = useState('details') // 'details' | 'requirements' | 'attachments'
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
@@ -270,9 +274,38 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged })
     onClose()
   }
 
+  const tabs = [
+    { id: 'details',      label: 'Details',      icon: Info,       show: true },
+    { id: 'requirements', label: 'Requirements', icon: ListChecks, show: isEdit },
+    { id: 'attachments',  label: 'Attachments',  icon: Paperclip,  show: isEdit },
+  ].filter(t => t.show)
+
   return (
     <Modal open onClose={onClose} title={isEdit ? 'Edit Tender / RFP' : 'New Tender / RFP'}>
       <div className="space-y-4 p-1 max-h-[70vh] overflow-y-auto">
+
+        {/* Tabs — hidden until the tender exists (requirements/attachments need an id) */}
+        {isEdit && (
+          <div className="flex gap-1 border-b border-gray-100 -mx-1 px-1 sticky top-0 bg-white z-10">
+            {tabs.map(tb => {
+              const Icon = tb.icon
+              const active = tab === tb.id
+              return (
+                <button key={tb.id} type="button"
+                  onClick={() => setTab(tb.id)}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold transition-colors border-b-2 ${
+                    active
+                      ? 'text-navy border-navy'
+                      : 'text-gray-500 border-transparent hover:text-gray-700'
+                  }`}>
+                  <Icon size={12}/> {tb.label}
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {tab === 'details' && <>
 
         {/* Title + Reference */}
         <div className="grid grid-cols-3 gap-2">
@@ -403,6 +436,24 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged })
           </button>
           <button className="btn-secondary" onClick={onClose}>Cancel</button>
         </div>
+
+        </>}
+
+        {tab === 'requirements' && (
+          <RequirementsMatrix
+            tenderId={tender?.id}
+            canEdit={true}
+            assignees={users}
+          />
+        )}
+
+        {tab === 'attachments' && (
+          <AttachmentsList
+            entityType="tender"
+            entityId={tender?.id}
+            canEdit={true}
+          />
+        )}
       </div>
     </Modal>
   )

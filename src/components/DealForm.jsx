@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import { useFxRates } from '../hooks/useFxRates'
 import { Link, Clock, Plus, AlertCircle, CheckCircle, XCircle, RefreshCw as CounterIcon, History } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
+import AttachmentsList from './AttachmentsList'
 
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
@@ -205,7 +206,7 @@ function DiscountApprovalPanel({ deal, onSave }) {
 }
 
 export default function DealForm({ deal, onClose, onSaved }) {
-  const { profile, isAdmin } = useAuth()
+  const { profile, isAdmin, canEdit } = useAuth()
   const { t } = useTranslation()
   const { getRate } = useFxRates()
   const [form, setForm] = useState(() => deal ? {
@@ -1259,6 +1260,15 @@ export default function DealForm({ deal, onClose, onSaved }) {
             )}
           </div>
         )}
+
+        {/* Attachments — available after the deal exists */}
+        <div className="pt-3 border-t border-gray-100">
+          <AttachmentsList
+            entityType="deal"
+            entityId={deal?.id}
+            canEdit={canEdit}
+          />
+        </div>
       </div>
     </Modal>
   )
