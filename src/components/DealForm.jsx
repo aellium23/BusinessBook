@@ -324,6 +324,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
           setOwners(unique)
         }
       })
+      .catch(e => console.warn('Failed to load quotas:', e?.message))
     // Load accounts (for the optional "Account" link). Scoped by RLS to the
     // user's BU server-side, so we don't need to filter here.
     supabase.from('accounts').select('id, name, bu').order('name')

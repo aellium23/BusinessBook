@@ -33,6 +33,7 @@ export default function QuickDealForm({ initialClient = '', onCancel, onCreated 
         bu: form.bu,
         country: form.country || null,
         stage: form.stage,
+        company_id: profile?.company_id || null,
       })
       .select('id, client, bu, country, company_id')
       .single()

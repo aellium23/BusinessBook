@@ -322,7 +322,7 @@ function DistributorDashboard({ deals, profile }) {
             <div>
               <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">{t('dist_actuals_target')}</p>
               <p className="text-2xl font-bold text-gray-900 mt-0.5">{formatK(stats.actuals)}</p>
-              <p className="text-sm text-gray-400">t('dist_of_target') + ' ' + formatK(quotaTarget)</p>
+              <p className="text-sm text-gray-400">{t('dist_of_target')} {formatK(quotaTarget)}</p>
             </div>
             <div className="text-right">
               <p className="text-xs text-gray-400">{t('dash_forecast')}</p>

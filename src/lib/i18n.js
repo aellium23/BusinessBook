@@ -589,7 +589,6 @@ const translations = {
     quotas_reports:   'Reportes',
     quotas_cancel:    'Cancelar',
     quotas_team_rollup: 'total equipo',
-    quotas_team_rollup: 'total equipo',
     // Budget
     budget_title:     'Presupuesto · FY26',
     budget_period:    'Período:',
@@ -990,7 +989,6 @@ const translations = {
     quotas_reports:   'Relatórios',
     quotas_cancel:    'Cancelar',
     quotas_team_rollup: 'total equipa',
-    quotas_team_rollup: 'total equipo',
     // Budget
     budget_title:     'Orçamento · FY26',
     budget_period:    'Período:',

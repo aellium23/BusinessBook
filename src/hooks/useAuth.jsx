@@ -9,6 +9,7 @@ export const ROLE_PERMISSIONS = {
   admin: {
     pages:    ['dashboard','deals','clients','contacts','accounts','whitespace','network','audit','history','quotas','budget','users','settings','tasks','tenders','permissions'],
     canEdit:  true,
+    canDelete: true,
     editOwn:  false,
     seeBU:    'ALL',
     seeAll:   true,
@@ -17,14 +18,16 @@ export const ROLE_PERMISSIONS = {
   manager: {
     pages:    ['dashboard','deals','clients','contacts','accounts','whitespace','network','history','quotas','tasks','tenders'],
     canEdit:  true,
+    canDelete: true,
     editOwn:  false,
-    seeBU:    null,   // derivado do bu do profile
+    seeBU:    null,
     seeAll:   false,
     manageUsers: false,
   },
   member: {
     pages:    ['dashboard','deals','clients','contacts','accounts','whitespace','network','history','quotas','tasks','tenders'],
     canEdit:  true,
+    canDelete: false,
     editOwn:  true,
     seeBU:    null,
     seeAll:   false,
@@ -33,6 +36,7 @@ export const ROLE_PERMISSIONS = {
   distributor: {
     pages:    ['dashboard','deals','tasks','tenders','clients','contacts','history','quotas'],
     canEdit:  true,
+    canDelete: false,
     editOwn:  true,
     seeBU:    null,
     seeAll:   false,
@@ -41,6 +45,7 @@ export const ROLE_PERMISSIONS = {
   viewer: {
     pages:    ['dashboard','deals','clients','contacts','history'],
     canEdit:  false,
+    canDelete: false,
     editOwn:  false,
     seeBU:    null,
     seeAll:   false,
@@ -49,6 +54,7 @@ export const ROLE_PERMISSIONS = {
   partner: {
     pages:    ['dashboard','deals','clients','contacts','tasks','tenders'],
     canEdit:  false,
+    canDelete: false,
     editOwn:  false,
     seeBU:    null,
     seeAll:   false,
@@ -130,7 +136,7 @@ export function AuthProvider({ children }) {
     pages:    resolvedPages,
     canEdit:  permSet ? permSet.can_edit  : (ROLE_PERMISSIONS[role]?.canEdit  ?? false),
     editOwn:  permSet ? permSet.edit_own  : (ROLE_PERMISSIONS[role]?.editOwn  ?? true),
-    canDelete:permSet ? permSet.can_delete: (ROLE_PERMISSIONS[role]?.canEdit  ?? false),
+    canDelete:permSet ? permSet.can_delete: (ROLE_PERMISSIONS[role]?.canDelete ?? false),
     seeAll:   permSet ? permSet.see_all_bu: (ROLE_PERMISSIONS[role]?.seeAll   ?? false),
   }
 

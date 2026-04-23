@@ -1016,7 +1016,7 @@ export default function Permissions() {
               <Search size={14} className="absolute left-2.5 top-3 text-gray-400"/>
             </div>
             <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
-              {['all','VGT','ECT','ALL'].map(bu => (
+              {['all','VGT','ECT'].map(bu => (
                 <button key={bu} onClick={() => setBuFilter(bu)}
                   className={`px-2.5 py-1 rounded text-xs font-semibold transition-all ${
                     buFilter === bu ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'

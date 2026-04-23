@@ -4,7 +4,7 @@ import { signInWithPassword, signInWithMagicLink, resetPassword } from '../lib/s
 import { Mail, ArrowRight, Lock, Eye, EyeOff, KeyRound, CheckCircle2, AlertCircle } from 'lucide-react'
 
 // ── Sub-componente: Password login ────────────────────────────────────────────
-function PasswordForm({ onSuccess }) {
+function PasswordForm() {
   const { t } = useTranslation()
   const [email, setEmail]     = useState('')
   const [password, setPassword] = useState('')
