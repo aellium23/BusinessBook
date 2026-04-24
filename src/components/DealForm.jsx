@@ -1130,6 +1130,24 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 </div>
               </div>
 
+              {deal?.id && form.sla_annual_value && (
+                <div className="border-t border-blue-200 pt-2 mt-1">
+                  <button type="button"
+                    onClick={async () => {
+                      const { createSlaFromDeal } = await import('../hooks/useSlas')
+                      const { data, error } = await createSlaFromDeal(
+                        { ...deal, ...form, id: deal.id },
+                        { warranty_months: 36 }
+                      )
+                      if (error) alert(error.message)
+                      else alert(`SLA created for ${form.client} — check SLA Management page`)
+                    }}
+                    className="w-full text-xs py-2 px-3 rounded-lg border border-blue-300 bg-white text-blue-700 font-semibold hover:bg-blue-100 transition-colors flex items-center justify-center gap-1">
+                    <Plus size={12}/> Create SLA Contract
+                  </button>
+                  <p className="text-[9px] text-blue-400 mt-1 text-center">Creates an SLA record in SLA Management with warranty + projected revenue</p>
+                </div>
+              )}
             </div>
           )}
         </div>

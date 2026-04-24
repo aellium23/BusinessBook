@@ -119,6 +119,55 @@ export function computeMargins(deal) {
   return { path, vgt, hub, distributor }
 }
 
+// ── SLA Management ──────────────────────────────────────────────────────
+export const SLA_STATUSES = [
+  { id: 'pipeline',     label: 'Pipeline',      color: 'bg-gray-100 text-gray-700 border-gray-200',       dot: 'bg-gray-400' },
+  { id: 'negotiation',  label: 'Negotiation',   color: 'bg-purple-100 text-purple-700 border-purple-200', dot: 'bg-purple-500' },
+  { id: 'waiting_po',   label: 'Waiting PO',    color: 'bg-amber-100 text-amber-700 border-amber-200',   dot: 'bg-amber-400' },
+  { id: 'active',       label: 'Active',        color: 'bg-green-100 text-green-700 border-green-200',   dot: 'bg-green-500' },
+  { id: 'invoiced',     label: 'Invoiced',      color: 'bg-blue-100 text-blue-700 border-blue-200',      dot: 'bg-blue-500' },
+  { id: 'reduced',      label: 'Reduced',       color: 'bg-orange-100 text-orange-700 border-orange-200',dot: 'bg-orange-500' },
+  { id: 'cancelled',    label: 'Cancelled',     color: 'bg-red-100 text-red-700 border-red-200',         dot: 'bg-red-500' },
+]
+
+export const SLA_TYPES = [
+  'Software Maintenance',
+  'Hardware Maintenance',
+  'Full Service (SW+HW)',
+  'Managed Service',
+  'Subscription',
+  'Support & Updates',
+]
+
+export const FY_RANGE = ['FY26','FY27','FY28','FY29','FY30','FY31']
+
+export function getFiscalYear(date) {
+  const d = date instanceof Date ? date : new Date(date)
+  const month = d.getMonth()
+  const fy = month >= 3 ? d.getFullYear() : d.getFullYear() - 1
+  return `FY${(fy % 100).toString().padStart(2, '0')}`
+}
+
+export function projectSlaRevenue(annualValue, startDate, endDate) {
+  if (!startDate || !annualValue) return {}
+  const start = new Date(startDate)
+  const end = endDate ? new Date(endDate) : new Date(start.getFullYear() + 5, start.getMonth(), start.getDate())
+  const daily = annualValue / 365
+  const result = {}
+  let cursor = new Date(start)
+  while (cursor <= end) {
+    const fy = getFiscalYear(cursor)
+    const fyStart = new Date(cursor.getMonth() >= 3 ? cursor.getFullYear() : cursor.getFullYear() - 1, 3, 1)
+    const fyEnd = new Date(fyStart.getFullYear() + 1, 2, 31)
+    const periodStart = cursor > start ? cursor : start
+    const periodEnd = fyEnd < end ? fyEnd : end
+    const days = Math.max(0, (periodEnd - periodStart) / 86400000 + 1)
+    if (days > 0) result[fy] = Math.round(daily * days)
+    cursor = new Date(fyEnd.getFullYear(), fyEnd.getMonth(), fyEnd.getDate() + 1)
+  }
+  return result
+}
+
 // Safely parse JSON, returning a fallback instead of throwing
 export function safeJsonParse(raw, fallback = null) {
   if (raw === null || raw === undefined) return fallback

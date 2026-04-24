@@ -18,6 +18,7 @@ import Settings from './pages/Settings'
 import MyAccount from './pages/MyAccount'
 import Tasks from './pages/Tasks'
 import Tenders from './pages/Tenders'
+import SLAs from './pages/SLAs'
 import { Spinner } from './components/ui'
 import AuthCallback from './pages/AuthCallback'
 import SetPassword from './pages/SetPassword'
@@ -60,6 +61,7 @@ function AppRoutes() {
           <Route path="/accounts"     element={<Guard page="accounts"    element={<Accounts />} />} />
           <Route path="/whitespace"   element={<Guard page="whitespace"  element={<WhiteSpace />} />} />
           <Route path="/network"      element={<Guard page="network"     element={<Network />} />} />
+          <Route path="/sla"          element={<Guard page="sla"         element={<SLAs />} />} />
           <Route path="/audit"        element={<Guard page="audit"       element={<AuditLog />} />} />
           <Route path="/history"      element={<Guard page="history"     element={<History />} />} />
           <Route path="/quotas"       element={<Guard page="quotas"      element={<Quotas />} />} />
