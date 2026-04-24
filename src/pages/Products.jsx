@@ -112,6 +112,97 @@ function ComponentsEditor({ productId, allProducts, t }) {
   )
 }
 
+/* --- Safe array parser: DB may return string, JSON string, or array --- */
+function ensureArray(val, fallback = []) {
+  if (Array.isArray(val)) return val
+  if (typeof val === 'string') {
+    try { const parsed = JSON.parse(val); if (Array.isArray(parsed)) return parsed } catch { /* ignore */ }
+    if (val.includes(',')) return val.split(',').map(s => s.trim()).filter(Boolean)
+    if (val) return [val]
+  }
+  return fallback
+}
+
+/* --- Section divider with icon + title --- */
+function SectionHeader({ icon, title, subtitle }) {
+  return (
+    <div className="flex items-center gap-2 pt-1 pb-0.5">
+      <span className="text-gray-400">{icon}</span>
+      <div>
+        <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">{title}</p>
+        {subtitle && <p className="text-[10px] text-gray-400 leading-tight">{subtitle}</p>}
+      </div>
+    </div>
+  )
+}
+
+/* --- Touch-friendly toggle chip (44px min target) --- */
+function ToggleChip({ checked, label, onChange }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className={`
+        inline-flex items-center gap-2 min-h-[44px] px-3.5 py-2 rounded-xl border-2 text-sm font-medium
+        transition-all select-none cursor-pointer
+        ${checked
+          ? 'border-navy bg-navy/5 text-navy shadow-sm'
+          : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300 hover:bg-gray-50'}
+      `}>
+      <span className={`
+        w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors text-xs
+        ${checked ? 'bg-navy border-navy text-white' : 'border-gray-300 bg-white text-transparent'}
+      `}>
+        {checked ? '✓' : ''}
+      </span>
+      {label}
+    </button>
+  )
+}
+
+/* --- Badge summary row for selected options --- */
+function SelectedBadges({ items, allOptions }) {
+  if (!items || items.length === 0) return (
+    <p className="text-[11px] text-gray-400 italic mt-1">None selected</p>
+  )
+  return (
+    <div className="flex flex-wrap gap-1 mt-1.5">
+      {items.map(id => {
+        const opt = allOptions.find(o => o.id === id)
+        return (
+          <span key={id} className="inline-flex items-center text-[11px] font-medium bg-navy/10 text-navy px-2 py-0.5 rounded-full">
+            {opt?.label || id}
+          </span>
+        )
+      })}
+    </div>
+  )
+}
+
+/* --- Toggle switch for boolean flags --- */
+function ToggleSwitch({ checked, onChange, label, activeColor = 'green' }) {
+  const colors = {
+    green: { track: 'bg-green-500', border: 'border-green-300 bg-green-50' },
+    blue:  { track: 'bg-blue-500',  border: 'border-blue-300 bg-blue-50'  },
+  }
+  const c = colors[activeColor] || colors.green
+  return (
+    <label className={`flex items-center gap-3 min-h-[44px] px-3 py-2 rounded-xl border-2 cursor-pointer select-none transition-all ${
+      checked ? c.border : 'border-gray-200 bg-white'
+    }`}>
+      <span className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${
+        checked ? c.track : 'bg-gray-300'
+      }`}>
+        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${
+          checked ? 'translate-x-6' : 'translate-x-1'
+        }`}/>
+      </span>
+      <input type="checkbox" className="sr-only" checked={checked} onChange={e => onChange(e.target.checked)}/>
+      <span className="text-sm font-medium text-gray-700">{label}</span>
+    </label>
+  )
+}
+
 function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
   const isEdit = !!product?.id
   const [form, setForm] = useState({
@@ -121,11 +212,14 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
     description:    product?.description    || '',
     license_fee:    product?.license_fee    || 0,
     annual_fee:     product?.annual_fee     || 0,
-    pricing_model:  product?.pricing_model  || 'license_plus_annual',
+    allowed_pricing_models: ensureArray(
+      product?.allowed_pricing_models || product?.pricing_model,
+      ['license_plus_annual']
+    ),
     bu:             product?.bu             || 'VGT',
     active:         product?.active !== false,
     distributor_visible: product?.distributor_visible !== false,
-    allowed_license_types: product?.allowed_license_types || ['flat'],
+    allowed_license_types: ensureArray(product?.allowed_license_types, ['flat']),
     sort_order:     product?.sort_order     || 0,
   })
   const [saving, setSaving] = useState(false)
@@ -133,6 +227,11 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
   const [tab, setTab]       = useState('details')
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
+
+  function toggleArrayItem(field, id) {
+    const cur = form[field] || []
+    set(field, cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id])
+  }
 
   async function handleSave() {
     if (!form.name.trim() || !form.category.trim()) {
@@ -145,6 +244,10 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
       license_fee: parseFloat(form.license_fee) || 0,
       annual_fee:  parseFloat(form.annual_fee)  || 0,
       sort_order:  parseInt(form.sort_order)    || 0,
+      // backward compat: write single pricing_model from first selection
+      pricing_model: (form.allowed_pricing_models && form.allowed_pricing_models.length > 0)
+        ? form.allowed_pricing_models[0]
+        : 'license_plus_annual',
     }
     const result = isEdit
       ? await updateProduct(product.id, payload)
@@ -155,8 +258,11 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
   }
 
   const tabs = isEdit
-    ? [{ id: 'details', label: t('products_details') || 'Details' }, { id: 'components', label: t('products_components') || 'Components' }]
-    : [{ id: 'details', label: t('products_details') || 'Details' }]
+    ? [
+        { id: 'details',    label: t('products_details') || 'Details',       icon: <Pencil size={13}/> },
+        { id: 'components', label: t('products_components') || 'Components', icon: <Layers size={13}/> },
+      ]
+    : [{ id: 'details', label: t('products_details') || 'Details', icon: <Pencil size={13}/> }]
 
   return (
     <Modal open title={isEdit ? t('products_edit') : t('products_new')} onClose={onClose}
@@ -168,102 +274,146 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
           </button>
         </div>
       }>
-      <div className="space-y-3">
+      <div className="space-y-4">
         {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 
+        {/* ---- Prominent pill-style tab bar ---- */}
         {isEdit && tabs.length > 1 && (
-          <div className="flex gap-1 border-b border-gray-200">
+          <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
             {tabs.map(tb => (
               <button key={tb.id} onClick={() => setTab(tb.id)}
-                className={`px-3 py-2 text-xs font-semibold border-b-2 transition-all ${
-                  tab === tb.id ? 'border-navy text-navy' : 'border-transparent text-gray-400'
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-semibold rounded-lg transition-all ${
+                  tab === tb.id
+                    ? 'bg-white text-navy shadow-sm'
+                    : 'text-gray-400 hover:text-gray-600'
                 }`}>
+                {tb.icon}
                 {tb.label}
               </button>
             ))}
           </div>
         )}
 
-        {tab === 'details' && (<>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">{t('products_cat')} *</label>
-              <input className="input" value={form.category} onChange={e => set('category', e.target.value)} placeholder="e.g. Synapse 3D"/>
-            </div>
-            <div>
-              <label className="label">{t('products_sku')}</label>
-              <input className="input" value={form.sku} onChange={e => set('sku', e.target.value)} placeholder="e.g. S3D-BASE-1CCU"/>
-            </div>
-          </div>
+        {/* ==================== DETAILS TAB ==================== */}
+        {tab === 'details' && (
+          <div className="space-y-5">
 
-          <div>
-            <label className="label">{t('products_name')} *</label>
-            <input className="input" value={form.name} onChange={e => set('name', e.target.value)}/>
-          </div>
+            {/* ---- SECTION 1: Identity ---- */}
+            <div className="space-y-3">
+              <SectionHeader icon={<Package size={14}/>} title="Identity" subtitle="Category, SKU, and product name"/>
+              <div className="bg-gray-50/70 rounded-xl p-3 space-y-3 border border-gray-100">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label">{t('products_cat')} *</label>
+                    <input className="input" value={form.category} onChange={e => set('category', e.target.value)} placeholder="e.g. Synapse 3D"/>
+                  </div>
+                  <div>
+                    <label className="label">{t('products_sku')}</label>
+                    <input className="input font-mono" value={form.sku} onChange={e => set('sku', e.target.value)} placeholder="e.g. S3D-BASE-1CCU"/>
+                  </div>
+                </div>
+                <div>
+                  <label className="label">{t('products_name')} *</label>
+                  <input className="input" value={form.name} onChange={e => set('name', e.target.value)}/>
+                </div>
+                <div>
+                  <label className="label">{t('products_desc')}</label>
+                  <textarea className="input min-h-[60px] resize-y" rows={2} value={form.description} onChange={e => set('description', e.target.value)}/>
+                </div>
+              </div>
+            </div>
 
-          <div>
-            <label className="label">{t('products_desc')}</label>
-            <input className="input" value={form.description} onChange={e => set('description', e.target.value)}/>
-          </div>
+            {/* ---- SECTION 2: Pricing ---- */}
+            <div className="space-y-3">
+              <SectionHeader icon={<span className="text-sm font-bold">&#8364;</span>} title="Pricing" subtitle="List prices for license and annual fees"/>
+              <div className="bg-gray-50/70 rounded-xl p-3 border border-gray-100">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label">{t('products_license')} (&euro;)</label>
+                    <input className="input" type="number" min="0" step="0.01" value={form.license_fee} onChange={e => set('license_fee', e.target.value)}/>
+                  </div>
+                  <div>
+                    <label className="label">{t('products_annual')} (&euro;)</label>
+                    <input className="input" type="number" min="0" step="0.01" value={form.annual_fee} onChange={e => set('annual_fee', e.target.value)}/>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="label">{t('products_license')} €</label>
-              <input className="input" type="number" value={form.license_fee} onChange={e => set('license_fee', e.target.value)}/>
+            {/* ---- SECTION 3: Allowed Pricing Models (multi-select) ---- */}
+            <div className="space-y-3">
+              <SectionHeader icon={<span className="text-sm font-bold">$</span>} title={t('products_model') || 'Pricing Models'} subtitle="Select all pricing models this product supports"/>
+              <div className="bg-gray-50/70 rounded-xl p-3 border border-gray-100 space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  {PRICING_MODELS.map(m => (
+                    <ToggleChip
+                      key={m.id}
+                      label={m.label}
+                      checked={(form.allowed_pricing_models || []).includes(m.id)}
+                      onChange={() => toggleArrayItem('allowed_pricing_models', m.id)}
+                    />
+                  ))}
+                </div>
+                <SelectedBadges items={form.allowed_pricing_models} allOptions={PRICING_MODELS}/>
+              </div>
             </div>
-            <div>
-              <label className="label">{t('products_annual')} €</label>
-              <input className="input" type="number" value={form.annual_fee} onChange={e => set('annual_fee', e.target.value)}/>
-            </div>
-            <div>
-              <label className="label">{t('products_model')}</label>
-              <select className="select" value={form.pricing_model} onChange={e => set('pricing_model', e.target.value)}>
-                {PRICING_MODELS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
-              </select>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="label">BU</label>
-              <select className="select" value={form.bu} onChange={e => set('bu', e.target.value)}>
-                <option value="VGT">VGT</option>
-                <option value="ECT">ECT</option>
-              </select>
+            {/* ---- SECTION 4: Allowed License Types (multi-select) ---- */}
+            <div className="space-y-3">
+              <SectionHeader icon={<span className="text-sm font-bold">#</span>} title="Allowed License Types" subtitle="Select all license types available for this product"/>
+              <div className="bg-gray-50/70 rounded-xl p-3 border border-gray-100 space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  {LICENSE_TYPES.map(lt => (
+                    <ToggleChip
+                      key={lt.id}
+                      label={lt.label}
+                      checked={(form.allowed_license_types || []).includes(lt.id)}
+                      onChange={() => toggleArrayItem('allowed_license_types', lt.id)}
+                    />
+                  ))}
+                </div>
+                <SelectedBadges items={form.allowed_license_types} allOptions={LICENSE_TYPES}/>
+              </div>
             </div>
-            <div className="flex items-end gap-3">
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={form.active} onChange={e => set('active', e.target.checked)} className="rounded"/>
-                {t('products_active')}
-              </label>
-            </div>
-            <div className="flex items-end gap-3">
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={form.distributor_visible} onChange={e => set('distributor_visible', e.target.checked)} className="rounded"/>
-                {t('products_dist_vis')}
-              </label>
-            </div>
-          </div>
 
-          <div>
-            <label className="label">Allowed License Types</label>
-            <div className="flex flex-wrap gap-2">
-              {LICENSE_TYPES.map(lt => (
-                <label key={lt.id} className="flex items-center gap-1.5 text-sm bg-gray-50 px-2 py-1 rounded">
-                  <input type="checkbox" className="rounded"
-                    checked={(form.allowed_license_types || []).includes(lt.id)}
-                    onChange={e => {
-                      const cur = form.allowed_license_types || []
-                      set('allowed_license_types',
-                        e.target.checked ? [...cur, lt.id] : cur.filter(x => x !== lt.id))
-                    }}/>
-                  {lt.label}
-                </label>
-              ))}
+            {/* ---- SECTION 5: Configuration ---- */}
+            <div className="space-y-3">
+              <SectionHeader icon={<span className="text-sm">&#9881;</span>} title="Configuration" subtitle="Business unit and visibility settings"/>
+              <div className="bg-gray-50/70 rounded-xl p-3 border border-gray-100 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label">Business Unit</label>
+                    <select className="select" value={form.bu} onChange={e => set('bu', e.target.value)}>
+                      <option value="VGT">VGT</option>
+                      <option value="ECT">ECT</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">Sort Order</label>
+                    <input className="input" type="number" min="0" value={form.sort_order} onChange={e => set('sort_order', e.target.value)}/>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <ToggleSwitch
+                    checked={form.active}
+                    onChange={v => set('active', v)}
+                    label={t('products_active') || 'Active'}
+                    activeColor="green"
+                  />
+                  <ToggleSwitch
+                    checked={form.distributor_visible}
+                    onChange={v => set('distributor_visible', v)}
+                    label={t('products_dist_vis') || 'Distributor Visible'}
+                    activeColor="blue"
+                  />
+                </div>
+              </div>
             </div>
-          </div>
-        </>)}
 
+          </div>
+        )}
+
+        {/* ==================== COMPONENTS TAB ==================== */}
         {tab === 'components' && isEdit && (
           <ComponentsEditor productId={product.id} allProducts={allProducts} t={t}/>
         )}

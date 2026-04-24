@@ -24,6 +24,9 @@ do $$ begin
   if not exists (select 1 from information_schema.columns where table_name='products' and column_name='allowed_license_types') then
     alter table public.products add column allowed_license_types jsonb default '["flat"]'::jsonb;
   end if;
+  if not exists (select 1 from information_schema.columns where table_name='products' and column_name='allowed_pricing_models') then
+    alter table public.products add column allowed_pricing_models jsonb default '["license_plus_annual"]'::jsonb;
+  end if;
 end $$;
 
 -- Backfill allowed_license_types by category
