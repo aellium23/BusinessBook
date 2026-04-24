@@ -10,8 +10,10 @@ import AttachmentsList from './AttachmentsList'
 import ContactsList from './ContactsList'
 import DealTimeline from './DealTimeline'
 import SearchableSelect from './SearchableSelect'
-import { FORECAST_CATEGORIES, defaultForecastFromStage, DISTRIBUTION_PATHS, computeMargins } from '../constants'
+import ProductLineItems from './ProductLineItems'
+import { FORECAST_CATEGORIES, defaultForecastFromStage, DISTRIBUTION_PATHS, computeMargins, BUSINESS_MODELS } from '../constants'
 import { formatK } from './ui'
+import { saveDealProducts } from '../hooks/useDealProducts'
 
 // ── MarginsPanel — live calculation of margin per level ──────────────────
 function MarginsPanel({ form }) {
@@ -114,6 +116,8 @@ const EMPTY = {
   discount_requested: '',
   discount_note_dist: '',
   product: '',
+  business_model: '',
+  warranty_months: 36,
   equipment_count: '',
   annual_studies: '',
   annual_exams: '',
@@ -286,6 +290,8 @@ export default function DealForm({ deal, onClose, onSaved }) {
     discount_requested: deal.discount_requested || '',
     discount_note_dist: deal.discount_note_dist || '',
     product: deal.product || '',
+    business_model: deal.business_model || '',
+    warranty_months: deal.warranty_months || 36,
     equipment_count: deal.equipment_count || '',
     annual_studies: deal.annual_studies || '',
     annual_exams: deal.annual_exams || '',
@@ -308,6 +314,8 @@ export default function DealForm({ deal, onClose, onSaved }) {
   const [accounts, setAccounts]       = useState([])
   const [distributors, setDistributors] = useState([])
   const [hubs, setHubs]               = useState([])
+  const [dealLines, setDealLines]     = useState([])
+  const [catalogProducts, setCatalogProducts] = useState([])
 
   const isMaint = form.deal_type === 'Maintenance'
   const accountsForBU = accounts.filter(a => !form.bu || a.bu === form.bu)
@@ -337,6 +345,14 @@ export default function DealForm({ deal, onClose, onSaved }) {
     supabase.from('regional_hubs').select('id, name, region').order('name')
       .then(({ data }) => { if (data) setHubs(data) })
       .catch(e => console.warn('Failed to load regional hubs:', e?.message))
+    supabase.from('products').select('*').eq('active', true).order('sort_order').order('name')
+      .then(({ data }) => { if (data) setCatalogProducts(data) })
+      .catch(() => {})
+    if (deal?.id) {
+      supabase.from('deal_products').select('*').eq('deal_id', deal.id).order('created_at')
+        .then(({ data }) => { if (data) setDealLines(data.map(d => ({ ...d, _key: d.id }))) })
+        .catch(() => {})
+    }
   }, [])
 
   useEffect(() => {
@@ -469,8 +485,10 @@ export default function DealForm({ deal, onClose, onSaved }) {
       sla_billing_year: form.is_sla ? (parseInt(form.sla_billing_year) || null) : null,
       sla_owner: form.is_sla ? (form.sla_owner || null) : null,
       sla_renewal_target: form.is_sla ? (parseFloat(form.sla_renewal_target) || null) : null,
-      // Product
+      // Product & Business Model
       product: form.product || null,
+      business_model: form.business_model || null,
+      warranty_months: parseInt(form.warranty_months) || 36,
       equipment_count: parseInt(form.equipment_count) || null,
       annual_studies: parseInt(form.annual_studies) || null,
       annual_exams: parseInt(form.annual_exams) || null,
@@ -515,8 +533,11 @@ export default function DealForm({ deal, onClose, onSaved }) {
       result = await upsertDeal({ ...payload, intercompany_value: null })
     }
 
-    if (result.error) setError(result.error.message)
-    else { onSaved(); onClose() }
+    if (result.error) { setError(result.error.message); setSaving(false); return }
+    if (result.data?.id && dealLines.length > 0) {
+      await saveDealProducts(result.data.id, dealLines)
+    }
+    onSaved(); onClose()
     setSaving(false)
   }
 
@@ -766,82 +787,63 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </div>
         </div>
 
-        {/* ── PRODUCT ──────────────────────────────────────────── */}
+        {/* ── BUSINESS MODEL & PRODUCTS ─────────────────────── */}
         <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
           <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{t("df_product_lbl")}</p>
 
-          <div>
-            <label className="label">{t("df_product")} *</label>
-            <select className="select" value={form.product} onChange={e => set('product', e.target.value)}>
-              <option value="">{t("df_select_product")}</option>
-              {PRODUCTS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-              <option value="Other">Other</option>
-            </select>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">{t("df_deal_type")}</label>
+              <select className="select" value={form.business_model} onChange={e => set('business_model', e.target.value)}>
+                <option value="">— Select —</option>
+                {BUSINESS_MODELS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+              </select>
+            </div>
+            {['capex','hybrid'].includes(form.business_model) && (
+              <div>
+                <label className="label">Warranty (months)</label>
+                <input className="input" type="number" value={form.warranty_months}
+                  onChange={e => set('warranty_months', e.target.value)} placeholder="36"/>
+              </div>
+            )}
           </div>
 
-          {/* Dose-specific fields */}
-          {selectedProduct?.hasEquipment && (
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="label">
-                  {t("df_equipment")}
-                  <span className="text-gray-400 font-normal ml-1">{t("df_total_units")}</span>
-                </label>
-                <input className="input" type="number" min="0"
-                  value={form.equipment_count}
-                  onChange={e => set('equipment_count', e.target.value)}
-                  placeholder="e.g. 12"/>
-              </div>
-              <div>
-                <label className="label">
-                  {t("df_annual_studies")}
-                  <span className="text-gray-400 font-normal ml-1">{t("df_studies_year")}</span>
-                </label>
-                <input className="input" type="number" min="0"
-                  value={form.annual_studies}
-                  onChange={e => set('annual_studies', e.target.value)}
-                  placeholder="e.g. 50000"/>
-              </div>
-            </div>
+          {['capex','hybrid'].includes(form.business_model) && (
+            <p className="text-[10px] text-blue-600 bg-blue-50 rounded px-2 py-1">
+              SLA available after {form.warranty_months || 36} months warranty
+            </p>
           )}
 
-          {/* Other products — exams volume */}
-          {selectedProduct?.hasExams && (
+          <ProductLineItems
+            lines={dealLines}
+            onChange={setDealLines}
+            products={catalogProducts}
+            businessModel={form.business_model}
+            t={t}
+          />
+
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">
-                {t("df_annual_exams")}
-                <span className="text-gray-400 font-normal ml-1">{t("df_exams_year")}</span>
+                {t("df_equipment")}
+                <span className="text-gray-400 font-normal ml-1">{t("df_total_units")}</span>
               </label>
               <input className="input" type="number" min="0"
-                value={form.annual_exams}
-                onChange={e => set('annual_exams', e.target.value)}
-                placeholder="e.g. 100000"/>
+                value={form.equipment_count}
+                onChange={e => set('equipment_count', e.target.value)}
+                placeholder="e.g. 12"/>
             </div>
-          )}
-
-          {/* Product summary badge */}
-          {form.product && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs bg-navy/10 text-navy px-2 py-0.5 rounded font-medium">
-                {form.product}
-              </span>
-              {form.equipment_count && (
-                <span className="text-xs text-gray-500">
-                  📡 {form.equipment_count} equipments
-                </span>
-              )}
-              {form.annual_studies && (
-                <span className="text-xs text-gray-500">
-                  📊 {Number(form.annual_studies).toLocaleString()} studies/yr
-                </span>
-              )}
-              {form.annual_exams && (
-                <span className="text-xs text-gray-500">
-                  📋 {Number(form.annual_exams).toLocaleString()} exams/yr
-                </span>
-              )}
+            <div>
+              <label className="label">
+                {t("df_annual_studies")}
+                <span className="text-gray-400 font-normal ml-1">{t("df_studies_year")}</span>
+              </label>
+              <input className="input" type="number" min="0"
+                value={form.annual_studies}
+                onChange={e => set('annual_studies', e.target.value)}
+                placeholder="e.g. 50000"/>
             </div>
-          )}
+          </div>
         </div>
 
         {/* ── DISTRIBUTION & MARGINS ──────────────────────────────

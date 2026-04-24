@@ -139,6 +139,14 @@ export const SLA_TYPES = [
   'Support & Updates',
 ]
 
+export const BUSINESS_MODELS = [
+  { id: 'capex',         label: 'CAPEX (License + Annual Fee)' },
+  { id: 'opex',          label: 'OPEX (Subscription)' },
+  { id: 'saas',          label: 'SaaS' },
+  { id: 'hybrid',        label: 'Hybrid (CAPEX + OPEX)' },
+  { id: 'pay_per_study', label: 'Pay per Study' },
+]
+
 export const BILLING_MODELS = [
   { id: 'fixed',                     label: 'Fixed Annual' },
   { id: 'pay_per_study_variable',    label: 'Pay per Study (Variable/Quarterly)' },
