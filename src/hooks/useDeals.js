@@ -21,6 +21,7 @@ export function useDeals(filters = {}) {
   const fetch = useCallback(async () => {
     setLoading(true)
     let q = supabase.from('deals').select('*').order('created_at', { ascending: false })
+      .or('converted_to_sla.is.null,converted_to_sla.eq.false')
 
     // Filtros por role
     if (!isAdmin) {

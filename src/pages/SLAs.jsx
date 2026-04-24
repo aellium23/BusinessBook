@@ -133,6 +133,8 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
     price_per_study:   sla?.price_per_study   || '',
     estimated_annual_studies: sla?.estimated_annual_studies || '',
     billing_frequency: sla?.billing_frequency || 'annual',
+    contract_duration_years: sla?.contract_duration_years || 1,
+    renewal_date:    sla?.renewal_date    || '',
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState(null)
@@ -175,6 +177,8 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
       price_per_study:   parseFloat(form.price_per_study) || null,
       estimated_annual_studies: parseInt(form.estimated_annual_studies) || null,
       billing_frequency: form.billing_frequency || 'annual',
+      contract_duration_years: parseInt(form.contract_duration_years) || 1,
+      renewal_date:    form.renewal_date || null,
       ...(!isEdit ? { created_by: profile?.id } : {}),
     }
 
@@ -276,16 +280,42 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
 
         <div className="grid grid-cols-2 gap-3 border-t pt-3">
           <div>
-            <label className="label">Billing Model</label>
+            <label className="label">{t('sla_billing_model')}</label>
             <select className="select" value={form.billing_model} onChange={e => set('billing_model', e.target.value)}>
               {BILLING_MODELS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
           </div>
           <div>
-            <label className="label">Billing Frequency</label>
+            <label className="label">{t('sla_billing_freq')}</label>
             <select className="select" value={form.billing_frequency} onChange={e => set('billing_frequency', e.target.value)}>
               {BILLING_FREQUENCIES.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
             </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">Contract Duration</label>
+            <select className="select" value={form.contract_duration_years} onChange={e => {
+              set('contract_duration_years', e.target.value)
+              if (form.start_date) {
+                const start = new Date(form.start_date)
+                const end = new Date(start)
+                end.setFullYear(end.getFullYear() + parseInt(e.target.value))
+                end.setDate(end.getDate() - 1)
+                set('end_date', end.toISOString().split('T')[0])
+                set('renewal_date', end.toISOString().split('T')[0])
+              }
+            }}>
+              <option value="1">1 Year</option>
+              <option value="2">2 Years</option>
+              <option value="3">3 Years</option>
+              <option value="5">5 Years</option>
+            </select>
+          </div>
+          <div>
+            <label className="label">Renewal Date</label>
+            <input className="input" type="date" value={form.renewal_date} onChange={e => set('renewal_date', e.target.value)}/>
           </div>
         </div>
 
@@ -324,6 +354,7 @@ export default function SLAs() {
   const { t } = useTranslation()
   const [search, setSearch]     = useState('')
   const [buF, setBuF]           = useState('')
+  const [typeTab, setTypeTab]   = useState('all_types')
   const [tab, setTab]           = useState('active')
   const [formOpen, setFormOpen] = useState(false)
   const [editSla, setEditSla]   = useState(null)
@@ -340,6 +371,12 @@ export default function SLAs() {
     })
   }, [])
 
+  const typeFiltered = useMemo(() => {
+    if (typeTab === 'maintenance') return slas.filter(s => !s.billing_model || s.billing_model === 'fixed')
+    if (typeTab === 'variable') return slas.filter(s => s.billing_model && s.billing_model !== 'fixed')
+    return slas
+  }, [slas, typeTab])
+
   const filtered = useMemo(() => {
     const tabFilter = {
       active:   s => ['active','invoiced'].includes(s.status),
@@ -348,8 +385,8 @@ export default function SLAs() {
       changes:  s => ['reduced','cancelled'].includes(s.status),
       all:      () => true,
     }
-    return slas.filter(tabFilter[tab] || tabFilter.all)
-  }, [slas, tab])
+    return typeFiltered.filter(tabFilter[tab] || tabFilter.all)
+  }, [typeFiltered, tab])
 
   const pipelineByFY = useMemo(() => {
     const byFY = {}
@@ -401,12 +438,13 @@ export default function SLAs() {
 
   if (loading) return <Spinner/>
 
+  const tf = typeFiltered
   const tabs = [
-    { id: 'active',   label: `Active (${slas.filter(s=>['active','invoiced'].includes(s.status)).length})` },
-    { id: 'awaiting', label: `Awaiting (${slas.filter(s=>['negotiation','waiting_po'].includes(s.status)).length})` },
-    { id: 'pipeline', label: `Pipeline (${slas.filter(s=>s.status==='pipeline').length})` },
-    { id: 'changes',  label: `Changes (${slas.filter(s=>['reduced','cancelled'].includes(s.status)).length})` },
-    { id: 'all',      label: `All (${slas.length})` },
+    { id: 'active',   label: `Active (${tf.filter(s=>['active','invoiced'].includes(s.status)).length})` },
+    { id: 'awaiting', label: `Awaiting (${tf.filter(s=>['negotiation','waiting_po'].includes(s.status)).length})` },
+    { id: 'pipeline', label: `Pipeline (${tf.filter(s=>s.status==='pipeline').length})` },
+    { id: 'changes',  label: `Changes (${tf.filter(s=>['reduced','cancelled'].includes(s.status)).length})` },
+    { id: 'all',      label: `All (${tf.length})` },
   ]
 
   return (
@@ -492,7 +530,23 @@ export default function SLAs() {
         )}
       </div>
 
-      {/* Tabs */}
+      {/* Contract type tabs */}
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+        {[
+          { id: 'all_types', label: 'All Contracts' },
+          { id: 'maintenance', label: 'Maintenance SLAs' },
+          { id: 'variable', label: 'Variable Recurring' },
+        ].map(tt => (
+          <button key={tt.id} onClick={() => setTypeTab(tt.id)}
+            className={`px-3 py-1.5 rounded text-xs font-semibold transition-all flex-1 ${
+              typeTab === tt.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+            }`}>
+            {tt.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Status tabs */}
       <div className="flex gap-1 overflow-x-auto border-b border-gray-200">
         {tabs.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
