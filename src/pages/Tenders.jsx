@@ -412,8 +412,8 @@ function TenderCard({ tender, onEdit, onDelete, canEdit }) {
 
 // ── Main Tenders Page ──────────────────────────────────────────────────────────
 export default function Tenders() {
-  const { user, profile, isAdmin } = useAuth()
-  const canEdit = isAdmin || ['vgt_editor','ect_editor','vgt_member','ect_member'].includes(profile?.role)
+  const { user, profile, isAdmin, canEdit: authCanEdit } = useAuth()
+  const canEdit = authCanEdit
   const { tenders, urgentCount, loading, refetch } = useTenders()
 
   const [modal, setModal]   = useState(null)

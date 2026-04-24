@@ -137,7 +137,7 @@ export default function AuditLog() {
     let q = supabase.from('audit_log').select('*').order('at', { ascending: false }).limit(limit)
     if (tableF) q = q.eq('table_name', tableF)
     if (actionF) q = q.eq('action', actionF)
-    if (actorF) q = q.ilike('actor_email', `%${actorF}%`)
+    if (actorF) { const safe = String(actorF).replace(/[%_\\]/g, m => `\\${m}`); q = q.ilike('actor_email', `%${safe}%`) }
     if (sinceF) q = q.gte('at', sinceF)
     const { data, error } = await q
     if (error) setError(error.message)
