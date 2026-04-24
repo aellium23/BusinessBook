@@ -1258,16 +1258,15 @@ export default function DealForm({ deal, onClose, onSaved }) {
 
         {/* Monthly recognition */}
         <div>
-            <p className="label mb-2">Monthly recognition · FY26</p>
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-              {MONTHS.map((m, i) => (
-                <div key={m}>
-                  <label className="text-[10px] text-gray-400">{m}</label>
-                  <input className="input py-1 text-xs" type="number"
-                    value={form[MONTHS_K[i]] || ''} onChange={e => set(MONTHS_K[i], e.target.value)} placeholder="0" />
-                </div>
-              ))}
-            </div>
+          <p className="label mb-2">Monthly recognition · FY26</p>
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+            {MONTHS.map((m, i) => (
+              <div key={m}>
+                <label className="text-[10px] text-gray-400">{m}</label>
+                <input className="input py-1 text-xs" type="number"
+                  value={form[MONTHS_K[i]] || ''} onChange={e => set(MONTHS_K[i], e.target.value)} placeholder="0" />
+              </div>
+            ))}
           </div>
         </div>
 
