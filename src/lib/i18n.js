@@ -213,6 +213,10 @@ const translations = {
     dash_plan_cycle:  'Plan cycle:',
     // Clients
     clients_title:    'Clients',
+    clients_subtitle: 'Individual sites and hospitals you sell to',
+    clients_go_accounts: 'View org hierarchy →',
+    accounts_subtitle: 'Organizational hierarchy and structure',
+    accounts_go_clients: 'View individual clients →',
     clients_all_bu:   'All BU',
     clients_fy26:     'FY26 forecast',
     clients_sla:      'Active SLAs',
@@ -652,6 +656,10 @@ const translations = {
     dash_plan_cycle:  'Ciclo de plan:',
     // Clients
     clients_title:    'Clientes',
+    clients_subtitle: 'Centros y hospitales a los que vendes',
+    clients_go_accounts: 'Ver jerarquía org →',
+    accounts_subtitle: 'Jerarquía organizacional y estructura',
+    accounts_go_clients: 'Ver clientes individuales →',
     clients_all_bu:   'Todas BU',
     clients_fy26:     'Previsión FY26',
     clients_sla:      'SLAs activos',
@@ -1083,6 +1091,10 @@ const translations = {
     dash_plan_cycle:  'Ciclo de plano:',
     // Clients
     clients_title:    'Clientes',
+    clients_subtitle: 'Centros e hospitais a quem vendes',
+    clients_go_accounts: 'Ver hierarquia org →',
+    accounts_subtitle: 'Hierarquia organizacional e estrutura',
+    accounts_go_clients: 'Ver clientes individuais →',
     clients_all_bu:   'Todas BU',
     clients_fy26:     'Previsão FY26',
     clients_sla:      'SLAs ativos',

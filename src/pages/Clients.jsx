@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { BUBadge, formatK, Spinner, EmptyState, Modal } from '../components/ui'
@@ -209,7 +210,8 @@ export default function Clients() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-lg font-bold text-gray-900">{t('clients_title')}</h1>
-          <p className="text-xs text-gray-400">{stats.total} clients · {stats.public} public · {stats.private} private</p>
+          <p className="text-xs text-gray-400">{t('clients_subtitle')}</p>
+          <Link to="/accounts" className="text-[10px] text-blue-500 hover:text-blue-700">{t('clients_go_accounts')}</Link>
         </div>
         {canEdit && (
           <button onClick={() => { setEditClient(null); setFormOpen(true) }} className="btn-primary flex items-center gap-1">
