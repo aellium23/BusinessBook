@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { REGIONS } from '../constants'
 import { X } from 'lucide-react'
+import SearchableSelect from './SearchableSelect'
 
 const COUNTRY_MAP = {
   Europe: ['Portugal','Spain','France','Germany','Italy','Netherlands','Belgium','UK','Switzerland','Sweden','Norway','Denmark','Finland','Austria','Poland','Czech Republic','Romania','Greece','Turkey','Other Europe'],
@@ -24,6 +25,13 @@ export default function QuickDealForm({ initialClient = '', onCancel, onCreated 
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState(null)
+  const [existingClients, setExistingClients] = useState([])
+
+  useEffect(() => {
+    supabase.from('deals').select('client').then(({ data }) => {
+      if (data) setExistingClients([...new Set(data.map(d => d.client).filter(Boolean))].sort())
+    }).catch(() => {})
+  }, [])
 
   async function save() {
     if (!form.client.trim()) { setError('Client is required'); return }
@@ -56,9 +64,17 @@ export default function QuickDealForm({ initialClient = '', onCancel, onCreated 
           <X size={14}/>
         </button>
       </div>
+      <SearchableSelect
+        value={form.client}
+        onChange={v => setForm(f => ({ ...f, client: v }))}
+        options={existingClients.map(c => ({ value: c, label: c }))}
+        placeholder="Search clients…"
+        emptyLabel="— Select client *"
+        onCreateNew={(q) => { if (q) setForm(f => ({ ...f, client: q })) }}
+        createLabel="New client"
+        size="sm"
+      />
       <div className="grid grid-cols-2 gap-2">
-        <input className="input text-sm" placeholder="Client *"
-          value={form.client} onChange={e => setForm(f => ({ ...f, client: e.target.value }))} />
         <select className="select text-sm" value={form.bu}
           onChange={e => setForm(f => ({ ...f, bu: e.target.value }))}>
           <option value="VGT">VGT</option>

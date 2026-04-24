@@ -152,7 +152,7 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
               <option value="">— Personal task —</option>
               {users.map(u => (
                 <option key={u.id} value={u.id}>
-                  {u.full_name}{u.bu ? ` · ${u.bu}` : ''}
+                  {u.full_name}{u.bu ? ` · ${u.bu}` : ''}{!u.isUser ? ' (sales owner)' : ''}
                 </option>
               ))}
             </select>
@@ -414,14 +414,25 @@ export default function Tasks() {
           full_name:  match?.sales_owner || p.full_name || p.email,
           email:      p.email,
           bu:         match?.bu || p.bu || null,
+          isUser:     true,
         }
       })
-      // Stable sort: BU-tagged first, then by name
-      merged.sort((a, b) => {
+      const matchedOwners = new Set(merged.map(m => norm(m.full_name)))
+      const unmatchedOwners = quotas
+        .filter(q => !matchedOwners.has(norm(q.sales_owner)))
+        .map(q => ({
+          id:         `so_${q.sales_owner}`,
+          full_name:  q.sales_owner,
+          email:      null,
+          bu:         q.bu,
+          isUser:     false,
+        }))
+      const all = [...merged, ...unmatchedOwners]
+      all.sort((a, b) => {
         if (!!a.bu !== !!b.bu) return a.bu ? -1 : 1
         return (a.full_name || '').localeCompare(b.full_name || '')
       })
-      setUsers(merged)
+      setUsers(all)
     }).catch(e => console.error('Failed to load assignees:', e))
 
     supabase.from('deals').select('id, client, bu').order('client')
