@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { signOut } from '../lib/supabase'
 import { useNotifications } from '../hooks/useTasks'
 import { useTasks } from '../hooks/useTasks'
-import { LayoutDashboard, List, DollarSign, Users, User, LogOut, ChevronRight, History, Building2, Target, Settings, CheckSquare, FileText, MoreHorizontal, Shield, Contact, GitBranch, LayoutGrid, Network as NetIcon, RefreshCw } from 'lucide-react'
+import { LayoutDashboard, List, DollarSign, Users, User, LogOut, ChevronRight, History, Building2, Target, Settings, CheckSquare, FileText, MoreHorizontal, Shield, Contact, GitBranch, LayoutGrid, Network as NetIcon, RefreshCw, Package } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 import { LANGUAGES, setLang } from '../lib/i18n'
 
@@ -60,7 +60,8 @@ export default function Layout({ children }) {
     { to: '/deals',   icon: List,            label: t("nav_deals") },
     { to: '/tasks',   icon: CheckSquare,     label: t("nav_tasks"),    badge: taskBadge },
     { to: '/tenders', icon: FileText,        label: t("nav_tenders") },
-    { to: '/sla',     icon: RefreshCw,       label: t("nav_sla") },
+    { to: '/sla',      icon: RefreshCw,       label: t("nav_sla") },
+    { to: '/products', icon: Package,         label: t("nav_products") },
     { to: '/clients',  icon: Building2,       label: t("nav_clients") },
     { to: '/contacts', icon: Contact,         label: t("nav_contacts") },
     { to: '/accounts', icon: GitBranch,       label: t("nav_accounts") },

@@ -3,7 +3,7 @@ import { useSlas, createSla, updateSla, deleteSla } from '../hooks/useSlas'
 import { useAuth } from '../hooks/useAuth'
 import { useTranslation } from '../hooks/useTranslation'
 import { Modal, Spinner, EmptyState, BUBadge, formatK, KpiCard } from '../components/ui'
-import { SLA_STATUSES, SLA_TYPES, FY_RANGE, getFiscalYear, projectSlaRevenue } from '../constants'
+import { SLA_STATUSES, SLA_TYPES, FY_RANGE, BILLING_MODELS, BILLING_FREQUENCIES, getFiscalYear, projectSlaRevenue } from '../constants'
 import {
   Plus, Search, Pencil, Trash2, RefreshCw, Calendar, User,
   TrendingUp, AlertCircle, Clock, ChevronDown, ChevronUp,
@@ -129,6 +129,10 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
     country:           sla?.country           || '',
     region:            sla?.region            || '',
     product:           sla?.product           || '',
+    billing_model:     sla?.billing_model     || 'fixed',
+    price_per_study:   sla?.price_per_study   || '',
+    estimated_annual_studies: sla?.estimated_annual_studies || '',
+    billing_frequency: sla?.billing_frequency || 'annual',
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState(null)
@@ -167,6 +171,10 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
       country:           form.country || null,
       region:            form.region || null,
       product:           form.product || null,
+      billing_model:     form.billing_model || 'fixed',
+      price_per_study:   parseFloat(form.price_per_study) || null,
+      estimated_annual_studies: parseInt(form.estimated_annual_studies) || null,
+      billing_frequency: form.billing_frequency || 'annual',
       ...(!isEdit ? { created_by: profile?.id } : {}),
     }
 
@@ -265,6 +273,34 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
           <label className="label">Description</label>
           <textarea className="input min-h-[60px] resize-none" value={form.description} onChange={e => set('description', e.target.value)}/>
         </div>
+
+        <div className="grid grid-cols-2 gap-3 border-t pt-3">
+          <div>
+            <label className="label">Billing Model</label>
+            <select className="select" value={form.billing_model} onChange={e => set('billing_model', e.target.value)}>
+              {BILLING_MODELS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="label">Billing Frequency</label>
+            <select className="select" value={form.billing_frequency} onChange={e => set('billing_frequency', e.target.value)}>
+              {BILLING_FREQUENCIES.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {form.billing_model !== 'fixed' && (
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Price per Study €</label>
+              <input className="input" type="number" step="0.01" value={form.price_per_study} onChange={e => set('price_per_study', e.target.value)} placeholder="e.g. 2.50"/>
+            </div>
+            <div>
+              <label className="label">Est. Annual Studies</label>
+              <input className="input" type="number" value={form.estimated_annual_studies} onChange={e => set('estimated_annual_studies', e.target.value)} placeholder="e.g. 15000"/>
+            </div>
+          </div>
+        )}
 
         {['reduced','cancelled'].includes(form.status) && (
           <div className="grid grid-cols-2 gap-3 border-t pt-3">

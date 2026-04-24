@@ -139,6 +139,25 @@ export const SLA_TYPES = [
   'Support & Updates',
 ]
 
+export const BILLING_MODELS = [
+  { id: 'fixed',                     label: 'Fixed Annual' },
+  { id: 'pay_per_study_variable',    label: 'Pay per Study (Variable/Quarterly)' },
+  { id: 'pay_per_study_estimated',   label: 'Pay per Study (Estimated/Annual)' },
+]
+
+export const BILLING_FREQUENCIES = [
+  { id: 'monthly',      label: 'Monthly' },
+  { id: 'quarterly',    label: 'Quarterly' },
+  { id: 'semi_annual',  label: 'Semi-annual' },
+  { id: 'annual',       label: 'Annual' },
+]
+
+export const PRODUCT_CATEGORIES = [
+  'Synapse 3D', 'AI REiLI', 'Avicenna', 'SYN Pathology', 'Contextflow',
+  'Gleamer', 'Lunit', 'IBEX', 'AI Gateway', 'DP Extential',
+  'PACS', 'CWM', 'MedSky', 'VMWare',
+]
+
 export const FY_RANGE = ['FY26','FY27','FY28','FY29','FY30','FY31']
 
 export function getFiscalYear(date) {
