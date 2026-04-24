@@ -21,7 +21,6 @@ export function useDeals(filters = {}) {
   const fetch = useCallback(async () => {
     setLoading(true)
     let q = supabase.from('deals').select('*').order('created_at', { ascending: false })
-      .or('converted_to_sla.is.null,converted_to_sla.eq.false')
 
     // Filtros por role
     if (!isAdmin) {
@@ -47,7 +46,7 @@ export function useDeals(filters = {}) {
     const { data, error } = await q
     if (!mounted.current) return
     if (error) setError(error.message)
-    else { setDeals(data ?? []); setError(null) }
+    else { setDeals((data ?? []).filter(d => !d.converted_to_sla)); setError(null) }
     setLoading(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id, profile?.role, profile?.company_id, profile?.bu, isAdmin, filterKey])
