@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useProducts, createProduct, updateProduct, deleteProduct } from '../hooks/useProducts'
+import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useTranslation } from '../hooks/useTranslation'
 import { Modal, Spinner, EmptyState, BUBadge, formatK } from '../components/ui'
-import { Plus, Search, Pencil, Trash2, Package, DollarSign, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2, Package, ChevronDown, ChevronUp, X, Layers } from 'lucide-react'
 
 const PRICING_MODELS = [
   { id: 'license_plus_annual', label: 'License + Annual Fee' },
@@ -12,7 +13,98 @@ const PRICING_MODELS = [
   { id: 'saas',                label: 'SaaS' },
 ]
 
-function ProductFormModal({ product, onClose, onSaved, t }) {
+function ComponentsEditor({ productId, allProducts, t }) {
+  const [components, setComponents] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [addingId, setAddingId] = useState('')
+
+  const fetchComponents = useCallback(async () => {
+    if (!productId) { setLoading(false); return }
+    const { data } = await supabase
+      .from('product_components')
+      .select('*, component:component_id(id, name, sku, license_fee, annual_fee)')
+      .eq('product_id', productId)
+      .order('created_at')
+    setComponents(data || [])
+    setLoading(false)
+  }, [productId])
+
+  useEffect(() => { fetchComponents() }, [fetchComponents])
+
+  const available = useMemo(() =>
+    allProducts.filter(p => p.id !== productId && !components.some(c => c.component_id === p.id)),
+    [allProducts, productId, components]
+  )
+
+  async function addComponent() {
+    if (!addingId) return
+    await supabase.from('product_components').insert({ product_id: productId, component_id: addingId })
+    setAddingId('')
+    fetchComponents()
+  }
+
+  async function removeComponent(id) {
+    await supabase.from('product_components').delete().eq('id', id)
+    fetchComponents()
+  }
+
+  async function toggleIncluded(comp) {
+    await supabase.from('product_components').update({ included: !comp.included }).eq('id', comp.id)
+    fetchComponents()
+  }
+
+  if (loading) return <Spinner />
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-500 uppercase flex items-center gap-1">
+        <Layers size={12}/> {t('products_components') || 'Components'}
+        <span className="text-gray-400 font-normal">({components.length})</span>
+      </p>
+
+      {components.length > 0 && (
+        <div className="space-y-1">
+          {components.map(c => (
+            <div key={c.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1.5">
+              <button onClick={() => toggleIncluded(c)}
+                className={`w-4 h-4 rounded border flex items-center justify-center text-[10px] shrink-0 ${
+                  c.included ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 text-gray-300'
+                }`}>
+                {c.included ? '✓' : ''}
+              </button>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-gray-800 truncate">{c.component?.name}</p>
+                {c.component?.sku && <p className="text-[10px] text-gray-400 font-mono">{c.component.sku}</p>}
+              </div>
+              {c.component?.annual_fee > 0 && (
+                <span className="text-[10px] text-blue-500 shrink-0">{formatK(c.component.annual_fee)}/yr</span>
+              )}
+              <button onClick={() => removeComponent(c.id)} className="text-gray-300 hover:text-red-500 shrink-0 min-h-tap p-1">
+                <X size={12}/>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <select className="select text-xs flex-1" value={addingId} onChange={e => setAddingId(e.target.value)}>
+          <option value="">{t('products_add_comp') || '+ Add component…'}</option>
+          {available.map(p => (
+            <option key={p.id} value={p.id}>{p.name} {p.sku ? `(${p.sku})` : ''}</option>
+          ))}
+        </select>
+        {addingId && (
+          <button onClick={addComponent} className="btn-primary text-xs px-3">
+            {t('products_add') || 'Add'}
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
   const isEdit = !!product?.id
   const [form, setForm] = useState({
     category:       product?.category       || '',
@@ -29,12 +121,13 @@ function ProductFormModal({ product, onClose, onSaved, t }) {
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState(null)
+  const [tab, setTab]       = useState('details')
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
   async function handleSave() {
     if (!form.name.trim() || !form.category.trim()) {
-      setError('Name and Category are required')
+      setError(t('products_name') + ' & ' + t('products_cat') + ' required')
       return
     }
     setSaving(true); setError(null)
@@ -52,6 +145,10 @@ function ProductFormModal({ product, onClose, onSaved, t }) {
     onSaved()
   }
 
+  const tabs = isEdit
+    ? [{ id: 'details', label: t('products_details') || 'Details' }, { id: 'components', label: t('products_components') || 'Components' }]
+    : [{ id: 'details', label: t('products_details') || 'Details' }]
+
   return (
     <Modal open title={isEdit ? t('products_edit') : t('products_new')} onClose={onClose}
       footer={
@@ -65,65 +162,84 @@ function ProductFormModal({ product, onClose, onSaved, t }) {
       <div className="space-y-3">
         {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="label">{t('products_cat')} *</label>
-            <input className="input" value={form.category} onChange={e => set('category', e.target.value)} placeholder="e.g. Synapse 3D"/>
+        {isEdit && tabs.length > 1 && (
+          <div className="flex gap-1 border-b border-gray-200">
+            {tabs.map(tb => (
+              <button key={tb.id} onClick={() => setTab(tb.id)}
+                className={`px-3 py-2 text-xs font-semibold border-b-2 transition-all ${
+                  tab === tb.id ? 'border-navy text-navy' : 'border-transparent text-gray-400'
+                }`}>
+                {tb.label}
+              </button>
+            ))}
           </div>
-          <div>
-            <label className="label">{t('products_sku')}</label>
-            <input className="input" value={form.sku} onChange={e => set('sku', e.target.value)} placeholder="e.g. S3D-BASE-1CCU"/>
-          </div>
-        </div>
+        )}
 
-        <div>
-          <label className="label">{t('products_name')} *</label>
-          <input className="input" value={form.name} onChange={e => set('name', e.target.value)}/>
-        </div>
+        {tab === 'details' && (<>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">{t('products_cat')} *</label>
+              <input className="input" value={form.category} onChange={e => set('category', e.target.value)} placeholder="e.g. Synapse 3D"/>
+            </div>
+            <div>
+              <label className="label">{t('products_sku')}</label>
+              <input className="input" value={form.sku} onChange={e => set('sku', e.target.value)} placeholder="e.g. S3D-BASE-1CCU"/>
+            </div>
+          </div>
 
-        <div>
-          <label className="label">{t('products_desc')}</label>
-          <input className="input" value={form.description} onChange={e => set('description', e.target.value)}/>
-        </div>
+          <div>
+            <label className="label">{t('products_name')} *</label>
+            <input className="input" value={form.name} onChange={e => set('name', e.target.value)}/>
+          </div>
 
-        <div className="grid grid-cols-3 gap-3">
           <div>
-            <label className="label">{t('products_license')} €</label>
-            <input className="input" type="number" value={form.license_fee} onChange={e => set('license_fee', e.target.value)}/>
+            <label className="label">{t('products_desc')}</label>
+            <input className="input" value={form.description} onChange={e => set('description', e.target.value)}/>
           </div>
-          <div>
-            <label className="label">{t('products_annual')} €</label>
-            <input className="input" type="number" value={form.annual_fee} onChange={e => set('annual_fee', e.target.value)}/>
-          </div>
-          <div>
-            <label className="label">{t('products_model')}</label>
-            <select className="select" value={form.pricing_model} onChange={e => set('pricing_model', e.target.value)}>
-              {PRICING_MODELS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
-            </select>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <label className="label">BU</label>
-            <select className="select" value={form.bu} onChange={e => set('bu', e.target.value)}>
-              <option value="VGT">VGT</option>
-              <option value="ECT">ECT</option>
-            </select>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="label">{t('products_license')} €</label>
+              <input className="input" type="number" value={form.license_fee} onChange={e => set('license_fee', e.target.value)}/>
+            </div>
+            <div>
+              <label className="label">{t('products_annual')} €</label>
+              <input className="input" type="number" value={form.annual_fee} onChange={e => set('annual_fee', e.target.value)}/>
+            </div>
+            <div>
+              <label className="label">{t('products_model')}</label>
+              <select className="select" value={form.pricing_model} onChange={e => set('pricing_model', e.target.value)}>
+                {PRICING_MODELS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+              </select>
+            </div>
           </div>
-          <div className="flex items-end gap-3">
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={form.active} onChange={e => set('active', e.target.checked)} className="rounded"/>
-              {t('products_active')}
-            </label>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="label">BU</label>
+              <select className="select" value={form.bu} onChange={e => set('bu', e.target.value)}>
+                <option value="VGT">VGT</option>
+                <option value="ECT">ECT</option>
+              </select>
+            </div>
+            <div className="flex items-end gap-3">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={form.active} onChange={e => set('active', e.target.checked)} className="rounded"/>
+                {t('products_active')}
+              </label>
+            </div>
+            <div className="flex items-end gap-3">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={form.distributor_visible} onChange={e => set('distributor_visible', e.target.checked)} className="rounded"/>
+                {t('products_dist_vis')}
+              </label>
+            </div>
           </div>
-          <div className="flex items-end gap-3">
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={form.distributor_visible} onChange={e => set('distributor_visible', e.target.checked)} className="rounded"/>
-              {t('products_dist_vis')}
-            </label>
-          </div>
-        </div>
+        </>)}
+
+        {tab === 'components' && isEdit && (
+          <ComponentsEditor productId={product.id} allProducts={allProducts} t={t}/>
+        )}
       </div>
     </Modal>
   )
@@ -138,12 +254,21 @@ export default function Products() {
   const [editProd, setEditProd]   = useState(null)
   const [confirmDel, setConfirmDel] = useState(null)
   const [expandedCats, setExpandedCats] = useState({})
+  const [compCounts, setCompCounts] = useState({})
 
   const { products, loading, refetch } = useProducts({ search: search || undefined })
 
+  useEffect(() => {
+    supabase.from('product_components').select('product_id').then(({ data }) => {
+      if (!data) return
+      const counts = {}
+      for (const r of data) { counts[r.product_id] = (counts[r.product_id] || 0) + 1 }
+      setCompCounts(counts)
+    }).catch(() => {})
+  }, [products])
+
   const categories = useMemo(() => {
-    const cats = [...new Set(products.map(p => p.category))].sort()
-    return cats
+    return [...new Set(products.map(p => p.category))].sort()
   }, [products])
 
   const grouped = useMemo(() => {
@@ -178,8 +303,8 @@ export default function Products() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-lg font-bold text-gray-900">{t('products_title') || 'Product Catalog'}</h1>
-          <p className="text-xs text-gray-400">{totals.count} products · {totals.categories} categories</p>
+          <h1 className="text-lg font-bold text-gray-900">{t('products_title')}</h1>
+          <p className="text-xs text-gray-400">{totals.count} {t('products_name')} · {totals.categories} {t('products_cat')}</p>
         </div>
         {isAdmin && (
           <button onClick={() => { setEditProd(null); setFormOpen(true) }} className="btn-primary flex items-center gap-1">
@@ -221,6 +346,11 @@ export default function Products() {
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-medium text-gray-900 truncate">{p.name}</p>
                         {!p.active && <span className="text-[9px] bg-red-100 text-red-600 px-1 rounded">inactive</span>}
+                        {compCounts[p.id] > 0 && (
+                          <span className="text-[9px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                            <Layers size={8}/> {compCounts[p.id]}
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 text-[10px] text-gray-400">
                         {p.sku && <span className="font-mono">{p.sku}</span>}
@@ -268,7 +398,7 @@ export default function Products() {
       </div>
 
       {formOpen && (
-        <ProductFormModal product={editProd} t={t}
+        <ProductFormModal product={editProd} t={t} allProducts={products}
           onClose={() => { setFormOpen(false); setEditProd(null) }}
           onSaved={() => { setFormOpen(false); setEditProd(null); refetch() }}/>
       )}
@@ -280,8 +410,8 @@ export default function Products() {
             <p className="font-semibold text-gray-900">{t('products_delete')}</p>
             <p className="text-sm text-gray-600">{confirmDel.name}</p>
             <div className="flex gap-2">
-              <button onClick={() => setConfirmDel(null)} className="btn-secondary flex-1">Cancel</button>
-              <button onClick={handleDelete} className="bg-red-600 text-white rounded-lg px-4 py-2 text-sm font-semibold flex-1">Delete</button>
+              <button onClick={() => setConfirmDel(null)} className="btn-secondary flex-1">{t('cancel')}</button>
+              <button onClick={handleDelete} className="bg-red-600 text-white rounded-lg px-4 py-2 text-sm font-semibold flex-1">{t('delete')}</button>
             </div>
           </div>
         </div>
