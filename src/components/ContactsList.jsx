@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { CONTACT_ROLES, contactRole } from '../constants'
+import SearchableSelect from './SearchableSelect'
+import { CONTACT_ROLES, contactRole, REGIONS } from '../constants'
+
+const ALL_COUNTRIES = ['Portugal','Spain','France','Germany','Italy','Netherlands','Belgium','UK','Switzerland','Sweden','Norway','Denmark','Finland','Austria','Poland','Czech Republic','Romania','Greece','Turkey','UAE','Saudi Arabia','Qatar','Kuwait','Egypt','Morocco','South Africa','Israel','Mexico','Brazil','Argentina','Chile','Colombia','Peru','Japan','China','South Korea','Australia','India','Singapore','USA','Canada']
 import {
   Plus, Trash2, Edit3, Mail, Phone, Star, X,
   User, AlertCircle, Save,
@@ -188,6 +191,13 @@ export function ContactEditor({ contact, bu, clientName, onClose, onSaved }) {
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState(null)
+  const [existingClients, setExistingClients] = useState([])
+
+  useEffect(() => {
+    supabase.from('deals').select('client').then(({ data }) => {
+      if (data) setExistingClients([...new Set(data.map(d => d.client).filter(Boolean))].sort())
+    }).catch(() => {})
+  }, [])
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
@@ -252,9 +262,16 @@ export function ContactEditor({ contact, bu, clientName, onClose, onSaved }) {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="label">Client *</label>
-              <input className="input" value={form.client_name}
-                onChange={e => set('client_name', e.target.value)}
-                placeholder="Hospital…"/>
+              <SearchableSelect
+                value={form.client_name}
+                onChange={v => set('client_name', v)}
+                options={existingClients.map(c => ({ value: c, label: c }))}
+                placeholder="Search clients…"
+                emptyLabel="— Select —"
+                onCreateNew={(q) => { if (q) set('client_name', q) }}
+                createLabel="New"
+                size="sm"
+              />
             </div>
             <div>
               <label className="label">BU *</label>
@@ -308,9 +325,14 @@ export function ContactEditor({ contact, bu, clientName, onClose, onSaved }) {
 
           <div>
             <label className="label">Country</label>
-            <input className="input" value={form.country}
-              onChange={e => set('country', e.target.value)}
-              placeholder="Portugal"/>
+            <SearchableSelect
+              value={form.country}
+              onChange={v => set('country', v)}
+              options={ALL_COUNTRIES.map(c => ({ value: c, label: c }))}
+              placeholder="Search country…"
+              emptyLabel="— Select —"
+              size="sm"
+            />
           </div>
 
           <div>

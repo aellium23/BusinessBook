@@ -15,6 +15,9 @@ do $$ begin
   if not exists (select 1 from information_schema.columns where table_name='slas' and column_name='renewal_date') then
     alter table public.slas add column renewal_date date;
   end if;
+  if not exists (select 1 from information_schema.columns where table_name='slas' and column_name='invoice_date') then
+    alter table public.slas add column invoice_date date;
+  end if;
 end $$;
 
 -- Auto-set end_date and renewal_date based on duration

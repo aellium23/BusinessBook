@@ -3,7 +3,10 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useTranslation } from '../hooks/useTranslation'
 import { Spinner, EmptyState, formatK } from '../components/ui'
-import { MONTHS_K } from '../constants'
+import { MONTHS_K, REGIONS } from '../constants'
+import SearchableSelect from '../components/SearchableSelect'
+
+const ALL_COUNTRIES = ['Portugal','Spain','France','Germany','Italy','Netherlands','Belgium','UK','Switzerland','Sweden','Norway','Denmark','Finland','Austria','Poland','Czech Republic','Romania','Greece','Turkey','UAE','Saudi Arabia','Qatar','Kuwait','Egypt','Morocco','South Africa','Israel','Mexico','Brazil','Argentina','Chile','Colombia','Peru','Japan','China','South Korea','Australia','India','Singapore','USA','Canada']
 import {
   Building2, Plus, Edit3, Trash2, ChevronDown, ChevronRight,
   Search, Save, X, AlertCircle, GitBranch,
@@ -214,25 +217,34 @@ function AccountEditor({ account, accounts, defaultBU, onClose, onSaved }) {
             </div>
             <div>
               <label className="label">Parent</label>
-              <select className="select" value={form.parent_id}
-                onChange={e => set('parent_id', e.target.value)}>
-                <option value="">(top-level)</option>
-                {parentOptions.map(a => (
-                  <option key={a.id} value={a.id}>{a.name}</option>
-                ))}
-              </select>
+              <SearchableSelect
+                value={form.parent_id}
+                onChange={v => set('parent_id', v)}
+                options={parentOptions.map(a => ({ value: a.id, label: a.name }))}
+                placeholder="Search…"
+                emptyLabel="(top-level)"
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="label">Country</label>
-              <input className="input" value={form.country}
-                onChange={e => set('country', e.target.value)}/>
+              <label className="label">Region</label>
+              <SearchableSelect
+                value={form.region}
+                onChange={v => { set('region', v); set('country', '') }}
+                options={REGIONS.map(r => ({ value: r, label: r }))}
+                emptyLabel="— Select —"
+              />
             </div>
             <div>
-              <label className="label">Region</label>
-              <input className="input" value={form.region}
-                onChange={e => set('region', e.target.value)}/>
+              <label className="label">Country</label>
+              <SearchableSelect
+                value={form.country}
+                onChange={v => set('country', v)}
+                options={ALL_COUNTRIES.map(c => ({ value: c, label: c }))}
+                placeholder="Search…"
+                emptyLabel="— Select —"
+              />
             </div>
           </div>
           <div>

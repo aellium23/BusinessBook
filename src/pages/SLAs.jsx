@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useSlas, createSla, updateSla, deleteSla } from '../hooks/useSlas'
 import { useAuth } from '../hooks/useAuth'
+import { supabase } from '../lib/supabase'
+import SearchableSelect from '../components/SearchableSelect'
 import { useTranslation } from '../hooks/useTranslation'
 import { Modal, Spinner, EmptyState, BUBadge, formatK, KpiCard } from '../components/ui'
 import { SLA_STATUSES, SLA_TYPES, FY_RANGE, BILLING_MODELS, BILLING_FREQUENCIES, getFiscalYear, projectSlaRevenue } from '../constants'
@@ -135,11 +137,54 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
     billing_frequency: sla?.billing_frequency || 'annual',
     contract_duration_years: sla?.contract_duration_years || 1,
     renewal_date:    sla?.renewal_date    || '',
+    invoice_date:    sla?.invoice_date    || '',
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState(null)
+  const [clients, setClients] = useState([])
+
+  useEffect(() => {
+    supabase.from('deals').select('client').then(({ data }) => {
+      if (data) setClients([...new Set(data.map(d => d.client).filter(Boolean))].sort())
+    }).catch(() => {})
+  }, [])
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
+
+  const monthlyRecognition = useMemo(() => {
+    const annualVal = parseFloat(form.annual_value) || 0
+    if (!annualVal || !form.start_date) return null
+    const start = new Date(form.start_date)
+    const end = form.end_date ? new Date(form.end_date) : new Date(start.getFullYear() + (parseInt(form.contract_duration_years) || 1), start.getMonth(), start.getDate() - 1)
+    const invoice = form.invoice_date ? new Date(form.invoice_date) : null
+
+    const totalMonths = Math.max(1, Math.round((end - start) / (30.44 * 86400000)))
+    const monthlyRate = annualVal / 12
+    const FY_MONTHS = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
+    const FY_KEYS = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
+    const result = {}
+    FY_KEYS.forEach(k => { result[k] = 0 })
+
+    if (invoice) {
+      const invoiceMonth = invoice.getMonth()
+      const invoiceFYIdx = (invoiceMonth - 3 + 12) % 12
+      const monthsFromStart = Math.max(1, Math.round((invoice - start) / (30.44 * 86400000)) + 1)
+      const catchUp = monthlyRate * monthsFromStart
+      result[FY_KEYS[invoiceFYIdx]] = Math.round(catchUp)
+      const remainingMonths = Math.max(0, 12 - monthsFromStart - 1)
+      for (let i = 1; i <= remainingMonths; i++) {
+        const idx = (invoiceFYIdx + i) % 12
+        result[FY_KEYS[idx]] = Math.round(monthlyRate)
+      }
+    } else {
+      const startFYIdx = (start.getMonth() - 3 + 12) % 12
+      for (let i = 0; i < 12; i++) {
+        const idx = (startFYIdx + i) % 12
+        result[FY_KEYS[idx]] = Math.round(monthlyRate)
+      }
+    }
+    return { months: FY_MONTHS, keys: FY_KEYS, values: result, total: Object.values(result).reduce((s, v) => s + v, 0) }
+  }, [form.annual_value, form.start_date, form.end_date, form.invoice_date, form.contract_duration_years])
 
   async function handleSave() {
     if (!form.client.trim() || !form.bu) { setError('Client and BU are required'); return }
@@ -179,6 +224,7 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
       billing_frequency: form.billing_frequency || 'annual',
       contract_duration_years: parseInt(form.contract_duration_years) || 1,
       renewal_date:    form.renewal_date || null,
+      invoice_date:    form.invoice_date || null,
       ...(!isEdit ? { created_by: profile?.id } : {}),
     }
 
@@ -224,16 +270,29 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
 
         <div>
           <label className="label">Client *</label>
-          <input className="input" value={form.client} onChange={e => set('client', e.target.value)}/>
+          <SearchableSelect
+            value={form.client}
+            onChange={v => set('client', v)}
+            options={clients.map(c => ({ value: c, label: c }))}
+            placeholder="Search clients…"
+            emptyLabel="— Select client —"
+            onCreateNew={(q) => { if (q) set('client', q) }}
+            createLabel="New client"
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="label">SLA Owner</label>
-            <select className="select" value={form.sla_owner} onChange={e => set('sla_owner', e.target.value)}>
-              <option value="">Select…</option>
-              {owners.map(o => <option key={o} value={o}>{o}</option>)}
-            </select>
+            <SearchableSelect
+              value={form.sla_owner}
+              onChange={v => set('sla_owner', v)}
+              options={owners.map(o => ({ value: o, label: o }))}
+              placeholder="Search owners…"
+              emptyLabel="— Select —"
+              onCreateNew={(q) => { if (q) set('sla_owner', q) }}
+              createLabel="Other"
+            />
           </div>
           <div>
             <label className="label">SLA Type</label>
@@ -319,6 +378,38 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
           </div>
         </div>
 
+        <div>
+          <label className="label">Invoice Date</label>
+          <input className="input" type="date" value={form.invoice_date} onChange={e => set('invoice_date', e.target.value)}/>
+          <p className="text-[10px] text-gray-400 mt-0.5">Date when PO received and invoice issued</p>
+        </div>
+
+        {monthlyRecognition && (
+          <div className="border-t pt-3">
+            <p className="text-[10px] font-semibold text-gray-500 uppercase mb-2">Revenue Recognition · FY26</p>
+            <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
+              {monthlyRecognition.months.map((m, i) => {
+                const val = monthlyRecognition.values[monthlyRecognition.keys[i]]
+                const isInvoiceMonth = form.invoice_date && new Date(form.invoice_date).getMonth() === [3,4,5,6,7,8,9,10,11,0,1,2][i]
+                return (
+                  <div key={m} className={`text-center rounded p-1.5 ${val > 0 ? (isInvoiceMonth ? 'bg-amber-50' : 'bg-blue-50') : 'bg-gray-50'}`}>
+                    <p className="text-[9px] text-gray-400">{m}</p>
+                    <p className={`text-xs font-bold ${val > 0 ? 'text-gray-800' : 'text-gray-300'}`}>
+                      {val > 0 ? formatK(val) : '—'}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+            <p className="text-[10px] text-right text-gray-500 mt-1">Total: {formatK(monthlyRecognition.total)}</p>
+            {form.invoice_date && form.start_date && new Date(form.invoice_date) > new Date(form.start_date) && (
+              <p className="text-[10px] text-amber-600 mt-1">
+                Catch-up: invoice month includes {Math.round((new Date(form.invoice_date) - new Date(form.start_date)) / (30.44 * 86400000) + 1)} months of accrued revenue
+              </p>
+            )}
+          </div>
+        )}
+
         {form.billing_model !== 'fixed' && (
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -390,14 +481,14 @@ export default function SLAs() {
 
   const pipelineByFY = useMemo(() => {
     const byFY = {}
-    for (const s of slas) {
-      if (s.status !== 'pipeline' || !s.start_date) continue
-      const fy = getFiscalYear(s.start_date)
+    for (const s of typeFiltered) {
+      if (s.status !== 'pipeline') continue
+      const fy = s.start_date ? getFiscalYear(s.start_date) : 'Unscheduled'
       if (!byFY[fy]) byFY[fy] = []
       byFY[fy].push(s)
     }
     return byFY
-  }, [slas])
+  }, [typeFiltered])
 
   const kpis = useMemo(() => {
     const active = slas.filter(s => ['active','invoiced'].includes(s.status))
@@ -561,12 +652,12 @@ export default function SLAs() {
       {/* SLA list */}
       {tab === 'pipeline' ? (
         <div className="space-y-4">
-          {FY_RANGE.map(fy => {
+          {[...FY_RANGE, 'Unscheduled'].map(fy => {
             const fySlas = pipelineByFY[fy]
             if (!fySlas?.length) return null
             return (
               <div key={fy}>
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">{fy} — {fySlas.length} SLA{fySlas.length > 1 ? 's' : ''}</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">{fy} — {fySlas.length} contract{fySlas.length > 1 ? 's' : ''}</p>
                 <div className="space-y-2">
                   {fySlas.map(s => (
                     <SlaCard key={s.id} sla={s} canEdit={canEdit}

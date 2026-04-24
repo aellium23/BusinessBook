@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useTranslation } from '../hooks/useTranslation'
 import { Modal, Spinner, EmptyState, BUBadge, formatK } from '../components/ui'
+import SearchableSelect from '../components/SearchableSelect'
 import { Plus, Search, Pencil, Trash2, Package, ChevronDown, ChevronUp, X, Layers } from 'lucide-react'
 
 const PRICING_MODELS = [
@@ -305,7 +306,15 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="label">{t('products_cat')} *</label>
-                    <input className="input" value={form.category} onChange={e => set('category', e.target.value)} placeholder="e.g. Synapse 3D"/>
+                    <SearchableSelect
+                      value={form.category}
+                      onChange={v => set('category', v)}
+                      options={[...new Set((allProducts || []).map(p => p.category).filter(Boolean))].sort().map(c => ({ value: c, label: c }))}
+                      placeholder="Search category…"
+                      emptyLabel="— Select —"
+                      onCreateNew={(q) => { if (q) set('category', q) }}
+                      createLabel="New category"
+                    />
                   </div>
                   <div>
                     <label className="label">{t('products_sku')}</label>
