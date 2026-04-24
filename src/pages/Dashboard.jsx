@@ -760,15 +760,17 @@ export default function Dashboard({ hideHeader = false } = {}) {
               <p className="text-[10px] text-gray-500">Manual FCT</p>
               <p className="text-lg font-bold text-amber-600">
                 {fctSnapshots.length > 0
-                  ? formatK((() => {
-                      const latest = {}
-                      for (const s of fctSnapshots) {
-                        const k = `${s.cycle}-${s.bu}-${s.pl_key}`
-                        if (!latest[k]) latest[k] = s
-                      }
-                      return Object.values(latest).reduce((s, r) =>
-                        MONTHS_K.reduce((ms, m) => ms + (r[m] || 0), ms), 0) * 1000
-                    })())
+                  ? (() => {
+                      try {
+                        const latest = {}
+                        for (const s of fctSnapshots) {
+                          const k = `${s.cycle}-${s.bu}-${s.pl_key}`
+                          if (!latest[k]) latest[k] = s
+                        }
+                        return formatK(Object.values(latest).reduce((s, r) =>
+                          MONTHS_K.reduce((ms, m) => ms + (Number(r[m]) || 0), ms), 0) * 1000)
+                      } catch { return '—' }
+                    })()
                   : '—'}
               </p>
               <p className="text-[10px] text-gray-400">last snapshot</p>

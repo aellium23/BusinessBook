@@ -76,9 +76,9 @@ export default function DashboardSummary() {
           revenueByFY, byBU,
         })
       }).catch(() => {})
-    supabase.from('forecast_snapshots').select('*').order('created_at', { ascending: false }).limit(10)
-      .then(({ data }) => {
-        if (!data?.length) return
+    supabase.from('forecast_snapshots').select('*').order('created_at', { ascending: false }).limit(20)
+      .then(({ data, error }) => {
+        if (error || !data?.length) return
         const latest = {}
         for (const s of data) {
           const k = `${s.cycle}-${s.bu}-${s.pl_key}`
