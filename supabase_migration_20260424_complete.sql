@@ -48,6 +48,7 @@ create table if not exists public.products (
 
 create index if not exists products_category_idx on public.products (category);
 create index if not exists products_bu_idx on public.products (bu, active);
+create unique index if not exists products_sku_unique on public.products (sku) where sku is not null;
 
 drop trigger if exists products_updated_at on public.products;
 create trigger products_updated_at
@@ -61,9 +62,9 @@ create policy "products read" on public.products for select using (true);
 
 drop policy if exists "products write" on public.products;
 create policy "products write" on public.products for all using (
-  auth.uid() in (select id from public.profiles where role = 'admin')
+  exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
 ) with check (
-  auth.uid() in (select id from public.profiles where role = 'admin')
+  exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
 );
 
 -- ┌─────────────────────────────────────────────┐
@@ -89,17 +90,15 @@ alter table public.sla_products enable row level security;
 
 drop policy if exists "sla_products read" on public.sla_products;
 create policy "sla_products read" on public.sla_products for select using (
-  auth.uid() in (select id from public.profiles where role = 'admin')
-  or sla_id in (select id from public.slas where bu in (
-    select bu from public.profiles where id = auth.uid()
-  ))
+  exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
+  or exists (select 1 from public.profiles where id = auth.uid() and bu in (select bu from public.slas where id = sla_products.sla_id))
 );
 
 drop policy if exists "sla_products write" on public.sla_products;
 create policy "sla_products write" on public.sla_products for all using (
-  auth.uid() in (select id from public.profiles where role in ('admin','manager'))
+  exists (select 1 from public.profiles where id = auth.uid() and role in ('admin','manager'))
 ) with check (
-  auth.uid() in (select id from public.profiles where role in ('admin','manager'))
+  exists (select 1 from public.profiles where id = auth.uid() and role in ('admin','manager'))
 );
 
 -- ┌─────────────────────────────────────────────┐
@@ -128,17 +127,15 @@ alter table public.sla_usage enable row level security;
 
 drop policy if exists "sla_usage read" on public.sla_usage;
 create policy "sla_usage read" on public.sla_usage for select using (
-  auth.uid() in (select id from public.profiles where role = 'admin')
-  or sla_id in (select id from public.slas where bu in (
-    select bu from public.profiles where id = auth.uid()
-  ))
+  exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
+  or exists (select 1 from public.profiles where id = auth.uid() and bu in (select bu from public.slas where id = sla_usage.sla_id))
 );
 
 drop policy if exists "sla_usage write" on public.sla_usage;
 create policy "sla_usage write" on public.sla_usage for all using (
-  auth.uid() in (select id from public.profiles where role in ('admin','manager'))
+  exists (select 1 from public.profiles where id = auth.uid() and role in ('admin','manager'))
 ) with check (
-  auth.uid() in (select id from public.profiles where role in ('admin','manager'))
+  exists (select 1 from public.profiles where id = auth.uid() and role in ('admin','manager'))
 );
 
 -- Audit triggers
@@ -160,8 +157,6 @@ create trigger audit_sla_usage
 -- ┌─────────────────────────────────────────────┐
 -- │ 5. SEED — Product Catalog (VGT Pricelist)   │
 -- └─────────────────────────────────────────────┘
-
-create unique index if not exists products_sku_unique on public.products (sku) where sku is not null;
 
 insert into public.products (category, sku, name, description, license_fee, annual_fee, pricing_model, bu, sort_order)
 values
