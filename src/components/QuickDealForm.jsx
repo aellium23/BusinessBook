@@ -1,22 +1,24 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { REGIONS } from '../constants'
 import { X } from 'lucide-react'
 
-/**
- * Minimal inline form to create a deal on the fly (used from Tenders and
- * Tasks "Link to deal" flows when the user can't find the deal they need).
- *
- * Props:
- *   initialClient : string — pre-fill the Client field
- *   onCancel      : () => void
- *   onCreated     : (newDealRow) => void
- */
+const COUNTRY_MAP = {
+  Europe: ['Portugal','Spain','France','Germany','Italy','Netherlands','Belgium','UK','Switzerland','Sweden','Norway','Denmark','Finland','Austria','Poland','Czech Republic','Romania','Greece','Turkey','Other Europe'],
+  MEA:    ['UAE','Saudi Arabia','Qatar','Kuwait','Bahrain','Oman','Egypt','Morocco','Algeria','Tunisia','South Africa','Israel','Jordan','Iraq','Nigeria','Kenya','Ghana','Other MEA'],
+  LATAM:  ['Mexico','Brazil','Argentina','Chile','Colombia','Peru','Costa Rica','Panama','El Salvador','Guatemala','Ecuador','Bolivia','Venezuela','Dominican Republic','Other LATAM'],
+  APAC:   ['Japan','China','South Korea','Australia','India','Singapore','Malaysia','Thailand','Indonesia','Vietnam','New Zealand','Other APAC'],
+  NA:     ['USA','Canada','Other NA'],
+}
+
 export default function QuickDealForm({ initialClient = '', onCancel, onCreated }) {
   const { profile, isAdmin } = useAuth()
+  const defaultBU = ['VGT','ECT'].includes(profile?.bu) ? profile.bu : 'VGT'
   const [form, setForm] = useState({
     client:  initialClient,
-    bu:      profile?.bu || 'VGT',
+    bu:      defaultBU,
+    region:  'Europe',
     country: '',
     stage:   'Lead',
   })
@@ -31,6 +33,7 @@ export default function QuickDealForm({ initialClient = '', onCancel, onCreated 
       .insert({
         client: form.client.trim(),
         bu: form.bu,
+        region: form.region || 'Europe',
         country: form.country || null,
         stage: form.stage,
         company_id: profile?.company_id || null,
@@ -41,6 +44,8 @@ export default function QuickDealForm({ initialClient = '', onCancel, onCreated 
     if (e) { setError(e.message); return }
     onCreated?.(data)
   }
+
+  const countries = COUNTRY_MAP[form.region] || []
 
   return (
     <div className="border border-gray-200 rounded-xl p-3 space-y-2 bg-gray-50">
@@ -54,15 +59,20 @@ export default function QuickDealForm({ initialClient = '', onCancel, onCreated 
       <div className="grid grid-cols-2 gap-2">
         <input className="input text-sm" placeholder="Client *"
           value={form.client} onChange={e => setForm(f => ({ ...f, client: e.target.value }))} />
-        <input className="input text-sm" placeholder="Country"
-          value={form.country} onChange={e => setForm(f => ({ ...f, country: e.target.value }))} />
-        {isAdmin && (
-          <select className="select text-sm" value={form.bu}
-            onChange={e => setForm(f => ({ ...f, bu: e.target.value }))}>
-            <option value="VGT">VGT</option>
-            <option value="ECT">ECT</option>
-          </select>
-        )}
+        <select className="select text-sm" value={form.bu}
+          onChange={e => setForm(f => ({ ...f, bu: e.target.value }))}>
+          <option value="VGT">VGT</option>
+          <option value="ECT">ECT</option>
+        </select>
+        <select className="select text-sm" value={form.region}
+          onChange={e => setForm(f => ({ ...f, region: e.target.value, country: '' }))}>
+          {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+        </select>
+        <select className="select text-sm" value={form.country}
+          onChange={e => setForm(f => ({ ...f, country: e.target.value }))}>
+          <option value="">Country…</option>
+          {countries.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
         <select className="select text-sm" value={form.stage}
           onChange={e => setForm(f => ({ ...f, stage: e.target.value }))}>
           <option value="Lead">Lead</option>
