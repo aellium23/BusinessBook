@@ -305,9 +305,13 @@ function exportToCSV(deals) {
       ...MK.map(m => d[m] || 0), fy
     ]
   })
-  const csv = [headers, ...rows].map(r => r.map(v =>
-    typeof v === 'string' && v.includes(',') ? `"${v}"` : v
-  ).join(',')).join('\n')
+  const csvSafe = (v) => {
+    if (typeof v !== 'string') return v
+    let s = v.replace(/"/g, '""')
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s
+    return (s.includes(',') || s.includes('"') || s.includes('\n')) ? `"${s}"` : s
+  }
+  const csv = [headers, ...rows].map(r => r.map(csvSafe).join(',')).join('\n')
   const blob = new Blob([csv], { type: 'text/csv' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement("a"); a.href = url
@@ -324,7 +328,13 @@ const PERIOD_OPTIONS = [
 ]
 
 export default function Deals() {
-  const { canEdit, isAdmin, profile } = useAuth()
+  const { canEdit, isAdmin, editOwnOnly, profile } = useAuth()
+  const canEditDeal = (deal) => {
+    if (!canEdit) return false
+    if (isAdmin) return true
+    if (editOwnOnly) return deal?.created_by === profile?.id || deal?.sales_owner === profile?.full_name || deal?.sales_owner === profile?.sales_owner_name
+    return true
+  }
   const { t } = useTranslation()
 
   // Filtros
@@ -677,7 +687,7 @@ export default function Deals() {
         : <>
             <div className="space-y-2">
               {paginated.map(d => (
-                <DealCard key={d.id} deal={d} canEdit={canEdit}
+                <DealCard key={d.id} deal={d} canEdit={canEditDeal(d)}
                   onEdit={deal => { setEditDeal(deal); setFormOpen(true) }}
                   onDelete={setConfirmDel}
                 />

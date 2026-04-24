@@ -452,7 +452,7 @@ export default function SLAs() {
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2 flex items-center gap-1">
           <TrendingUp size={12}/> Projected SLA Revenue by Fiscal Year
         </p>
-        <div className="grid grid-cols-6 gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
           {FY_RANGE.map(fy => {
             const total = revenueByFY[fy].vgt + revenueByFY[fy].ect
             return (

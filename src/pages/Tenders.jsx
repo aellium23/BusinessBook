@@ -50,7 +50,7 @@ function DeadlineChip({ date, label }) {
 }
 
 // ── Tender Form Modal ──────────────────────────────────────────────────────────
-function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged }) {
+function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, canEdit: canEditProp }) {
   const { user } = useAuth()
   const isEdit = !!tender?.id
   const [form, setForm] = useState({
@@ -289,7 +289,7 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged })
         {tab === 'requirements' && (
           <RequirementsMatrix
             tenderId={tender?.id}
-            canEdit={true}
+            canEdit={canEditProp}
             assignees={users}
           />
         )}
@@ -298,7 +298,7 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged })
           <AttachmentsList
             entityType="tender"
             entityId={tender?.id}
-            canEdit={true}
+            canEdit={canEditProp}
           />
         )}
       </div>
@@ -556,6 +556,7 @@ export default function Tenders() {
           deals={deals}
           users={users}
           onDealsChanged={() => loadDeals()}
+          canEdit={canEdit}
         />
       )}
     </div>

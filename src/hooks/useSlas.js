@@ -16,8 +16,11 @@ export function useSlas(filters = {}) {
     if (filters.bu)     q = q.eq('bu', filters.bu)
     if (filters.status) q = q.eq('status', filters.status)
     if (filters.search) {
-      const s = `%${filters.search}%`
-      q = q.or(`client.ilike.${s},sla_owner.ilike.${s},description.ilike.${s}`)
+      const safe = String(filters.search).replace(/[%_\\]/g, m => `\\${m}`)
+      q = q.or(`client.ilike.%${safe}%,sla_owner.ilike.%${safe}%,description.ilike.%${safe}%`)
+    }
+    if (!isAdmin && profile?.bu) {
+      q = q.eq('bu', profile.bu)
     }
     const { data, error } = await q
     if (error) console.warn('useSlas:', error.message)

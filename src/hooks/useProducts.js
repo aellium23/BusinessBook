@@ -14,8 +14,8 @@ export function useProducts(filters = {}) {
     if (filters.bu)       q = q.eq('bu', filters.bu)
     if (filters.active !== undefined) q = q.eq('active', filters.active)
     if (filters.search) {
-      const s = `%${filters.search}%`
-      q = q.or(`name.ilike.${s},sku.ilike.${s},description.ilike.${s},category.ilike.${s}`)
+      const safe = String(filters.search).replace(/[%_\\]/g, m => `\\${m}`)
+      q = q.or(`name.ilike.%${safe}%,sku.ilike.%${safe}%,description.ilike.%${safe}%,category.ilike.%${safe}%`)
     }
     const { data, error } = await q
     if (error) console.warn('useProducts:', error.message)
