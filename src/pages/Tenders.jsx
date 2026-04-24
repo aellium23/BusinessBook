@@ -7,6 +7,7 @@ import AttachmentsList from '../components/AttachmentsList'
 import RequirementsMatrix from '../components/RequirementsMatrix'
 import SearchableSelect from '../components/SearchableSelect'
 import QuickDealForm from '../components/QuickDealForm'
+import ProductLineItems from '../components/ProductLineItems'
 import {
   Plus, Edit3, Trash2, AlertCircle, Calendar, Link2,
   Users, TrendingUp, CheckCircle2, XCircle, Clock,
@@ -69,9 +70,20 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
   const [error, setError]   = useState(null)
   const [creatingDeal, setCreatingDeal] = useState(false)
   const [prefillClient, setPrefillClient] = useState('')
-  const [tab, setTab]       = useState('details') // 'details' | 'requirements' | 'attachments'
+  const [tab, setTab]       = useState('details')
+  const [tenderLines, setTenderLines] = useState([])
+  const [catalogProducts, setCatalogProducts] = useState([])
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
+
+  useEffect(() => {
+    supabase.from('products').select('*').eq('active', true).order('sort_order').order('name')
+      .then(({ data }) => { if (data) setCatalogProducts(data) }).catch(() => {})
+    if (tender?.id) {
+      supabase.from('tender_products').select('*').eq('tender_id', tender.id).order('created_at')
+        .then(({ data }) => { if (data) setTenderLines(data.map(d => ({ ...d, _key: d.id }))) }).catch(() => {})
+    }
+  }, [tender?.id])
 
   function toggleCollab(userId) {
     setForm(f => ({
@@ -106,12 +118,24 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
       if (e) { setError(e.message); setSaving(false); return }
       tenderId = data?.id
     }
-    // Update collaborators
     if (tenderId) {
       await supabase.from('tender_collaborators').delete().eq('tender_id', tenderId)
       if (form.collaborators.length > 0) {
         await supabase.from('tender_collaborators').insert(
           form.collaborators.map(uid => ({ tender_id: tenderId, user_id: uid, role: 'contributor' }))
+        )
+      }
+      await supabase.from('tender_products').delete().eq('tender_id', tenderId)
+      if (tenderLines.length > 0) {
+        await supabase.from('tender_products').insert(
+          tenderLines.map(l => ({
+            tender_id:    tenderId,
+            product_id:   l.product_id || null,
+            product_name: l.product_name,
+            quantity:     parseInt(l.quantity) || 1,
+            unit_price:   parseFloat(l.unit_price) || 0,
+            notes:        l.notes || null,
+          }))
         )
       }
     }
@@ -122,6 +146,7 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
 
   const tabs = [
     { id: 'details',      label: 'Details',      icon: Info,       show: true },
+    { id: 'products',     label: 'Products',     icon: Info,       show: true },
     { id: 'requirements', label: 'Requirements', icon: ListChecks, show: isEdit },
     { id: 'attachments',  label: 'Attachments',  icon: Paperclip,  show: isEdit },
   ].filter(t => t.show)
@@ -285,6 +310,15 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
         </div>
 
         </>}
+
+        {tab === 'products' && (
+          <ProductLineItems
+            lines={tenderLines}
+            onChange={setTenderLines}
+            products={catalogProducts}
+            businessModel="capex"
+          />
+        )}
 
         {tab === 'requirements' && (
           <RequirementsMatrix

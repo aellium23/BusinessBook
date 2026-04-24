@@ -52,7 +52,7 @@ export async function deleteSla(id) {
 }
 
 export async function createSlaFromDeal(deal, overrides = {}) {
-  const warrantyMonths = overrides.warranty_months || 36
+  const warrantyMonths = overrides.warranty_months || deal.warranty_months || 36
   let warrantyEnd = null
   let slaStart = null
   if (deal.ce_month && deal.ce_year) {
@@ -83,10 +83,32 @@ export async function createSlaFromDeal(deal, overrides = {}) {
     warranty_end_date: warrantyEnd?.toISOString().split('T')[0] || null,
     start_date:        slaStart?.toISOString().split('T')[0] || null,
     revenue_by_fy:     revenue,
+    billing_model:     overrides.billing_model || 'fixed',
     account_id:        deal.account_id || null,
     country:           deal.country || null,
     region:            deal.region || null,
     product:           deal.product || null,
   }
-  return createSla(sla)
+  const result = await createSla(sla)
+  if (result.data?.id) {
+    const { data: dealProducts } = await supabase
+      .from('deal_products')
+      .select('product_id, product_name, quantity, annual_fee')
+      .eq('deal_id', deal.id)
+    if (dealProducts?.length) {
+      const slaLines = dealProducts
+        .filter(dp => dp.annual_fee > 0)
+        .map(dp => ({
+          sla_id:       result.data.id,
+          product_id:   dp.product_id,
+          product_name: dp.product_name,
+          quantity:     dp.quantity,
+          annual_value: dp.annual_fee * dp.quantity,
+        }))
+      if (slaLines.length) {
+        await supabase.from('sla_products').insert(slaLines)
+      }
+    }
+  }
+  return result
 }

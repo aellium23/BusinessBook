@@ -6,7 +6,7 @@ import { useTranslation } from '../hooks/useTranslation'
 import { Spinner, formatK } from '../components/ui'
 import Gauge from '../components/Gauge'
 import { MONTHS_K } from '../constants'
-import { TrendingUp, Target, AlertCircle } from 'lucide-react'
+import { TrendingUp, Target, AlertCircle, RefreshCw } from 'lucide-react'
 
 // ── Active cycle helper ────────────────────────────────────────────────────
 function activeCycleNow() {
@@ -36,6 +36,7 @@ export default function DashboardSummary() {
   const { deals, loading }   = useDeals()
   const [budget, setBudget]  = useState([])
   const [fy25, setFy25]      = useState([])
+  const [slaStats, setSlaStats] = useState({ active: 0, activeValue: 0, pipelineValue: 0 })
 
   useEffect(() => {
     supabase.from('budget').select('*')
@@ -44,6 +45,17 @@ export default function DashboardSummary() {
     supabase.from('fy25_actuals').select('*')
       .then(({ data }) => setFy25(data || []))
       .catch(e => console.warn('fy25:', e?.message))
+    supabase.from('slas').select('status, annual_value')
+      .then(({ data }) => {
+        if (!data) return
+        const active = data.filter(s => ['active','invoiced'].includes(s.status))
+        const pipeline = data.filter(s => s.status === 'pipeline')
+        setSlaStats({
+          active: active.length,
+          activeValue: active.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
+          pipelineValue: pipeline.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
+        })
+      }).catch(() => {})
   }, [])
 
   const cycle = useMemo(() => activeCycleNow(), [])
@@ -209,6 +221,26 @@ export default function DashboardSummary() {
             </p>
             <p className="text-2xl font-bold text-ect mt-1">{formatK(pipeline.ect)}</p>
             <p className="text-micro text-gray-400">open + offer + backlog</p>
+          </div>
+        </div>
+      )}
+
+      {/* Recurring Revenue */}
+      {isAdmin && (slaStats.active > 0 || slaStats.pipelineValue > 0) && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="card p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1">
+              <RefreshCw size={12}/> Active SLA (ARR)
+            </p>
+            <p className="text-2xl font-bold text-green-600 mt-1">{formatK(slaStats.activeValue)}</p>
+            <p className="text-micro text-gray-400">{slaStats.active} contracts/year</p>
+          </div>
+          <div className="card p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1">
+              <RefreshCw size={12}/> SLA Pipeline
+            </p>
+            <p className="text-2xl font-bold text-gray-600 mt-1">{formatK(slaStats.pipelineValue)}</p>
+            <p className="text-micro text-gray-400">future recurring</p>
           </div>
         </div>
       )}
