@@ -1,176 +1,206 @@
 import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { BUBadge, StageBadge, formatK, CurrencyBadge, Spinner, EmptyState } from '../components/ui'
-import { Building2, Search, ChevronDown, ChevronUp, RefreshCw, MapPin, Globe, Filter } from 'lucide-react'
+import { BUBadge, formatK, Spinner, EmptyState, Modal } from '../components/ui'
+import { Building2, Search, MapPin, Globe, RefreshCw, Plus, Pencil } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 import { REGIONS } from '../constants'
 
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
+const COUNTRY_MAP = {
+  Europe: ['Portugal','Spain','France','Germany','Italy','Netherlands','Belgium','UK','Switzerland','Sweden','Norway','Denmark','Finland','Austria','Poland','Czech Republic','Romania','Greece','Turkey','Other Europe'],
+  MEA: ['UAE','Saudi Arabia','Qatar','Kuwait','Egypt','Morocco','South Africa','Israel','Other MEA'],
+  LATAM: ['Mexico','Brazil','Argentina','Chile','Colombia','Peru','Other LATAM'],
+  APAC: ['Japan','China','South Korea','Australia','India','Singapore','Other APAC'],
+  NA: ['USA','Canada','Other NA'],
+}
 
-function ClientCard({ client, deals }) {
-  const [open, setOpen] = useState(false)
+function ClientFormModal({ client, distributors, onClose, onSaved }) {
+  const isEdit = !!client?.id
+  const [form, setForm] = useState({
+    name:           client?.name           || '',
+    country:        client?.country        || '',
+    region:         client?.region         || '',
+    bu:             client?.bu             || 'VGT',
+    client_type:    client?.client_type    || 'public',
+    distributor_id: client?.distributor_id || '',
+    notes:          client?.notes          || '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
+  function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
-  const totalFY26 = deals.reduce((s, d) => {
-    const fy = MONTHS_K.reduce((ms, m) => ms + (d[m] || 0), 0)
-    const fyEUR = fy * ((!d.currency || d.currency === 'EUR') ? 1 : (d.exchange_rate || 1))
-    return s + (['BackLog', 'Invoiced'].includes(d.stage) ? fyEUR : 0)
-  }, 0)
-
-  const totalPipe = deals.reduce((s, d) =>
-    ['Pipeline', 'Offer Presented'].includes(d.stage)
-      ? s + (d.value_total || 0) * ((!d.currency || d.currency === 'EUR') ? 1 : (d.exchange_rate || 1)) : s, 0)
-
-  const slas = deals.filter(d => d.is_sla)
-  const bus = [...new Set(deals.map(d => d.bu))]
-  const country = deals[0]?.country || ''
-  const region = deals[0]?.region || ''
+  async function handleSave() {
+    if (!form.name.trim()) { setError('Name is required'); return }
+    setSaving(true); setError(null)
+    const payload = {
+      name: form.name.trim(),
+      country: form.country || null,
+      region: form.region || null,
+      bu: form.bu || 'VGT',
+      client_type: form.client_type || 'public',
+      distributor_id: form.distributor_id || null,
+      notes: form.notes || null,
+    }
+    const res = isEdit
+      ? await supabase.from('accounts').update(payload).eq('id', client.id)
+      : await supabase.from('accounts').insert(payload)
+    setSaving(false)
+    if (res.error) { setError(res.error.message); return }
+    onSaved()
+  }
 
   return (
-    <div className="card overflow-hidden">
-      <div className="p-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-              {bus.map(b => <BUBadge key={b} bu={b}/>)}
-              {slas.length > 0 && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">
-                  <RefreshCw size={8}/> {slas.length} SLA
-                </span>
-              )}
-            </div>
-            <p className="font-semibold text-sm text-gray-900 truncate">{client}</p>
-            <div className="flex items-center gap-2 text-[10px] text-gray-400 mt-0.5">
-              {country && <span className="flex items-center gap-0.5"><MapPin size={8}/> {country}</span>}
-              {region && <span>{region}</span>}
-              <span>{deals.length} deal{deals.length !== 1 ? 's' : ''}</span>
-            </div>
+    <Modal open title={isEdit ? 'Edit Client' : 'New Client'} onClose={onClose}
+      footer={
+        <div className="flex gap-2">
+          <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
+          <button onClick={handleSave} disabled={saving} className="btn-primary flex-1">
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      }>
+      <div className="space-y-3">
+        {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+        <div>
+          <label className="label">Name *</label>
+          <input className="input" value={form.name} onChange={e => set('name', e.target.value)} placeholder="Hospital name"/>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">Region</label>
+            <select className="select" value={form.region} onChange={e => { set('region', e.target.value); set('country', '') }}>
+              <option value="">—</option>
+              {REGIONS.map(r => <option key={r}>{r}</option>)}
+            </select>
           </div>
-          <div className="text-right shrink-0">
-            <p className="text-sm font-bold text-gray-900">{formatK(totalFY26)}</p>
-            <p className="text-[10px] text-gray-400">FY26</p>
-            {totalPipe > 0 && <p className="text-[10px] text-amber-600">+{formatK(totalPipe)} pipe</p>}
+          <div>
+            <label className="label">Country</label>
+            <select className="select" value={form.country} onChange={e => set('country', e.target.value)}>
+              <option value="">—</option>
+              {(COUNTRY_MAP[form.region] || []).map(c => <option key={c}>{c}</option>)}
+            </select>
           </div>
         </div>
-
-        <button onClick={() => setOpen(o => !o)}
-          className="mt-1.5 text-[10px] text-gray-400 flex items-center gap-1 hover:text-gray-600 min-h-tap">
-          {open ? <ChevronUp size={10}/> : <ChevronDown size={10}/>}
-          {open ? 'Hide' : `${deals.length} deals`}
-        </button>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">Type</label>
+            <div className="grid grid-cols-2 gap-1">
+              <button type="button" onClick={() => set('client_type', 'public')}
+                className={`px-2 py-1.5 rounded text-xs font-medium border-2 ${form.client_type === 'public' ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-500'}`}>
+                Public
+              </button>
+              <button type="button" onClick={() => set('client_type', 'private')}
+                className={`px-2 py-1.5 rounded text-xs font-medium border-2 ${form.client_type === 'private' ? 'border-purple-400 bg-purple-50 text-purple-700' : 'border-gray-200 text-gray-500'}`}>
+                Private
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="label">BU</label>
+            <select className="select" value={form.bu} onChange={e => set('bu', e.target.value)}>
+              <option value="VGT">VGT</option>
+              <option value="ECT">ECT</option>
+            </select>
+          </div>
+        </div>
+        {distributors.length > 0 && (
+          <div>
+            <label className="label">Distributor</label>
+            <select className="select" value={form.distributor_id} onChange={e => set('distributor_id', e.target.value)}>
+              <option value="">— Direct —</option>
+              {distributors.map(d => <option key={d.id} value={d.id}>{d.name} ({d.country || d.region})</option>)}
+            </select>
+          </div>
+        )}
+        <div>
+          <label className="label">Notes</label>
+          <textarea className="input min-h-[60px] resize-none" value={form.notes} onChange={e => set('notes', e.target.value)}/>
+        </div>
       </div>
-
-      {open && (
-        <div className="border-t border-gray-100">
-          {deals.map(d => {
-            const fy = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
-            return (
-              <div key={d.id} className="flex items-center justify-between px-3 py-2 border-b border-gray-50 last:border-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <StageBadge stage={d.stage}/>
-                  {d.is_sla && <RefreshCw size={9} className="text-blue-500 shrink-0"/>}
-                  <span className="text-xs text-gray-700 truncate">{d.description || d.deal_type || '—'}</span>
-                </div>
-                <div className="text-right shrink-0 ml-2">
-                  <p className="text-xs font-medium text-gray-800">{formatK(d.value_total)}</p>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
-    </div>
+    </Modal>
   )
 }
 
 export default function Clients() {
-  const { isAdmin, profile } = useAuth()
+  const { isAdmin, canEdit, profile } = useAuth()
   const { t } = useTranslation()
-
+  const [accounts, setAccounts] = useState([])
   const [deals, setDeals] = useState([])
+  const [distributors, setDistributors] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [regionF, setRegionF] = useState('')
   const [countryF, setCountryF] = useState('')
+  const [typeF, setTypeF] = useState('')
   const [buF, setBuF] = useState('')
-  const [slaOnly, setSlaOnly] = useState(false)
-  const [viewMode, setViewMode] = useState('list')
+  const [page, setPage] = useState(1)
+  const [formOpen, setFormOpen] = useState(false)
+  const [editClient, setEditClient] = useState(null)
+  const pageSize = 10
 
   useEffect(() => {
-    let q = supabase.from('deals').select('*')
-      .eq('is_intercompany_mirror', false)
-      .order('client')
-    if (!isAdmin) {
-      if (profile?.role === 'distributor' && profile?.company_id) {
-        q = q.eq('company_id', profile.company_id)
-      } else if (profile?.bu) {
-        q = q.eq('bu', profile.bu)
-      }
-    }
-    q.then(({ data }) => { setDeals(data || []); setLoading(false) })
-      .catch(() => setLoading(false))
-  }, [profile, isAdmin])
+    Promise.all([
+      supabase.from('accounts').select('*, distributor:distributor_id(id, name)').order('name'),
+      supabase.from('deals').select('id, client, account_id, bu, stage, value_total, is_sla, region, country').eq('is_intercompany_mirror', false),
+      supabase.from('distributors').select('id, name, country, region').order('name'),
+    ]).then(([aRes, dRes, distRes]) => {
+      setAccounts(aRes.data || [])
+      setDeals(dRes.data || [])
+      setDistributors(distRes.data || [])
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }, [])
 
-  const countries = useMemo(() =>
-    [...new Set(deals.map(d => d.country).filter(Boolean))].sort(),
-    [deals]
-  )
+  function refresh() {
+    supabase.from('accounts').select('*, distributor:distributor_id(id, name)').order('name')
+      .then(({ data }) => setAccounts(data || []))
+  }
 
-  const countriesForRegion = useMemo(() => {
-    if (!regionF) return countries
-    return [...new Set(deals.filter(d => d.region === regionF).map(d => d.country).filter(Boolean))].sort()
-  }, [deals, regionF, countries])
+  const leafAccounts = useMemo(() => {
+    const parentIds = new Set(accounts.filter(a => a.parent_id).map(a => a.parent_id))
+    return accounts.filter(a => !parentIds.has(a.id))
+  }, [accounts])
 
-  const grouped = useMemo(() => {
-    let filtered = deals
-    if (buF) filtered = filtered.filter(d => d.bu === buF)
-    if (regionF) filtered = filtered.filter(d => d.region === regionF)
-    if (countryF) filtered = filtered.filter(d => d.country === countryF)
-    if (slaOnly) filtered = filtered.filter(d => d.is_sla)
+  const enriched = useMemo(() => {
+    return leafAccounts.map(acc => {
+      const accDeals = deals.filter(d => d.account_id === acc.id || (d.client && d.client.toLowerCase() === acc.name.toLowerCase()))
+      const pipeline = accDeals.filter(d => ['Pipeline', 'Offer Presented'].includes(d.stage)).reduce((s, d) => s + (d.value_total || 0), 0)
+      const invoiced = accDeals.filter(d => d.stage === 'Invoiced').reduce((s, d) => s + (d.value_total || 0), 0)
+      const slaCount = accDeals.filter(d => d.is_sla).length
+      return { ...acc, dealCount: accDeals.length, pipeline, invoiced, slaCount }
+    })
+  }, [leafAccounts, deals])
+
+  const filtered = useMemo(() => {
+    let list = enriched
+    if (regionF) list = list.filter(a => a.region === regionF)
+    if (countryF) list = list.filter(a => a.country === countryF)
+    if (typeF) list = list.filter(a => a.client_type === typeF)
+    if (buF) list = list.filter(a => a.bu === buF)
     if (search) {
       const s = search.toLowerCase()
-      filtered = filtered.filter(d =>
-        d.client?.toLowerCase().includes(s) ||
-        d.country?.toLowerCase().includes(s) ||
-        d.sales_owner?.toLowerCase().includes(s)
-      )
+      list = list.filter(a => a.name.toLowerCase().includes(s) || (a.country || '').toLowerCase().includes(s))
     }
+    return list.sort((a, b) => (b.invoiced + b.pipeline) - (a.invoiced + a.pipeline))
+  }, [enriched, regionF, countryF, typeF, buF, search])
 
-    const map = {}
-    filtered.forEach(d => {
-      if (!map[d.client]) map[d.client] = []
-      map[d.client].push(d)
-    })
+  const countries = useMemo(() =>
+    [...new Set(enriched.map(a => a.country).filter(Boolean))].sort(),
+    [enriched]
+  )
 
-    return Object.entries(map).sort((a, b) => {
-      const aFY = a[1].reduce((s, d) => s + MONTHS_K.reduce((ms, m) => ms + (d[m] || 0), 0), 0)
-      const bFY = b[1].reduce((s, d) => s + MONTHS_K.reduce((ms, m) => ms + (d[m] || 0), 0), 0)
-      return bFY - aFY
-    })
-  }, [deals, buF, regionF, countryF, slaOnly, search])
+  const stats = useMemo(() => ({
+    total: filtered.length,
+    public: filtered.filter(a => a.client_type === 'public').length,
+    private: filtered.filter(a => a.client_type === 'private').length,
+    withSLA: filtered.filter(a => a.slaCount > 0).length,
+    pipeline: filtered.reduce((s, a) => s + a.pipeline, 0),
+    invoiced: filtered.reduce((s, a) => s + a.invoiced, 0),
+  }), [filtered])
 
-  const byRegion = useMemo(() => {
-    const map = {}
-    for (const [client, ds] of grouped) {
-      const r = ds[0]?.region || 'Other'
-      if (!map[r]) map[r] = []
-      map[r].push([client, ds])
-    }
-    return map
-  }, [grouped])
-
-  const stats = useMemo(() => {
-    const allDeals = grouped.flatMap(([, ds]) => ds)
-    return {
-      clients: grouped.length,
-      withSLA: grouped.filter(([, ds]) => ds.some(d => d.is_sla)).length,
-      totalValue: allDeals.reduce((s, d) => s + (d.value_total || 0), 0),
-      pipeline: allDeals.filter(d => ['Pipeline', 'Offer Presented'].includes(d.stage))
-        .reduce((s, d) => s + (d.value_total || 0), 0),
-      invoiced: allDeals.filter(d => d.stage === 'Invoiced')
-        .reduce((s, d) => s + (d.value_total || 0), 0),
-    }
-  }, [grouped])
+  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize)
+  const totalPages = Math.ceil(filtered.length / pageSize)
 
   if (loading) return <Spinner/>
 
@@ -179,25 +209,19 @@ export default function Clients() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-lg font-bold text-gray-900">{t('clients_title')}</h1>
-          <p className="text-xs text-gray-400">{stats.clients} clients · {stats.withSLA} with SLA</p>
+          <p className="text-xs text-gray-400">{stats.total} clients · {stats.public} public · {stats.private} private</p>
         </div>
-        <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
-          <button onClick={() => setViewMode('list')}
-            className={`px-2.5 py-1 rounded text-xs font-semibold ${viewMode === 'list' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>
-            List
+        {canEdit && (
+          <button onClick={() => { setEditClient(null); setFormOpen(true) }} className="btn-primary flex items-center gap-1">
+            <Plus size={14}/> New Client
           </button>
-          <button onClick={() => setViewMode('region')}
-            className={`px-2.5 py-1 rounded text-xs font-semibold ${viewMode === 'region' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>
-            By Region
-          </button>
-        </div>
+        )}
       </div>
 
-      {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <div className="card p-3">
           <p className="text-[10px] text-gray-400 uppercase font-semibold">Clients</p>
-          <p className="text-xl font-bold text-navy">{stats.clients}</p>
+          <p className="text-xl font-bold text-navy">{stats.total}</p>
         </div>
         <div className="card p-3">
           <p className="text-[10px] text-gray-400 uppercase font-semibold">Pipeline</p>
@@ -208,88 +232,106 @@ export default function Clients() {
           <p className="text-xl font-bold text-green-600">{formatK(stats.invoiced)}</p>
         </div>
         <div className="card p-3">
-          <p className="text-[10px] text-gray-400 uppercase font-semibold">Active SLAs</p>
+          <p className="text-[10px] text-gray-400 uppercase font-semibold">With SLA</p>
           <p className="text-xl font-bold text-blue-600">{stats.withSLA}</p>
         </div>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-wrap gap-2 items-center">
-        <div className="relative flex-1 min-w-[160px]">
-          <input className="input pl-8 text-sm" placeholder="Search clients…"
-            value={search} onChange={e => setSearch(e.target.value)} style={{ fontSize: '16px' }}/>
+        <div className="relative flex-1 min-w-[140px]">
+          <input className="input pl-8 text-sm" placeholder="Search…" value={search}
+            onChange={e => { setSearch(e.target.value); setPage(1) }} style={{ fontSize: '16px' }}/>
           <Search size={14} className="absolute left-2.5 top-3 text-gray-400"/>
         </div>
-        <select className="select text-xs w-auto" value={regionF} onChange={e => { setRegionF(e.target.value); setCountryF('') }}>
+        <select className="select text-xs w-auto" value={regionF} onChange={e => { setRegionF(e.target.value); setCountryF(''); setPage(1) }}>
           <option value="">All Regions</option>
-          {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+          {REGIONS.map(r => <option key={r}>{r}</option>)}
         </select>
-        <select className="select text-xs w-auto" value={countryF} onChange={e => setCountryF(e.target.value)}>
+        <select className="select text-xs w-auto" value={countryF} onChange={e => { setCountryF(e.target.value); setPage(1) }}>
           <option value="">All Countries</option>
-          {countriesForRegion.map(c => <option key={c} value={c}>{c}</option>)}
+          {countries.map(c => <option key={c}>{c}</option>)}
+        </select>
+        <select className="select text-xs w-auto" value={typeF} onChange={e => { setTypeF(e.target.value); setPage(1) }}>
+          <option value="">All Types</option>
+          <option value="public">Public</option>
+          <option value="private">Private</option>
         </select>
         {isAdmin && (
-          <select className="select text-xs w-auto" value={buF} onChange={e => setBuF(e.target.value)}>
+          <select className="select text-xs w-auto" value={buF} onChange={e => { setBuF(e.target.value); setPage(1) }}>
             <option value="">All BU</option>
             <option value="VGT">VGT</option>
             <option value="ECT">ECT</option>
           </select>
         )}
-        <button onClick={() => setSlaOnly(o => !o)}
-          className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border ${
-            slaOnly ? 'bg-blue-50 border-blue-300 text-blue-700' : 'border-gray-200 text-gray-500'
-          }`}>
-          <RefreshCw size={10} className="inline mr-1"/> SLA
-        </button>
       </div>
 
-      {/* Client list */}
-      {viewMode === 'list' ? (
-        <div className="space-y-2">
-          {grouped.length === 0 ? (
-            <EmptyState icon="🏥" title={t('clients_none')} description="Adjust filters or add deals."/>
-          ) : grouped.map(([client, ds]) => (
-            <ClientCard key={client} client={client} deals={ds}/>
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {REGIONS.map(region => {
-            const regionClients = byRegion[region]
-            if (!regionClients?.length) return null
-            const regionValue = regionClients.reduce((s, [, ds]) =>
-              s + ds.reduce((ds2, d) => ds2 + (d.value_total || 0), 0), 0)
-            return (
-              <div key={region}>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5">
-                    <Globe size={12}/> {region}
-                    <span className="text-gray-400 font-normal">({regionClients.length} clients)</span>
-                  </p>
-                  <span className="text-xs text-gray-500 font-semibold">{formatK(regionValue)}</span>
-                </div>
-                <div className="space-y-2">
-                  {regionClients.map(([client, ds]) => (
-                    <ClientCard key={client} client={client} deals={ds}/>
-                  ))}
-                </div>
+      <p className="text-xs text-gray-400">
+        Showing {Math.min((page-1)*pageSize+1, filtered.length)}–{Math.min(page*pageSize, filtered.length)} of {filtered.length}
+      </p>
+
+      <div className="space-y-2">
+        {paginated.length === 0 ? (
+          <EmptyState icon="🏥" title={t('clients_none')} description="Create a client or adjust filters."
+            action={canEdit && <button onClick={() => setFormOpen(true)} className="btn-primary">New Client</button>}/>
+        ) : paginated.map(c => (
+          <div key={c.id} className="card p-3 flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                <BUBadge bu={c.bu}/>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${c.client_type === 'public' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                  {c.client_type === 'public' ? 'Public' : 'Private'}
+                </span>
+                {c.slaCount > 0 && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700 flex items-center gap-0.5">
+                    <RefreshCw size={8}/> {c.slaCount} SLA
+                  </span>
+                )}
               </div>
-            )
-          })}
-          {byRegion['Other']?.length > 0 && (
-            <div>
-              <p className="text-xs font-bold text-gray-400 uppercase mb-2">Other</p>
-              <div className="space-y-2">
-                {byRegion['Other'].map(([client, ds]) => (
-                  <ClientCard key={client} client={client} deals={ds}/>
-                ))}
+              <p className="font-semibold text-sm text-gray-900 truncate">{c.name}</p>
+              <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                {c.country && <span className="flex items-center gap-0.5"><MapPin size={8}/> {c.country}</span>}
+                {c.distributor?.name && <span>via {c.distributor.name}</span>}
+                {c.dealCount > 0 && <span>{c.dealCount} deals</span>}
               </div>
             </div>
-          )}
-          {grouped.length === 0 && (
-            <EmptyState icon="🏥" title={t('clients_none')} description="Adjust filters or add deals."/>
-          )}
+            <div className="text-right shrink-0">
+              {c.invoiced > 0 && <p className="text-sm font-bold text-green-600">{formatK(c.invoiced)}</p>}
+              {c.pipeline > 0 && <p className="text-[10px] text-amber-600">+{formatK(c.pipeline)} pipe</p>}
+            </div>
+            {canEdit && (
+              <button onClick={() => { setEditClient(c); setFormOpen(true) }}
+                className="text-gray-400 hover:text-navy p-1.5 min-h-tap shrink-0">
+                <Pencil size={13}/>
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-1 pt-1">
+          <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={page === 1}
+            className="btn-secondary text-xs px-2 py-1 disabled:opacity-30">←</button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1)
+            .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+            .reduce((acc, p, i, arr) => { if (i > 0 && p - arr[i-1] > 1) acc.push('…'); acc.push(p); return acc }, [])
+            .map((p, i) => p === '…'
+              ? <span key={`e${i}`} className="text-xs text-gray-300 px-1">…</span>
+              : <button key={p} onClick={() => setPage(p)}
+                  className={`text-xs px-2.5 py-1 rounded-lg font-medium ${p === page ? 'bg-navy text-white' : 'text-gray-500 hover:bg-gray-100'}`}>{p}</button>
+            )}
+          <button onClick={() => setPage(p => Math.min(totalPages, p+1))} disabled={page >= totalPages}
+            className="btn-secondary text-xs px-2 py-1 disabled:opacity-30">→</button>
         </div>
+      )}
+
+      {formOpen && (
+        <ClientFormModal
+          client={editClient}
+          distributors={distributors}
+          onClose={() => { setFormOpen(false); setEditClient(null) }}
+          onSaved={() => { setFormOpen(false); setEditClient(null); refresh() }}
+        />
       )}
     </div>
   )

@@ -5,6 +5,14 @@ import { useTranslation } from '../hooks/useTranslation'
 import { Spinner, EmptyState } from '../components/ui'
 import SearchableSelect from '../components/SearchableSelect'
 import { REGIONS } from '../constants'
+
+const COUNTRY_MAP = {
+  Europe: ['Portugal','Spain','France','Germany','Italy','Netherlands','Belgium','UK','Switzerland','Sweden','Norway','Denmark','Finland','Austria','Poland','Czech Republic','Romania','Greece','Turkey','Other Europe'],
+  MEA:    ['UAE','Saudi Arabia','Qatar','Kuwait','Bahrain','Oman','Egypt','Morocco','Algeria','Tunisia','South Africa','Israel','Jordan','Iraq','Nigeria','Kenya','Ghana','Other MEA'],
+  LATAM:  ['Mexico','Brazil','Argentina','Chile','Colombia','Peru','Costa Rica','Panama','El Salvador','Guatemala','Ecuador','Bolivia','Venezuela','Dominican Republic','Other LATAM'],
+  APAC:   ['Japan','China','South Korea','Australia','India','Singapore','Malaysia','Thailand','Indonesia','Vietnam','New Zealand','Other APAC'],
+  NA:     ['USA','Canada','Other NA'],
+}
 import {
   Globe, Plus, Edit3, Trash2, X, Save, AlertCircle, Search,
   MapPin, Building, Network as NetIcon,
@@ -19,11 +27,12 @@ const TABS = [
 function DistributorEditor({ item, hubs, onClose, onSaved }) {
   const isEdit = !!item?.id
   const [form, setForm] = useState({
-    name:    item?.name    ?? '',
-    country: item?.country ?? '',
-    region:  item?.region  ?? '',
-    hub_id:  item?.hub_id  ?? '',
-    notes:   item?.notes   ?? '',
+    name:       item?.name       ?? '',
+    country:    item?.country    ?? '',
+    region:     item?.region     ?? '',
+    hub_id:     item?.hub_id     ?? '',
+    sales_type: item?.sales_type ?? 'external',
+    notes:      item?.notes      ?? '',
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState(null)
@@ -34,11 +43,12 @@ function DistributorEditor({ item, hubs, onClose, onSaved }) {
     if (!form.name.trim()) { setError('Name is required'); return }
     setSaving(true); setError(null)
     const payload = {
-      name:    form.name.trim(),
-      country: form.country || null,
-      region:  form.region  || null,
-      hub_id:  form.hub_id  || null,
-      notes:   form.notes   || null,
+      name:       form.name.trim(),
+      country:    form.country || null,
+      region:     form.region  || null,
+      hub_id:     form.hub_id  || null,
+      sales_type: form.sales_type || 'external',
+      notes:      form.notes   || null,
     }
     const res = isEdit
       ? await supabase.from('distributors').update(payload).eq('id', item.id)
@@ -64,16 +74,35 @@ function DistributorEditor({ item, hubs, onClose, onSaved }) {
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="label">Country</label>
-              <input className="input" value={form.country}
-                onChange={e => set('country', e.target.value)} placeholder="Colombia"/>
-            </div>
-            <div>
               <label className="label">Region</label>
-              <select className="select" value={form.region} onChange={e => set('region', e.target.value)}>
+              <select className="select" value={form.region} onChange={e => { set('region', e.target.value); set('country', '') }}>
                 <option value="">—</option>
                 {REGIONS.map(r => <option key={r}>{r}</option>)}
               </select>
+            </div>
+            <div>
+              <label className="label">Country</label>
+              <select className="select" value={form.country} onChange={e => set('country', e.target.value)}>
+                <option value="">—</option>
+                {(COUNTRY_MAP[form.region] || []).map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="label">Sales Type</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => set('sales_type', 'external')}
+                className={`px-3 py-2 rounded-lg text-sm font-medium border-2 transition-all ${
+                  form.sales_type === 'external' ? 'border-amber-400 bg-amber-50 text-amber-800' : 'border-gray-200 text-gray-500'
+                }`}>
+                External
+              </button>
+              <button type="button" onClick={() => set('sales_type', 'internal')}
+                className={`px-3 py-2 rounded-lg text-sm font-medium border-2 transition-all ${
+                  form.sales_type === 'internal' ? 'border-blue-400 bg-blue-50 text-blue-800' : 'border-gray-200 text-gray-500'
+                }`}>
+                Internal (Subsidiary)
+              </button>
             </div>
           </div>
           <div>

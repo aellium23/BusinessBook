@@ -66,12 +66,17 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
   async function handleSave() {
     if (!form.title.trim()) { setError('Title is required'); return }
     setSaving(true)
+    const isSalesOwnerOnly = form.assigned_to && form.assigned_to.startsWith('so_')
+    const salesOwnerName = isSalesOwnerOnly ? form.assigned_to.replace('so_', '') : null
+    const assignedNotes = salesOwnerName
+      ? [form.notes, `Assigned to: ${salesOwnerName}`].filter(Boolean).join(' · ')
+      : form.notes || null
     const payload = {
       title:       form.title.trim(),
-      notes:       form.notes || null,
+      notes:       assignedNotes,
       deadline:    form.deadline || null,
       priority:    form.priority,
-      assigned_to: form.assigned_to || null,
+      assigned_to: isSalesOwnerOnly ? null : (form.assigned_to || null),
       deal_id:     form.deal_id     || null,
       tender_id:   form.tender_id   || null,
       owner_id:    user.id,

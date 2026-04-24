@@ -65,8 +65,8 @@ export default function SearchableSelect({
         className={`input w-full text-left flex items-center justify-between gap-2 min-h-[38px] ${sizeCls} ${
           disabled ? 'opacity-60 cursor-not-allowed' : ''
         }`}>
-        <span className={`truncate ${selected ? 'text-gray-900' : 'text-gray-400'}`}>
-          {selected ? selected.label : emptyLabel}
+        <span className={`truncate ${selected || value ? 'text-gray-900' : 'text-gray-400'}`}>
+          {selected ? selected.label : (value || emptyLabel)}
         </span>
         <div className="flex items-center gap-1 shrink-0">
           {selected && !disabled && (

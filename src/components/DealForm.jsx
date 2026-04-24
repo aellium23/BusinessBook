@@ -611,35 +611,26 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </div>
         )}
 
-        {/* Client */}
+        {/* Client / Account */}
         <div>
           <label className="label">{t("df_client")} *</label>
           <SearchableSelect
-            value={form.client}
-            onChange={v => set('client', v)}
-            options={existingClients.map(c => ({ value: c, label: c }))}
-            placeholder="Search clients…"
-            emptyLabel="— Select client —"
+            value={form.account_id || ''}
+            onChange={v => {
+              set('account_id', v || null)
+              const acc = accounts.find(a => a.id === v)
+              if (acc) set('client', acc.name)
+            }}
+            options={accountsForBU.map(a => ({ value: a.id, label: a.name, hint: a.country || a.bu }))}
+            placeholder="Search accounts…"
+            emptyLabel="— Select account —"
             onCreateNew={(query) => { if (query) set('client', query) }}
             createLabel="New client"
           />
+          {form.client && !form.account_id && (
+            <p className="text-[10px] text-amber-500 mt-1">Custom client: {form.client} (not linked to account)</p>
+          )}
         </div>
-
-        {/* Account (optional link to the Accounts hierarchy) — searchable */}
-        {form.bu && (
-          <div>
-            <label className="label">
-              {t("df_account")} <span className="text-[10px] text-gray-400 font-normal">{t("df_account_hint")}</span>
-            </label>
-            <SearchableSelect
-              value={form.account_id || ''}
-              onChange={v => set('account_id', v || null)}
-              options={accountsForBU.map(a => ({ value: a.id, label: a.name }))}
-              placeholder={t("df_account_search")}
-              emptyLabel={t("df_account_none")}
-            />
-          </div>
-        )}
 
         {/* Region + Country */}
         <div className="grid grid-cols-2 gap-3">

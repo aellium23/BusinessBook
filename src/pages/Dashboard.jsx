@@ -418,15 +418,30 @@ export default function Dashboard({ hideHeader = false } = {}) {
   const { deals, loading }   = useDeals()
   const [budget, setBudget]  = useState([])
   const [fy25, setFy25]      = useState([])
+  const [fctSnapshots, setFctSnapshots] = useState([])
+  const [slaRecurring, setSlaRecurring] = useState({ active: 0, value: 0, pipeline: 0 })
 
-  // Load budget from DB
   useEffect(() => {
-    supabase.from('budget').select("*")
+    supabase.from('budget').select('*')
       .then(({ data }) => setBudget(data || []))
       .catch(e => console.warn('Failed to load budget:', e?.message))
-    supabase.from('fy25_actuals').select("*")
+    supabase.from('fy25_actuals').select('*')
       .then(({ data }) => setFy25(data || []))
       .catch(e => console.warn('Failed to load FY25 actuals:', e?.message))
+    supabase.from('forecast_snapshots').select('*').order('created_at', { ascending: false })
+      .then(({ data }) => setFctSnapshots(data || []))
+      .catch(() => {})
+    supabase.from('slas').select('status, annual_value, bu')
+      .then(({ data }) => {
+        if (!data) return
+        const active = data.filter(s => ['active','invoiced'].includes(s.status))
+        const pipeline = data.filter(s => s.status === 'pipeline')
+        setSlaRecurring({
+          active: active.length,
+          value: active.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
+          pipeline: pipeline.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
+        })
+      }).catch(() => {})
   }, [])
 
   // Determine active cycle
@@ -505,6 +520,19 @@ export default function Dashboard({ hideHeader = false } = {}) {
       return fy25.filter(r => r.bu === bu && r.pl_key === 'ns')
         .reduce((s, r) => s + (r[MONTHS_K[m_idx]] || 0), 0)
     }
+    const getManualFCT = (bu, m_idx) => {
+      const latest = {}
+      for (const s of fctSnapshots) {
+        const k = `${s.cycle}-${s.bu}-${s.pl_key}`
+        if (!latest[k]) latest[k] = s
+      }
+      let total = 0
+      ;['ns_int','ns_ext'].forEach(key => {
+        const row = latest[`${displayCycle}-${bu}-${key}`]
+        if (row) total += row[MONTHS_K[m_idx]] || 0
+      })
+      return total
+    }
     return ['VGT','ECT'].reduce((acc, bu) => {
       acc[bu] = MONTHS.map((m, i) => {
         let actuals = 0, forecast = 0
@@ -520,11 +548,12 @@ export default function Dashboard({ hideHeader = false } = {}) {
           Forecast: Math.round(forecast * 10) / 10,
           Plan:     Math.round(getPlan(bu, i, displayCycle) * 10) / 10,
           FY25:     Math.round(getPY(bu, i) * 10) / 10,
+          ManualFCT: Math.round(getManualFCT(bu, i) * 10) / 10,
         }
       })
       return acc
     }, {})
-  }, [deals, budget, fy25, displayCycle])
+  }, [deals, budget, fy25, displayCycle, fctSnapshots])
 
   // Funnel analytics
   const funnelAnalytics = useMemo(() => {
@@ -679,6 +708,7 @@ export default function Dashboard({ hideHeader = false } = {}) {
           <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-blue-200 inline-block"/>{t("dash_forecast")}</span>
           <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-gray-400 inline-block"/>Plan ({displayCycle})</span>
           <span className="flex items-center gap-1"><span className="w-3 h-0.5 border-t-2 border-dashed border-purple-400 inline-block"/>FY25</span>
+          {fctSnapshots.length > 0 && <span className="flex items-center gap-1"><span className="w-3 h-0.5 border-t-2 border-dashed border-amber-500 inline-block"/>Manual FCT</span>}
         </div>
 
         {/* Two charts side by side on desktop, stacked on mobile */}
@@ -702,12 +732,50 @@ export default function Dashboard({ hideHeader = false } = {}) {
                     strokeWidth={1.5} dot={false} />
                   <Line dataKey="FY25" type="monotone" stroke="#A78BFA"
                     strokeWidth={1.5} strokeDasharray="4 2" dot={false} />
+                  <Line dataKey="ManualFCT" type="monotone" stroke="#F59E0B"
+                    strokeWidth={2} strokeDasharray="6 3" dot={false} />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
           ))}
         </div>
       </div>
+
+      {/* ── RECURRING BUSINESS ──────────────────────────────────────────── */}
+      {isAdmin && slaRecurring.value > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Recurring Business (SLA)</p>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-green-50 rounded-lg p-3 text-center">
+              <p className="text-[10px] text-gray-500">Active ARR</p>
+              <p className="text-lg font-bold text-green-600">{formatK(slaRecurring.value)}</p>
+              <p className="text-[10px] text-gray-400">{slaRecurring.active} contracts</p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3 text-center">
+              <p className="text-[10px] text-gray-500">Pipeline</p>
+              <p className="text-lg font-bold text-gray-600">{formatK(slaRecurring.pipeline)}</p>
+              <p className="text-[10px] text-gray-400">future recurring</p>
+            </div>
+            <div className="bg-amber-50 rounded-lg p-3 text-center">
+              <p className="text-[10px] text-gray-500">Manual FCT</p>
+              <p className="text-lg font-bold text-amber-600">
+                {fctSnapshots.length > 0
+                  ? formatK((() => {
+                      const latest = {}
+                      for (const s of fctSnapshots) {
+                        const k = `${s.cycle}-${s.bu}-${s.pl_key}`
+                        if (!latest[k]) latest[k] = s
+                      }
+                      return Object.values(latest).reduce((s, r) =>
+                        MONTHS_K.reduce((ms, m) => ms + (r[m] || 0), ms), 0) * 1000
+                    })())
+                  : '—'}
+              </p>
+              <p className="text-[10px] text-gray-400">last snapshot</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── VGT vs ECT SPLIT ──────────────────────────────────────────────── */}
       {isAdmin && (
