@@ -1,88 +1,62 @@
 import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { BUBadge, StageBadge, formatK, CurrencyBadge, Spinner } from '../components/ui'
-import { Building2, Search, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react'
+import { BUBadge, StageBadge, formatK, CurrencyBadge, Spinner, EmptyState } from '../components/ui'
+import { Building2, Search, ChevronDown, ChevronUp, RefreshCw, MapPin, Globe, Filter } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
+import { REGIONS } from '../constants'
 
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
-
-function ProgressBar({ value, max, color }) {
-  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0
-  return (
-    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }}/>
-    </div>
-  )
-}
 
 function ClientCard({ client, deals }) {
   const [open, setOpen] = useState(false)
 
   const totalFY26 = deals.reduce((s, d) => {
     const fy = MONTHS_K.reduce((ms, m) => ms + (d[m] || 0), 0)
-    const fyEUR = fy * ((!d.currency || d.currency==="EUR") ? 1 : (d.exchange_rate||1))
-    return s + (['BackLog','Invoiced'].includes(d.stage) ? fyEUR : 0)
+    const fyEUR = fy * ((!d.currency || d.currency === 'EUR') ? 1 : (d.exchange_rate || 1))
+    return s + (['BackLog', 'Invoiced'].includes(d.stage) ? fyEUR : 0)
   }, 0)
 
   const totalPipe = deals.reduce((s, d) =>
-    d.stage === 'Pipeline' || d.stage === 'Offer Presented'
-      ? s + (d.value_total||0) * ((!d.currency || d.currency==="EUR") ? 1 : (d.exchange_rate||1)) : s, 0)
+    ['Pipeline', 'Offer Presented'].includes(d.stage)
+      ? s + (d.value_total || 0) * ((!d.currency || d.currency === 'EUR') ? 1 : (d.exchange_rate || 1)) : s, 0)
 
   const slas = deals.filter(d => d.is_sla)
-  const activeSLAs = slas.filter(d => {
-    if (!d.ce_month || !d.ce_year) return true
-    const ceDate = new Date(`${d.ce_year}-${String(['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'].indexOf(d.ce_month) + 4).padStart(2,'0')}-01`)
-    return ceDate >= new Date()
-  })
-
   const bus = [...new Set(deals.map(d => d.bu))]
+  const country = deals[0]?.country || ''
+  const region = deals[0]?.region || ''
 
   return (
     <div className="card overflow-hidden">
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-3">
+      <div className="p-3">
+        <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
+            <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
               {bus.map(b => <BUBadge key={b} bu={b}/>)}
-              {activeSLAs.length > 0 && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800">
-                  <RefreshCw size={9}/> {activeSLAs.length} SLA
+              {slas.length > 0 && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">
+                  <RefreshCw size={8}/> {slas.length} SLA
                 </span>
               )}
             </div>
-            <p className="font-semibold text-gray-900 truncate">{client}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{deals[0]?.country} · {deals.length} deal{deals.length !== 1 ? 's' : ''}</p>
+            <p className="font-semibold text-sm text-gray-900 truncate">{client}</p>
+            <div className="flex items-center gap-2 text-[10px] text-gray-400 mt-0.5">
+              {country && <span className="flex items-center gap-0.5"><MapPin size={8}/> {country}</span>}
+              {region && <span>{region}</span>}
+              <span>{deals.length} deal{deals.length !== 1 ? 's' : ''}</span>
+            </div>
           </div>
           <div className="text-right shrink-0">
             <p className="text-sm font-bold text-gray-900">{formatK(totalFY26)}</p>
-            <p className="text-xs text-gray-400">FY26 forecast</p>
-            {totalPipe > 0 && <p className="text-xs text-amber-600">+{formatK(totalPipe)} pipe</p>}
+            <p className="text-[10px] text-gray-400">FY26</p>
+            {totalPipe > 0 && <p className="text-[10px] text-amber-600">+{formatK(totalPipe)} pipe</p>}
           </div>
         </div>
 
-        {/* SLA summary */}
-        {activeSLAs.length > 0 && (
-          <div className="mt-2 p-2 bg-blue-50 rounded-lg">
-            <p className="text-[10px] font-semibold text-blue-600 uppercase tracking-wide mb-1">Active SLAs</p>
-            {activeSLAs.map(sla => (
-              <div key={sla.id} className="flex items-center justify-between text-xs">
-                <span className="text-blue-800 truncate">{sla.description || sla.deal_type}</span>
-                <div className="flex items-center gap-2 shrink-0 ml-2">
-                  {sla.sla_owner && <span className="text-blue-500">{sla.sla_owner}</span>}
-                  {sla.sla_renewal_target && (
-                    <span className="text-green-600 font-medium">+{sla.sla_renewal_target}% target</span>
-                  )}
-                  <span className="text-blue-700 font-medium">{formatK(sla.value_total)}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
         <button onClick={() => setOpen(o => !o)}
-          className="mt-2 text-xs text-gray-400 flex items-center gap-1 hover:text-gray-600">
-          All deals {open ? <ChevronUp size={12}/> : <ChevronDown size={12}/>}
+          className="mt-1.5 text-[10px] text-gray-400 flex items-center gap-1 hover:text-gray-600 min-h-tap">
+          {open ? <ChevronUp size={10}/> : <ChevronDown size={10}/>}
+          {open ? 'Hide' : `${deals.length} deals`}
         </button>
       </div>
 
@@ -91,33 +65,14 @@ function ClientCard({ client, deals }) {
           {deals.map(d => {
             const fy = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
             return (
-              <div key={d.id} className="flex items-start justify-between px-4 py-2 border-b border-gray-50 last:border-0">
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <StageBadge stage={d.stage}/>
-                    {d.is_sla && <RefreshCw size={10} className="text-blue-500 shrink-0"/>}
-                    <span className="text-xs text-gray-700 truncate">{d.description || d.deal_type}</span>
-                  </div>
-                  {(d.end_customer || d.distributor || d.hub) && (
-                    <div className="flex items-center gap-1 flex-wrap ml-0.5">
-                      {d.end_customer && <span className="text-[9px] bg-blue-50 text-blue-600 px-1 py-0.5 rounded">{d.end_customer}</span>}
-                      {d.distributor && <><span className="text-gray-300 text-[9px]">→</span><span className="text-[9px] bg-amber-50 text-amber-600 px-1 py-0.5 rounded">{d.distributor}</span></>}
-                      {d.hub && <><span className="text-gray-300 text-[9px]">→</span><span className="text-[9px] bg-purple-50 text-purple-600 px-1 py-0.5 rounded">{d.hub}</span></>}
-                    </div>
-                  )}
+              <div key={d.id} className="flex items-center justify-between px-3 py-2 border-b border-gray-50 last:border-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <StageBadge stage={d.stage}/>
+                  {d.is_sla && <RefreshCw size={9} className="text-blue-500 shrink-0"/>}
+                  <span className="text-xs text-gray-700 truncate">{d.description || d.deal_type || '—'}</span>
                 </div>
                 <div className="text-right shrink-0 ml-2">
-                  <div className="flex items-center justify-end gap-1">
-                    <CurrencyBadge currency={d.currency}/>
-                    <p className="text-xs font-medium text-gray-800">
-                      {d.currency && d.currency !== 'EUR'
-                        ? `${d.currency === 'USD' ? '$' : '£'}${(d.value_total||0).toLocaleString()}`
-                        : formatK(d.value_total)}
-                    </p>
-                  </div>
-                  {d.currency && d.currency !== 'EUR' && (
-                    <p className="text-[10px] text-blue-500">≈ {formatK((d.value_total||0) * ((!d.currency || d.currency==="EUR") ? 1 : (d.exchange_rate||1)))}</p>
-                  )}
+                  <p className="text-xs font-medium text-gray-800">{formatK(d.value_total)}</p>
                 </div>
               </div>
             )
@@ -128,70 +83,58 @@ function ClientCard({ client, deals }) {
   )
 }
 
-const CLIENT_PAGE_SIZE_OPTIONS = [5, 10, 25]
-const CLIENT_SORT_OPTIONS = [
-  { value: 'fy26_desc', label: 'FY26 value ↓' },
-  { value: 'fy26_asc',  label: 'FY26 value ↑' },
-  { value: 'alpha',     label: 'A → Z' },
-  { value: 'deals',     label: 'Most deals' },
-]
-
 export default function Clients() {
   const { isAdmin, profile } = useAuth()
   const { t } = useTranslation()
 
-  const [deals, setDeals]     = useState([])
+  const [deals, setDeals] = useState([])
   const [loading, setLoading] = useState(true)
-
-  // Filtros
-  const [search, setSearch]   = useState('')
-  const [buFilter, setBuFilter] = useState('all')
-  const [slaOnly, setSlaOnly] = useState(false)
+  const [search, setSearch] = useState('')
+  const [regionF, setRegionF] = useState('')
   const [countryF, setCountryF] = useState('')
-  const [sortBy, setSortBy]   = useState('fy26_desc')
-  const [showFilters, setShowFilters] = useState(false)
-
-  // Paginação
-  const [page, setPage]       = useState(1)
-  const [pageSize, setPageSize] = useState(5)
+  const [buF, setBuF] = useState('')
+  const [slaOnly, setSlaOnly] = useState(false)
+  const [viewMode, setViewMode] = useState('list')
 
   useEffect(() => {
-    let q = supabase.from('deals').select("*")
+    let q = supabase.from('deals').select('*')
       .eq('is_intercompany_mirror', false)
       .order('client')
     if (!isAdmin) {
       if (profile?.role === 'distributor' && profile?.company_id) {
         q = q.eq('company_id', profile.company_id)
-      } else if (profile?.bu === 'VGT') {
-        q = q.eq('bu', 'VGT')
-      } else if (profile?.bu === 'ECT') {
-        q = q.eq('bu', 'ECT')
+      } else if (profile?.bu) {
+        q = q.eq('bu', profile.bu)
       }
     }
-    q.then(({ data, error }) => {
-        if (error) console.warn('Failed to load clients/deals:', error.message)
-        setDeals(data || []); setLoading(false)
-      })
-      .catch(e => { console.warn('Failed to load clients/deals:', e?.message); setLoading(false) })
+    q.then(({ data }) => { setDeals(data || []); setLoading(false) })
+      .catch(() => setLoading(false))
   }, [profile, isAdmin])
 
-  const resetPage = () => setPage(1)
+  const countries = useMemo(() =>
+    [...new Set(deals.map(d => d.country).filter(Boolean))].sort(),
+    [deals]
+  )
 
-  // Países únicos para filtro
-  const countries = useMemo(() => {
-    const s = new Set(deals.map(d => d.country).filter(Boolean))
-    return Array.from(s).sort()
-  }, [deals])
+  const countriesForRegion = useMemo(() => {
+    if (!regionF) return countries
+    return [...new Set(deals.filter(d => d.region === regionF).map(d => d.country).filter(Boolean))].sort()
+  }, [deals, regionF, countries])
 
   const grouped = useMemo(() => {
     let filtered = deals
-    if (buFilter !== 'all') filtered = filtered.filter(d => d.bu === buFilter)
-    if (slaOnly) filtered = filtered.filter(d => d.is_sla)
+    if (buF) filtered = filtered.filter(d => d.bu === buF)
+    if (regionF) filtered = filtered.filter(d => d.region === regionF)
     if (countryF) filtered = filtered.filter(d => d.country === countryF)
-    if (search) filtered = filtered.filter(d =>
-      d.client?.toLowerCase().includes(search.toLowerCase()) ||
-      d.country?.toLowerCase().includes(search.toLowerCase())
-    )
+    if (slaOnly) filtered = filtered.filter(d => d.is_sla)
+    if (search) {
+      const s = search.toLowerCase()
+      filtered = filtered.filter(d =>
+        d.client?.toLowerCase().includes(s) ||
+        d.country?.toLowerCase().includes(s) ||
+        d.sales_owner?.toLowerCase().includes(s)
+      )
+    }
 
     const map = {}
     filtered.forEach(d => {
@@ -199,185 +142,155 @@ export default function Clients() {
       map[d.client].push(d)
     })
 
-    const entries = Object.entries(map)
-
-    // Ordenação
-    entries.sort((a, b) => {
-      const aFY = a[1].reduce((s,d) => s + MONTHS_K.reduce((ms,m) => ms + (d[m]||0), 0), 0)
-      const bFY = b[1].reduce((s,d) => s + MONTHS_K.reduce((ms,m) => ms + (d[m]||0), 0), 0)
-      if (sortBy === 'fy26_desc') return bFY - aFY
-      if (sortBy === 'fy26_asc')  return aFY - bFY
-      if (sortBy === 'alpha')     return a[0].localeCompare(b[0])
-      if (sortBy === 'deals')     return b[1].length - a[1].length
+    return Object.entries(map).sort((a, b) => {
+      const aFY = a[1].reduce((s, d) => s + MONTHS_K.reduce((ms, m) => ms + (d[m] || 0), 0), 0)
+      const bFY = b[1].reduce((s, d) => s + MONTHS_K.reduce((ms, m) => ms + (d[m] || 0), 0), 0)
       return bFY - aFY
     })
+  }, [deals, buF, regionF, countryF, slaOnly, search])
 
-    return entries
-  }, [deals, buFilter, slaOnly, countryF, search, sortBy])
+  const byRegion = useMemo(() => {
+    const map = {}
+    for (const [client, ds] of grouped) {
+      const r = ds[0]?.region || 'Other'
+      if (!map[r]) map[r] = []
+      map[r].push([client, ds])
+    }
+    return map
+  }, [grouped])
 
-  const stats = useMemo(() => ({
-    total: grouped.length,
-    withSLA: grouped.filter(([,ds]) => ds.some(d => d.is_sla)).length,
-    totalFY26: grouped.reduce((s,[,ds]) =>
-      s + ds.reduce((ds2,d) => ds2 + MONTHS_K.reduce((ms,m) => ms+(d[m]||0),0), 0), 0),
-  }), [grouped])
-
-  // Paginação
-  const totalPages = Math.max(1, Math.ceil(grouped.length / pageSize))
-  const paginated  = grouped.slice((page-1)*pageSize, page*pageSize)
-
-  // Filtros activos
-  const activeFilters = [
-    search, buFilter !== 'all', slaOnly, countryF, sortBy !== 'fy26_desc'
-  ].filter(Boolean).length
+  const stats = useMemo(() => {
+    const allDeals = grouped.flatMap(([, ds]) => ds)
+    return {
+      clients: grouped.length,
+      withSLA: grouped.filter(([, ds]) => ds.some(d => d.is_sla)).length,
+      totalValue: allDeals.reduce((s, d) => s + (d.value_total || 0), 0),
+      pipeline: allDeals.filter(d => ['Pipeline', 'Offer Presented'].includes(d.stage))
+        .reduce((s, d) => s + (d.value_total || 0), 0),
+      invoiced: allDeals.filter(d => d.stage === 'Invoiced')
+        .reduce((s, d) => s + (d.value_total || 0), 0),
+    }
+  }, [grouped])
 
   if (loading) return <Spinner/>
 
   return (
-    <div className="p-4 space-y-4 max-w-4xl mx-auto">
-
-      {/* Header */}
-      <div className="flex items-center justify-between pt-1">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">{t("clients_title")}</h1>
-          <p className="text-sm text-gray-400">
-            {stats.total} {t("clients_count")} · {stats.withSLA} SLA · {formatK(stats.totalFY26)} FY26
-            {activeFilters > 0 && <span className="ml-1 text-blue-500">· {activeFilters} {t("clients_filters_active")}</span>}
-          </p>
+          <h1 className="text-lg font-bold text-gray-900">{t('clients_title')}</h1>
+          <p className="text-xs text-gray-400">{stats.clients} clients · {stats.withSLA} with SLA</p>
         </div>
-        <button
-          onClick={() => setShowFilters(o => !o)}
-          className={`btn-secondary text-xs gap-1 ${activeFilters > 0 ? 'ring-2 ring-blue-400' : ''}`}>
-          <Search size={13}/>
-          {t("deals_filters")}
-          {activeFilters > 0 && (
-            <span className="bg-blue-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
-              {activeFilters}
-            </span>
-          )}
+        <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+          <button onClick={() => setViewMode('list')}
+            className={`px-2.5 py-1 rounded text-xs font-semibold ${viewMode === 'list' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>
+            List
+          </button>
+          <button onClick={() => setViewMode('region')}
+            className={`px-2.5 py-1 rounded text-xs font-semibold ${viewMode === 'region' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>
+            By Region
+          </button>
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="card p-3">
+          <p className="text-[10px] text-gray-400 uppercase font-semibold">Clients</p>
+          <p className="text-xl font-bold text-navy">{stats.clients}</p>
+        </div>
+        <div className="card p-3">
+          <p className="text-[10px] text-gray-400 uppercase font-semibold">Pipeline</p>
+          <p className="text-xl font-bold text-amber-600">{formatK(stats.pipeline)}</p>
+        </div>
+        <div className="card p-3">
+          <p className="text-[10px] text-gray-400 uppercase font-semibold">Invoiced</p>
+          <p className="text-xl font-bold text-green-600">{formatK(stats.invoiced)}</p>
+        </div>
+        <div className="card p-3">
+          <p className="text-[10px] text-gray-400 uppercase font-semibold">Active SLAs</p>
+          <p className="text-xl font-bold text-blue-600">{stats.withSLA}</p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="relative flex-1 min-w-[160px]">
+          <input className="input pl-8 text-sm" placeholder="Search clients…"
+            value={search} onChange={e => setSearch(e.target.value)} style={{ fontSize: '16px' }}/>
+          <Search size={14} className="absolute left-2.5 top-3 text-gray-400"/>
+        </div>
+        <select className="select text-xs w-auto" value={regionF} onChange={e => { setRegionF(e.target.value); setCountryF('') }}>
+          <option value="">All Regions</option>
+          {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+        </select>
+        <select className="select text-xs w-auto" value={countryF} onChange={e => setCountryF(e.target.value)}>
+          <option value="">All Countries</option>
+          {countriesForRegion.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        {isAdmin && (
+          <select className="select text-xs w-auto" value={buF} onChange={e => setBuF(e.target.value)}>
+            <option value="">All BU</option>
+            <option value="VGT">VGT</option>
+            <option value="ECT">ECT</option>
+          </select>
+        )}
+        <button onClick={() => setSlaOnly(o => !o)}
+          className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border ${
+            slaOnly ? 'bg-blue-50 border-blue-300 text-blue-700' : 'border-gray-200 text-gray-500'
+          }`}>
+          <RefreshCw size={10} className="inline mr-1"/> SLA
         </button>
       </div>
 
-      {/* Search sempre visível */}
-      <div className="relative">
-        <Search size={14} className="absolute left-2.5 top-2.5 text-gray-400"/>
-        <input className="input pl-8 w-full" placeholder="Search client or country…"
-          value={search} onChange={e => { setSearch(e.target.value); resetPage() }}/>
-        {search && (
-          <button onClick={() => { setSearch(''); resetPage() }}
-            className="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600">×</button>
-        )}
-      </div>
-
-      {/* Filtros avançados — colapsáveis */}
-      {showFilters && (
-        <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-3">
-          <div className="grid grid-cols-2 gap-2">
-
-            {/* BU */}
-            {isAdmin && (
-              <div>
-                <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">BU</label>
-                <select className="select text-xs w-full" value={buFilter} onChange={e => { setBuFilter(e.target.value); resetPage() }}>
-                  <option value="all">{t("clients_all_bu")}</option>
-                  <option value="VGT">VGT</option>
-                  <option value="ECT">ECT</option>
-                </select>
-              </div>
-            )}
-
-            {/* País */}
-            <div>
-              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Country</label>
-              <select className="select text-xs w-full" value={countryF} onChange={e => { setCountryF(e.target.value); resetPage() }}>
-                <option value="">All countries</option>
-                {countries.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-
-            {/* Ordenação */}
-            <div>
-              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Sort by</label>
-              <select className="select text-xs w-full" value={sortBy} onChange={e => { setSortBy(e.target.value); resetPage() }}>
-                {CLIENT_SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-
-            {/* Cards por página */}
-            <div>
-              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">{t("deals_per_page")}</label>
-              <select className="select text-xs w-full" value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); resetPage() }}>
-                {CLIENT_PAGE_SIZE_OPTIONS.map(n => <option key={n} value={n}>{n} {t("deals_per_page_suffix")}</option>)}
-              </select>
-            </div>
-          </div>
-
-          {/* SLA toggle + Reset */}
-          <div className="flex items-center justify-between">
-            <button onClick={() => { setSlaOnly(o => !o); resetPage() }}
-              className={`btn text-xs gap-1.5 ${slaOnly ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'btn-secondary'}`}>
-              <RefreshCw size={12}/> SLA only
-            </button>
-            {activeFilters > 0 && (
-              <button onClick={() => {
-                setSearch(''); setBuFilter('all'); setSlaOnly(false)
-                setCountryF(''); setSortBy('fy26_desc'); resetPage()
-              }} className="text-xs text-red-500 hover:text-red-700 font-medium">
-                {t("deals_clear_filters")}
-              </button>
-            )}
-          </div>
+      {/* Client list */}
+      {viewMode === 'list' ? (
+        <div className="space-y-2">
+          {grouped.length === 0 ? (
+            <EmptyState icon="🏥" title={t('clients_none')} description="Adjust filters or add deals."/>
+          ) : grouped.map(([client, ds]) => (
+            <ClientCard key={client} client={client} deals={ds}/>
+          ))}
         </div>
-      )}
-
-      {/* Lista paginada */}
-      {grouped.length === 0
-        ? <div className="text-center py-12 text-gray-400">
-            <Building2 size={32} className="mx-auto mb-2 opacity-30"/>
-            <p>{t("clients_none")}</p>
-          </div>
-        : <>
-            <div className="space-y-2 pb-2">
-              {paginated.map(([client, ds]) => (
-                <ClientCard key={client} client={client} deals={ds}/>
-              ))}
-            </div>
-
-            {/* Paginação */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between pt-1">
-                <p className="text-xs text-gray-400">
-                  {t("deals_showing")} {(page-1)*pageSize+1}–{Math.min(page*pageSize, grouped.length)} {t("deals_of")} {grouped.length}
-                </p>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setPage(p => Math.max(1, p-1))}
-                    disabled={page === 1}
-                    className="btn-secondary text-xs px-2 py-1 disabled:opacity-30">←</button>
-                  {Array.from({length: totalPages}, (_, i) => i+1)
-                    .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
-                    .reduce((acc, p, i, arr) => {
-                      if (i > 0 && p - arr[i-1] > 1) acc.push('…')
-                      acc.push(p)
-                      return acc
-                    }, [])
-                    .map((p, i) => p === '…'
-                      ? <span key={`e-${i}`} className="text-xs text-gray-300 px-1">…</span>
-                      : <button key={p} onClick={() => setPage(p)}
-                          className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors ${
-                            p === page ? 'bg-navy text-white' : 'text-gray-500 hover:bg-gray-100'
-                          }`}>{p}</button>
-                    )
-                  }
-                  <button
-                    onClick={() => setPage(p => Math.min(totalPages, p+1))}
-                    disabled={page === totalPages}
-                    className="btn-secondary text-xs px-2 py-1 disabled:opacity-30">→</button>
+      ) : (
+        <div className="space-y-4">
+          {REGIONS.map(region => {
+            const regionClients = byRegion[region]
+            if (!regionClients?.length) return null
+            const regionValue = regionClients.reduce((s, [, ds]) =>
+              s + ds.reduce((ds2, d) => ds2 + (d.value_total || 0), 0), 0)
+            return (
+              <div key={region}>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5">
+                    <Globe size={12}/> {region}
+                    <span className="text-gray-400 font-normal">({regionClients.length} clients)</span>
+                  </p>
+                  <span className="text-xs text-gray-500 font-semibold">{formatK(regionValue)}</span>
+                </div>
+                <div className="space-y-2">
+                  {regionClients.map(([client, ds]) => (
+                    <ClientCard key={client} client={client} deals={ds}/>
+                  ))}
                 </div>
               </div>
-            )}
-          </>
-      }
+            )
+          })}
+          {byRegion['Other']?.length > 0 && (
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase mb-2">Other</p>
+              <div className="space-y-2">
+                {byRegion['Other'].map(([client, ds]) => (
+                  <ClientCard key={client} client={client} deals={ds}/>
+                ))}
+              </div>
+            </div>
+          )}
+          {grouped.length === 0 && (
+            <EmptyState icon="🏥" title={t('clients_none')} description="Adjust filters or add deals."/>
+          )}
+        </div>
+      )}
     </div>
   )
 }

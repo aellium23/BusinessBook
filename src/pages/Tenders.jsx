@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTenders, createTender, updateTender, deleteTender } from '../hooks/useTasks'
 import { useAuth } from '../hooks/useAuth'
+import { useTranslation } from '../hooks/useTranslation'
 import { supabase } from '../lib/supabase'
 import { Modal, Spinner, StageBadge, BUBadge } from '../components/ui'
 import AttachmentsList from '../components/AttachmentsList'
@@ -52,7 +53,8 @@ function DeadlineChip({ date, label }) {
 
 // ── Tender Form Modal ──────────────────────────────────────────────────────────
 function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, canEdit: canEditProp }) {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
+  const { t } = useTranslation()
   const isEdit = !!tender?.id
   const [form, setForm] = useState({
     title:               tender?.title               ?? '',
