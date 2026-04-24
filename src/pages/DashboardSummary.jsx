@@ -37,6 +37,7 @@ export default function DashboardSummary() {
   const [budget, setBudget]  = useState([])
   const [fy25, setFy25]      = useState([])
   const [slaStats, setSlaStats] = useState({ active: 0, activeValue: 0, pipelineValue: 0, revenueByFY: {}, byBU: {} })
+  const [manualFct, setManualFct] = useState(null)
 
   useEffect(() => {
     supabase.from('budget').select('*')
@@ -74,6 +75,22 @@ export default function DashboardSummary() {
           pipelineValue: pipeline.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
           revenueByFY, byBU,
         })
+      }).catch(() => {})
+    supabase.from('forecast_snapshots').select('*').order('created_at', { ascending: false }).limit(10)
+      .then(({ data }) => {
+        if (!data?.length) return
+        const latest = {}
+        for (const s of data) {
+          const k = `${s.cycle}-${s.bu}-${s.pl_key}`
+          if (!latest[k]) latest[k] = s
+        }
+        const K = 1000
+        const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
+        const fctTotal = Object.values(latest).reduce((s, r) =>
+          s + MONTHS_K.reduce((ms, m) => ms + (r[m] || 0), 0) * K, 0)
+        const cycle = data[0]?.cycle
+        const date = data[0]?.created_at
+        if (fctTotal > 0) setManualFct({ total: fctTotal, cycle, date })
       }).catch(() => {})
   }, [])
 
@@ -240,6 +257,29 @@ export default function DashboardSummary() {
             </p>
             <p className="text-2xl font-bold text-ect mt-1">{formatK(pipeline.ect)}</p>
             <p className="text-micro text-gray-400">open + offer + backlog</p>
+          </div>
+        </div>
+      )}
+
+      {/* Manual FCT vs Auto */}
+      {isAdmin && manualFct && (
+        <div className="card p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1 mb-2">
+            Manual FCT vs Auto Forecast
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-blue-50 rounded-lg p-3">
+              <p className="text-micro text-gray-500">Manual FCT ({manualFct.cycle})</p>
+              <p className="text-xl font-bold text-blue-700">{formatK(manualFct.total)}</p>
+              <p className="text-micro text-gray-400">
+                {manualFct.date ? new Date(manualFct.date).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' }) : ''}
+              </p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="text-micro text-gray-500">Auto Forecast</p>
+              <p className="text-xl font-bold text-gray-700">{formatK(pipeline.vgt + pipeline.ect)}</p>
+              <p className="text-micro text-gray-400">from deals pipeline</p>
+            </div>
           </div>
         </div>
       )}

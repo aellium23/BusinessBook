@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { Spinner, formatK } from '../components/ui'
-import { Save, CheckCircle, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { Save, CheckCircle, TrendingUp, TrendingDown, Minus, Camera, Lock, Clock } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
@@ -85,6 +85,10 @@ export default function Budget() {
   const [activeCycle, setActiveCycle] = useState(ACTIVE_CYCLE())
   const [focusCell, setFocusCell]     = useState(null)
   const [activePeriod, setActivePeriod] = useState('FY')
+  const [fctTab, setFctTab]           = useState('budget')
+  const [fctSnapshots, setFctSnapshots] = useState([])
+  const [fctForm, setFctForm]         = useState(null)
+  const [fctSaving, setFctSaving]     = useState(false)
   const activeCycleDefault = ACTIVE_CYCLE()
 
   useEffect(() => {
@@ -98,6 +102,9 @@ export default function Budget() {
         console.warn('Failed to load budget:', e?.message)
         setLoading(false)
       })
+    supabase.from('forecast_snapshots').select('*').order('created_at', { ascending: false })
+      .then(({ data }) => setFctSnapshots(data || []))
+      .catch(() => {})
   }, [])
 
   function getVal(bu, cycle, plKey, month) {
@@ -371,6 +378,141 @@ export default function Budget() {
         }
         {refCycle && ` · Trend vs ${CYCLE_CONFIG[refCycle].label}`}
       </p>
+
+      {/* ── Manual FCT Section ──────────────────────────────── */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <p className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+              <Camera size={14}/> Manual Forecast (FCT)
+            </p>
+            <p className="text-[10px] text-gray-400">Snapshots from management review meetings</p>
+          </div>
+          {!fctForm && (
+            <button onClick={() => {
+              const autoExt = {}; const autoInt = {}
+              MONTHS_K.forEach(m => {
+                autoExt[m] = getVal(activeBu === 'ALL' ? 'VGT' : activeBu, activeCycle, 'ns_ext', m)
+                autoInt[m] = getVal(activeBu === 'ALL' ? 'VGT' : activeBu, activeCycle, 'ns_int', m)
+              })
+              setFctForm({
+                cycle: activeCycle,
+                bu: activeBu === 'ALL' ? 'VGT' : activeBu,
+                ns_ext: autoExt,
+                ns_int: autoInt,
+                notes: '',
+              })
+            }} className="btn-primary text-xs flex items-center gap-1">
+              <Plus size={12}/> New FCT Snapshot
+            </button>
+          )}
+        </div>
+
+        {/* FCT Form */}
+        {fctForm && (
+          <div className="border border-blue-200 rounded-xl p-3 space-y-3 bg-blue-50/30">
+            <div className="flex items-center gap-2 flex-wrap">
+              <select className="select text-xs w-auto" value={fctForm.cycle}
+                onChange={e => setFctForm(f => ({ ...f, cycle: e.target.value }))}>
+                {CYCLES.map(c => <option key={c} value={c}>{CYCLE_CONFIG[c].label}</option>)}
+              </select>
+              <select className="select text-xs w-auto" value={fctForm.bu}
+                onChange={e => setFctForm(f => ({ ...f, bu: e.target.value }))}>
+                <option value="VGT">VGT</option>
+                <option value="ECT">ECT</option>
+              </select>
+              <span className="text-[10px] text-blue-500">Pre-filled from budget · adjust as needed</span>
+            </div>
+
+            {['ns_ext', 'ns_int'].map(plKey => (
+              <div key={plKey}>
+                <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">
+                  {plKey === 'ns_ext' ? 'External Sales (K€)' : 'Internal Sales (K€)'}
+                </p>
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
+                  {MONTHS_K.map((m, i) => (
+                    <div key={m}>
+                      <label className="text-[9px] text-gray-400">{MONTHS[i]}</label>
+                      <input className="input text-xs py-1" type="number"
+                        value={fctForm[plKey][m] || 0}
+                        onChange={e => setFctForm(f => ({
+                          ...f, [plKey]: { ...f[plKey], [m]: parseFloat(e.target.value) || 0 }
+                        }))}/>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-right text-gray-500 mt-0.5">
+                  Total: {formatK(MONTHS_K.reduce((s, m) => s + (fctForm[plKey][m] || 0), 0) * 1000)}
+                </p>
+              </div>
+            ))}
+
+            <div>
+              <label className="text-[10px] text-gray-500">Notes (optional)</label>
+              <input className="input text-xs" value={fctForm.notes}
+                onChange={e => setFctForm(f => ({ ...f, notes: e.target.value }))}
+                placeholder="e.g. EST1 reviewed with Director — adjusted Q3 pipeline"/>
+            </div>
+
+            <div className="flex gap-2">
+              <button onClick={() => setFctForm(null)} className="btn-secondary text-xs flex-1">Cancel</button>
+              <button onClick={async () => {
+                setFctSaving(true)
+                const base = { cycle: fctForm.cycle, bu: fctForm.bu, created_by: null }
+                await supabase.from('forecast_snapshots').insert([
+                  { ...base, pl_key: 'ns_ext', ...fctForm.ns_ext },
+                  { ...base, pl_key: 'ns_int', ...fctForm.ns_int },
+                  ...(fctForm.notes ? [{ ...base, pl_key: 'ns_ext', notes: fctForm.notes }] : []),
+                ])
+                const { data } = await supabase.from('forecast_snapshots').select('*').order('created_at', { ascending: false })
+                setFctSnapshots(data || [])
+                setFctForm(null)
+                setFctSaving(false)
+              }} disabled={fctSaving} className="btn-primary text-xs flex-1">
+                {fctSaving ? 'Saving…' : 'Save Snapshot'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* FCT History */}
+        {fctSnapshots.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase">Snapshot History</p>
+            {(() => {
+              const byDate = {}
+              for (const s of fctSnapshots) {
+                const key = `${s.cycle}-${s.bu}-${s.created_at?.slice(0, 16)}`
+                if (!byDate[key]) byDate[key] = { cycle: s.cycle, bu: s.bu, created_at: s.created_at, notes: s.notes, rows: [] }
+                byDate[key].rows.push(s)
+                if (s.notes) byDate[key].notes = s.notes
+              }
+              return Object.values(byDate).slice(0, 10).map((group, i) => {
+                const total = group.rows.reduce((s, r) =>
+                  s + MONTHS_K.reduce((ms, m) => ms + (r[m] || 0), 0), 0)
+                return (
+                  <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${CYCLE_CONFIG[group.cycle]?.badge}`}>
+                        {group.cycle}
+                      </span>
+                      <span className="text-[10px] text-gray-500">{group.bu}</span>
+                      <span className="text-[10px] text-gray-400">
+                        {new Date(group.created_at).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      {group.rows[0]?.is_locked && <Lock size={10} className="text-amber-500"/>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {group.notes && <span className="text-[9px] text-gray-400 max-w-32 truncate">{group.notes}</span>}
+                      <span className="text-xs font-semibold text-gray-700">{formatK(total * 1000)}</span>
+                    </div>
+                  </div>
+                )
+              })
+            })()}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
