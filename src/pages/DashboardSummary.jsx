@@ -36,7 +36,7 @@ export default function DashboardSummary() {
   const { deals, loading }   = useDeals()
   const [budget, setBudget]  = useState([])
   const [fy25, setFy25]      = useState([])
-  const [slaStats, setSlaStats] = useState({ active: 0, activeValue: 0, pipelineValue: 0 })
+  const [slaStats, setSlaStats] = useState({ active: 0, activeValue: 0, pipelineValue: 0, revenueByFY: {} })
 
   useEffect(() => {
     supabase.from('budget').select('*')
@@ -45,15 +45,24 @@ export default function DashboardSummary() {
     supabase.from('fy25_actuals').select('*')
       .then(({ data }) => setFy25(data || []))
       .catch(e => console.warn('fy25:', e?.message))
-    supabase.from('slas').select('status, annual_value')
+    supabase.from('slas').select('status, annual_value, revenue_by_fy')
       .then(({ data }) => {
         if (!data) return
         const active = data.filter(s => ['active','invoiced'].includes(s.status))
         const pipeline = data.filter(s => s.status === 'pipeline')
+        const revenueByFY = {}
+        for (const s of data) {
+          if (s.status === 'cancelled') continue
+          const rev = s.revenue_by_fy || {}
+          for (const [fy, val] of Object.entries(rev)) {
+            revenueByFY[fy] = (revenueByFY[fy] || 0) + val
+          }
+        }
         setSlaStats({
           active: active.length,
           activeValue: active.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
           pipelineValue: pipeline.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
+          revenueByFY,
         })
       }).catch(() => {})
   }, [])
@@ -226,22 +235,36 @@ export default function DashboardSummary() {
       )}
 
       {/* Recurring Revenue */}
-      {isAdmin && (slaStats.active > 0 || slaStats.pipelineValue > 0) && (
-        <div className="grid grid-cols-2 gap-3">
-          <div className="card p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1">
-              <RefreshCw size={12}/> Active SLA (ARR)
-            </p>
-            <p className="text-2xl font-bold text-green-600 mt-1">{formatK(slaStats.activeValue)}</p>
-            <p className="text-micro text-gray-400">{slaStats.active} contracts/year</p>
+      {isAdmin && (
+        <div className="card p-4 space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1">
+            <RefreshCw size={12}/> Recurring Business (SLA)
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-green-50 rounded-lg p-3">
+              <p className="text-micro text-gray-500">Active ARR</p>
+              <p className="text-xl font-bold text-green-600">{formatK(slaStats.activeValue)}</p>
+              <p className="text-micro text-gray-400">{slaStats.active} contracts</p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="text-micro text-gray-500">Pipeline</p>
+              <p className="text-xl font-bold text-gray-600">{formatK(slaStats.pipelineValue)}</p>
+              <p className="text-micro text-gray-400">future recurring</p>
+            </div>
           </div>
-          <div className="card p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1">
-              <RefreshCw size={12}/> SLA Pipeline
-            </p>
-            <p className="text-2xl font-bold text-gray-600 mt-1">{formatK(slaStats.pipelineValue)}</p>
-            <p className="text-micro text-gray-400">future recurring</p>
-          </div>
+          {Object.keys(slaStats.revenueByFY).length > 0 && (
+            <div>
+              <p className="text-micro text-gray-400 mb-1">Projected by Fiscal Year</p>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1">
+                {['FY26','FY27','FY28','FY29','FY30','FY31'].map(fy => (
+                  <div key={fy} className={`text-center rounded p-1.5 ${slaStats.revenueByFY[fy] ? 'bg-blue-50' : 'bg-gray-50'}`}>
+                    <p className="text-[9px] text-gray-400 font-medium">{fy}</p>
+                    <p className="text-xs font-bold text-gray-700">{slaStats.revenueByFY[fy] ? formatK(slaStats.revenueByFY[fy]) : '—'}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

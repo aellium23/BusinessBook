@@ -316,6 +316,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
   const [hubs, setHubs]               = useState([])
   const [dealLines, setDealLines]     = useState([])
   const [catalogProducts, setCatalogProducts] = useState([])
+  const [existingClients, setExistingClients] = useState([])
 
   const isMaint = form.deal_type === 'Maintenance'
   const accountsForBU = accounts.filter(a => !form.bu || a.bu === form.bu)
@@ -348,6 +349,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
     supabase.from('products').select('*').eq('active', true).order('sort_order').order('name')
       .then(({ data }) => { if (data) setCatalogProducts(data) })
       .catch(() => {})
+    supabase.from('deals').select('client').then(({ data }) => {
+      if (data) setExistingClients([...new Set(data.map(d => d.client).filter(Boolean))].sort())
+    }).catch(() => {})
     if (deal?.id) {
       supabase.from('deal_products').select('*').eq('deal_id', deal.id).order('created_at')
         .then(({ data }) => { if (data) setDealLines(data.map(d => ({ ...d, _key: d.id }))) })
@@ -610,7 +614,15 @@ export default function DealForm({ deal, onClose, onSaved }) {
         {/* Client */}
         <div>
           <label className="label">{t("df_client")} *</label>
-          <input className="input" value={form.client} onChange={e => set('client', e.target.value)} placeholder="Hospital or organisation" />
+          <SearchableSelect
+            value={form.client}
+            onChange={v => set('client', v)}
+            options={existingClients.map(c => ({ value: c, label: c }))}
+            placeholder="Search clients…"
+            emptyLabel="— Select client —"
+            onCreateNew={(query) => { if (query) set('client', query) }}
+            createLabel="New client"
+          />
         </div>
 
         {/* Account (optional link to the Accounts hierarchy) — searchable */}
@@ -820,6 +832,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
             products={catalogProducts}
             businessModel={form.business_model}
             t={t}
+            onTotalChange={(total) => {
+              if (total > 0) set('value_total', total.toFixed(2))
+            }}
           />
 
           <div className="grid grid-cols-2 gap-3">

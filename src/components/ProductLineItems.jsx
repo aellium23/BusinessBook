@@ -2,16 +2,23 @@ import { useState, useMemo } from 'react'
 import { Plus, X, Package } from 'lucide-react'
 import { formatK } from './ui'
 
-export default function ProductLineItems({ lines, onChange, products, businessModel, t }) {
+const LICENSE_TYPES = [
+  { id: 'per_equipment', label: 'Per Equipment' },
+  { id: 'per_volume',    label: 'Per Volume (studies)' },
+  { id: 'per_package',   label: 'Package (e.g. 10K studies)' },
+  { id: 'per_ccu',       label: 'Per CCU (concurrent)' },
+  { id: 'flat',          label: 'Flat Fee' },
+]
+
+export default function ProductLineItems({ lines, onChange, products, businessModel, t, onTotalChange }) {
   const [searchTerm, setSearchTerm] = useState('')
 
   const isCapex = ['capex', 'hybrid'].includes(businessModel)
-  const isOpex  = ['opex', 'saas', 'hybrid'].includes(businessModel)
 
   const filteredProducts = useMemo(() => {
-    if (!searchTerm) return products
+    if (!searchTerm) return products || []
     const s = searchTerm.toLowerCase()
-    return products.filter(p =>
+    return (products || []).filter(p =>
       p.name.toLowerCase().includes(s) || (p.sku || '').toLowerCase().includes(s) || p.category.toLowerCase().includes(s)
     )
   }, [products, searchTerm])
@@ -25,69 +32,106 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
     return g
   }, [filteredProducts])
 
+  function inferLicenseType(product) {
+    const name = (product?.name || '').toLowerCase()
+    const sku = (product?.sku || '').toLowerCase()
+    if (sku.includes('ccu') || name.includes('ccu')) return 'per_ccu'
+    if (name.includes('cwm') || name.includes('connectivity')) return 'per_equipment'
+    if (name.includes('per study') || name.includes('pay per')) return 'per_volume'
+    return 'flat'
+  }
+
   function addLine(product) {
     const price = isCapex ? (product.license_fee || 0) : (product.annual_fee || 0)
+    const lt = inferLicenseType(product)
     const newLine = {
       _key: Date.now() + Math.random(),
-      product_id:   product.id,
-      product_name: product.name,
-      quantity:     1,
-      unit_price:   price,
-      discount_pct: 0,
-      net_price:    price,
-      annual_fee:   product.annual_fee || 0,
-      notes:        '',
+      product_id:    product.id,
+      product_name:  product.name,
+      license_type:  lt,
+      quantity:      1,
+      volume:        '',
+      package_size:  lt === 'per_package' ? 10000 : '',
+      unit_price:    price,
+      discount_pct:  0,
+      net_price:     price,
+      annual_fee:    product.annual_fee || 0,
+      notes:         '',
     }
-    onChange([...lines, newLine])
+    const newLines = [...lines, newLine]
+    onChange(newLines)
+    notifyTotal(newLines)
     setSearchTerm('')
   }
 
   function addCustomLine() {
     const newLine = {
       _key: Date.now() + Math.random(),
-      product_id:   null,
-      product_name: '',
-      quantity:     1,
-      unit_price:   0,
-      discount_pct: 0,
-      net_price:    0,
-      annual_fee:   0,
-      notes:        '',
+      product_id:    null,
+      product_name:  '',
+      license_type:  'flat',
+      quantity:      1,
+      volume:        '',
+      package_size:  '',
+      unit_price:    0,
+      discount_pct:  0,
+      net_price:     0,
+      annual_fee:    0,
+      notes:         '',
     }
     onChange([...lines, newLine])
+  }
+
+  function recalcNet(line) {
+    const qty = parseInt(line.quantity) || 1
+    const up = parseFloat(line.unit_price) || 0
+    const disc = parseFloat(line.discount_pct) || 0
+    if (line.license_type === 'per_volume') {
+      const vol = parseInt(line.volume) || 0
+      return vol * up * (1 - disc / 100)
+    }
+    if (line.license_type === 'per_package') {
+      const vol = parseInt(line.volume) || 0
+      const pkgSize = parseInt(line.package_size) || 10000
+      const pkgs = Math.ceil(vol / pkgSize)
+      return pkgs * up * (1 - disc / 100)
+    }
+    return qty * up * (1 - disc / 100)
+  }
+
+  function notifyTotal(updatedLines) {
+    if (onTotalChange) {
+      const total = updatedLines.reduce((s, l) => s + (parseFloat(l.net_price) || 0), 0)
+      onTotalChange(total)
+    }
   }
 
   function updateLine(idx, field, value) {
     const updated = [...lines]
     const line = { ...updated[idx] }
+    line[field] = value
 
-    if (field === 'unit_price') {
-      const price = parseFloat(value) || 0
-      line.unit_price = price
-      line.net_price = price * (1 - (line.discount_pct || 0) / 100) * (line.quantity || 1)
-    } else if (field === 'discount_pct') {
-      const disc = Math.min(100, Math.max(0, parseFloat(value) || 0))
-      line.discount_pct = disc
-      line.net_price = (line.unit_price || 0) * (1 - disc / 100) * (line.quantity || 1)
-    } else if (field === 'quantity') {
-      const qty = parseInt(value) || 1
-      line.quantity = qty
-      line.net_price = (line.unit_price || 0) * (1 - (line.discount_pct || 0) / 100) * qty
-    } else if (field === 'net_price') {
+    if (['unit_price', 'discount_pct', 'quantity', 'volume', 'package_size', 'license_type'].includes(field)) {
+      if (field === 'license_type') line.license_type = value
+      line.net_price = Math.round(recalcNet(line) * 100) / 100
+    }
+    if (field === 'net_price') {
       const net = parseFloat(value) || 0
       line.net_price = net
-      const totalUnit = (line.unit_price || 0) * (line.quantity || 1)
+      const qty = parseInt(line.quantity) || 1
+      const totalUnit = (parseFloat(line.unit_price) || 0) * qty
       line.discount_pct = totalUnit > 0 ? Math.round((1 - net / totalUnit) * 10000) / 100 : 0
-    } else {
-      line[field] = value
     }
 
     updated[idx] = line
     onChange(updated)
+    notifyTotal(updated)
   }
 
   function removeLine(idx) {
-    onChange(lines.filter((_, i) => i !== idx))
+    const updated = lines.filter((_, i) => i !== idx)
+    onChange(updated)
+    notifyTotal(updated)
   }
 
   const totalLicense = lines.reduce((s, l) => s + (parseFloat(l.net_price) || 0), 0)
@@ -95,16 +139,14 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap">
         <p className="text-xs font-semibold text-gray-500 uppercase flex items-center gap-1">
           <Package size={12}/> {t?.('products_title') || 'Products'} ({lines.length})
         </p>
-        {totalLicense > 0 && (
-          <div className="flex gap-3 text-xs">
-            {isCapex && <span className="text-gray-600 font-semibold">{t?.('products_license') || 'License'}: {formatK(totalLicense)}</span>}
-            {totalAnnual > 0 && <span className="text-blue-600">{t?.('products_annual') || 'Annual'}: {formatK(totalAnnual)}</span>}
-          </div>
-        )}
+        <div className="flex gap-3 text-xs">
+          {totalLicense > 0 && <span className="text-gray-600 font-semibold">Total: {formatK(totalLicense)}</span>}
+          {totalAnnual > 0 && <span className="text-blue-600">Annual: {formatK(totalAnnual)}</span>}
+        </div>
       </div>
 
       {lines.map((line, idx) => (
@@ -124,14 +166,46 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
             </button>
           </div>
 
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[10px] text-gray-400">Qty</label>
+              <label className="text-[10px] text-gray-400">Licensing</label>
+              <select className="select text-xs py-1" value={line.license_type || 'flat'}
+                onChange={e => updateLine(idx, 'license_type', e.target.value)}>
+                {LICENSE_TYPES.map(lt => <option key={lt.id} value={lt.id}>{lt.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-400">
+                {line.license_type === 'per_ccu' ? 'CCUs' :
+                 line.license_type === 'per_equipment' ? 'Equipments' : 'Qty'}
+              </label>
               <input className="input text-xs py-1" type="number" min="1" value={line.quantity}
                 onChange={e => updateLine(idx, 'quantity', e.target.value)}/>
             </div>
+          </div>
+
+          {['per_volume', 'per_package'].includes(line.license_type) && (
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] text-purple-500">Annual Studies</label>
+                <input className="input text-xs py-1 border-purple-200" type="number" value={line.volume || ''}
+                  onChange={e => updateLine(idx, 'volume', e.target.value)}
+                  placeholder="e.g. 50000"/>
+              </div>
+              {line.license_type === 'per_package' && (
+                <div>
+                  <label className="text-[10px] text-purple-500">Package Size</label>
+                  <input className="input text-xs py-1 border-purple-200" type="number" value={line.package_size || ''}
+                    onChange={e => updateLine(idx, 'package_size', e.target.value)}
+                    placeholder="e.g. 10000"/>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="text-[10px] text-gray-400">{t?.('products_license') || 'Unit €'}</label>
+              <label className="text-[10px] text-gray-400">Unit €</label>
               <input className="input text-xs py-1" type="number" value={line.unit_price}
                 onChange={e => updateLine(idx, 'unit_price', e.target.value)}/>
             </div>
@@ -141,21 +215,17 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
                 onChange={e => updateLine(idx, 'discount_pct', e.target.value)}/>
             </div>
             <div>
-              <label className="text-[10px] text-gray-400">Net €</label>
-              <input className="input text-xs py-1 font-semibold" type="number" value={line.net_price}
+              <label className="text-[10px] text-gray-400 font-semibold">Net €</label>
+              <input className="input text-xs py-1 font-semibold bg-white" type="number" value={line.net_price}
                 onChange={e => updateLine(idx, 'net_price', e.target.value)}/>
             </div>
           </div>
 
-          {(isCapex || line.annual_fee > 0) && (
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <label className="text-[10px] text-blue-500">{t?.('products_annual') || 'Annual Fee'} €</label>
-                <input className="input text-xs py-1 border-blue-200" type="number" value={line.annual_fee}
-                  onChange={e => updateLine(idx, 'annual_fee', e.target.value)}/>
-              </div>
-            </div>
-          )}
+          <div>
+            <label className="text-[10px] text-blue-500">Annual Fee €</label>
+            <input className="input text-xs py-1 border-blue-200" type="number" value={line.annual_fee}
+              onChange={e => updateLine(idx, 'annual_fee', e.target.value)}/>
+          </div>
         </div>
       ))}
 
@@ -177,8 +247,8 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
                       className="w-full text-left px-3 py-2 hover:bg-gray-50 text-xs flex justify-between items-center">
                       <span className="truncate">{p.name}</span>
                       <span className="text-gray-400 shrink-0 ml-2">
-                        {isCapex && p.license_fee > 0 ? formatK(p.license_fee) : ''}
-                        {isOpex && p.annual_fee > 0 ? formatK(p.annual_fee) + '/yr' : ''}
+                        {p.license_fee > 0 ? formatK(p.license_fee) : ''}
+                        {p.annual_fee > 0 ? ' +' + formatK(p.annual_fee) + '/yr' : ''}
                       </span>
                     </button>
                   ))}
@@ -191,7 +261,7 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
           )}
         </div>
         <button onClick={addCustomLine} className="btn-secondary text-xs px-3 shrink-0">
-          <Plus size={12}/> Custom
+          <Plus size={12}/>
         </button>
       </div>
     </div>

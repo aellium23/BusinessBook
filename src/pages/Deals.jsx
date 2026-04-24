@@ -139,6 +139,9 @@ function DealCard({ deal, onEdit, onDelete, canEdit }) {
             </p>
           </div>
           <p className="text-xs text-gray-400">FY26: {formatK(fy26)}</p>
+          {deal.gm_pct > 0 && (
+            <p className="text-[10px] text-green-600 font-semibold">GM {(deal.gm_pct * 100).toFixed(0)}%</p>
+          )}
         </div>
       </div>
 
