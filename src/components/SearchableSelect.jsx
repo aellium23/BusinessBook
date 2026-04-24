@@ -107,6 +107,13 @@ export default function SearchableSelect({
               className="w-full text-left px-3 py-2 text-sm text-gray-400 hover:bg-gray-50">
               {emptyLabel}
             </button>
+            {onCreateNew && (
+              <button type="button"
+                onClick={() => { onCreateNew(query); setOpen(false); setQuery('') }}
+                className="w-full text-left px-3 py-2 text-sm border-b border-gray-100 bg-gray-50 hover:bg-gray-100 text-navy font-medium flex items-center gap-1">
+                <Plus size={13}/> {createLabel}{query ? `: "${query}"` : ''}
+              </button>
+            )}
             {filtered.length === 0 ? (
               <p className="px-3 py-2 text-sm text-gray-400">No results</p>
             ) : filtered.map(o => (
@@ -119,13 +126,6 @@ export default function SearchableSelect({
                 {o.hint && <div className="text-[10px] text-gray-400 truncate">{o.hint}</div>}
               </button>
             ))}
-            {onCreateNew && (
-              <button type="button"
-                onClick={() => { onCreateNew(query); setOpen(false); setQuery('') }}
-                className="w-full text-left px-3 py-2 text-sm border-t border-gray-100 bg-gray-50 hover:bg-gray-100 text-navy font-medium flex items-center gap-1">
-                <Plus size={13}/> {createLabel}{query ? `: "${query}"` : ''}
-              </button>
-            )}
           </div>
         </div>
       )}
