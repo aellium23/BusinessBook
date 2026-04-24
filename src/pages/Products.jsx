@@ -12,7 +12,7 @@ const PRICING_MODELS = [
   { id: 'saas',                label: 'SaaS' },
 ]
 
-function ProductFormModal({ product, onClose, onSaved }) {
+function ProductFormModal({ product, onClose, onSaved, t }) {
   const isEdit = !!product?.id
   const [form, setForm] = useState({
     category:       product?.category       || '',
@@ -53,12 +53,12 @@ function ProductFormModal({ product, onClose, onSaved }) {
   }
 
   return (
-    <Modal open title={isEdit ? 'Edit Product' : 'New Product'} onClose={onClose}
+    <Modal open title={isEdit ? t('products_edit') : t('products_new')} onClose={onClose}
       footer={
         <div className="flex gap-2">
-          <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
+          <button onClick={onClose} className="btn-secondary flex-1">{t('cancel')}</button>
           <button onClick={handleSave} disabled={saving} className="btn-primary flex-1">
-            {saving ? 'Saving…' : 'Save'}
+            {saving ? t('saving') : t('save')}
           </button>
         </div>
       }>
@@ -67,36 +67,36 @@ function ProductFormModal({ product, onClose, onSaved }) {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">Category *</label>
+            <label className="label">{t('products_cat')} *</label>
             <input className="input" value={form.category} onChange={e => set('category', e.target.value)} placeholder="e.g. Synapse 3D"/>
           </div>
           <div>
-            <label className="label">SKU</label>
+            <label className="label">{t('products_sku')}</label>
             <input className="input" value={form.sku} onChange={e => set('sku', e.target.value)} placeholder="e.g. S3D-BASE-1CCU"/>
           </div>
         </div>
 
         <div>
-          <label className="label">Name *</label>
+          <label className="label">{t('products_name')} *</label>
           <input className="input" value={form.name} onChange={e => set('name', e.target.value)}/>
         </div>
 
         <div>
-          <label className="label">Description</label>
+          <label className="label">{t('products_desc')}</label>
           <input className="input" value={form.description} onChange={e => set('description', e.target.value)}/>
         </div>
 
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <label className="label">License Fee €</label>
+            <label className="label">{t('products_license')} €</label>
             <input className="input" type="number" value={form.license_fee} onChange={e => set('license_fee', e.target.value)}/>
           </div>
           <div>
-            <label className="label">Annual Fee €</label>
+            <label className="label">{t('products_annual')} €</label>
             <input className="input" type="number" value={form.annual_fee} onChange={e => set('annual_fee', e.target.value)}/>
           </div>
           <div>
-            <label className="label">Pricing Model</label>
+            <label className="label">{t('products_model')}</label>
             <select className="select" value={form.pricing_model} onChange={e => set('pricing_model', e.target.value)}>
               {PRICING_MODELS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
@@ -114,13 +114,13 @@ function ProductFormModal({ product, onClose, onSaved }) {
           <div className="flex items-end gap-3">
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={form.active} onChange={e => set('active', e.target.checked)} className="rounded"/>
-              Active
+              {t('products_active')}
             </label>
           </div>
           <div className="flex items-end gap-3">
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={form.distributor_visible} onChange={e => set('distributor_visible', e.target.checked)} className="rounded"/>
-              Visible to Dist.
+              {t('products_dist_vis')}
             </label>
           </div>
         </div>
@@ -183,19 +183,19 @@ export default function Products() {
         </div>
         {isAdmin && (
           <button onClick={() => { setEditProd(null); setFormOpen(true) }} className="btn-primary flex items-center gap-1">
-            <Plus size={14}/> New Product
+            <Plus size={14}/> {t('products_new')}
           </button>
         )}
       </div>
 
       <div className="flex flex-wrap gap-2 items-center">
         <div className="relative flex-1 min-w-[180px]">
-          <input className="input pl-8 text-sm" placeholder="Search products…"
+          <input className="input pl-8 text-sm" placeholder={t('products_search')}
             value={search} onChange={e => setSearch(e.target.value)} style={{ fontSize: '16px' }}/>
           <Search size={14} className="absolute left-2.5 top-3 text-gray-400"/>
         </div>
         <select className="select text-sm w-auto" value={catFilter} onChange={e => setCatFilter(e.target.value)}>
-          <option value="">All categories</option>
+          <option value="">{t('products_all_cat')}</option>
           {categories.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
       </div>
@@ -231,13 +231,13 @@ export default function Products() {
                     <div className="text-right shrink-0 space-y-0.5">
                       {p.license_fee > 0 && (
                         <p className="text-xs font-semibold text-gray-700">
-                          <span className="text-[9px] text-gray-400 mr-1">License</span>
+                          <span className="text-[9px] text-gray-400 mr-1">{t('products_license')}</span>
                           {formatK(p.license_fee)}
                         </p>
                       )}
                       {p.annual_fee > 0 && (
                         <p className="text-xs text-blue-600">
-                          <span className="text-[9px] text-gray-400 mr-1">Annual</span>
+                          <span className="text-[9px] text-gray-400 mr-1">{t('products_annual')}</span>
                           {formatK(p.annual_fee)}
                         </p>
                       )}
@@ -263,12 +263,12 @@ export default function Products() {
         ))}
 
         {Object.keys(grouped).length === 0 && (
-          <EmptyState icon="📦" title="No products found" description="Add products or adjust your search."/>
+          <EmptyState icon="📦" title={t('products_none')} description={t('products_search')}/>
         )}
       </div>
 
       {formOpen && (
-        <ProductFormModal product={editProd}
+        <ProductFormModal product={editProd} t={t}
           onClose={() => { setFormOpen(false); setEditProd(null) }}
           onSaved={() => { setFormOpen(false); setEditProd(null); refetch() }}/>
       )}
@@ -277,7 +277,7 @@ export default function Products() {
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setConfirmDel(null)}/>
           <div className="relative bg-white rounded-t-3xl sm:rounded-2xl p-5 w-full sm:max-w-sm space-y-3">
-            <p className="font-semibold text-gray-900">Delete product?</p>
+            <p className="font-semibold text-gray-900">{t('products_delete')}</p>
             <p className="text-sm text-gray-600">{confirmDel.name}</p>
             <div className="flex gap-2">
               <button onClick={() => setConfirmDel(null)} className="btn-secondary flex-1">Cancel</button>

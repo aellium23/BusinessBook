@@ -413,12 +413,12 @@ export default function SLAs() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-lg font-bold text-gray-900">{t('sla_title') || 'SLA Management'}</h1>
-          <p className="text-xs text-gray-400">{t('sla_subtitle') || 'Service contracts & recurring revenue'}</p>
+          <h1 className="text-lg font-bold text-gray-900">{t('sla_title')}</h1>
+          <p className="text-xs text-gray-400">{t('sla_subtitle')}</p>
         </div>
         {canEdit && (
           <button onClick={() => { setEditSla(null); setFormOpen(true) }} className="btn-primary flex items-center gap-1">
-            <Plus size={14}/> {t('sla_new') || 'New SLA'}
+            <Plus size={14}/> {t('sla_new')}
           </button>
         )}
       </div>
@@ -426,31 +426,31 @@ export default function SLAs() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="card p-3">
-          <p className="text-[10px] text-gray-400 uppercase font-semibold">Active SLAs</p>
+          <p className="text-[10px] text-gray-400 uppercase font-semibold">{t('sla_active')}</p>
           <p className="text-xl font-bold text-green-600">{kpis.activeCount}</p>
-          <p className="text-xs text-gray-500">{formatK(kpis.activeValue)}/year</p>
+          <p className="text-xs text-gray-500">{formatK(kpis.activeValue)}{t('sla_per_year')}</p>
         </div>
         <div className="card p-3">
-          <p className="text-[10px] text-gray-400 uppercase font-semibold">Pipeline</p>
+          <p className="text-[10px] text-gray-400 uppercase font-semibold">{t('sla_pipeline')}</p>
           <p className="text-xl font-bold text-gray-700">{formatK(kpis.pipelineValue)}</p>
-          <p className="text-xs text-gray-500">future annual value</p>
+          <p className="text-xs text-gray-500">{t('sla_future_val')}</p>
         </div>
         <div className="card p-3">
-          <p className="text-[10px] text-gray-400 uppercase font-semibold">Awaiting Action</p>
+          <p className="text-[10px] text-gray-400 uppercase font-semibold">{t('sla_awaiting')}</p>
           <p className="text-xl font-bold text-amber-600">{kpis.awaitingCount}</p>
-          <p className="text-xs text-gray-500">need attention</p>
+          <p className="text-xs text-gray-500">{t('sla_need_att')}</p>
         </div>
         <div className="card p-3">
-          <p className="text-[10px] text-gray-400 uppercase font-semibold">Total SLAs</p>
+          <p className="text-[10px] text-gray-400 uppercase font-semibold">{t('sla_total')}</p>
           <p className="text-xl font-bold text-navy">{slas.length}</p>
-          <p className="text-xs text-gray-500">all statuses</p>
+          <p className="text-xs text-gray-500">{t('sla_all_stat')}</p>
         </div>
       </div>
 
       {/* Revenue by FY */}
       <div className="card p-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2 flex items-center gap-1">
-          <TrendingUp size={12}/> Projected SLA Revenue by Fiscal Year
+          <TrendingUp size={12}/> {t('sla_revenue_fy')}
         </p>
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
           {FY_RANGE.map(fy => {
@@ -474,7 +474,7 @@ export default function SLAs() {
       {/* Search + filters */}
       <div className="flex flex-wrap gap-2 items-center">
         <div className="relative flex-1 min-w-[180px]">
-          <input className="input pl-8 text-sm" placeholder={t('sla_search_ph') || 'Search SLAs…'}
+          <input className="input pl-8 text-sm" placeholder={t('sla_search_ph')}
             value={search} onChange={e => setSearch(e.target.value)} style={{ fontSize: '16px' }}/>
           <Search size={14} className="absolute left-2.5 top-3 text-gray-400"/>
         </div>
@@ -524,14 +524,14 @@ export default function SLAs() {
             )
           })}
           {Object.keys(pipelineByFY).length === 0 && (
-            <EmptyState icon="📋" title="No pipeline SLAs" description="Future SLAs will appear here grouped by fiscal year."/>
+            <EmptyState icon="📋" title={t('sla_no_pipeline')} description={t('sla_create_hint')}/>
           )}
         </div>
       ) : (
         <div className="space-y-2">
           {filtered.length === 0 ? (
-            <EmptyState icon="📋" title={t('sla_no_found') || 'No SLAs found'}
-              description={t('sla_create_hint') || 'Create SLAs from deals or add manually.'}
+            <EmptyState icon="📋" title={t('sla_no_found')}
+              description={t('sla_create_hint')}
               action={canEdit && <button onClick={() => setFormOpen(true)} className="btn-primary">New SLA</button>}/>
           ) : filtered.map(s => (
             <SlaCard key={s.id} sla={s} canEdit={canEdit}
@@ -553,7 +553,7 @@ export default function SLAs() {
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setConfirmDel(null)}/>
           <div className="relative bg-white rounded-t-3xl sm:rounded-2xl p-5 w-full sm:max-w-sm space-y-3">
-            <p className="font-semibold text-gray-900">Delete SLA?</p>
+            <p className="font-semibold text-gray-900">{t('sla_delete')}</p>
             <p className="text-sm text-gray-600">{confirmDel.client} — {formatK(confirmDel.annual_value)}/year</p>
             <div className="flex gap-2">
               <button onClick={() => setConfirmDel(null)} className="btn-secondary flex-1">Cancel</button>

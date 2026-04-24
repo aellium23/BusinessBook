@@ -28,14 +28,21 @@ const EXT_BY_MIME = {
   'image/webp': 'webp',
 }
 
+const ALLOWED_EXTENSIONS = ['pdf','doc','docx','xls','xlsx','ppt','pptx','png','jpg','jpeg','webp']
+
 export function validateFile(file) {
   if (!file) return 'No file selected'
   if (file.size > MAX_FILE_SIZE_BYTES) {
     return `File exceeds the 25 MB limit (${formatBytes(file.size)})`
   }
-  // Some browsers omit mime type — fall back to extension check.
   if (file.type && !ALLOWED_MIME_TYPES.includes(file.type)) {
     return `File type "${file.type}" is not allowed`
+  }
+  if (!file.type) {
+    const ext = (file.name || '').split('.').pop()?.toLowerCase()
+    if (!ext || !ALLOWED_EXTENSIONS.includes(ext)) {
+      return `File extension ".${ext || '?'}" is not allowed`
+    }
   }
   return null
 }
