@@ -240,7 +240,7 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label className="label">Annual Value</label>
             <input className="input" type="number" value={form.annual_value} onChange={e => set('annual_value', e.target.value)} placeholder="28000"/>
@@ -461,8 +461,8 @@ export default function SLAs() {
                 <p className="text-sm font-bold text-gray-800">{total > 0 ? formatK(total) : '—'}</p>
                 {isAdmin && total > 0 && (
                   <div className="flex justify-center gap-1 mt-0.5">
-                    <span className="text-[8px] text-teal-600">{formatK(revenueByFY[fy].vgt)}</span>
-                    <span className="text-[8px] text-coral-600">{formatK(revenueByFY[fy].ect)}</span>
+                    <span className="text-[10px] text-teal-600">{formatK(revenueByFY[fy].vgt)}</span>
+                    <span className="text-[10px] text-coral-600">{formatK(revenueByFY[fy].ect)}</span>
                   </div>
                 )}
               </div>

@@ -317,6 +317,8 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
             onChange={setTenderLines}
             products={catalogProducts}
             businessModel="capex"
+            userRole={profile?.role}
+            t={t}
           />
         )}
 
@@ -530,7 +532,7 @@ export default function Tenders() {
       </div>
 
       {/* Stats bar */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: 'Total',     value: tenders.length,                         color: 'text-gray-700' },
           { label: 'Open',      value: tenders.filter(t=>t.status==='open').length,      color: 'text-blue-600' },

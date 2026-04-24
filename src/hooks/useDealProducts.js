@@ -32,6 +32,8 @@ export async function saveDealProducts(dealId, lines) {
     quantity:      parseInt(l.quantity) || 1,
     volume:        parseInt(l.volume) || null,
     package_size:  parseInt(l.package_size) || null,
+    cost_price:    parseFloat(l.cost_price) || 0,
+    margin_pct:    parseFloat(l.margin_pct) || 0,
     unit_price:    parseFloat(l.unit_price) || 0,
     discount_pct:  parseFloat(l.discount_pct) || 0,
     net_price:     parseFloat(l.net_price) || 0,

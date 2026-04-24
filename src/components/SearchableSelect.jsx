@@ -76,7 +76,7 @@ export default function SearchableSelect({
               tabIndex={0}
               onClick={e => { e.stopPropagation(); onChange('') }}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onChange('') } }}
-              className="text-gray-300 hover:text-gray-500 p-0.5 rounded hover:bg-gray-100">
+              className="text-gray-300 hover:text-gray-500 p-1.5 rounded hover:bg-gray-100 min-h-tap min-w-tap flex items-center justify-center">
               <X size={12}/>
             </span>
           )}

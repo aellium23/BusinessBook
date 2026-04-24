@@ -103,7 +103,7 @@ export async function createSlaFromDeal(deal, overrides = {}) {
           product_id:   dp.product_id,
           product_name: dp.product_name,
           quantity:     dp.quantity,
-          annual_value: dp.annual_fee * dp.quantity,
+          annual_value: dp.annual_fee,
         }))
       if (slaLines.length) {
         await supabase.from('sla_products').insert(slaLines)

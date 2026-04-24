@@ -831,9 +831,13 @@ export default function DealForm({ deal, onClose, onSaved }) {
             onChange={setDealLines}
             products={catalogProducts}
             businessModel={form.business_model}
+            userRole={profile?.role}
             t={t}
             onTotalChange={(total) => {
               if (total > 0) set('value_total', total.toFixed(2))
+            }}
+            onBusinessModelInfer={(model) => {
+              if (!form.business_model) set('business_model', model)
             }}
           />
 
@@ -1147,7 +1151,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 </div>
               </div>
 
-              {deal?.id && form.sla_annual_value && (
+              {deal?.id && form.sla_annual_value && (isAdmin || profile?.role === 'manager') && (
                 <div className="border-t border-blue-200 pt-2 mt-1">
                   <button type="button"
                     onClick={async () => {

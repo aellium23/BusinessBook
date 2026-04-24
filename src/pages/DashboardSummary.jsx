@@ -36,7 +36,7 @@ export default function DashboardSummary() {
   const { deals, loading }   = useDeals()
   const [budget, setBudget]  = useState([])
   const [fy25, setFy25]      = useState([])
-  const [slaStats, setSlaStats] = useState({ active: 0, activeValue: 0, pipelineValue: 0, revenueByFY: {} })
+  const [slaStats, setSlaStats] = useState({ active: 0, activeValue: 0, pipelineValue: 0, revenueByFY: {}, byBU: {} })
 
   useEffect(() => {
     supabase.from('budget').select('*')
@@ -45,24 +45,34 @@ export default function DashboardSummary() {
     supabase.from('fy25_actuals').select('*')
       .then(({ data }) => setFy25(data || []))
       .catch(e => console.warn('fy25:', e?.message))
-    supabase.from('slas').select('status, annual_value, revenue_by_fy')
+    supabase.from('slas').select('status, annual_value, revenue_by_fy, bu, product')
       .then(({ data }) => {
         if (!data) return
         const active = data.filter(s => ['active','invoiced'].includes(s.status))
         const pipeline = data.filter(s => s.status === 'pipeline')
         const revenueByFY = {}
+        const byBU = { VGT: 0, ECT: 0, CWM: 0, total: 0 }
         for (const s of data) {
           if (s.status === 'cancelled') continue
+          const val = Number(s.annual_value) || 0
+          if (['active','invoiced'].includes(s.status)) {
+            const bu = (s.bu || 'VGT').toUpperCase()
+            if (bu === 'VGT') byBU.VGT += val
+            if (bu === 'ECT') byBU.ECT += val
+            const prod = (s.product || '').toLowerCase()
+            if (prod.includes('cwm') || prod.includes('ris') || prod.includes('connectivity') || prod.includes('dose')) byBU.CWM += val
+            byBU.total += val
+          }
           const rev = s.revenue_by_fy || {}
-          for (const [fy, val] of Object.entries(rev)) {
-            revenueByFY[fy] = (revenueByFY[fy] || 0) + val
+          for (const [fy, v] of Object.entries(rev)) {
+            revenueByFY[fy] = (revenueByFY[fy] || 0) + v
           }
         }
         setSlaStats({
           active: active.length,
           activeValue: active.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
           pipelineValue: pipeline.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
-          revenueByFY,
+          revenueByFY, byBU,
         })
       }).catch(() => {})
   }, [])
@@ -240,18 +250,34 @@ export default function DashboardSummary() {
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1">
             <RefreshCw size={12}/> Recurring Business (SLA)
           </p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-green-50 rounded-lg p-3">
-              <p className="text-micro text-gray-500">Active ARR</p>
-              <p className="text-xl font-bold text-green-600">{formatK(slaStats.activeValue)}</p>
+              <p className="text-micro text-gray-500">Consolidated ARR</p>
+              <p className="text-xl font-bold text-green-600">{formatK(slaStats.byBU?.total || slaStats.activeValue)}</p>
               <p className="text-micro text-gray-400">{slaStats.active} contracts</p>
             </div>
-            <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-micro text-gray-500">Pipeline</p>
-              <p className="text-xl font-bold text-gray-600">{formatK(slaStats.pipelineValue)}</p>
-              <p className="text-micro text-gray-400">future recurring</p>
+            <div className="bg-teal-50 rounded-lg p-3">
+              <p className="text-micro text-gray-500">VGT</p>
+              <p className="text-lg font-bold text-vgt">{formatK(slaStats.byBU?.VGT || 0)}</p>
+              <p className="text-micro text-gray-400">recurring/yr</p>
+            </div>
+            <div className="bg-orange-50 rounded-lg p-3">
+              <p className="text-micro text-gray-500">ECT</p>
+              <p className="text-lg font-bold text-ect">{formatK(slaStats.byBU?.ECT || 0)}</p>
+              <p className="text-micro text-gray-400">recurring/yr</p>
+            </div>
+            <div className="bg-blue-50 rounded-lg p-3">
+              <p className="text-micro text-gray-500">CWM</p>
+              <p className="text-lg font-bold text-blue-600">{formatK(slaStats.byBU?.CWM || 0)}</p>
+              <p className="text-micro text-gray-400">cross-market</p>
             </div>
           </div>
+          {slaStats.pipelineValue > 0 && (
+            <div className="bg-gray-50 rounded-lg p-2 flex items-center justify-between">
+              <p className="text-micro text-gray-500">SLA Pipeline</p>
+              <p className="text-sm font-bold text-gray-600">{formatK(slaStats.pipelineValue)}</p>
+            </div>
+          )}
           {Object.keys(slaStats.revenueByFY).length > 0 && (
             <div>
               <p className="text-micro text-gray-400 mb-1">Projected by Fiscal Year</p>

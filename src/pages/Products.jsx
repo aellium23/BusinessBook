@@ -13,6 +13,14 @@ const PRICING_MODELS = [
   { id: 'saas',                label: 'SaaS' },
 ]
 
+const LICENSE_TYPES = [
+  { id: 'per_equipment', label: 'Per Equipment' },
+  { id: 'per_volume',    label: 'Per Volume' },
+  { id: 'per_package',   label: 'Package' },
+  { id: 'per_ccu',       label: 'Per CCU' },
+  { id: 'flat',          label: 'Flat Fee' },
+]
+
 function ComponentsEditor({ productId, allProducts, t }) {
   const [components, setComponents] = useState([])
   const [loading, setLoading] = useState(true)
@@ -117,6 +125,7 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
     bu:             product?.bu             || 'VGT',
     active:         product?.active !== false,
     distributor_visible: product?.distributor_visible !== false,
+    allowed_license_types: product?.allowed_license_types || ['flat'],
     sort_order:     product?.sort_order     || 0,
   })
   const [saving, setSaving] = useState(false)
@@ -233,6 +242,24 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
                 <input type="checkbox" checked={form.distributor_visible} onChange={e => set('distributor_visible', e.target.checked)} className="rounded"/>
                 {t('products_dist_vis')}
               </label>
+            </div>
+          </div>
+
+          <div>
+            <label className="label">Allowed License Types</label>
+            <div className="flex flex-wrap gap-2">
+              {LICENSE_TYPES.map(lt => (
+                <label key={lt.id} className="flex items-center gap-1.5 text-sm bg-gray-50 px-2 py-1 rounded">
+                  <input type="checkbox" className="rounded"
+                    checked={(form.allowed_license_types || []).includes(lt.id)}
+                    onChange={e => {
+                      const cur = form.allowed_license_types || []
+                      set('allowed_license_types',
+                        e.target.checked ? [...cur, lt.id] : cur.filter(x => x !== lt.id))
+                    }}/>
+                  {lt.label}
+                </label>
+              ))}
             </div>
           </div>
         </>)}
