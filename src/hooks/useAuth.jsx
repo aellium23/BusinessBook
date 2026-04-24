@@ -25,7 +25,7 @@ export const ROLE_PERMISSIONS = {
     manageUsers: false,
   },
   member: {
-    pages:    ['dashboard','deals','clients','contacts','accounts','whitespace','network','history','quotas','tasks','tenders','sla'],
+    pages:    ['dashboard','deals','clients','contacts','accounts','whitespace','network','history','quotas','tasks','tenders','sla','products'],
     canEdit:  true,
     canDelete: false,
     editOwn:  true,

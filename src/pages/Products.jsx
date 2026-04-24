@@ -130,7 +130,7 @@ function ProductFormModal({ product, onClose, onSaved }) {
 }
 
 export default function Products() {
-  const { isAdmin, canEdit } = useAuth()
+  const { isAdmin } = useAuth()
   const { t } = useTranslation()
   const [search, setSearch]       = useState('')
   const [catFilter, setCatFilter] = useState('')

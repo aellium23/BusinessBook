@@ -114,7 +114,7 @@ create table if not exists public.sla_usage (
   period_end        date not null,
   contracted_volume int,
   actual_volume     int default 0,
-  overage           int generated always as (greatest(actual_volume - contracted_volume, 0)) stored,
+  overage           int generated always as (greatest(actual_volume - coalesce(contracted_volume, 0), 0)) stored,
   overage_value     numeric(12,2),
   notes             text,
   recorded_by       uuid references auth.users(id),
@@ -160,6 +160,8 @@ create trigger audit_sla_usage
 -- ┌─────────────────────────────────────────────┐
 -- │ 5. SEED — Product Catalog (VGT Pricelist)   │
 -- └─────────────────────────────────────────────┘
+
+create unique index if not exists products_sku_unique on public.products (sku) where sku is not null;
 
 insert into public.products (category, sku, name, description, license_fee, annual_fee, pricing_model, bu, sort_order)
 values
@@ -291,4 +293,4 @@ values
 -- ── VMWare ──
 ('VMWare',     'VMW-STD',         'VMWare Standard License',           'Virtualization standard',          5000,  1200, 'license_plus_annual', 'VGT', 500),
 ('VMWare',     'VMW-ENT',         'VMWare Enterprise License',         'Virtualization enterprise',       12000,  2400, 'license_plus_annual', 'VGT', 501)
-on conflict do nothing;
+on conflict (sku) do nothing;

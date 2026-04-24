@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useSlas, createSla, updateSla, deleteSla } from '../hooks/useSlas'
 import { useAuth } from '../hooks/useAuth'
 import { useTranslation } from '../hooks/useTranslation'
@@ -324,7 +324,6 @@ export default function SLAs() {
   const { t } = useTranslation()
   const [search, setSearch]     = useState('')
   const [buF, setBuF]           = useState('')
-  const [statusF, setStatusF]   = useState('')
   const [tab, setTab]           = useState('active')
   const [formOpen, setFormOpen] = useState(false)
   const [editSla, setEditSla]   = useState(null)
@@ -333,13 +332,13 @@ export default function SLAs() {
 
   const { slas, loading, refetch } = useSlas({ bu: buF || undefined, search: search || undefined })
 
-  useState(() => {
+  useEffect(() => {
     import('../lib/supabase').then(({ supabase }) => {
       supabase.from('quotas').select('sales_owner').then(({ data }) => {
         if (data) setOwners([...new Set(data.map(q => q.sales_owner).filter(Boolean))].sort())
       })
     })
-  })
+  }, [])
 
   const filtered = useMemo(() => {
     const tabFilter = {
