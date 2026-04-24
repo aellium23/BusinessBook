@@ -742,7 +742,7 @@ export default function Dashboard({ hideHeader = false } = {}) {
       </div>
 
       {/* ── RECURRING BUSINESS ──────────────────────────────────────────── */}
-      {isAdmin && slaRecurring.value > 0 && (
+      {isAdmin && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Recurring Business (SLA)</p>
           <div className="grid grid-cols-3 gap-3">

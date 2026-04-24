@@ -85,7 +85,7 @@ function calcMonthly(value, csM, csY, ceM, ceY, recM, recY) {
 const EMPTY = {
   bu:'', sales_type:'External', stage:'Pipeline',
   client:'', region:'Europe', country:'',
-  sales_owner:'', deal_type:'One-Shot', description:'',
+  sales_owner:'', description:'',
   value_total:'', gm_pct:'',
   rec_month:'', rec_year:'',
   cs_day:1, cs_month:'', cs_year:'', ce_day:31, ce_month:'', ce_year:'',
@@ -93,13 +93,6 @@ const EMPTY = {
   win_probability:'',
   currency: 'EUR',
   exchange_rate: '',
-  is_sla: false,
-  sla_type: '',
-  sla_annual_value: '',
-  sla_billing_month: '',
-  sla_billing_year: '',
-  sla_owner: '',
-  sla_renewal_target: '',
   end_customer: '',
   distributor: '',
   hub: '',
@@ -267,13 +260,6 @@ export default function DealForm({ deal, onClose, onSaved }) {
     intercompany_value: deal.intercompany_value || '',
     currency: deal.currency || 'EUR',
     exchange_rate: deal.exchange_rate || '',
-    is_sla: deal.is_sla || false,
-    sla_type: deal.sla_type || '',
-    sla_annual_value: deal.sla_annual_value || '',
-    sla_billing_month: deal.sla_billing_month || '',
-    sla_billing_year: deal.sla_billing_year || '',
-    sla_owner: deal.sla_owner || '',
-    sla_renewal_target: deal.sla_renewal_target || '',
     win_probability: deal.win_probability ?? '',
     end_customer: deal.end_customer || '',
     distributor: deal.distributor || '',
@@ -318,7 +304,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
   const [catalogProducts, setCatalogProducts] = useState([])
   const [existingClients, setExistingClients] = useState([])
 
-  const isMaint = form.deal_type === 'Maintenance'
+  const isMaint = false
   const accountsForBU = accounts.filter(a => !form.bu || a.bu === form.bu)
 
   // Auto-calculate SLA monthly recognition
@@ -471,7 +457,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
       forecast_category: form.forecast_category || null,
       account_id: form.account_id || null,
       client: form.client, region: form.region, country: form.country,
-      sales_owner: form.sales_owner, deal_type: form.deal_type,
+      sales_owner: form.sales_owner,
       description: form.description,
       value_total: parseFloat(form.value_total) || 0,
       gm_pct: parseFloat(form.gm_pct) / 100 || 0,
@@ -481,14 +467,6 @@ export default function DealForm({ deal, onClose, onSaved }) {
       // Currency
       currency: form.currency || 'EUR',
       exchange_rate: form.currency === 'EUR' ? 1.0 : (parseFloat(form.exchange_rate) || 1.0),
-      // SLA
-      is_sla: form.is_sla || false,
-      sla_type: form.is_sla ? (form.sla_type || null) : null,
-      sla_annual_value: form.is_sla ? (parseFloat(form.sla_annual_value) || null) : null,
-      sla_billing_month: form.is_sla ? (form.sla_billing_month || null) : null,
-      sla_billing_year: form.is_sla ? (parseInt(form.sla_billing_year) || null) : null,
-      sla_owner: form.is_sla ? (form.sla_owner || null) : null,
-      sla_renewal_target: form.is_sla ? (parseFloat(form.sla_renewal_target) || null) : null,
       // Product & Business Model
       product: form.product || null,
       business_model: form.business_model || null,
@@ -664,13 +642,6 @@ export default function DealForm({ deal, onClose, onSaved }) {
               emptyLabel={t("df_owner_none")}
             />
           </div>
-          <div>
-            <label className="label">{t("df_deal_type")}</label>
-            <select className="select" value={form.deal_type} onChange={e => set('deal_type', e.target.value)}>
-              <option>One-Shot</option>
-              <option>Maintenance</option>
-            </select>
-          </div>
         </div>
 
         {/* Description */}
@@ -796,7 +767,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">{t("df_deal_type")}</label>
+              <label className="label">Business Model</label>
               <select className="select" value={form.business_model} onChange={e => set('business_model', e.target.value)}>
                 <option value="">— Select —</option>
                 {BUSINESS_MODELS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
@@ -1078,91 +1049,29 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </div>
         )}
 
-        {/* ── SLA SECTION ──────────────────────────────────────── */}
-        <div className={`rounded-xl p-4 space-y-3 border ${form.is_sla ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
-          <div className="flex items-center justify-between">
+        {/* ── CONTRACT LINK ──────────────────────────────────── */}
+        {deal?.id && (isAdmin || profile?.role === 'manager') && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">SLA — Service Level Agreement</p>
-              <p className="text-[10px] text-gray-400 mt-0.5">Recurring contract · active during contract period</p>
+              <p className="text-xs font-semibold text-blue-700">Contracts & Recurring</p>
+              <p className="text-[10px] text-blue-500">Create or view linked contracts</p>
             </div>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <span className="text-xs text-gray-500">{form.is_sla ? 'Active SLA' : 'Not SLA'}</span>
-              <div className={`w-11 h-6 rounded-full transition-colors relative ${form.is_sla ? 'bg-blue-500' : 'bg-gray-300'}`}
-                onClick={() => set('is_sla', !form.is_sla)}>
-                <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.is_sla ? 'translate-x-5' : 'translate-x-0'}`}/>
-              </div>
-            </label>
+            <button type="button"
+              onClick={async () => {
+                const { createSlaFromDeal } = await import('../hooks/useSlas')
+                const { data, error } = await createSlaFromDeal(
+                  { ...deal, ...form, id: deal.id },
+                  { warranty_months: parseInt(form.warranty_months) || 36 }
+                )
+                if (error) { alert(error.message); return }
+                await supabase.from('deals').update({ converted_to_sla: true }).eq('id', deal.id)
+                alert(`Contract created for ${form.client}`)
+              }}
+              className="text-xs py-2 px-3 rounded-lg border border-blue-300 bg-white text-blue-700 font-semibold hover:bg-blue-100 flex items-center gap-1">
+              <Plus size={12}/> Create Contract
+            </button>
           </div>
-          {form.is_sla && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="label">{t("df_sla_type")}</label>
-                  <select className="select bg-white" value={form.sla_type||''} onChange={e => set('sla_type', e.target.value)}>
-                    <option value="">— Select type —</option>
-                    <option>Software Maintenance</option>
-                    <option>Hardware Maintenance</option>
-                    <option>Full Service (SW+HW)</option>
-                    <option>Managed Service</option>
-                    <option>Subscription</option>
-                    <option>Support & Updates</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="label">{t("df_sla_annual")}</label>
-                  <input className="input bg-white" type="number"
-                    value={form.sla_annual_value||''} onChange={e => set('sla_annual_value', e.target.value)}
-                    placeholder="Annual contract value"/>
-                </div>
-              </div>
-              {/* Billing month — when the invoice is issued */}
-              <div>
-                <label className="label">{t("df_billing")} <span className="text-gray-400 font-normal">{t("df_billing_note")}</span></label>
-                <div className="flex gap-1.5">
-                  <select className="select flex-1 bg-white" value={form.sla_billing_month||''} onChange={e => set('sla_billing_month', e.target.value)}>
-                    <option value="">— Month —</option>
-                    {FY26_MONTHS.map(m => <option key={m}>{m}</option>)}
-                  </select>
-                  <select className="select w-20 bg-white" value={form.sla_billing_year||''} onChange={e => set('sla_billing_year', e.target.value)}>
-                    <option value="">Year</option>
-                    {[2025,2026,2027].map(y => <option key={y}>{y}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="label">{t("df_sla_owner")}</label>
-                  <input className="input bg-white" value={form.sla_owner} onChange={e => set('sla_owner', e.target.value)} placeholder="Responsible for renewal"/>
-                </div>
-                <div>
-                  <label className="label">{t("df_renewal")}</label>
-                  <input className="input bg-white" type="number" min="0" max="100"
-                    value={form.sla_renewal_target} onChange={e => set('sla_renewal_target', e.target.value)}
-                    placeholder="e.g. 5"/>
-                </div>
-              </div>
-
-              {deal?.id && form.sla_annual_value && (isAdmin || profile?.role === 'manager') && (
-                <div className="border-t border-blue-200 pt-2 mt-1">
-                  <button type="button"
-                    onClick={async () => {
-                      const { createSlaFromDeal } = await import('../hooks/useSlas')
-                      const { data, error } = await createSlaFromDeal(
-                        { ...deal, ...form, id: deal.id },
-                        { warranty_months: 36 }
-                      )
-                      if (error) alert(error.message)
-                      else alert(`SLA created for ${form.client} — check SLA Management page`)
-                    }}
-                    className="w-full text-xs py-2 px-3 rounded-lg border border-blue-300 bg-white text-blue-700 font-semibold hover:bg-blue-100 transition-colors flex items-center justify-center gap-1">
-                    <Plus size={12}/> Create SLA Contract
-                  </button>
-                  <p className="text-[9px] text-blue-400 mt-1 text-center">Creates an SLA record in SLA Management with warranty + projected revenue</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        )}
 
         {/* ── INTERCOMPANY (ECT only) ────────────────────────────── */}
         {isECT && (
@@ -1221,8 +1130,8 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </div>
         )}
 
-        {/* Maintenance contract dates */}
-        {isMaint && (
+        {/* Maintenance contract dates — removed, now in Contracts module */}
+        {false && (
           <div className="rounded-xl border border-gray-200 overflow-hidden">
             {/* Header */}
             <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
@@ -1347,9 +1256,8 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </div>
         )}
 
-        {/* One-Shot monthly */}
-        {!isMaint && (
-          <div>
+        {/* Monthly recognition */}
+        <div>
             <p className="label mb-2">Monthly recognition · FY26</p>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {MONTHS.map((m, i) => (
@@ -1361,7 +1269,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
               ))}
             </div>
           </div>
-        )}
+        </div>
 
         {/* Unified activity timeline — replaces the old Change History + Activity Log */}
         {deal?.id && (
