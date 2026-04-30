@@ -806,35 +806,72 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
     const role = roleMap[ps?.name] || 'viewer'
 
     try {
+      // Try Edge Function first, fallback to direct profile creation
       const { data: { session } } = await supabase.auth.getSession()
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-user`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`,
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({
-            email: email.toLowerCase().trim(), role, company_id: companyId||null,
-            sales_owner_id: ownerId||null,
-            sales_owner_name: salesOwners.find(o=>o.id===ownerId)?.name||null,
-            bu, display_name: name||null,
-          }),
+      let userId = null
+      let success = false
+
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-user`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session?.access_token}`,
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({
+              email: email.toLowerCase().trim(), role, company_id: companyId||null,
+              sales_owner_id: ownerId||null,
+              sales_owner_name: salesOwners.find(o=>o.id===ownerId)?.name||null,
+              bu, display_name: name||null,
+            }),
+          }
+        )
+        const json = await res.json()
+        if (json.success || json.userId) {
+          userId = json.userId
+          success = true
         }
-      )
-      const json = await res.json()
-      if (json.success || json.userId) {
-        // Actualizar o permission_set_id do profile criado
-        if (psId && json.userId) {
-          await supabase.from('profiles').update({ permission_set_id: psId }).eq('id', json.userId)
+      } catch {
+        // Edge Function not available — create profile directly
+        // User will need to sign up via the login page
+        const { data: existing } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', email.toLowerCase().trim())
+          .maybeSingle()
+
+        if (existing) {
+          userId = existing.id
+        } else {
+          const { data: newProfile, error: profileErr } = await supabase
+            .from('profiles')
+            .insert({
+              email: email.toLowerCase().trim(),
+              full_name: name || null,
+              role,
+              bu,
+              company_id: companyId || null,
+              sales_owner_name: salesOwners.find(o=>o.id===ownerId)?.name || null,
+              active: true,
+            })
+            .select('id')
+            .single()
+          if (profileErr) throw new Error(profileErr.message)
+          userId = newProfile?.id
         }
-        setResult({ ok:true, msg: json.message || `Perfil criado para ${email}` })
+        success = true
+      }
+
+      if (success) {
+        if (psId && userId) {
+          await supabase.from('profiles').update({ permission_set_id: psId }).eq('id', userId)
+        }
+        setResult({ ok:true, msg: `Perfil criado para ${email}. O utilizador deve fazer login/signup.` })
         setEmail(''); setName(''); setPsId(''); setComp(''); setOwner('')
         onSaved()
-      } else {
-        setResult({ ok:false, msg: json.error || 'Erro desconhecido' })
       }
     } catch(err) {
       setResult({ ok:false, msg: err.message })
