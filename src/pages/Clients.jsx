@@ -142,7 +142,7 @@ export default function Clients() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from('accounts').select('*, distributor:distributor_id(id, name)').order('name'),
+      supabase.from('accounts').select('*').order('name'),
       supabase.from('deals').select('id, client, account_id, bu, stage, value_total, is_sla, region, country').eq('is_intercompany_mirror', false),
       supabase.from('distributors').select('id, name, country, region').order('name'),
     ]).then(([aRes, dRes, distRes]) => {
@@ -154,7 +154,7 @@ export default function Clients() {
   }, [])
 
   function refresh() {
-    supabase.from('accounts').select('*, distributor:distributor_id(id, name)').order('name')
+    supabase.from('accounts').select('*').order('name')
       .then(({ data }) => setAccounts(data || []))
   }
 

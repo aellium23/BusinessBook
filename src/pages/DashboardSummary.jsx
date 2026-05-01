@@ -48,7 +48,8 @@ export default function DashboardSummary() {
       .catch(e => console.warn('fy25:', e?.message))
     supabase.from('slas').select('status, annual_value, revenue_by_fy, bu, product')
       .then(({ data }) => {
-        if (!data) return
+        if (!data || !Array.isArray(data)) return
+        try {
         const active = data.filter(s => ['active','invoiced'].includes(s.status))
         const pipeline = data.filter(s => s.status === 'pipeline')
         const revenueByFY = {}
@@ -75,6 +76,7 @@ export default function DashboardSummary() {
           pipelineValue: pipeline.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
           revenueByFY, byBU,
         })
+        } catch {}
       }).catch(() => {})
     supabase.from('forecast_snapshots').select('*').order('created_at', { ascending: false }).limit(20)
       .then(({ data, error }) => {

@@ -429,18 +429,20 @@ export default function Dashboard({ hideHeader = false } = {}) {
       .then(({ data }) => setFy25(data || []))
       .catch(e => console.warn('Failed to load FY25 actuals:', e?.message))
     supabase.from('forecast_snapshots').select('*').order('created_at', { ascending: false })
-      .then(({ data }) => setFctSnapshots(data || []))
+      .then(({ data }) => { if (data) setFctSnapshots(data) })
       .catch(() => {})
     supabase.from('slas').select('status, annual_value, bu')
       .then(({ data }) => {
         if (!data) return
-        const active = data.filter(s => ['active','invoiced'].includes(s.status))
-        const pipeline = data.filter(s => s.status === 'pipeline')
-        setSlaRecurring({
-          active: active.length,
-          value: active.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
-          pipeline: pipeline.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
-        })
+        try {
+          const active = data.filter(s => ['active','invoiced'].includes(s.status))
+          const pipeline = data.filter(s => s.status === 'pipeline')
+          setSlaRecurring({
+            active: active.length,
+            value: active.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
+            pipeline: pipeline.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
+          })
+        } catch {}
       }).catch(() => {})
   }, [])
 
