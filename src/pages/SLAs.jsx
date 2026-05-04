@@ -154,12 +154,21 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState(null)
   const [clients, setClients] = useState([])
+  const [slaProducts, setSlaProducts] = useState([])
+  const [catalogProducts, setCatalogProducts] = useState([])
+  const [addProductId, setAddProductId] = useState('')
 
   useEffect(() => {
     supabase.from('deals').select('client').then(({ data }) => {
       if (data) setClients([...new Set(data.map(d => d.client).filter(Boolean))].sort())
     }).catch(() => {})
-  }, [])
+    supabase.from('products').select('id, name, sku, category, annual_fee').eq('active', true).order('name')
+      .then(({ data }) => { if (data) setCatalogProducts(data) }).catch(() => {})
+    if (sla?.id) {
+      supabase.from('sla_products').select('*').eq('sla_id', sla.id).order('created_at')
+        .then(({ data }) => { if (data) setSlaProducts(data) }).catch(() => {})
+    }
+  }, [sla?.id])
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
@@ -167,35 +176,53 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
     const annualVal = parseFloat(form.annual_value) || 0
     if (!annualVal || !form.start_date) return null
     const start = new Date(form.start_date)
-    const end = form.end_date ? new Date(form.end_date) : new Date(start.getFullYear() + (parseInt(form.contract_duration_years) || 1), start.getMonth(), start.getDate() - 1)
+    const duration = parseInt(form.contract_duration_years) || 1
+    const end = form.end_date ? new Date(form.end_date) : new Date(start.getFullYear() + duration, start.getMonth(), start.getDate() - 1)
     const invoice = form.invoice_date ? new Date(form.invoice_date) : null
-
-    const totalMonths = Math.max(1, Math.round((end - start) / (30.44 * 86400000)))
     const monthlyRate = annualVal / 12
+
     const FY_MONTHS = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
     const FY_KEYS = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
-    const result = {}
-    FY_KEYS.forEach(k => { result[k] = 0 })
+    const CALENDAR_MONTHS = [3,4,5,6,7,8,9,10,11,0,1,2]
+    const FY_START_YEAR = 2026
 
-    if (invoice) {
-      const invoiceMonth = invoice.getMonth()
-      const invoiceFYIdx = (invoiceMonth - 3 + 12) % 12
-      const monthsFromStart = Math.max(1, Math.round((invoice - start) / (30.44 * 86400000)) + 1)
-      const catchUp = monthlyRate * monthsFromStart
-      result[FY_KEYS[invoiceFYIdx]] = Math.round(catchUp)
-      const remainingMonths = Math.max(0, 12 - monthsFromStart - 1)
-      for (let i = 1; i <= remainingMonths; i++) {
-        const idx = (invoiceFYIdx + i) % 12
-        result[FY_KEYS[idx]] = Math.round(monthlyRate)
-      }
-    } else {
-      const startFYIdx = (start.getMonth() - 3 + 12) % 12
-      for (let i = 0; i < 12; i++) {
-        const idx = (startFYIdx + i) % 12
-        result[FY_KEYS[idx]] = Math.round(monthlyRate)
+    const result = {}
+    const status = {}
+    FY_KEYS.forEach(k => { result[k] = 0; status[k] = 'none' })
+
+    for (let i = 0; i < 12; i++) {
+      const calMonth = CALENDAR_MONTHS[i]
+      const year = calMonth >= 3 ? FY_START_YEAR : FY_START_YEAR + 1
+      const monthDate = new Date(year, calMonth, 15)
+
+      if (monthDate >= start && monthDate <= end) {
+        status[FY_KEYS[i]] = 'active'
+        result[FY_KEYS[i]] = Math.round(monthlyRate)
+      } else if (monthDate > end) {
+        status[FY_KEYS[i]] = 'pending_renewal'
       }
     }
-    return { months: FY_MONTHS, keys: FY_KEYS, values: result, total: Object.values(result).reduce((s, v) => s + v, 0) }
+
+    if (invoice && invoice > start) {
+      const invoiceFYIdx = (invoice.getMonth() - 3 + 12) % 12
+      let catchUpMonths = 0
+      for (let i = 0; i < invoiceFYIdx; i++) {
+        if (status[FY_KEYS[i]] === 'active') {
+          catchUpMonths += 1
+          result[FY_KEYS[i]] = 0
+          status[FY_KEYS[i]] = 'accrued'
+        }
+      }
+      if (catchUpMonths > 0 && status[FY_KEYS[invoiceFYIdx]] === 'active') {
+        result[FY_KEYS[invoiceFYIdx]] = Math.round(monthlyRate * (catchUpMonths + 1))
+        status[FY_KEYS[invoiceFYIdx]] = 'invoice'
+      }
+    }
+
+    return {
+      months: FY_MONTHS, keys: FY_KEYS, values: result, status,
+      total: Object.values(result).reduce((s, v) => s + v, 0)
+    }
   }, [form.annual_value, form.start_date, form.end_date, form.invoice_date, form.contract_duration_years])
 
   async function handleSave() {
@@ -282,15 +309,22 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
 
         <div>
           <label className="label">Client *</label>
-          <SearchableSelect
-            value={form.client}
-            onChange={v => set('client', v)}
-            options={clients.map(c => ({ value: c, label: c }))}
-            placeholder="Search clients…"
-            emptyLabel="— Select client —"
-            onCreateNew={(q) => { if (q) set('client', q) }}
-            createLabel="New client"
-          />
+          <div className="flex gap-2">
+            <input className="input flex-1" value={form.client}
+              onChange={e => set('client', e.target.value)}
+              placeholder="Client name"/>
+            <SearchableSelect
+              value=""
+              onChange={v => { if (v) set('client', v) }}
+              options={clients.map(c => ({ value: c, label: c }))}
+              placeholder="Search…"
+              emptyLabel="Pick existing"
+              size="sm"
+            />
+          </div>
+          {sla?.id && form.client !== sla.client && (
+            <p className="text-[10px] text-amber-500 mt-0.5">Changed from "{sla.client}" → "{form.client}"</p>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -315,14 +349,10 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="label">Annual Value</label>
             <input className="input" type="number" value={form.annual_value} onChange={e => set('annual_value', e.target.value)} placeholder="28000"/>
-          </div>
-          <div>
-            <label className="label">Warranty (months)</label>
-            <input className="input" type="number" value={form.warranty_months} onChange={e => set('warranty_months', e.target.value)} placeholder="36"/>
           </div>
           <div>
             <label className="label">Billing month</label>
@@ -335,11 +365,7 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">Warranty End</label>
-            <input className="input" type="date" value={form.warranty_end_date} onChange={e => set('warranty_end_date', e.target.value)}/>
-          </div>
-          <div>
-            <label className="label">SLA Start</label>
+            <label className="label">Start Date</label>
             <input className="input" type="date" value={form.start_date} onChange={e => set('start_date', e.target.value)}/>
           </div>
         </div>
@@ -348,6 +374,59 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
           <label className="label">Description</label>
           <textarea className="input min-h-[60px] resize-none" value={form.description} onChange={e => set('description', e.target.value)}/>
         </div>
+
+        {/* Contract Products */}
+        {sla?.id && (
+          <div className="border-t pt-3 space-y-2">
+            <p className="text-xs font-semibold text-gray-500 uppercase">Products ({slaProducts.length})</p>
+            {slaProducts.map(sp => (
+              <div key={sp.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800 truncate">{sp.product_name || '—'}</p>
+                  {sp.quantity > 1 && <span className="text-[10px] text-gray-400">Qty: {sp.quantity}</span>}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-sm font-bold text-blue-600">{formatK(sp.annual_value || 0)}/yr</span>
+                  <button onClick={async () => {
+                    await supabase.from('sla_products').delete().eq('id', sp.id)
+                    setSlaProducts(prev => prev.filter(p => p.id !== sp.id))
+                    const newTotal = slaProducts.filter(p => p.id !== sp.id).reduce((s, p) => s + (Number(p.annual_value) || 0), 0)
+                    set('annual_value', newTotal)
+                  }} className="text-gray-300 hover:text-red-500 p-1 min-h-tap">
+                    <X size={12}/>
+                  </button>
+                </div>
+              </div>
+            ))}
+            <div className="flex gap-2">
+              <select className="select text-xs flex-1" value={addProductId} onChange={e => setAddProductId(e.target.value)}>
+                <option value="">+ Add product…</option>
+                {catalogProducts.map(p => (
+                  <option key={p.id} value={p.id}>{p.name} ({formatK(p.annual_fee)}/yr)</option>
+                ))}
+              </select>
+              {addProductId && (
+                <button onClick={async () => {
+                  const prod = catalogProducts.find(p => p.id === addProductId)
+                  if (!prod) return
+                  const { data } = await supabase.from('sla_products').insert({
+                    sla_id: sla.id,
+                    product_id: prod.id,
+                    product_name: prod.name,
+                    quantity: 1,
+                    annual_value: prod.annual_fee || 0,
+                  }).select().single()
+                  if (data) {
+                    setSlaProducts(prev => [...prev, data])
+                    const newTotal = [...slaProducts, data].reduce((s, p) => s + (Number(p.annual_value) || 0), 0)
+                    set('annual_value', newTotal)
+                  }
+                  setAddProductId('')
+                }} className="btn-primary text-xs px-3">Add</button>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3 border-t pt-3">
           <div>
@@ -401,24 +480,89 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
             <p className="text-[10px] font-semibold text-gray-500 uppercase mb-2">Revenue Recognition · FY26</p>
             <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
               {monthlyRecognition.months.map((m, i) => {
-                const val = monthlyRecognition.values[monthlyRecognition.keys[i]]
-                const isInvoiceMonth = form.invoice_date && new Date(form.invoice_date).getMonth() === [3,4,5,6,7,8,9,10,11,0,1,2][i]
+                const key = monthlyRecognition.keys[i]
+                const val = monthlyRecognition.values[key]
+                const st = monthlyRecognition.status[key]
+                const bgClass = st === 'invoice' ? 'bg-amber-100 border border-amber-300'
+                  : st === 'accrued' ? 'bg-amber-50'
+                  : st === 'active' ? 'bg-blue-50'
+                  : st === 'pending_renewal' ? 'bg-orange-50 border border-orange-200'
+                  : 'bg-gray-50'
                 return (
-                  <div key={m} className={`text-center rounded p-1.5 ${val > 0 ? (isInvoiceMonth ? 'bg-amber-50' : 'bg-blue-50') : 'bg-gray-50'}`}>
+                  <div key={m} className={`text-center rounded p-1.5 ${bgClass}`}>
                     <p className="text-[9px] text-gray-400">{m}</p>
-                    <p className={`text-xs font-bold ${val > 0 ? 'text-gray-800' : 'text-gray-300'}`}>
-                      {val > 0 ? formatK(val) : '—'}
-                    </p>
+                    {st === 'pending_renewal' ? (
+                      <p className="text-[9px] font-bold text-orange-500">Renew</p>
+                    ) : (
+                      <p className={`text-xs font-bold ${val > 0 ? 'text-gray-800' : 'text-gray-300'}`}>
+                        {val > 0 ? formatK(val) : '—'}
+                      </p>
+                    )}
                   </div>
                 )
               })}
             </div>
-            <p className="text-[10px] text-right text-gray-500 mt-1">Total: {formatK(monthlyRecognition.total)}</p>
-            {form.invoice_date && form.start_date && new Date(form.invoice_date) > new Date(form.start_date) && (
-              <p className="text-[10px] text-amber-600 mt-1">
-                Catch-up: invoice month includes {Math.round((new Date(form.invoice_date) - new Date(form.start_date)) / (30.44 * 86400000) + 1)} months of accrued revenue
-              </p>
+            <div className="flex items-center justify-between mt-1">
+              <div className="flex gap-2 text-[9px] text-gray-400">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-blue-100 border border-blue-200"/> Active</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-amber-100 border border-amber-300"/> Invoice</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-orange-50 border border-orange-200"/> Renewal</span>
+              </div>
+              <p className="text-[10px] text-gray-500">Total: {formatK(monthlyRecognition.total)}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Renewal section */}
+        {sla?.id && ['active','pending_renewal'].includes(form.status) && (
+          <div className="border-t pt-3 space-y-2">
+            <p className="text-xs font-semibold text-gray-500 uppercase">Renewal</p>
+            {sla.previous_value && (
+              <p className="text-[10px] text-gray-400">Previous: {formatK(sla.previous_value)} → Current: {formatK(sla.annual_value)}</p>
             )}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] text-gray-500">New Value €</label>
+                <input className="input text-xs py-1" type="number"
+                  id="renewal_new_value"
+                  defaultValue={form.annual_value}/>
+              </div>
+              <div>
+                <label className="text-[10px] text-gray-500">or Increase %</label>
+                <input className="input text-xs py-1" type="number"
+                  id="renewal_increase_pct"
+                  placeholder="e.g. 3"
+                  onChange={e => {
+                    const pct = parseFloat(e.target.value) || 0
+                    const newVal = Math.round((parseFloat(form.annual_value) || 0) * (1 + pct / 100))
+                    const el = document.getElementById('renewal_new_value')
+                    if (el) el.value = newVal
+                  }}/>
+              </div>
+            </div>
+            <button type="button" onClick={async () => {
+              const newVal = parseFloat(document.getElementById('renewal_new_value')?.value) || form.annual_value
+              const { error } = await updateSla(sla.id, {
+                previous_value: parseFloat(form.annual_value) || 0,
+                change_reason: `Renewed: ${formatK(form.annual_value)} → ${formatK(newVal)}`,
+                change_date: new Date().toISOString().split('T')[0],
+                annual_value: newVal,
+                status: 'renewed',
+                start_date: form.renewal_date || form.end_date || null,
+              })
+              if (!error) { onSaved(); onClose() }
+            }} className="btn-primary text-xs w-full">
+              Renew Contract
+            </button>
+          </div>
+        )}
+
+        {/* Value change history */}
+        {sla?.previous_value && (
+          <div className="bg-gray-50 rounded-lg p-2">
+            <p className="text-[10px] text-gray-400">
+              History: {sla.change_reason || 'Value changed'} · {sla.change_date ? new Date(sla.change_date).toLocaleDateString('pt-PT') : ''}
+            </p>
           </div>
         )}
 
@@ -464,7 +608,8 @@ export default function SLAs() {
   const [renewalF, setRenewalF] = useState('')
   const [typeTab, setTypeTab]   = useState('all_types')
   const [tab, setTab]           = useState('active')
-  const [groupBy, setGroupBy]   = useState('none')
+  const [statusF, setStatusF]   = useState('')
+  const [viewMode, setViewMode] = useState('list')
   const [formOpen, setFormOpen] = useState(false)
   const [editSla, setEditSla]   = useState(null)
   const [confirmDel, setConfirmDel] = useState(null)
@@ -482,7 +627,10 @@ export default function SLAs() {
 
   const now = new Date()
   const regions = useMemo(() => [...new Set(slas.map(s => s.region).filter(Boolean))].sort(), [slas])
-  const countries = useMemo(() => [...new Set(slas.map(s => s.country).filter(Boolean))].sort(), [slas])
+  const countries = useMemo(() => {
+    const src = regionF ? slas.filter(s => s.region === regionF) : slas
+    return [...new Set(src.map(s => s.country).filter(Boolean))].sort()
+  }, [slas, regionF])
   const products = useMemo(() => [...new Set(slas.map(s => s.product).filter(Boolean))].sort(), [slas])
   const ownersList = useMemo(() => [...new Set(slas.map(s => s.sla_owner).filter(Boolean))].sort(), [slas])
 
@@ -504,8 +652,9 @@ export default function SLAs() {
         })
       }
     }
+    if (statusF) list = list.filter(s => s.status === statusF)
     return list
-  }, [slas, typeTab, regionF, countryF, productF, ownerF, renewalF])
+  }, [slas, typeTab, regionF, countryF, productF, ownerF, renewalF, statusF])
 
   const filtered = useMemo(() => {
     const tabFilter = {
@@ -701,6 +850,20 @@ export default function SLAs() {
           <option value="60">≤60 days</option>
           <option value="90">≤90 days</option>
         </select>
+        <select className="select text-xs w-auto" value={statusF} onChange={e => setStatusF(e.target.value)}>
+          <option value="">All Status</option>
+          {SLA_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+        </select>
+        <div className="flex gap-0.5 bg-gray-100 p-0.5 rounded-lg ml-auto">
+          <button onClick={() => setViewMode('list')}
+            className={`px-2 py-1 rounded text-xs font-semibold ${viewMode === 'list' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>
+            List
+          </button>
+          <button onClick={() => setViewMode('kanban')}
+            className={`px-2 py-1 rounded text-xs font-semibold ${viewMode === 'kanban' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>
+            Kanban
+          </button>
+        </div>
       </div>
 
       {/* Contract type tabs */}
@@ -731,8 +894,44 @@ export default function SLAs() {
         ))}
       </div>
 
-      {/* SLA list */}
-      {tab === 'pipeline' ? (
+      {/* Contract list / Kanban */}
+      {viewMode === 'kanban' ? (
+        <div className="overflow-x-auto">
+          <div className="flex gap-3 min-w-[900px]">
+            {SLA_STATUSES.map(st => {
+              const colSlas = typeFiltered.filter(s => s.status === st.id)
+              const colValue = colSlas.reduce((s, a) => s + (Number(a.annual_value) || 0), 0)
+              return (
+                <div key={st.id} className="flex-1 min-w-[160px]">
+                  <div className={`rounded-t-lg px-2 py-1.5 flex items-center justify-between ${st.color.split(' ').filter(c => c.startsWith('bg-')).join(' ')}`}>
+                    <span className={`text-[10px] font-bold uppercase ${st.color.split(' ').filter(c => c.startsWith('text-')).join(' ')}`}>
+                      {st.label}
+                    </span>
+                    <span className="text-[10px] font-semibold text-gray-500">{colSlas.length}</span>
+                  </div>
+                  <div className="bg-gray-50 rounded-b-lg p-1.5 space-y-1.5 min-h-[100px]">
+                    {colValue > 0 && (
+                      <p className="text-[10px] text-center text-gray-400 font-medium">{formatK(colValue)}</p>
+                    )}
+                    {colSlas.map(s => (
+                      <div key={s.id} onClick={() => { setEditSla(s); setFormOpen(true) }}
+                        className="bg-white rounded-lg p-2 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-shadow">
+                        <div className="flex items-center gap-1 mb-0.5">
+                          <BUBadge bu={s.bu}/>
+                          <RenewalBadge sla={s}/>
+                        </div>
+                        <p className="text-xs font-semibold text-gray-900 truncate">{s.client}</p>
+                        {s.description && <p className="text-[10px] text-gray-400 truncate">{s.description}</p>}
+                        <p className="text-xs font-bold text-gray-700 mt-1">{formatK(s.annual_value)}<span className="text-[10px] text-gray-400 font-normal">/yr</span></p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ) : tab === 'pipeline' ? (
         <div className="space-y-4">
           {[...FY_RANGE, 'Unscheduled'].map(fy => {
             const fySlas = pipelineByFY[fy]
