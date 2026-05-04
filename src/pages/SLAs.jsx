@@ -273,6 +273,16 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
 
     setSaving(false)
     if (result.error) { setError(result.error.message); return }
+
+    // Sync client name to accounts and deals if changed
+    if (isEdit && sla.client && form.client.trim() !== sla.client) {
+      const oldName = sla.client
+      const newName = form.client.trim()
+      supabase.from('accounts').update({ name: newName }).eq('name', oldName).then(() => {})
+      supabase.from('deals').update({ client: newName }).eq('client', oldName).then(() => {})
+      supabase.from('slas').update({ client: newName }).eq('client', oldName).neq('id', sla.id).then(() => {})
+    }
+
     onSaved()
   }
 

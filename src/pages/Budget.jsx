@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { Spinner, formatK } from '../components/ui'
-import { Save, CheckCircle, TrendingUp, TrendingDown, Minus, Camera, Lock, Clock, Plus } from 'lucide-react'
+import { Save, CheckCircle, TrendingUp, TrendingDown, Minus, Camera, Lock, Clock, Plus, ChevronDown } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
@@ -458,11 +458,10 @@ export default function Budget() {
               <button onClick={() => setFctForm(null)} className="btn-secondary text-xs flex-1">Cancel</button>
               <button onClick={async () => {
                 setFctSaving(true)
-                const base = { cycle: fctForm.cycle, bu: fctForm.bu, created_by: null }
+                const base = { cycle: fctForm.cycle, bu: fctForm.bu, created_by: null, notes: fctForm.notes || null }
                 await supabase.from('forecast_snapshots').insert([
                   { ...base, pl_key: 'ns_ext', ...fctForm.ns_ext },
                   { ...base, pl_key: 'ns_int', ...fctForm.ns_int },
-                  ...(fctForm.notes ? [{ ...base, pl_key: 'ns_ext', notes: fctForm.notes }] : []),
                 ])
                 const { data } = await supabase.from('forecast_snapshots').select('*').order('created_at', { ascending: false })
                 setFctSnapshots(data || [])
@@ -483,28 +482,64 @@ export default function Budget() {
               const byDate = {}
               for (const s of fctSnapshots) {
                 const key = `${s.cycle}-${s.bu}-${s.created_at?.slice(0, 16)}`
-                if (!byDate[key]) byDate[key] = { cycle: s.cycle, bu: s.bu, created_at: s.created_at, notes: s.notes, rows: [] }
+                if (!byDate[key]) byDate[key] = { cycle: s.cycle, bu: s.bu, created_at: s.created_at, notes: s.notes, rows: [], expanded: false }
                 byDate[key].rows.push(s)
                 if (s.notes) byDate[key].notes = s.notes
               }
-              return Object.values(byDate).slice(0, 10).map((group, i) => {
+              return Object.values(byDate).slice(0, 20).map((group, i) => {
                 const total = group.rows.reduce((s, r) =>
-                  s + MONTHS_K.reduce((ms, m) => ms + (r[m] || 0), 0), 0)
+                  s + MONTHS_K.reduce((ms, m) => ms + (Number(r[m]) || 0), 0), 0)
+                const extRow = group.rows.find(r => r.pl_key === 'ns_ext')
+                const intRow = group.rows.find(r => r.pl_key === 'ns_int')
                 return (
-                  <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${CYCLE_CONFIG[group.cycle]?.badge}`}>
-                        {group.cycle}
-                      </span>
-                      <span className="text-[10px] text-gray-500">{group.bu}</span>
-                      <span className="text-[10px] text-gray-400">
-                        {new Date(group.created_at).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                      {group.rows[0]?.is_locked && <Lock size={10} className="text-amber-500"/>}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {group.notes && <span className="text-[9px] text-gray-400 max-w-32 truncate">{group.notes}</span>}
-                      <span className="text-xs font-semibold text-gray-700">{formatK(total * 1000)}</span>
+                  <div key={i} className="bg-gray-50 rounded-lg overflow-hidden">
+                    <button onClick={() => {
+                      const el = document.getElementById(`fct-detail-${i}`)
+                      if (el) el.classList.toggle('hidden')
+                    }} className="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-100 transition-colors">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${CYCLE_CONFIG[group.cycle]?.badge}`}>
+                          {group.cycle}
+                        </span>
+                        <span className="text-[10px] text-gray-500">{group.bu}</span>
+                        <span className="text-[10px] text-gray-400">
+                          {new Date(group.created_at).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        {group.rows[0]?.is_locked && <Lock size={10} className="text-amber-500"/>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {group.notes && <span className="text-[9px] text-gray-400 max-w-32 truncate">{group.notes}</span>}
+                        <span className="text-xs font-semibold text-gray-700">{formatK(total * 1000)}</span>
+                        <ChevronDown size={12} className="text-gray-400"/>
+                      </div>
+                    </button>
+                    <div id={`fct-detail-${i}`} className="hidden px-3 pb-2 space-y-1">
+                      {extRow && (
+                        <div>
+                          <p className="text-[9px] text-gray-400 uppercase">External</p>
+                          <div className="grid grid-cols-6 gap-0.5">
+                            {MONTHS.map((m, mi) => (
+                              <div key={m} className="text-center">
+                                <p className="text-[8px] text-gray-300">{m}</p>
+                                <p className="text-[10px] font-semibold text-gray-700">{Number(extRow[MONTHS_K[mi]]) || '—'}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {intRow && (
+                        <div>
+                          <p className="text-[9px] text-gray-400 uppercase">Internal</p>
+                          <div className="grid grid-cols-6 gap-0.5">
+                            {MONTHS.map((m, mi) => (
+                              <div key={m} className="text-center">
+                                <p className="text-[8px] text-gray-300">{m}</p>
+                                <p className="text-[10px] font-semibold text-gray-700">{Number(intRow[MONTHS_K[mi]]) || '—'}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )
