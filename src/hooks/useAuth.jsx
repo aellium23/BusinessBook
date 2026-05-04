@@ -70,11 +70,20 @@ export function AuthProvider({ children }) {
   const [loading, setLoading]       = useState(true)
 
   async function loadProfile(userId, userEmail) {
-    const { data } = await supabase
+    // Step 1: fetch profile without joins (immune to permission_sets RLS issues)
+    const { data, error } = await supabase
       .from('profiles')
-      .select('*, company:company_id(*), permission_set:permission_set_id(*)')
+      .select('*')
       .eq('id', userId)
       .single()
+
+    if (error) {
+      console.error('loadProfile: failed to fetch profile', error)
+      // Fallback so loading never stays true forever
+      setProfile({ id: userId, email: userEmail, role: 'viewer' })
+      setCompany(null); setPermSet(null)
+      return
+    }
 
     if (data) {
       // Verificar se a conta está activa
@@ -83,10 +92,26 @@ export function AuthProvider({ children }) {
         setProfile(null); setCompany(null); setPermSet(null)
         return
       }
-      const { company: co, permission_set: ps, ...prof } = data
-      setProfile(prof)
-      setCompany(co || null)
-      setPermSet(ps || null)
+
+      setProfile(data)
+
+      // Step 2: fetch related company and permission_set separately
+      // so a failure in one doesn't block the whole profile load
+      if (data.company_id) {
+        const { data: co } = await supabase
+          .from('companies').select('*').eq('id', data.company_id).single()
+        setCompany(co || null)
+      } else {
+        setCompany(null)
+      }
+
+      if (data.permission_set_id) {
+        const { data: ps } = await supabase
+          .from('permission_sets').select('*').eq('id', data.permission_set_id).single()
+        setPermSet(ps || null)
+      } else {
+        setPermSet(null)
+      }
     } else {
       // Novo user — criar profile básico
       const { data: upserted } = await supabase
@@ -100,7 +125,7 @@ export function AuthProvider({ children }) {
         .select()
         .single()
       setProfile(upserted || { id: userId, email: userEmail, role: 'viewer' })
-      setCompany(null)
+      setCompany(null); setPermSet(null)
     }
   }
 
