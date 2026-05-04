@@ -18,11 +18,12 @@ const STORAGE_KEY = 'bb_dashboard_view'
  */
 export default function DashboardIndex() {
   const { t } = useTranslation()
-  const { profile } = useAuth()
+  const { profile, isAdmin } = useAuth()
   const [view, setView] = useState(() => {
     if (typeof window === 'undefined') return 'summary'
     return localStorage.getItem(STORAGE_KEY) || 'summary'
   })
+  const [selectedBU, setSelectedBU] = useState('')
 
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, view) } catch {}
@@ -58,9 +59,21 @@ export default function DashboardIndex() {
             <BarChart3 size={13}/> <span className="hidden sm:inline">{t('dash_view_classic') || 'Classic'}</span>
           </button>
         </div>
+        {isAdmin && (
+          <div className="flex gap-0.5 bg-gray-100 p-0.5 rounded-lg">
+            {['','VGT','ECT'].map(bu => (
+              <button key={bu} onClick={() => setSelectedBU(bu)}
+                className={`px-2.5 py-1 rounded text-xs font-semibold ${
+                  selectedBU === bu ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'
+                }`}>
+                {bu || 'All'}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {view === 'summary' ? <DashboardSummary /> : <DashboardClassic hideHeader />}
+      {view === 'summary' ? <DashboardSummary selectedBU={selectedBU} /> : <DashboardClassic hideHeader selectedBU={selectedBU} />}
     </div>
   )
 }

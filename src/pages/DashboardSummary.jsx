@@ -30,11 +30,13 @@ function sumMonthly(row, monthKeys) {
   return monthKeys.reduce((s, k) => s + (Number(row[k]) || 0), 0)
 }
 
-export default function DashboardSummary() {
+export default function DashboardSummary({ selectedBU = '' }) {
   const { profile, isAdmin } = useAuth()
   const { t }                = useTranslation()
-  const { deals, loading }   = useDeals()
+  const { deals: allDeals, loading } = useDeals()
+  const deals = useMemo(() => selectedBU ? allDeals.filter(d => d.bu === selectedBU) : allDeals, [allDeals, selectedBU])
   const [budget, setBudget]  = useState([])
+  const [accountTypes, setAccountTypes] = useState({})
   const [fy25, setFy25]      = useState([])
   const [slaStats, setSlaStats] = useState({ active: 0, activeValue: 0, pipelineValue: 0, revenueByFY: {}, byBU: {} })
   const [manualFct, setManualFct] = useState(null)
@@ -43,6 +45,10 @@ export default function DashboardSummary() {
     supabase.from('budget').select('*')
       .then(({ data }) => setBudget(data || []))
       .catch(e => console.warn('budget:', e?.message))
+    supabase.from('accounts').select('id, client_type')
+      .then(({ data }) => {
+        if (data) setAccountTypes(Object.fromEntries(data.map(a => [a.id, a.client_type])))
+      }).catch(() => {})
     supabase.from('fy25_actuals').select('*')
       .then(({ data }) => setFy25(data || []))
       .catch(e => console.warn('fy25:', e?.message))
@@ -169,6 +175,28 @@ export default function DashboardSummary() {
     return out
   }, [deals])
 
+  const publicPrivate = useMemo(() => {
+    const r = { pub_pipe: 0, priv_pipe: 0, pub_inv: 0, priv_inv: 0, unlinked: 0 }
+    for (const d of deals) {
+      if (d.is_intercompany_mirror) continue
+      const type = d.account_id ? (accountTypes[d.account_id] || 'unlinked') : 'unlinked'
+      const val = Number(d.value_total) || 0
+      const inv = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
+      if (['Pipeline','Offer Presented','BackLog'].includes(d.stage)) {
+        if (type === 'public') r.pub_pipe += val
+        else if (type === 'private') r.priv_pipe += val
+        else r.unlinked += val
+      }
+      if (d.stage === 'Invoiced') {
+        if (type === 'public') r.pub_inv += inv
+        else if (type === 'private') r.priv_inv += inv
+      }
+    }
+    r.total_pipe = r.pub_pipe + r.priv_pipe
+    r.total_inv = r.pub_inv + r.priv_inv
+    return r
+  }, [deals, accountTypes])
+
   // Build gauge list for the role
   const showVGT = isAdmin || profile?.bu === 'VGT'
   const showECT = isAdmin || profile?.bu === 'ECT'
@@ -243,8 +271,42 @@ export default function DashboardSummary() {
         )}
       </div>
 
+      {/* Public vs Private */}
+      {(publicPrivate.total_pipe > 0 || publicPrivate.total_inv > 0) && (
+        <div className="card p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Public vs Private</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-blue-50 rounded-lg p-2 text-center">
+              <p className="text-micro text-gray-500">Public Pipeline</p>
+              <p className="text-lg font-bold text-blue-700">{formatK(publicPrivate.pub_pipe)}</p>
+            </div>
+            <div className="bg-purple-50 rounded-lg p-2 text-center">
+              <p className="text-micro text-gray-500">Private Pipeline</p>
+              <p className="text-lg font-bold text-purple-700">{formatK(publicPrivate.priv_pipe)}</p>
+            </div>
+            <div className="bg-blue-50 rounded-lg p-2 text-center">
+              <p className="text-micro text-gray-500">Public Invoiced</p>
+              <p className="text-lg font-bold text-blue-700">{formatK(publicPrivate.pub_inv)}</p>
+            </div>
+            <div className="bg-purple-50 rounded-lg p-2 text-center">
+              <p className="text-micro text-gray-500">Private Invoiced</p>
+              <p className="text-lg font-bold text-purple-700">{formatK(publicPrivate.priv_inv)}</p>
+            </div>
+          </div>
+          {publicPrivate.total_pipe > 0 && (
+            <div className="mt-2 flex rounded-full h-2 overflow-hidden bg-gray-100">
+              <div style={{ width: `${(publicPrivate.pub_pipe / publicPrivate.total_pipe) * 100}%` }} className="bg-blue-500 h-full"/>
+              <div style={{ width: `${(publicPrivate.priv_pipe / publicPrivate.total_pipe) * 100}%` }} className="bg-purple-500 h-full"/>
+            </div>
+          )}
+          {publicPrivate.unlinked > 0 && (
+            <p className="text-micro text-amber-500 mt-1">{formatK(publicPrivate.unlinked)} unlinked to accounts</p>
+          )}
+        </div>
+      )}
+
       {/* Pipeline snapshot */}
-      {isAdmin && (
+      {(
         <div className="grid grid-cols-2 gap-3">
           <div className="card p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1">
@@ -287,7 +349,7 @@ export default function DashboardSummary() {
       )}
 
       {/* Recurring Revenue */}
-      {isAdmin && (
+      {(
         <div className="card p-4 space-y-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1">
             <RefreshCw size={12}/> Recurring Business (SLA)
