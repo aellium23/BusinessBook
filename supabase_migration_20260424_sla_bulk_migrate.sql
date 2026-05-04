@@ -17,7 +17,7 @@ select
   case
     when d.stage = 'Invoiced' then 'active'
     when d.stage = 'Lost'     then 'cancelled'
-    else 'pipeline'
+    else 'draft'
   end,
   d.sla_owner,
   d.sales_owner,

@@ -435,7 +435,7 @@ export default function Dashboard({ hideHeader = false } = {}) {
       .then(({ data }) => {
         if (!data) return
         try {
-          const active = data.filter(s => ['active','invoiced'].includes(s.status))
+          const active = data.filter(s => ['warranty','active','pending_renewal'].includes(s.status))
           const pipeline = data.filter(s => s.status === 'pipeline')
           setSlaRecurring({
             active: active.length,

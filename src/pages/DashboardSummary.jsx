@@ -50,14 +50,14 @@ export default function DashboardSummary() {
       .then(({ data }) => {
         if (!data || !Array.isArray(data)) return
         try {
-        const active = data.filter(s => ['active','invoiced'].includes(s.status))
+        const active = data.filter(s => ['warranty','active','pending_renewal'].includes(s.status))
         const pipeline = data.filter(s => s.status === 'pipeline')
         const revenueByFY = {}
         const byBU = { VGT: 0, ECT: 0, CWM: 0, total: 0 }
         for (const s of data) {
           if (s.status === 'cancelled') continue
           const val = Number(s.annual_value) || 0
-          if (['active','invoiced'].includes(s.status)) {
+          if (['warranty','active','pending_renewal'].includes(s.status)) {
             const bu = (s.bu || 'VGT').toUpperCase()
             if (bu === 'VGT') byBU.VGT += val
             if (bu === 'ECT') byBU.ECT += val

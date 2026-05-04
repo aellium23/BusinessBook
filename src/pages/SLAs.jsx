@@ -24,7 +24,7 @@ function SlaStatusBadge({ status }) {
 
 function RenewalBadge({ sla }) {
   const rd = sla.renewal_date || sla.end_date
-  if (!rd || !['active','invoiced'].includes(sla.status)) return null
+  if (!rd || !['warranty','active','pending_renewal'].includes(sla.status)) return null
   const days = Math.ceil((new Date(rd) - new Date()) / 86400000)
   if (days < 0) return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700">Expired</span>
   if (days <= 30) return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700">{days}d</span>
@@ -126,7 +126,7 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
     client:            sla?.client            || '',
     description:       sla?.description       || '',
     sla_type:          sla?.sla_type          || '',
-    status:            sla?.status            || 'pipeline',
+    status:            sla?.status            || 'draft',
     sla_owner:         sla?.sla_owner         || '',
     deal_owner:        sla?.deal_owner        || '',
     annual_value:      sla?.annual_value      || '',
@@ -509,10 +509,10 @@ export default function SLAs() {
 
   const filtered = useMemo(() => {
     const tabFilter = {
-      active:   s => ['active','invoiced'].includes(s.status),
-      awaiting: s => ['negotiation','waiting_po'].includes(s.status),
-      pipeline: s => s.status === 'pipeline',
-      changes:  s => ['reduced','cancelled'].includes(s.status),
+      pipeline: s => ['draft','waiting_po'].includes(s.status),
+      active:   s => ['warranty','active','pending_renewal'].includes(s.status),
+      renewal:  s => ['pending_renewal','renewed'].includes(s.status),
+      closed:   s => ['expired','cancelled'].includes(s.status),
       all:      () => true,
     }
     return typeFiltered.filter(tabFilter[tab] || tabFilter.all)
@@ -521,7 +521,7 @@ export default function SLAs() {
   const pipelineByFY = useMemo(() => {
     const byFY = {}
     for (const s of typeFiltered) {
-      if (s.status !== 'pipeline') continue
+      if (!['draft','waiting_po'].includes(s.status)) continue
       const fy = s.start_date ? getFiscalYear(s.start_date) : 'Unscheduled'
       if (!byFY[fy]) byFY[fy] = []
       byFY[fy].push(s)
@@ -530,16 +530,16 @@ export default function SLAs() {
   }, [typeFiltered])
 
   const kpis = useMemo(() => {
-    const active = slas.filter(s => ['active','invoiced'].includes(s.status))
-    const pipeline = slas.filter(s => s.status === 'pipeline')
-    const reduced = slas.filter(s => s.status === 'reduced')
+    const active = slas.filter(s => ['warranty','active','pending_renewal'].includes(s.status))
+    const pipeline = slas.filter(s => ['draft','waiting_po'].includes(s.status))
+    const expired = slas.filter(s => s.status === 'expired')
     const renewing90 = slas.filter(s => {
       const rd = s.renewal_date || s.end_date
       return rd && ['active','invoiced'].includes(s.status) && new Date(rd) <= new Date(now.getTime() + 90 * 86400000) && new Date(rd) >= now
     })
-    const atRisk = [...reduced, ...slas.filter(s => {
+    const atRisk = [...expired, ...slas.filter(s => {
       const rd = s.renewal_date || s.end_date
-      return rd && ['active','invoiced'].includes(s.status) && new Date(rd) <= new Date(now.getTime() + 30 * 86400000) && new Date(rd) >= now
+      return rd && ['active','pending_renewal'].includes(s.status) && new Date(rd) <= new Date(now.getTime() + 30 * 86400000) && new Date(rd) >= now
     })]
     return {
       activeCount: active.length,
@@ -581,10 +581,10 @@ export default function SLAs() {
 
   const tf = typeFiltered
   const tabs = [
-    { id: 'active',   label: `Active (${tf.filter(s=>['active','invoiced'].includes(s.status)).length})` },
-    { id: 'awaiting', label: `Awaiting (${tf.filter(s=>['negotiation','waiting_po'].includes(s.status)).length})` },
-    { id: 'pipeline', label: `Pipeline (${tf.filter(s=>s.status==='pipeline').length})` },
-    { id: 'changes',  label: `Changes (${tf.filter(s=>['reduced','cancelled'].includes(s.status)).length})` },
+    { id: 'active',   label: `Active (${tf.filter(s=>['warranty','active','pending_renewal'].includes(s.status)).length})` },
+    { id: 'pipeline', label: `Pipeline (${tf.filter(s=>['draft','waiting_po'].includes(s.status)).length})` },
+    { id: 'renewal',  label: `Renewal (${tf.filter(s=>['pending_renewal','renewed'].includes(s.status)).length})` },
+    { id: 'closed',   label: `Closed (${tf.filter(s=>['expired','cancelled'].includes(s.status)).length})` },
     { id: 'all',      label: `All (${tf.length})` },
   ]
 

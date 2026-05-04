@@ -73,7 +73,7 @@ export async function createSlaFromDeal(deal, overrides = {}) {
     client:            deal.client,
     description:       overrides.description || deal.description || null,
     sla_type:          overrides.sla_type || deal.sla_type || null,
-    status:            'pipeline',
+    status:            'draft',
     sla_owner:         overrides.sla_owner || deal.sla_owner || null,
     deal_owner:        deal.sales_owner || null,
     annual_value:      annualValue,
