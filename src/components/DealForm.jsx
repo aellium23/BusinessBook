@@ -86,6 +86,7 @@ const EMPTY = {
   bu:'', sales_type:'External', stage:'Pipeline',
   client:'', region:'Europe', country:'',
   sales_owner:'', description:'',
+  go_live_month: '', go_live_year: '',
   value_total:'', gm_pct:'',
   rec_month:'', rec_year:'',
   cs_day:1, cs_month:'', cs_year:'', ce_day:31, ce_month:'', ce_year:'',
@@ -278,6 +279,8 @@ export default function DealForm({ deal, onClose, onSaved }) {
     product: deal.product || '',
     business_model: deal.business_model || '',
     warranty_months: deal.warranty_months || 36,
+    go_live_month: deal.go_live_month || '',
+    go_live_year: deal.go_live_year || '',
     equipment_count: deal.equipment_count || '',
     annual_studies: deal.annual_studies || '',
     annual_exams: deal.annual_exams || '',
@@ -471,6 +474,8 @@ export default function DealForm({ deal, onClose, onSaved }) {
       product: form.product || null,
       business_model: form.business_model || null,
       warranty_months: parseInt(form.warranty_months) || 36,
+      go_live_month: form.go_live_month || null,
+      go_live_year: parseInt(form.go_live_year) || null,
       equipment_count: parseInt(form.equipment_count) || null,
       annual_studies: parseInt(form.annual_studies) || null,
       annual_exams: parseInt(form.annual_exams) || null,
@@ -783,9 +788,27 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </div>
 
           {['capex','hybrid'].includes(form.business_model) && (
-            <p className="text-[10px] text-blue-600 bg-blue-50 rounded px-2 py-1">
-              SLA available after {form.warranty_months || 36} months warranty
-            </p>
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">Go-Live Month {['BackLog','Invoiced'].includes(form.stage) ? '*' : ''}</label>
+                  <select className="select" value={form.go_live_month} onChange={e => set('go_live_month', e.target.value)}>
+                    <option value="">—</option>
+                    {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map(m => <option key={m}>{m}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Go-Live Year</label>
+                  <select className="select" value={form.go_live_year} onChange={e => set('go_live_year', e.target.value)}>
+                    <option value="">—</option>
+                    {[2025,2026,2027,2028].map(y => <option key={y}>{y}</option>)}
+                  </select>
+                </div>
+              </div>
+              <p className="text-[10px] text-blue-600 bg-blue-50 rounded px-2 py-1">
+                Warranty starts at Go-Live · SLA after {form.warranty_months || 36} months
+              </p>
+            </>
           )}
 
           <ProductLineItems
@@ -1259,6 +1282,16 @@ export default function DealForm({ deal, onClose, onSaved }) {
         {/* Monthly recognition */}
         <div>
           <p className="label mb-2">Monthly recognition · FY26</p>
+          {form.go_live_month && (() => {
+            const glIdx = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(form.go_live_month)
+            const fyIdx = (glIdx - 3 + 12) % 12
+            const hasRevenueBeforeGL = MONTHS_K.slice(0, fyIdx).some(m => form[m] > 0)
+            return hasRevenueBeforeGL ? (
+              <p className="text-[10px] text-amber-600 bg-amber-50 rounded px-2 py-1 mb-2">
+                ⚠ Revenue recognized before Go-Live ({form.go_live_month} {form.go_live_year}) — verify with finance
+              </p>
+            ) : null
+          })()}
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {MONTHS.map((m, i) => (
               <div key={m}>
