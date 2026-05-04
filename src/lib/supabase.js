@@ -18,6 +18,18 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
+// A second client with NO persisted session — used exclusively for admin-initiated
+// signUp calls.  When the admin is already logged in, calling signUp on the main
+// client can fail ("failed to fetch") because it tries to create a new session that
+// conflicts with the existing one.  This isolated client avoids that entirely.
+export const anonClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+  },
+})
+
 // ── Auth helpers ──────────────────────────────────────────────────────────────
 
 // Sign in com password

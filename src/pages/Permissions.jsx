@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, anonClient } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useTranslation } from '../hooks/useTranslation'
 import { Spinner } from '../components/ui'
@@ -808,24 +808,45 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
     try {
       const trimmedEmail = email.toLowerCase().trim()
 
-      // Step 1: Create auth user via signUp with a random temporary password
+      // Step 1: Create auth user via signUp with a random temporary password.
+      // IMPORTANT: We use anonClient (a separate Supabase client with NO persisted
+      // session) so the admin's active session does not interfere with the signUp
+      // call.  Using the main `supabase` client here caused "failed to fetch" errors
+      // because signUp tried to create a new session that conflicted with the
+      // existing admin session.
       const tempPassword = crypto.randomUUID() + '-Aa1!'
       let signUpData, signUpError
       try {
-        const result = await supabase.auth.signUp({
+        const result = await anonClient.auth.signUp({
           email: trimmedEmail,
           password: tempPassword,
           options: {
             data: { full_name: name || trimmedEmail.split('@')[0] },
+            // emailRedirectTo tells Supabase where to send the user after they
+            // click the confirmation link in the email.
+            emailRedirectTo: `${window.location.origin}/auth/set-password`,
           },
         })
         signUpData = result.data
         signUpError = result.error
       } catch (fetchErr) {
-        throw new Error('Não foi possível ligar ao Supabase Auth. Verifica: Authentication > Providers > Email deve estar activo. Erro: ' + (fetchErr?.message || 'network error'))
+        throw new Error(
+          'Não foi possível ligar ao Supabase Auth. Verifica: ' +
+          'Authentication > Providers > Email deve estar activo. ' +
+          'Erro: ' + (fetchErr?.message || 'network error')
+        )
       }
 
-      if (signUpError) throw signUpError
+      if (signUpError) {
+        // Provide a friendlier message for rate-limit errors
+        if (signUpError.message?.includes('rate') || signUpError.status === 429) {
+          throw new Error(
+            'Limite de emails atingido (2/hora no plano gratuito). ' +
+            'Aguarda alguns minutos e tenta novamente.'
+          )
+        }
+        throw signUpError
+      }
 
       const newUserId = signUpData.user?.id
       if (!newUserId) throw new Error('Sign-up succeeded but no user ID returned.')
@@ -836,6 +857,8 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
       }
 
       // Step 2: Create the profile with the correct role, BU, company, etc.
+      // This uses the main `supabase` client which has the admin session (needed
+      // for RLS-protected inserts).
       const { error: profileError } = await supabase.from('profiles').upsert({
         id: newUserId,
         email: trimmedEmail,
@@ -851,19 +874,29 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
 
       if (profileError) throw profileError
 
-      // Step 3: Send password reset email so the user can set their own password
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+      // Step 3: Send password reset email so the user can set their own password.
+      // We use anonClient here too — the reset endpoint doesn't need a session
+      // and this avoids any session-related issues.
+      // NOTE: signUp already sends a confirmation email (counts toward the 2/hr
+      // limit), so this reset email is a SECOND email.  If rate-limited, we treat
+      // it as non-fatal since the user can always use "Forgot password" later.
+      const { error: resetError } = await anonClient.auth.resetPasswordForEmail(trimmedEmail, {
         redirectTo: `${window.location.origin}/auth/set-password`,
       })
 
       if (resetError) {
-        // Non-fatal: profile was created, user just won't get the reset email
-        console.warn('Password reset email failed:', resetError.message)
+        // Non-fatal: profile was created, user just won't get the reset email now.
+        // They can use "Forgot password" on the login page later.
+        console.warn('Password reset email failed (likely rate-limited):', resetError.message)
       }
+
+      const resetNote = resetError
+        ? ' (Email de reset não enviado — limite atingido. O utilizador pode usar "Esqueci password" no login.)'
+        : ''
 
       setResult({
         ok: true,
-        msg: `Utilizador ${trimmedEmail} criado com sucesso! Foi enviado um email para definir a password.`,
+        msg: `Utilizador ${trimmedEmail} criado com sucesso! Foi enviado um email de confirmação.${resetNote}`,
       })
       setEmail(''); setName(''); setPsId(''); setComp(''); setOwner('')
       onSaved()
