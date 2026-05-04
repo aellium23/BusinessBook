@@ -388,15 +388,18 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
         {/* Contract Products */}
         {sla?.id && (
           <div className="border-t pt-3 space-y-2">
-            <p className="text-xs font-semibold text-gray-500 uppercase">Products ({slaProducts.length})</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-gray-500 uppercase">Products ({slaProducts.length})</p>
+              {slaProducts.length > 0 && (
+                <span className="text-xs text-gray-500">
+                  Total: <span className="font-bold text-blue-600">{formatK(slaProducts.reduce((s, p) => s + (Number(p.annual_value) || 0), 0))}/yr</span>
+                </span>
+              )}
+            </div>
             {slaProducts.map(sp => (
-              <div key={sp.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-                <div className="flex-1 min-w-0">
+              <div key={sp.id} className="bg-gray-50 rounded-lg px-3 py-2 space-y-1">
+                <div className="flex items-center justify-between">
                   <p className="text-sm font-medium text-gray-800 truncate">{sp.product_name || '—'}</p>
-                  {sp.quantity > 1 && <span className="text-[10px] text-gray-400">Qty: {sp.quantity}</span>}
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-sm font-bold text-blue-600">{formatK(sp.annual_value || 0)}/yr</span>
                   <button onClick={async () => {
                     await supabase.from('sla_products').delete().eq('id', sp.id)
                     setSlaProducts(prev => prev.filter(p => p.id !== sp.id))
@@ -405,6 +408,36 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
                   }} className="text-gray-300 hover:text-red-500 p-1 min-h-tap">
                     <X size={12}/>
                   </button>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="text-[9px] text-gray-400">Cost €</label>
+                    <input className="input text-xs py-1" type="number" defaultValue={sp.unit_price || 0}
+                      onBlur={async (e) => {
+                        const cost = parseFloat(e.target.value) || 0
+                        await supabase.from('sla_products').update({ unit_price: cost }).eq('id', sp.id)
+                      }}/>
+                  </div>
+                  <div>
+                    <label className="text-[9px] text-blue-500">Annual Fee €</label>
+                    <input className="input text-xs py-1 border-blue-200" type="number" defaultValue={sp.annual_value || 0}
+                      onBlur={async (e) => {
+                        const val = parseFloat(e.target.value) || 0
+                        await supabase.from('sla_products').update({ annual_value: val }).eq('id', sp.id)
+                        setSlaProducts(prev => prev.map(p => p.id === sp.id ? { ...p, annual_value: val } : p))
+                        const newTotal = slaProducts.map(p => p.id === sp.id ? { ...p, annual_value: val } : p)
+                          .reduce((s, p) => s + (Number(p.annual_value) || 0), 0)
+                        set('annual_value', newTotal)
+                      }}/>
+                  </div>
+                  <div>
+                    <label className="text-[9px] text-gray-400">Qty</label>
+                    <input className="input text-xs py-1" type="number" min="1" defaultValue={sp.quantity || 1}
+                      onBlur={async (e) => {
+                        const qty = parseInt(e.target.value) || 1
+                        await supabase.from('sla_products').update({ quantity: qty }).eq('id', sp.id)
+                      }}/>
+                  </div>
                 </div>
               </div>
             ))}
