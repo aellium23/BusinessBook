@@ -9,7 +9,7 @@ import { SLA_STATUSES, SLA_TYPES, FY_RANGE, BILLING_MODELS, BILLING_FREQUENCIES,
 import {
   Plus, Search, Pencil, Trash2, RefreshCw, Calendar, User,
   TrendingUp, AlertCircle, Clock, ChevronDown, ChevronUp,
-  FileText, DollarSign, Shield,
+  FileText, DollarSign, Shield, X,
 } from 'lucide-react'
 
 function SlaStatusBadge({ status }) {
@@ -412,18 +412,18 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
                 <div className="grid grid-cols-3 gap-2">
                   <div>
                     <label className="text-[9px] text-gray-400">Cost €</label>
-                    <input className="input text-xs py-1" type="number" defaultValue={sp.unit_price || 0}
+                    <input className="input text-xs py-1" type="number" defaultValue={sp.unit_price ?? 0}
                       onBlur={async (e) => {
                         const cost = parseFloat(e.target.value) || 0
-                        await supabase.from('sla_products').update({ unit_price: cost }).eq('id', sp.id)
+                        await supabase.from('sla_products').update({ unit_price: cost }).eq('id', sp.id).then(() => {}).catch(() => {})
                       }}/>
                   </div>
                   <div>
                     <label className="text-[9px] text-blue-500">Annual Fee €</label>
-                    <input className="input text-xs py-1 border-blue-200" type="number" defaultValue={sp.annual_value || 0}
+                    <input className="input text-xs py-1 border-blue-200" type="number" defaultValue={sp.annual_value ?? 0}
                       onBlur={async (e) => {
                         const val = parseFloat(e.target.value) || 0
-                        await supabase.from('sla_products').update({ annual_value: val }).eq('id', sp.id)
+                        await supabase.from('sla_products').update({ annual_value: val }).eq('id', sp.id).then(() => {}).catch(() => {})
                         setSlaProducts(prev => prev.map(p => p.id === sp.id ? { ...p, annual_value: val } : p))
                         const newTotal = slaProducts.map(p => p.id === sp.id ? { ...p, annual_value: val } : p)
                           .reduce((s, p) => s + (Number(p.annual_value) || 0), 0)
@@ -432,10 +432,10 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
                   </div>
                   <div>
                     <label className="text-[9px] text-gray-400">Qty</label>
-                    <input className="input text-xs py-1" type="number" min="1" defaultValue={sp.quantity || 1}
+                    <input className="input text-xs py-1" type="number" min="1" defaultValue={sp.quantity ?? 1}
                       onBlur={async (e) => {
                         const qty = parseInt(e.target.value) || 1
-                        await supabase.from('sla_products').update({ quantity: qty }).eq('id', sp.id)
+                        await supabase.from('sla_products').update({ quantity: qty }).eq('id', sp.id).then(() => {}).catch(() => {})
                       }}/>
                   </div>
                 </div>
