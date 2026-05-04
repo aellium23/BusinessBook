@@ -32,13 +32,28 @@ Deno.serve(async (req) => {
 
     if (!caller) throw new Error('Invalid token')
 
+    // Fetch profile with permission_set to check admin status
     const { data: callerProfile } = await supabaseAdmin
       .from('profiles')
-      .select('role')
+      .select('role, permission_set_id')
       .eq('id', caller.id)
       .single()
 
-    if (callerProfile?.role !== 'admin') {
+    let isAdmin = callerProfile?.role === 'admin'
+
+    // Also check permission_set-based admin (mirrors frontend useAuth logic)
+    if (!isAdmin && callerProfile?.permission_set_id) {
+      const { data: permSet } = await supabaseAdmin
+        .from('permission_sets')
+        .select('see_all_bu, can_delete')
+        .eq('id', callerProfile.permission_set_id)
+        .single()
+      if (permSet?.see_all_bu === true && permSet?.can_delete === true) {
+        isAdmin = true
+      }
+    }
+
+    if (!isAdmin) {
       throw new Error('Only admins can invite users')
     }
 
