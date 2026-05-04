@@ -22,6 +22,17 @@ function SlaStatusBadge({ status }) {
   )
 }
 
+function RenewalBadge({ sla }) {
+  const rd = sla.renewal_date || sla.end_date
+  if (!rd || !['active','invoiced'].includes(sla.status)) return null
+  const days = Math.ceil((new Date(rd) - new Date()) / 86400000)
+  if (days < 0) return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700">Expired</span>
+  if (days <= 30) return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700">{days}d</span>
+  if (days <= 60) return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">{days}d</span>
+  if (days <= 90) return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700">{days}d</span>
+  return null
+}
+
 function SlaCard({ sla, onEdit, onDelete, canEdit }) {
   const [expanded, setExpanded] = useState(false)
   const { t } = useTranslation()
@@ -34,6 +45,7 @@ function SlaCard({ sla, onEdit, onDelete, canEdit }) {
           <div className="flex items-center gap-2 flex-wrap">
             <BUBadge bu={sla.bu}/>
             <SlaStatusBadge status={sla.status}/>
+            <RenewalBadge sla={sla}/>
             {sla.sla_type && <span className="text-[10px] text-gray-400">{sla.sla_type}</span>}
           </div>
           <p className="font-semibold text-sm text-gray-900 mt-1 truncate">{sla.client}</p>
@@ -445,8 +457,14 @@ export default function SLAs() {
   const { t } = useTranslation()
   const [search, setSearch]     = useState('')
   const [buF, setBuF]           = useState('')
+  const [regionF, setRegionF]   = useState('')
+  const [countryF, setCountryF] = useState('')
+  const [productF, setProductF] = useState('')
+  const [ownerF, setOwnerF]     = useState('')
+  const [renewalF, setRenewalF] = useState('')
   const [typeTab, setTypeTab]   = useState('all_types')
   const [tab, setTab]           = useState('active')
+  const [groupBy, setGroupBy]   = useState('none')
   const [formOpen, setFormOpen] = useState(false)
   const [editSla, setEditSla]   = useState(null)
   const [confirmDel, setConfirmDel] = useState(null)
@@ -462,11 +480,32 @@ export default function SLAs() {
     })
   }, [])
 
+  const now = new Date()
+  const regions = useMemo(() => [...new Set(slas.map(s => s.region).filter(Boolean))].sort(), [slas])
+  const countries = useMemo(() => [...new Set(slas.map(s => s.country).filter(Boolean))].sort(), [slas])
+  const products = useMemo(() => [...new Set(slas.map(s => s.product).filter(Boolean))].sort(), [slas])
+  const ownersList = useMemo(() => [...new Set(slas.map(s => s.sla_owner).filter(Boolean))].sort(), [slas])
+
   const typeFiltered = useMemo(() => {
-    if (typeTab === 'maintenance') return slas.filter(s => !s.billing_model || s.billing_model === 'fixed')
-    if (typeTab === 'variable') return slas.filter(s => s.billing_model && s.billing_model !== 'fixed')
-    return slas
-  }, [slas, typeTab])
+    let list = slas
+    if (typeTab === 'maintenance') list = list.filter(s => !s.billing_model || s.billing_model === 'fixed')
+    if (typeTab === 'variable') list = list.filter(s => s.billing_model && s.billing_model !== 'fixed')
+    if (regionF) list = list.filter(s => s.region === regionF)
+    if (countryF) list = list.filter(s => s.country === countryF)
+    if (productF) list = list.filter(s => (s.product || '').toLowerCase().includes(productF.toLowerCase()))
+    if (ownerF) list = list.filter(s => s.sla_owner === ownerF)
+    if (renewalF) {
+      const days = parseInt(renewalF)
+      if (days > 0) {
+        const cutoff = new Date(now.getTime() + days * 86400000)
+        list = list.filter(s => {
+          const rd = s.renewal_date || s.end_date
+          return rd && new Date(rd) <= cutoff && new Date(rd) >= now
+        })
+      }
+    }
+    return list
+  }, [slas, typeTab, regionF, countryF, productF, ownerF, renewalF])
 
   const filtered = useMemo(() => {
     const tabFilter = {
@@ -493,12 +532,23 @@ export default function SLAs() {
   const kpis = useMemo(() => {
     const active = slas.filter(s => ['active','invoiced'].includes(s.status))
     const pipeline = slas.filter(s => s.status === 'pipeline')
-    const awaiting = slas.filter(s => ['negotiation','waiting_po'].includes(s.status))
+    const reduced = slas.filter(s => s.status === 'reduced')
+    const renewing90 = slas.filter(s => {
+      const rd = s.renewal_date || s.end_date
+      return rd && ['active','invoiced'].includes(s.status) && new Date(rd) <= new Date(now.getTime() + 90 * 86400000) && new Date(rd) >= now
+    })
+    const atRisk = [...reduced, ...slas.filter(s => {
+      const rd = s.renewal_date || s.end_date
+      return rd && ['active','invoiced'].includes(s.status) && new Date(rd) <= new Date(now.getTime() + 30 * 86400000) && new Date(rd) >= now
+    })]
     return {
       activeCount: active.length,
       activeValue: active.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
       pipelineValue: pipeline.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
-      awaitingCount: awaiting.length,
+      renewals90: renewing90.length,
+      renewals90Value: renewing90.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
+      atRiskValue: atRisk.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
+      atRiskCount: atRisk.length,
     }
   }, [slas])
 
@@ -552,27 +602,35 @@ export default function SLAs() {
         )}
       </div>
 
+      {/* Renewal alert banner */}
+      {kpis.atRiskCount > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle size={14} className="text-red-600"/>
+            <span className="text-sm text-red-700 font-medium">
+              {kpis.atRiskCount} contract{kpis.atRiskCount > 1 ? 's' : ''} ({formatK(kpis.atRiskValue)}) at risk or expiring within 30 days
+            </span>
+          </div>
+          <button onClick={() => setRenewalF('30')} className="text-xs text-red-600 font-semibold hover:text-red-800">View →</button>
+        </div>
+      )}
+
       {/* KPI cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <div className="card p-3">
-          <p className="text-[10px] text-gray-400 uppercase font-semibold">{t('sla_active')}</p>
-          <p className="text-xl font-bold text-green-600">{kpis.activeCount}</p>
-          <p className="text-xs text-gray-500">{formatK(kpis.activeValue)}{t('sla_per_year')}</p>
+          <p className="text-[10px] text-gray-400 uppercase font-semibold">Active ARR</p>
+          <p className="text-xl font-bold text-green-600">{formatK(kpis.activeValue)}</p>
+          <p className="text-xs text-gray-500">{kpis.activeCount} contracts</p>
         </div>
         <div className="card p-3">
-          <p className="text-[10px] text-gray-400 uppercase font-semibold">{t('sla_pipeline')}</p>
+          <p className="text-[10px] text-gray-400 uppercase font-semibold">Renewals 90d</p>
+          <p className="text-xl font-bold text-amber-600">{kpis.renewals90}</p>
+          <p className="text-xs text-gray-500">{formatK(kpis.renewals90Value)} at stake</p>
+        </div>
+        <div className="card p-3">
+          <p className="text-[10px] text-gray-400 uppercase font-semibold">Pipeline ARR</p>
           <p className="text-xl font-bold text-gray-700">{formatK(kpis.pipelineValue)}</p>
           <p className="text-xs text-gray-500">{t('sla_future_val')}</p>
-        </div>
-        <div className="card p-3">
-          <p className="text-[10px] text-gray-400 uppercase font-semibold">{t('sla_awaiting')}</p>
-          <p className="text-xl font-bold text-amber-600">{kpis.awaitingCount}</p>
-          <p className="text-xs text-gray-500">{t('sla_need_att')}</p>
-        </div>
-        <div className="card p-3">
-          <p className="text-[10px] text-gray-400 uppercase font-semibold">{t('sla_total')}</p>
-          <p className="text-xl font-bold text-navy">{slas.length}</p>
-          <p className="text-xs text-gray-500">{t('sla_all_stat')}</p>
         </div>
       </div>
 
@@ -619,6 +677,30 @@ export default function SLAs() {
             ))}
           </div>
         )}
+        {regions.length > 0 && (
+          <select className="select text-xs w-auto" value={regionF} onChange={e => setRegionF(e.target.value)}>
+            <option value="">All Regions</option>
+            {regions.map(r => <option key={r}>{r}</option>)}
+          </select>
+        )}
+        {countries.length > 0 && (
+          <select className="select text-xs w-auto" value={countryF} onChange={e => setCountryF(e.target.value)}>
+            <option value="">All Countries</option>
+            {countries.map(c => <option key={c}>{c}</option>)}
+          </select>
+        )}
+        {ownersList.length > 0 && (
+          <select className="select text-xs w-auto" value={ownerF} onChange={e => setOwnerF(e.target.value)}>
+            <option value="">All Owners</option>
+            {ownersList.map(o => <option key={o}>{o}</option>)}
+          </select>
+        )}
+        <select className="select text-xs w-auto" value={renewalF} onChange={e => setRenewalF(e.target.value)}>
+          <option value="">Renewal</option>
+          <option value="30">≤30 days</option>
+          <option value="60">≤60 days</option>
+          <option value="90">≤90 days</option>
+        </select>
       </div>
 
       {/* Contract type tabs */}
