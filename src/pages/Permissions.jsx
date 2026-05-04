@@ -809,14 +809,21 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
       const trimmedEmail = email.toLowerCase().trim()
 
       // Step 1: Create auth user via signUp with a random temporary password
-      const tempPassword = crypto.randomUUID() + '-Aa1!' // ensure complexity requirements
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: trimmedEmail,
-        password: tempPassword,
-        options: {
-          data: { full_name: name || trimmedEmail.split('@')[0] },
-        },
-      })
+      const tempPassword = crypto.randomUUID() + '-Aa1!'
+      let signUpData, signUpError
+      try {
+        const result = await supabase.auth.signUp({
+          email: trimmedEmail,
+          password: tempPassword,
+          options: {
+            data: { full_name: name || trimmedEmail.split('@')[0] },
+          },
+        })
+        signUpData = result.data
+        signUpError = result.error
+      } catch (fetchErr) {
+        throw new Error('Não foi possível ligar ao Supabase Auth. Verifica: Authentication > Providers > Email deve estar activo. Erro: ' + (fetchErr?.message || 'network error'))
+      }
 
       if (signUpError) throw signUpError
 
