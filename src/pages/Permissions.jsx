@@ -846,9 +846,11 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
         if (existing) {
           userId = existing.id
         } else {
+          const tempId = crypto.randomUUID()
           const { data: newProfile, error: profileErr } = await supabase
             .from('profiles')
             .insert({
+              id: tempId,
               email: email.toLowerCase().trim(),
               full_name: name || null,
               role,
