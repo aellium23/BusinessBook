@@ -835,8 +835,7 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
           success = true
         }
       } catch {
-        // Edge Function not available — create profile directly
-        // User will need to sign up via the login page
+        // Edge Function not available — use Supabase Auth Admin API
         const { data: existing } = await supabase
           .from('profiles')
           .select('id')
@@ -845,12 +844,33 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
 
         if (existing) {
           userId = existing.id
+          success = true
         } else {
-          const tempId = crypto.randomUUID()
-          const { data: newProfile, error: profileErr } = await supabase
-            .from('profiles')
-            .insert({
-              id: tempId,
+          // Create auth user via Admin API (generates magic link)
+          const { data: { session: adminSession } } = await supabase.auth.getSession()
+          const createRes = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/admin/users`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${adminSession?.access_token}`,
+                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+              },
+              body: JSON.stringify({
+                email: email.toLowerCase().trim(),
+                email_confirm: true,
+                user_metadata: { full_name: name || email.split('@')[0] },
+              }),
+            }
+          )
+          const authResult = await createRes.json()
+
+          if (authResult.id) {
+            userId = authResult.id
+            // Create or update profile for this auth user
+            await supabase.from('profiles').upsert({
+              id: authResult.id,
               email: email.toLowerCase().trim(),
               full_name: name || null,
               role,
@@ -858,13 +878,12 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
               company_id: companyId || null,
               sales_owner_name: salesOwners.find(o=>o.id===ownerId)?.name || null,
               active: true,
-            })
-            .select('id')
-            .single()
-          if (profileErr) throw new Error(profileErr.message)
-          userId = newProfile?.id
+            }, { onConflict: 'id' })
+            success = true
+          } else {
+            throw new Error(authResult.msg || authResult.error_description || authResult.message || 'Failed to create user')
+          }
         }
-        success = true
       }
 
       if (success) {
