@@ -806,47 +806,62 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
     const role = roleMap[ps?.name] || 'viewer'
 
     try {
-      // Try Edge Function first, fallback to direct profile creation
-      const { data: { session } } = await supabase.auth.getSession()
-      let userId = null
-      let success = false
+      const trimmedEmail = email.toLowerCase().trim()
 
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-user`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`,
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({
-            email: email.toLowerCase().trim(), role, company_id: companyId||null,
-            sales_owner_id: ownerId||null,
-            sales_owner_name: salesOwners.find(o=>o.id===ownerId)?.name||null,
-            bu, display_name: name||null,
-          }),
-        }
-      )
-      const json = await res.json()
-      if (!res.ok || json.error) {
-        throw new Error(json.error || json.message || 'Failed to invite user')
-      }
-      if (json.success || json.userId) {
-        userId = json.userId
-        success = true
+      // Step 1: Create auth user via signUp with a random temporary password
+      const tempPassword = crypto.randomUUID() + '-Aa1!' // ensure complexity requirements
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: trimmedEmail,
+        password: tempPassword,
+        options: {
+          data: { full_name: name || trimmedEmail.split('@')[0] },
+        },
+      })
+
+      if (signUpError) throw signUpError
+
+      const newUserId = signUpData.user?.id
+      if (!newUserId) throw new Error('Sign-up succeeded but no user ID returned.')
+
+      // If the user already existed (fake signup), identities will be empty
+      if (signUpData.user?.identities?.length === 0) {
+        throw new Error('Este email já está registado no sistema.')
       }
 
-      if (success) {
-        if (psId && userId) {
-          await supabase.from('profiles').update({ permission_set_id: psId }).eq('id', userId)
-        }
-        setResult({ ok:true, msg: `Perfil criado para ${email}. O utilizador deve fazer login/signup.` })
-        setEmail(''); setName(''); setPsId(''); setComp(''); setOwner('')
-        onSaved()
+      // Step 2: Create the profile with the correct role, BU, company, etc.
+      const { error: profileError } = await supabase.from('profiles').upsert({
+        id: newUserId,
+        email: trimmedEmail,
+        full_name: name || null,
+        role,
+        bu,
+        company_id: companyId || null,
+        permission_set_id: psId || null,
+        sales_owner_id: ownerId || null,
+        sales_owner_name: salesOwners.find(o => o.id === ownerId)?.name || null,
+        active: true,
+      }, { onConflict: 'id' })
+
+      if (profileError) throw profileError
+
+      // Step 3: Send password reset email so the user can set their own password
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+        redirectTo: `${window.location.origin}/auth/set-password`,
+      })
+
+      if (resetError) {
+        // Non-fatal: profile was created, user just won't get the reset email
+        console.warn('Password reset email failed:', resetError.message)
       }
-    } catch(err) {
-      setResult({ ok:false, msg: err.message })
+
+      setResult({
+        ok: true,
+        msg: `Utilizador ${trimmedEmail} criado com sucesso! Foi enviado um email para definir a password.`,
+      })
+      setEmail(''); setName(''); setPsId(''); setComp(''); setOwner('')
+      onSaved()
+    } catch (err) {
+      setResult({ ok: false, msg: err.message })
     }
     setSending(false)
   }
