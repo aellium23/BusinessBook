@@ -11,14 +11,18 @@ const CYCLES   = ['BUD','EST1','EST2']
 const BUS      = ['VGT','ECT','ALL']
 
 const PL_LINES = [
-  { key:'ns_int', label:'NS Internal',  input:true,  group:'revenue' },
-  { key:'ns_ext', label:'NS External',  input:true,  group:'revenue' },
-  { key:'ns',     label:'Net Sales',    input:false, group:'total'   },
-  { key:'cogs',   label:'COGS',         input:true,  group:'cost'    },
-  { key:'gm',     label:'Gross Margin', input:false, group:'total'   },
-  { key:'rd',     label:'R&D',          input:true,  group:'cost'    },
-  { key:'sgas',   label:'SGAs',         input:true,  group:'cost'    },
-  { key:'op',     label:'Oper. Profit', input:false, group:'total'   },
+  { key:'ns_int',    label:'NS Internal',    input:true,  group:'revenue' },
+  { key:'ns_ext',    label:'NS External',    input:true,  group:'revenue' },
+  { key:'ns',        label:'Net Sales',      input:false, group:'total'   },
+  { key:'cogs_var',  label:'Variable COGS',  input:true,  group:'cost'    },
+  { key:'cogs_fix',  label:'Fixed COGS',     input:true,  group:'cost'    },
+  { key:'cogs',      label:'COGS',           input:false, group:'total'   },
+  { key:'gm',        label:'Gross Margin',   input:false, group:'total'   },
+  { key:'rd',        label:'R&D',            input:true,  group:'cost'    },
+  { key:'sgas',      label:'SG&As',          input:true,  group:'cost'    },
+  { key:'op1',       label:'OP1',            input:false, group:'total'   },
+  { key:'bapa',      label:'BAPA Adjustment', input:true, group:'cost'    },
+  { key:'op2',       label:'OP2',            input:false, group:'total'   },
 ]
 
 const CYCLE_CONFIG = {
@@ -51,11 +55,11 @@ const ACTIVE_CYCLE = () => {
 
 function calcDerived(vals) {
   const ns = (vals.ns_int||0) + (vals.ns_ext||0)
-  return {
-    ns,
-    gm: ns - (vals.cogs||0),
-    op: ns - (vals.cogs||0) - (vals.rd||0) - (vals.sgas||0),
-  }
+  const cogs = (vals.cogs_var||0) + (vals.cogs_fix||0)
+  const gm = ns - cogs
+  const op1 = gm - (vals.rd||0) - (vals.sgas||0)
+  const op2 = op1 + (vals.bapa||0)
+  return { ns, cogs, gm, op1, op2 }
 }
 
 function Trend({ value, reference }) {
@@ -128,7 +132,7 @@ export default function Budget() {
 
   async function handleSave() {
     setSaving(true)
-    const toSave = rows.filter(r => ['ns_int','ns_ext','cogs','rd','sgas'].includes(r.pl_key))
+    const toSave = rows.filter(r => ['ns_int','ns_ext','cogs_var','cogs_fix','rd','sgas','bapa'].includes(r.pl_key))
     await supabase.from('budget').upsert(toSave, { onConflict:'bu,cycle,pl_key' })
     setSaving(false); setSaved(true)
     setTimeout(() => setSaved(false), 2500)
@@ -200,8 +204,8 @@ export default function Budget() {
                 GM: {formatK(t.gm * 1000)}
                 <span className="ml-1">({t.ns > 0 ? (t.gm/t.ns*100).toFixed(1) : '—'}%)</span>
               </p>
-              <p className={`text-xs mt-0.5 font-medium ${t.op >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                OP: {formatK(t.op * 1000)}
+              <p className={`text-xs mt-0.5 font-medium ${(t.op2 || t.op1) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                OP2: {formatK((t.op2 || t.op1) * 1000)}
               </p>
             </button>
           )
