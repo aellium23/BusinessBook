@@ -87,6 +87,7 @@ const EMPTY = {
   client:'', region:'Europe', country:'',
   sales_owner:'', description:'',
   go_live_month: '', go_live_year: '',
+  invoice_date: '',
   value_total:'', gm_pct:'',
   rec_month:'', rec_year:'',
   cs_day:1, cs_month:'', cs_year:'', ce_day:31, ce_month:'', ce_year:'',
@@ -281,6 +282,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
     warranty_months: deal.warranty_months || 36,
     go_live_month: deal.go_live_month || '',
     go_live_year: deal.go_live_year || '',
+    invoice_date: deal.invoice_date || '',
     equipment_count: deal.equipment_count || '',
     annual_studies: deal.annual_studies || '',
     annual_exams: deal.annual_exams || '',
@@ -476,6 +478,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
       warranty_months: parseInt(form.warranty_months) || 36,
       go_live_month: form.go_live_month || null,
       go_live_year: parseInt(form.go_live_year) || null,
+      invoice_date: form.invoice_date || null,
       equipment_count: parseInt(form.equipment_count) || null,
       annual_studies: parseInt(form.annual_studies) || null,
       annual_exams: parseInt(form.annual_exams) || null,
@@ -1305,6 +1308,15 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 )
               })()}
             </div>
+          </div>
+        )}
+
+        {/* Invoice Date */}
+        {['BackLog','Invoiced'].includes(form.stage) && (
+          <div>
+            <label className="label">Invoice Date</label>
+            <input className="input" type="date" value={form.invoice_date} onChange={e => set('invoice_date', e.target.value)}/>
+            <p className="text-[10px] text-gray-400 mt-0.5">Date when invoice was issued to customer</p>
           </div>
         )}
 

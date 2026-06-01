@@ -99,6 +99,24 @@ function DealCard({ deal, onEdit, onDelete, canEdit, canDelete }) {
   const hasIC   = deal.intercompany_value > 0
   const score   = dealScore(deal)
   const aging   = agingDays(deal)
+  // Deferred revenue detection
+  const deferredInfo = (() => {
+    if (deal.stage !== 'Invoiced') return null
+    const now = new Date()
+    const fyIdx = ((now.getMonth() + 1 - 4 + 12) % 12)
+    const futureMonths = MONTHS_K.slice(fyIdx + 1).filter(m => (Number(deal[m]) || 0) > 0)
+    const pastMonths = MONTHS_K.slice(0, fyIdx + 1).filter(m => (Number(deal[m]) || 0) > 0)
+    if (futureMonths.length > 0 && pastMonths.length === 0) {
+      const firstMonth = MONTHS[MONTHS_K.indexOf(futureMonths[0])]
+      const lastMonth = MONTHS[MONTHS_K.indexOf(futureMonths[futureMonths.length - 1])]
+      return { type: 'deferred', label: `Deferred | ${firstMonth}–${lastMonth}` }
+    }
+    if (futureMonths.length > 0 && pastMonths.length > 0) {
+      return { type: 'linear', label: 'Linear' }
+    }
+    return null
+  })()
+
   // Only surface the discount chip on the compact row when it's actionable
   const showDiscount = ['pending','counter'].includes(deal.discount_status)
 
@@ -123,6 +141,13 @@ function DealCard({ deal, onEdit, onDelete, canEdit, canDelete }) {
               </span>
             )}
             {showDiscount && <DiscountChip deal={deal} />}
+            {deferredInfo && (
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${
+                deferredInfo.type === 'deferred' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'
+              }`}>
+                {deferredInfo.label}
+              </span>
+            )}
           </div>
           <p className="font-semibold text-sm text-gray-900 truncate">{deal.client}</p>
           <p className="text-xs text-gray-400 truncate">

@@ -6,4 +6,7 @@ do $$ begin
   if not exists (select 1 from information_schema.columns where table_name='deals' and column_name='go_live_year') then
     alter table public.deals add column go_live_year int;
   end if;
+  if not exists (select 1 from information_schema.columns where table_name='deals' and column_name='invoice_date') then
+    alter table public.deals add column invoice_date date;
+  end if;
 end $$;
