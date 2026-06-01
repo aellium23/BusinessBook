@@ -653,12 +653,23 @@ export default function SLAs() {
   const [tab, setTab]           = useState('active')
   const [statusF, setStatusF]   = useState('')
   const [viewMode, setViewMode] = useState('list')
+  const [sortBy, setSortBy]     = useState('value_desc')
   const [formOpen, setFormOpen] = useState(false)
   const [editSla, setEditSla]   = useState(null)
   const [confirmDel, setConfirmDel] = useState(null)
   const [owners, setOwners]     = useState([])
 
-  const { slas, loading, refetch } = useSlas({ bu: buF || undefined, search: search || undefined })
+  const { slas: rawSlas, loading, refetch } = useSlas({ bu: buF || undefined })
+  const slas = useMemo(() => {
+    if (!search) return rawSlas
+    const s = search.toLowerCase()
+    return rawSlas.filter(sla =>
+      (sla.client || '').toLowerCase().includes(s) ||
+      (sla.sla_owner || '').toLowerCase().includes(s) ||
+      (sla.description || '').toLowerCase().includes(s) ||
+      (sla.product || '').toLowerCase().includes(s)
+    )
+  }, [rawSlas, search])
 
   useEffect(() => {
     import('../lib/supabase').then(({ supabase }) => {
@@ -696,8 +707,17 @@ export default function SLAs() {
       }
     }
     if (statusF) list = list.filter(s => s.status === statusF)
+    list.sort((a, b) => {
+      if (sortBy === 'value_desc') return (Number(b.annual_value) || 0) - (Number(a.annual_value) || 0)
+      if (sortBy === 'value_asc')  return (Number(a.annual_value) || 0) - (Number(b.annual_value) || 0)
+      if (sortBy === 'client')     return (a.client || '').localeCompare(b.client || '')
+      if (sortBy === 'date_desc')  return new Date(b.created_at || 0) - new Date(a.created_at || 0)
+      if (sortBy === 'date_asc')   return new Date(a.created_at || 0) - new Date(b.created_at || 0)
+      if (sortBy === 'renewal')    return new Date(a.renewal_date || a.end_date || '2099') - new Date(b.renewal_date || b.end_date || '2099')
+      return 0
+    })
     return list
-  }, [slas, typeTab, regionF, countryF, productF, ownerF, renewalF, statusF])
+  }, [slas, typeTab, regionF, countryF, productF, ownerF, renewalF, statusF, sortBy])
 
   const filtered = useMemo(() => {
     const tabFilter = {
@@ -896,6 +916,14 @@ export default function SLAs() {
         <select className="select text-xs w-auto" value={statusF} onChange={e => setStatusF(e.target.value)}>
           <option value="">All Status</option>
           {SLA_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+        </select>
+        <select className="select text-xs w-auto" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+          <option value="value_desc">Value ↓</option>
+          <option value="value_asc">Value ↑</option>
+          <option value="client">Client A→Z</option>
+          <option value="date_desc">Newest</option>
+          <option value="date_asc">Oldest</option>
+          <option value="renewal">Renewal soon</option>
         </select>
         <div className="flex gap-0.5 bg-gray-100 p-0.5 rounded-lg ml-auto">
           <button onClick={() => setViewMode('list')}

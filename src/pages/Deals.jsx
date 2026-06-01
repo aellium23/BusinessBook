@@ -494,6 +494,7 @@ export default function Deals() {
   const [periodF, setPeriodF]   = useState(0)   // dias; 0 = todos
   const [pageSize, setPageSize]             = useState(5)
   const [page, setPage]                     = useState(1)
+  const [sortBy, setSortBy]               = useState('date_desc')
   const [invoicedMonthF, setInvoicedMonthF] = useState('')
   const [viewMode, setViewMode] = useState(() => {
     if (typeof window === 'undefined') return 'list'
@@ -569,8 +570,21 @@ export default function Deals() {
   const handleInvoicedMonth = v => { setInvoicedMonthF(v); resetPage() }
 
   // Paginação
-  const totalPages = Math.max(1, Math.ceil(deals.length / pageSize))
-  const paginated  = deals.slice((page - 1) * pageSize, page * pageSize)
+  const sortedDeals = useMemo(() => {
+    const sorted = [...deals]
+    sorted.sort((a, b) => {
+      if (sortBy === 'value_desc') return (Number(b.value_total) || 0) - (Number(a.value_total) || 0)
+      if (sortBy === 'value_asc')  return (Number(a.value_total) || 0) - (Number(b.value_total) || 0)
+      if (sortBy === 'client')     return (a.client || '').localeCompare(b.client || '')
+      if (sortBy === 'date_desc')  return new Date(b.created_at || 0) - new Date(a.created_at || 0)
+      if (sortBy === 'date_asc')   return new Date(a.created_at || 0) - new Date(b.created_at || 0)
+      if (sortBy === 'stage')      return STAGES.indexOf(a.stage) - STAGES.indexOf(b.stage)
+      return 0
+    })
+    return sorted
+  }, [deals, sortBy])
+  const totalPages = Math.max(1, Math.ceil(sortedDeals.length / pageSize))
+  const paginated  = sortedDeals.slice((page - 1) * pageSize, page * pageSize)
 
   // Owners únicos para o filtro
   const owners = useMemo(() => {
@@ -644,6 +658,15 @@ export default function Deals() {
               <Globe size={13}/><span className="hidden sm:inline">Map</span>
             </button>
           </div>
+
+          <select className="select text-xs w-auto" value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1) }}>
+            <option value="date_desc">Newest</option>
+            <option value="date_asc">Oldest</option>
+            <option value="value_desc">Value ↓</option>
+            <option value="value_asc">Value ↑</option>
+            <option value="client">Client A→Z</option>
+            <option value="stage">Stage</option>
+          </select>
 
           <button onClick={() => exportToCSV(deals)} className="btn-secondary text-xs">
             <Download size={14}/> Export
@@ -854,7 +877,7 @@ export default function Deals() {
             {totalPages > 1 && (
               <div className="flex items-center justify-between pt-1">
                 <p className="text-xs text-gray-400">
-                  {t("deals_showing")} {(page-1)*pageSize+1}–{Math.min(page*pageSize, deals.length)} {t("deals_of")} {deals.length}
+                  {t("deals_showing")} {(page-1)*pageSize+1}–{Math.min(page*pageSize, sortedDeals.length)} {t("deals_of")} {sortedDeals.length}
                 </p>
                 <div className="flex items-center gap-1">
                   <button
