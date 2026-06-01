@@ -91,10 +91,9 @@ export function CurrencyBadge({ currency }) {
 
 export function formatK(n) {
   if (n === null || n === undefined) return '—'
-  const k = n / 1000
-  return k >= 1000
-    ? `€${(k/1000).toFixed(1)}M`
-    : `€${k.toFixed(1)}K`
+  if (Math.abs(n) >= 1000000) return `€${(n/1000000).toFixed(1)}M`
+  if (Math.abs(n) >= 1000) return `€${(n/1000).toFixed(1)}K`
+  return `€${Math.round(n)}`
 }
 
 export function Modal({ open, onClose, title, children, footer }) {
