@@ -61,6 +61,33 @@ export default function DashboardSummary({ selectedBU = '' }) {
   const [fy25, setFy25]      = useState([])
   const [slaStats, setSlaStats] = useState({ active: 0, activeValue: 0, pipelineValue: 0, revenueByFY: {}, byBU: {} })
   const [manualFct, setManualFct] = useState(null)
+  const [customizing, setCustomizing] = useState(false)
+  const DEFAULT_SECTIONS = ['gauges','public_private','pipeline','fct','recurring','fy_projection']
+  const [sectionOrder, setSectionOrder] = useState(() => {
+    try { const v = localStorage.getItem('bb_dash_sections'); return v ? JSON.parse(v) : DEFAULT_SECTIONS } catch { return DEFAULT_SECTIONS }
+  })
+  const [hiddenSections, setHiddenSections] = useState(() => {
+    try { const v = localStorage.getItem('bb_dash_hidden'); return v ? JSON.parse(v) : [] } catch { return [] }
+  })
+  function moveSection(id, dir) {
+    setSectionOrder(prev => {
+      const idx = prev.indexOf(id)
+      if (idx < 0) return prev
+      const newIdx = idx + dir
+      if (newIdx < 0 || newIdx >= prev.length) return prev
+      const arr = [...prev]; [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]]
+      try { localStorage.setItem('bb_dash_sections', JSON.stringify(arr)) } catch {}
+      return arr
+    })
+  }
+  function toggleSection(id) {
+    setHiddenSections(prev => {
+      const next = prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
+      try { localStorage.setItem('bb_dash_hidden', JSON.stringify(next)) } catch {}
+      return next
+    })
+  }
+  const SECTION_LABELS = { gauges:'Sales vs Budget', public_private:'Public vs Private', pipeline:'Pipeline', fct:'Manual FCT', recurring:'Recurring Business', fy_projection:'FY Projection' }
 
   useEffect(() => {
     supabase.from('budget').select('*')
@@ -259,7 +286,37 @@ export default function DashboardSummary({ selectedBU = '' }) {
 
   return (
     <div className="space-y-6">
-      {/* Hero: Sales vs Budget YTD */}
+      {/* Customize button */}
+      <div className="flex justify-end">
+        <button onClick={() => setCustomizing(c => !c)}
+          className={`text-xs px-2.5 py-1 rounded-lg border ${customizing ? 'bg-navy text-white border-navy' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
+          {customizing ? 'Done' : 'Customize'}
+        </button>
+      </div>
+
+      {customizing && (
+        <div className="card p-3 space-y-1">
+          <p className="text-xs font-semibold text-gray-500 mb-2">Reorder & toggle sections</p>
+          {sectionOrder.map((id, idx) => (
+            <div key={id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1.5">
+              <div className="flex flex-col gap-0.5">
+                <button onClick={() => moveSection(id, -1)} disabled={idx === 0}
+                  className="text-gray-400 hover:text-gray-700 disabled:opacity-20"><ChevronUp size={12}/></button>
+                <button onClick={() => moveSection(id, 1)} disabled={idx === sectionOrder.length - 1}
+                  className="text-gray-400 hover:text-gray-700 disabled:opacity-20"><ChevronDown size={12}/></button>
+              </div>
+              <span className="text-xs text-gray-700 flex-1">{SECTION_LABELS[id] || id}</span>
+              <button onClick={() => toggleSection(id)}
+                className={`text-xs px-2 py-0.5 rounded ${hiddenSections.includes(id) ? 'bg-gray-200 text-gray-500' : 'bg-green-100 text-green-700'}`}>
+                {hiddenSections.includes(id) ? 'Hidden' : 'Visible'}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Sales vs Budget */}
+      {!hiddenSections.includes('gauges') && (
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Target size={14} className="text-gray-400"/>
@@ -292,9 +349,10 @@ export default function DashboardSummary({ selectedBU = '' }) {
           </p>
         )}
       </div>
+      )}
 
       {/* Public vs Private */}
-      {(publicPrivate.total_pipe > 0 || publicPrivate.total_inv > 0) && (
+      {!hiddenSections.includes('public_private') && (publicPrivate.total_pipe > 0 || publicPrivate.total_inv > 0) && (
         <CollapsibleSection id="pub_priv" title="Public vs Private" icon={<Target size={12}/>}>
         <div className="card p-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -329,7 +387,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
       )}
 
       {/* Pipeline snapshot */}
-      {(
+      {!hiddenSections.includes('pipeline') && (
         <div className={`grid gap-3 ${showVGT && showECT ? 'grid-cols-2' : 'grid-cols-1'}`}>
           {showVGT && (
           <div className="card p-4">
@@ -353,7 +411,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
       )}
 
       {/* Manual FCT vs Auto */}
-      {isAdmin && manualFct && (
+      {!hiddenSections.includes('fct') && manualFct && (
         <div className="card p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1 mb-2">
             Manual FCT vs Auto Forecast
@@ -376,32 +434,38 @@ export default function DashboardSummary({ selectedBU = '' }) {
       )}
 
       {/* Recurring Revenue */}
-      {(
+      {!hiddenSections.includes('recurring') && (
         <div className="card p-4 space-y-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1">
             <RefreshCw size={12}/> Recurring Business (SLA)
           </p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className={`grid gap-3 ${!selectedBU ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2'}`}>
             <div className="bg-green-50 rounded-lg p-3">
-              <p className="text-micro text-gray-500">Consolidated ARR</p>
-              <p className="text-xl font-bold text-green-600">{formatK(slaStats.byBU?.total || slaStats.activeValue)}</p>
+              <p className="text-micro text-gray-500">{selectedBU || 'Consolidated'} ARR</p>
+              <p className="text-xl font-bold text-green-600">{formatK(selectedBU === 'VGT' ? (slaStats.byBU?.VGT || 0) : selectedBU === 'ECT' ? (slaStats.byBU?.ECT || 0) : (slaStats.byBU?.total || slaStats.activeValue))}</p>
               <p className="text-micro text-gray-400">{slaStats.active} contracts</p>
             </div>
+            {showVGT && !selectedBU && (
             <div className="bg-teal-50 rounded-lg p-3">
               <p className="text-micro text-gray-500">VGT</p>
               <p className="text-lg font-bold text-vgt">{formatK(slaStats.byBU?.VGT || 0)}</p>
               <p className="text-micro text-gray-400">recurring/yr</p>
             </div>
+            )}
+            {showECT && !selectedBU && (
             <div className="bg-orange-50 rounded-lg p-3">
               <p className="text-micro text-gray-500">ECT</p>
               <p className="text-lg font-bold text-ect">{formatK(slaStats.byBU?.ECT || 0)}</p>
               <p className="text-micro text-gray-400">recurring/yr</p>
             </div>
+            )}
+            {!selectedBU && (
             <div className="bg-blue-50 rounded-lg p-3">
               <p className="text-micro text-gray-500">CWM</p>
               <p className="text-lg font-bold text-blue-600">{formatK(slaStats.byBU?.CWM || 0)}</p>
               <p className="text-micro text-gray-400">cross-market</p>
             </div>
+            )}
           </div>
           {slaStats.pipelineValue > 0 && (
             <div className="bg-gray-50 rounded-lg p-2 flex items-center justify-between">

@@ -108,7 +108,7 @@ function BUPerformanceCard({ bu, color, label, actMTD, actYTD, actExtMTD=0, actI
   )
 }
 
-function PerformanceSection({ deals, budget, fy25, activeCycle, isAdmin }) {
+function PerformanceSection({ deals, budget, fy25, activeCycle, isAdmin, selectedBU = '' }) {
   const fyIdx = getFYMonthIndex()
   const curMonth = MONTHS_K[fyIdx]
   const ytdMonths = MONTHS_K.slice(0, fyIdx + 1)
@@ -146,7 +146,8 @@ function PerformanceSection({ deals, budget, fy25, activeCycle, isAdmin }) {
     return row ? months.reduce((s,m)=>s+(row[m]||0),0) : 0
   }
 
-  const cards = ['VGT','ECT'].map(bu=>({
+  const busToShow = selectedBU ? [selectedBU] : ['VGT','ECT']
+  const cards = busToShow.map(bu=>({
     bu, label: bu==='VGT'?'VGT · Portugal':'ECT · Spain',
     color: bu==='VGT'?'#1D9E75':'#D85A30',
     actMTD:     sumDeals(bu,[curMonth]),
@@ -410,10 +411,11 @@ function DistributorDashboard({ deals, profile }) {
   )
 }
 
-export default function Dashboard({ hideHeader = false } = {}) {
+export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) {
   const { profile, isAdmin } = useAuth()
   const { t } = useTranslation()
-  const { deals, loading }   = useDeals()
+  const { deals: allDeals, loading } = useDeals()
+  const deals = useMemo(() => selectedBU ? allDeals.filter(d => d.bu === selectedBU) : allDeals, [allDeals, selectedBU])
   const [budget, setBudget]  = useState([])
   const [fy25, setFy25]      = useState([])
   const [fctSnapshots, setFctSnapshots] = useState([])
@@ -677,7 +679,7 @@ export default function Dashboard({ hideHeader = false } = {}) {
       {/* ── PERFORMANCE MTD / YTD ─────────────────────────────────────────── */}
       <PerformanceSection
         deals={deals} budget={budget} fy25={fy25}
-        activeCycle={activeCycle} isAdmin={isAdmin}
+        activeCycle={activeCycle} isAdmin={isAdmin} selectedBU={selectedBU}
       />
 
       {/* ── MONTHLY EVOLUTION — VGT + ECT separate ───────────────────────── */}
@@ -716,7 +718,7 @@ export default function Dashboard({ hideHeader = false } = {}) {
           {[
             { bu: 'VGT', label: 'VGT · Portugal', actColor: '#1D9E75', fcColor: '#9FE1CB' },
             { bu: 'ECT', label: 'ECT · Spain',    actColor: '#D85A30', fcColor: '#F5C4B3' },
-          ].map(({ bu, label, actColor, fcColor }) => (
+          ].filter(c => !selectedBU || c.bu === selectedBU).map(({ bu, label, actColor, fcColor }) => (
             <div key={bu}>
               <p className="text-xs font-semibold mb-2" style={{ color: actColor }}>{label}</p>
               <ResponsiveContainer width="100%" height={180}>
@@ -780,7 +782,7 @@ export default function Dashboard({ hideHeader = false } = {}) {
       )}
 
       {/* ── VGT vs ECT SPLIT ──────────────────────────────────────────────── */}
-      {isAdmin && (
+      {isAdmin && !selectedBU && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">{t("dash_vgt_ect")}</p>
           <div className="grid grid-cols-2 gap-6 mb-3">
