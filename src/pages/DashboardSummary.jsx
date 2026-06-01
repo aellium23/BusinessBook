@@ -181,7 +181,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
       if (d.is_intercompany_mirror) continue
       const type = d.account_id ? (accountTypes[d.account_id] || 'unlinked') : 'unlinked'
       const val = Number(d.value_total) || 0
-      const inv = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
+      const inv = MONTHS_K.reduce((s, m) => s + (Number(d[m]) || 0), 0)
       if (['Pipeline','Offer Presented','BackLog'].includes(d.stage)) {
         if (type === 'public') r.pub_pipe += val
         else if (type === 'private') r.priv_pipe += val

@@ -19,7 +19,7 @@ function stageColor(stage) {
 }
 
 function dealFY26(deal) {
-  return MONTHS_K.reduce((s, m) => s + (deal[m] || 0), 0)
+  return MONTHS_K.reduce((s, m) => s + (Number(deal[m]) || 0), 0)
 }
 
 function columnTotal(deals, stage) {
@@ -28,14 +28,14 @@ function columnTotal(deals, stage) {
     .reduce((s, d) => {
       // For closed stages use monthly sum; otherwise deal value
       if (stage === 'BackLog' || stage === 'Invoiced') return s + dealFY26(d)
-      return s + (d.value_total || 0)
+      return s + (Number(d.value_total) || 0)
     }, 0)
 }
 
 function KanbanCard({ deal, onEdit, onDelete, canEdit, dragHandlers }) {
   const isIC   = deal.is_intercompany_mirror
   const weight = WEIGHTS[deal.stage] ?? 0
-  const weighted = (deal.value_total || 0) * weight
+  const weighted = (Number(deal.value_total) || 0) * weight
   return (
     <div
       draggable={canEdit && !isIC}

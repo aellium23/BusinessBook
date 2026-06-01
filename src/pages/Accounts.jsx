@@ -47,10 +47,10 @@ function computeRollups(accounts, deals) {
   accounts.forEach(a => { own[a.id] = { count: 0, pipeline: 0, invoiced: 0 } })
   deals.forEach(d => {
     if (!d.account_id || !own[d.account_id]) return
-    const fy26 = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
+    const fy26 = MONTHS_K.reduce((s, m) => s + (Number(d[m]) || 0), 0)
     own[d.account_id].count += 1
     own[d.account_id].pipeline += ['Lead','Pipeline','Offer Presented','BackLog'].includes(d.stage)
-      ? (d.value_total || 0) : 0
+      ? (Number(d.value_total) || 0) : 0
     own[d.account_id].invoiced += d.stage === 'Invoiced' ? fy26 : 0
   })
 

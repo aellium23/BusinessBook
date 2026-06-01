@@ -120,9 +120,9 @@ function PerformanceSection({ deals, budget, fy25, activeCycle, isAdmin }) {
       .filter(d => d.bu===bu && d.stage==='Invoiced' && !d.is_intercompany_mirror
         && (salesType===null || (salesType==='External' ? d.sales_type!=='Internal' : d.sales_type==='Internal')))
       .reduce((s,d)=>{
-        const rate = (!d.currency||d.currency==='EUR') ? 1 : (d.exchange_rate||1)
-        const monthSum = months.reduce((ms,m)=>ms+(d[m]||0),0)
-        const val = (monthSum === 0 && d.value_total > 0) ? d.value_total : monthSum
+        const rate = (!d.currency||d.currency==='EUR') ? 1 : (Number(d.exchange_rate)||1)
+        const monthSum = months.reduce((ms,m)=>ms+(Number(d[m])||0),0)
+        const val = (monthSum === 0 && Number(d.value_total) > 0) ? Number(d.value_total) : monthSum
         return s + val * rate
       },0)/1000
   }
@@ -131,9 +131,9 @@ function PerformanceSection({ deals, budget, fy25, activeCycle, isAdmin }) {
       .filter(d => d.bu===bu && d.stage==='BackLog' && !d.is_intercompany_mirror
         && (salesType===null || (salesType==='External' ? d.sales_type!=='Internal' : d.sales_type==='Internal')))
       .reduce((s,d)=>{
-        const rate = (!d.currency||d.currency==='EUR') ? 1 : (d.exchange_rate||1)
-        const monthSum = months.reduce((ms,m)=>ms+(d[m]||0),0)
-        const val = (monthSum === 0 && d.value_total > 0) ? d.value_total : monthSum
+        const rate = (!d.currency||d.currency==='EUR') ? 1 : (Number(d.exchange_rate)||1)
+        const monthSum = months.reduce((ms,m)=>ms+(Number(d[m])||0),0)
+        const val = (monthSum === 0 && Number(d.value_total) > 0) ? Number(d.value_total) : monthSum
         return s + val * rate
       },0)/1000
   }
@@ -248,10 +248,10 @@ function DistributorDashboard({ deals, profile }) {
   // Agregados dos deals deste distribuidor
   const stats = useMemo(() => {
     const active = deals.filter(d => !d.is_intercompany_mirror)
-    const rate = d => (!d.currency || d.currency === 'EUR') ? 1 : (d.exchange_rate || 1)
+    const rate = d => (!d.currency || d.currency === 'EUR') ? 1 : (Number(d.exchange_rate) || 1)
     const fyVal = d => {
-      const raw = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
-      return ((raw === 0 && d.value_total > 0) ? d.value_total : raw) * rate(d)
+      const raw = MONTHS_K.reduce((s, m) => s + (Number(d[m]) || 0), 0)
+      return ((raw === 0 && Number(d.value_total) > 0) ? Number(d.value_total) : raw) * rate(d)
     }
 
     const invoiced = active.filter(d => d.stage === 'Invoiced')
@@ -261,7 +261,7 @@ function DistributorDashboard({ deals, profile }) {
 
     const actuals  = invoiced.reduce((s, d) => s + fyVal(d), 0)
     const fc       = [...invoiced, ...backlog].reduce((s, d) => s + fyVal(d), 0)
-    const pipeVal  = pipeline.reduce((s, d) => s + (d.value_total || 0) * rate(d), 0)
+    const pipeVal  = pipeline.reduce((s, d) => s + (Number(d.value_total) || 0) * rate(d), 0)
 
     // Clientes únicos
     const clients = [...new Set(active.map(d => d.client).filter(Boolean))]
@@ -291,8 +291,8 @@ function DistributorDashboard({ deals, profile }) {
       const actuals = deals
         .filter(d => d.stage === 'Invoiced' && !d.is_intercompany_mirror)
         .reduce((s, d) => {
-          const rate = (!d.currency || d.currency === 'EUR') ? 1 : (d.exchange_rate || 1)
-          return s + (d[m] || 0) * rate / 1000
+          const rate = (!d.currency || d.currency === 'EUR') ? 1 : (Number(d.exchange_rate) || 1)
+          return s + (Number(d[m]) || 0) * rate / 1000
         }, 0)
       return {
         month: ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'][i],
@@ -493,12 +493,12 @@ export default function Dashboard({ hideHeader = false } = {}) {
       const bu = d.bu?.toLowerCase()
       if (!bu) return
       // Currency conversion to EUR
-      const rate = (!d.currency || d.currency === 'EUR') ? 1 : (d.exchange_rate || 1)
+      const rate = (!d.currency || d.currency === 'EUR') ? 1 : (Number(d.exchange_rate) || 1)
       // Monthly sum — for SLA deals with empty months, fall back to value_total
-      const fyRaw = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
-      const fy = (fyRaw === 0 && d.value_total > 0) ? d.value_total : fyRaw
+      const fyRaw = MONTHS_K.reduce((s, m) => s + (Number(d[m]) || 0), 0)
+      const fy = (fyRaw === 0 && Number(d.value_total) > 0) ? Number(d.value_total) : fyRaw
       const fyEUR = fy * rate
-      const valEUR = (d.value_total || 0) * rate
+      const valEUR = (Number(d.value_total) || 0) * rate
       if (['BackLog','Invoiced'].includes(d.stage)) result[`${bu}_fc`]   += fyEUR / 1000
       if (d.stage === 'Invoiced')                   result[`${bu}_act`]  += fyEUR / 1000
       if (d.stage === 'BackLog')                    result[`${bu}_bl`]   += fyEUR / 1000
@@ -540,7 +540,7 @@ export default function Dashboard({ hideHeader = false } = {}) {
         let actuals = 0, forecast = 0
         deals.forEach(d => {
           if (d.is_intercompany_mirror || d.bu !== bu) return
-          const v = d[MONTHS_K[i]] || 0
+          const v = Number(d[MONTHS_K[i]]) || 0
           if (d.stage === 'Invoiced') actuals += v / 1000
           else if (d.stage === 'BackLog') forecast += v / 1000
         })
@@ -564,8 +564,8 @@ export default function Dashboard({ hideHeader = false } = {}) {
 
     // Weighted forecast — uses deal-level win_probability if set, else stage default
     const weighted = active.reduce((s, d) => {
-      const fy = MONTHS_K.reduce((ms,m)=>ms+(d[m]||0),0)
-      const base = ['BackLog','Invoiced'].includes(d.stage) ? fy : (d.value_total||0)
+      const fy = MONTHS_K.reduce((ms,m)=>ms+(Number(d[m])||0),0)
+      const base = ['BackLog','Invoiced'].includes(d.stage) ? fy : (Number(d.value_total)||0)
       const prob = d.win_probability !== null && d.win_probability !== undefined
         ? d.win_probability / 100
         : (WEIGHTS[d.stage]||0)
@@ -605,7 +605,7 @@ export default function Dashboard({ hideHeader = false } = {}) {
       .reduce((acc, d) => {
         if (!acc[d.product]) acc[d.product] = { count:0, value:0 }
         acc[d.product].count++
-        acc[d.product].value += (d.value_total||0)
+        acc[d.product].value += (Number(d.value_total)||0)
         return acc
       }, {})
 
@@ -621,9 +621,9 @@ export default function Dashboard({ hideHeader = false } = {}) {
     const r = {}
     deals.forEach(d => {
       if (!d.region || d.is_intercompany_mirror) return
-      const rate = (!d.currency || d.currency === 'EUR') ? 1 : (d.exchange_rate || 1)
-      const fyRaw = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
-      const fy = (fyRaw === 0 && d.value_total > 0) ? d.value_total : fyRaw
+      const rate = (!d.currency || d.currency === 'EUR') ? 1 : (Number(d.exchange_rate) || 1)
+      const fyRaw = MONTHS_K.reduce((s, m) => s + (Number(d[m]) || 0), 0)
+      const fy = (fyRaw === 0 && Number(d.value_total) > 0) ? Number(d.value_total) : fyRaw
       if (['BackLog','Invoiced'].includes(d.stage))
         r[d.region] = (r[d.region] || 0) + fy * rate
     })
@@ -958,13 +958,13 @@ export default function Dashboard({ hideHeader = false } = {}) {
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Sales funnel</p>
         <div className="space-y-2">
           {[
-            { label:'Lead',            value: deals.filter(d=>d.stage==='Lead'&&!d.is_intercompany_mirror).reduce((s,d)=>s+(d.value_total||0)/1000,0), color:'#F4C0D1', text:'#4B1528' },
+            { label:'Lead',            value: deals.filter(d=>d.stage==='Lead'&&!d.is_intercompany_mirror).reduce((s,d)=>s+(Number(d.value_total)||0)/1000,0), color:'#F4C0D1', text:'#4B1528' },
             { label:'Pipeline',        value: agg.vgt_pipe+agg.ect_pipe, color:'#FAC775', text:'#412402' },
-            { label:'Offer Presented', value: deals.filter(d=>d.stage==='Offer Presented'&&!d.is_intercompany_mirror).reduce((s,d)=>s+(d.value_total||0)/1000,0), color:'#C4B5FD', text:'#3B1278' },
+            { label:'Offer Presented', value: deals.filter(d=>d.stage==='Offer Presented'&&!d.is_intercompany_mirror).reduce((s,d)=>s+(Number(d.value_total)||0)/1000,0), color:'#C4B5FD', text:'#3B1278' },
             { label:'BackLog',         value: agg.vgt_bl+agg.ect_bl,     color:'#B5D4F4', text:'#042C53' },
             { label:'Invoiced',        value: total_act,                  color:'#C0DD97', text:'#173404' },
           ].map(({ label, value, color, text }) => {
-            const maxVal = deals.filter(d=>d.stage==='Lead'&&!d.is_intercompany_mirror).reduce((s,d)=>s+(d.value_total||0)/1000,0) || total_act || 1
+            const maxVal = deals.filter(d=>d.stage==='Lead'&&!d.is_intercompany_mirror).reduce((s,d)=>s+(Number(d.value_total)||0)/1000,0) || total_act || 1
             const pct = Math.max(8, (value / maxVal) * 100)
             return (
               <div key={label} className="flex items-center gap-3">

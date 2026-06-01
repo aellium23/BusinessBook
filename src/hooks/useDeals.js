@@ -62,10 +62,10 @@ export function useDeals(filters = {}) {
   }, [fetch, profile])
 
   const totals = useMemo(() => deals.reduce((acc, d) => {
-    const fy26 = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
+    const fy26 = MONTHS_K.reduce((s, m) => s + (Number(d[m]) || 0), 0)
     // Exclude intercompany mirrors from totals to avoid double counting
     if (d.is_intercompany_mirror) return acc
-    acc.pipeline += d.stage === 'Pipeline' ? (d.value_total || 0) : 0
+    acc.pipeline += d.stage === 'Pipeline' ? (Number(d.value_total) || 0) : 0
     acc.backlog   += d.stage === 'BackLog'  ? fy26 : 0
     acc.invoiced  += d.stage === 'Invoiced' ? fy26 : 0
     acc.forecast  += ['BackLog','Invoiced'].includes(d.stage) ? fy26 : 0
@@ -97,10 +97,10 @@ export async function deleteDeal(id) {
 // Creates ECT deal + VGT mirror intercompany deal atomically
 export async function upsertDealWithIntercompany(deal, intercompanyValue, existingMirrorId) {
   // Calculate VGT mirror monthly values proportionally from ECT monthly
-  const ectoTotal = MONTHS_K.reduce((s, m) => s + (deal[m] || 0), 0)
+  const ectoTotal = MONTHS_K.reduce((s, m) => s + (Number(deal[m]) || 0), 0)
   const ratio = ectoTotal > 0 ? intercompanyValue / ectoTotal : 0
   const mirrorMonthly = Object.fromEntries(
-    MONTHS_K.map(m => [m, Math.round((deal[m] || 0) * ratio * 100) / 100])
+    MONTHS_K.map(m => [m, Math.round((Number(deal[m]) || 0) * ratio * 100) / 100])
   )
 
   // 1. Save/update VGT mirror deal

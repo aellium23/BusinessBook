@@ -25,7 +25,7 @@ function CellStatus({ deals, product }) {
   for (const d of matches) {
     const r = PRIORITY.indexOf(d.stage)
     if (r !== -1 && (r < bestRank || bestRank === -1)) { best = d; bestRank = r }
-    total += d.value_total || 0
+    total += Number(d.value_total) || 0
   }
   const stageStyles = {
     Invoiced:          'bg-green-100 text-green-800 border border-green-200',

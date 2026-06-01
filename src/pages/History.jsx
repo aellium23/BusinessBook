@@ -48,10 +48,10 @@ function DistributorHistory({ profile }) {
   }, [profile])
 
   const { invoiced, byClient, monthly } = useMemo(() => {
-    const rate = d => (!d.currency || d.currency === 'EUR') ? 1 : (d.exchange_rate || 1)
+    const rate = d => (!d.currency || d.currency === 'EUR') ? 1 : (Number(d.exchange_rate) || 1)
     const fyVal = d => {
-      const raw = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
-      return ((raw === 0 && d.value_total > 0) ? d.value_total : raw) * rate(d)
+      const raw = MONTHS_K.reduce((s, m) => s + (Number(d[m]) || 0), 0)
+      return ((raw === 0 && Number(d.value_total) > 0) ? Number(d.value_total) : raw) * rate(d)
     }
 
     const invoiced = deals.filter(d => d.stage === 'Invoiced')
@@ -70,7 +70,7 @@ function DistributorHistory({ profile }) {
     // Por mês
     const monthly = MONTHS_K.map((m, i) => ({
       month: MONTHS[i],
-      value: Math.round(invoiced.reduce((s, d) => s + (d[m] || 0) * rate(d), 0) / 1000 * 10) / 10,
+      value: Math.round(invoiced.reduce((s, d) => s + (Number(d[m]) || 0) * rate(d), 0) / 1000 * 10) / 10,
     }))
 
     return { invoiced, total, byClient, monthly }
@@ -83,9 +83,9 @@ function DistributorHistory({ profile }) {
   )
 
   const total = invoiced.reduce((s, d) => {
-    const rate = (!d.currency || d.currency === 'EUR') ? 1 : (d.exchange_rate || 1)
-    const raw = MONTHS_K.reduce((sum, m) => sum + (d[m] || 0), 0)
-    return s + ((raw === 0 && d.value_total > 0) ? d.value_total : raw) * rate
+    const rate = (!d.currency || d.currency === 'EUR') ? 1 : (Number(d.exchange_rate) || 1)
+    const raw = MONTHS_K.reduce((sum, m) => sum + (Number(d[m]) || 0), 0)
+    return s + ((raw === 0 && Number(d.value_total) > 0) ? Number(d.value_total) : raw) * rate
   }, 0)
 
   return (

@@ -166,8 +166,8 @@ export default function Clients() {
   const enriched = useMemo(() => {
     return leafAccounts.map(acc => {
       const accDeals = deals.filter(d => d.account_id === acc.id || (d.client && d.client.toLowerCase() === acc.name.toLowerCase()))
-      const pipeline = accDeals.filter(d => ['Pipeline', 'Offer Presented'].includes(d.stage)).reduce((s, d) => s + (d.value_total || 0), 0)
-      const invoiced = accDeals.filter(d => d.stage === 'Invoiced').reduce((s, d) => s + (d.value_total || 0), 0)
+      const pipeline = accDeals.filter(d => ['Pipeline', 'Offer Presented'].includes(d.stage)).reduce((s, d) => s + (Number(d.value_total) || 0), 0)
+      const invoiced = accDeals.filter(d => d.stage === 'Invoiced').reduce((s, d) => s + (Number(d.value_total) || 0), 0)
       const slaCount = accDeals.filter(d => d.is_sla).length
       return { ...acc, dealCount: accDeals.length, pipeline, invoiced, slaCount }
     })

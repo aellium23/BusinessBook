@@ -475,7 +475,7 @@ export default function Quotas() {
     deals.forEach(d => {
       if (d.stage !== 'Invoiced') return
       const key = `${d.bu}::${d.sales_owner || 'Unassigned'}`
-      map[key] = (map[key]||0) + MONTHS_K.reduce((s,m)=>s+(d[m]||0),0)
+      map[key] = (map[key]||0) + MONTHS_K.reduce((s,m)=>s+(Number(d[m])||0),0)
     })
     return map
   }, [deals])
@@ -485,7 +485,7 @@ export default function Quotas() {
     deals.forEach(d => {
       if (!['BackLog','Invoiced'].includes(d.stage)) return
       const key = `${d.bu}::${d.sales_owner || 'Unassigned'}`
-      map[key] = (map[key]||0) + MONTHS_K.reduce((s,m)=>s+(d[m]||0),0)
+      map[key] = (map[key]||0) + MONTHS_K.reduce((s,m)=>s+(Number(d[m])||0),0)
     })
     return map
   }, [deals])

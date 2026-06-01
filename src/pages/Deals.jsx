@@ -94,7 +94,7 @@ function DiscountChip({ deal }) {
 function DealCard({ deal, onEdit, onDelete, canEdit }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
-  const fy26 = MONTHS_K.reduce((s, m) => s + (deal[m] || 0), 0)
+  const fy26 = MONTHS_K.reduce((s, m) => s + (Number(deal[m]) || 0), 0)
   const isIC    = deal.is_intercompany_mirror
   const hasIC   = deal.intercompany_value > 0
   const score   = dealScore(deal)
@@ -278,7 +278,7 @@ function DealCard({ deal, onEdit, onDelete, canEdit }) {
           {/* Monthly breakdown */}
           <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
             {MONTHS.map((m, i) => {
-              const v = deal[MONTHS_K[i]] || 0
+              const v = Number(deal[MONTHS_K[i]]) || 0
               return (
                 <div key={m} className={`text-center rounded p-1 ${v > 0 ? (isIC ? 'bg-vgt/10' : 'bg-blue-50') : 'bg-gray-50'}`}>
                   <p className="text-[9px] text-gray-400">{m}</p>
@@ -299,13 +299,13 @@ function exportToCSV(deals) {
   const headers = ['BU','Stage','Client','Country','Region','Sales Owner','Deal Type','Is SLA','SLA Owner',
     'Value €','GM%','Win Prob%','Description',...MONTHS,'FY26 Total']
   const rows = deals.map(d => {
-    const fy = MK.reduce((s,m)=>s+(d[m]||0),0)
+    const fy = MK.reduce((s,m)=>s+(Number(d[m])||0),0)
     return [
       d.bu, d.stage, d.client, d.country, d.region, d.sales_owner, d.deal_type,
       d.is_sla ? 'Yes' : 'No', d.sla_owner || '',
       d.value_total || 0, d.gm_pct ? (d.gm_pct*100).toFixed(1) : '',
       d.win_probability || '', d.description || '',
-      ...MK.map(m => d[m] || 0), fy
+      ...MK.map(m => Number(d[m]) || 0), fy
     ]
   })
   const csvSafe = (v) => {
@@ -354,15 +354,15 @@ function DealsMapView({ deals }) {
       const r = d.region || 'Europe'
       if (!map[r]) map[r] = { deals: [], countries: {}, total: 0, pipeline: 0, invoiced: 0, stages: {} }
       map[r].deals.push(d)
-      map[r].total += d.value_total || 0
-      if (['Pipeline', 'Offer Presented'].includes(d.stage)) map[r].pipeline += d.value_total || 0
-      if (d.stage === 'Invoiced') map[r].invoiced += d.value_total || 0
+      map[r].total += Number(d.value_total) || 0
+      if (['Pipeline', 'Offer Presented'].includes(d.stage)) map[r].pipeline += Number(d.value_total) || 0
+      if (d.stage === 'Invoiced') map[r].invoiced += Number(d.value_total) || 0
       map[r].stages[d.stage] = (map[r].stages[d.stage] || 0) + 1
       const c = d.country || 'Other'
       if (!map[r].countries[c]) map[r].countries[c] = { deals: 0, value: 0, pipeline: 0 }
       map[r].countries[c].deals++
-      map[r].countries[c].value += d.value_total || 0
-      if (['Pipeline', 'Offer Presented'].includes(d.stage)) map[r].countries[c].pipeline += d.value_total || 0
+      map[r].countries[c].value += Number(d.value_total) || 0
+      if (['Pipeline', 'Offer Presented'].includes(d.stage)) map[r].countries[c].pipeline += Number(d.value_total) || 0
     }
     return map
   }, [deals])
@@ -545,9 +545,9 @@ export default function Deals() {
 
   // Totals computed from the client-side filtered deals (not the hook's raw totals)
   const filteredTotals = useMemo(() => deals.reduce((acc, d) => {
-    const fy26 = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
+    const fy26 = MONTHS_K.reduce((s, m) => s + (Number(d[m]) || 0), 0)
     if (d.is_intercompany_mirror) return acc
-    acc.pipeline += d.stage === 'Pipeline' ? (d.value_total || 0) : 0
+    acc.pipeline += d.stage === 'Pipeline' ? (Number(d.value_total) || 0) : 0
     acc.backlog  += d.stage === 'BackLog'  ? fy26 : 0
     acc.invoiced += d.stage === 'Invoiced' ? fy26 : 0
     acc.forecast += ['BackLog','Invoiced'].includes(d.stage) ? fy26 : 0
@@ -561,9 +561,9 @@ export default function Deals() {
       if (d.is_intercompany_mirror) return
       if (d.stage === 'Lost') return
       const cat = resolveForecastCategory(d)
-      const fy26 = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
-      const base = ['BackLog','Invoiced'].includes(d.stage) ? fy26 : (d.value_total || 0)
-      const eur  = base * ((!d.currency || d.currency === 'EUR') ? 1 : (d.exchange_rate || 1))
+      const fy26 = MONTHS_K.reduce((s, m) => s + (Number(d[m]) || 0), 0)
+      const base = ['BackLog','Invoiced'].includes(d.stage) ? fy26 : (Number(d.value_total) || 0)
+      const eur  = base * ((!d.currency || d.currency === 'EUR') ? 1 : (Number(d.exchange_rate) || 1))
       result[cat] = (result[cat] || 0) + eur
     })
     return result
@@ -846,9 +846,9 @@ export default function Deals() {
           { l:t("deals_actuals"),  v:filteredTotals.invoiced, c:'text-green-700' },
           { l:t("deals_fc"),       v:filteredTotals.forecast, c:'text-vgt font-bold' },
           { l:t("deals_weighted"), v:deals.filter(d=>!d.is_intercompany_mirror).reduce((s,d)=>{
-              const fy=MONTHS_K.reduce((ms,m)=>ms+(d[m]||0),0)
-              const baseRaw=['BackLog','Invoiced'].includes(d.stage)?fy:(d.value_total||0)
-              const base=baseRaw*((!d.currency||d.currency==='EUR')?1:(d.exchange_rate||1))
+              const fy=MONTHS_K.reduce((ms,m)=>ms+(Number(d[m])||0),0)
+              const baseRaw=['BackLog','Invoiced'].includes(d.stage)?fy:(Number(d.value_total)||0)
+              const base=baseRaw*((!d.currency||d.currency==='EUR')?1:(Number(d.exchange_rate)||1))
               const prob=d.win_probability!=null?d.win_probability/100:(WEIGHTS[d.stage]||0)
               return s+base*prob
             },0), c:'text-purple-700 font-bold' },
