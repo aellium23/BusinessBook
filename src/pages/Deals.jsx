@@ -498,7 +498,7 @@ export default function Deals() {
   const [pageSize, setPageSize]             = useState(5)
   const [page, setPage]                     = useState(1)
   const [sortBy, setSortBy]               = useState('date_desc')
-  const [invoicedMonthF, setInvoicedMonthF] = useState('')
+  const [invoicedMonthF, setInvoicedMonthF] = useState([])  // array of month keys
   const [viewMode, setViewMode] = useState(() => {
     if (typeof window === 'undefined') return 'list'
     return localStorage.getItem('bb_deals_view') || 'list'
@@ -540,11 +540,11 @@ export default function Deals() {
       cutoff.setDate(cutoff.getDate() - periodF)
       d = d.filter(x => x.updated_at && new Date(x.updated_at) >= cutoff)
     }
-    if (invoicedMonthF) {
-      d = d.filter(x => x.stage === 'Invoiced' && (x[invoicedMonthF] || 0) > 0)
+    if (invoicedMonthF.length > 0) {
+      d = d.filter(x => x.stage === 'Invoiced' && invoicedMonthF.some(m => (Number(x[m]) || 0) > 0))
     }
     return d
-  }, [rawDeals, slaF, ownerF, forecastF, periodF, invoicedMonthF, profile])
+  }, [rawDeals, slaF, ownerF, forecastF, periodF, invoicedMonthF.join(','), profile])
 
   // Totals computed from the client-side filtered deals (not the hook's raw totals)
   const filteredTotals = useMemo(() => deals.reduce((acc, d) => {
@@ -607,7 +607,7 @@ export default function Deals() {
   }, [rawDeals])
 
   // Contagem de filtros activos
-  const activeFilters = [search, stageF, regionF, buF, ownerF, forecastF, slaF, periodF > 0, invoicedMonthF].filter(Boolean).length
+  const activeFilters = [search, stageF, regionF, buF, ownerF, forecastF, slaF, periodF > 0, invoicedMonthF.length > 0].filter(Boolean).length
 
   // Drag-drop on the Kanban: moving a card across stages
   async function handleStageChange(dealId, newStage) {
@@ -774,17 +774,28 @@ export default function Deals() {
               <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">
                 Invoiced Month
               </label>
-              <select className="select text-xs w-full" value={invoicedMonthF} onChange={e => handleInvoicedMonth(e.target.value)}>
-                <option value="">All months</option>
-                {[
-                  {k:'apr',l:'Apr'},  {k:'may',l:'May'}, {k:'jun',l:'Jun'},
-                  {k:'jul',l:'Jul'},  {k:'aug',l:'Aug'}, {k:'sep',l:'Sep'},
-                  {k:'oct',l:'Oct'},  {k:'nov',l:'Nov'}, {k:'dec',l:'Dec'},
-                  {k:'jan',l:'Jan'},  {k:'feb',l:'Feb'}, {k:'mar',l:'Mar'},
-                ].map(m => <option key={m.k} value={m.k}>{m.l}</option>)}
-              </select>
-              {invoicedMonthF && (
-                <p className="text-[9px] text-blue-500 mt-0.5">Showing Invoiced deals with revenue in this month</p>
+              <div className="flex gap-1 flex-wrap">
+                <button onClick={() => setInvoicedMonthF([])}
+                  className={`text-[10px] px-1.5 py-0.5 rounded ${invoicedMonthF.length === 0 ? 'bg-navy text-white' : 'bg-gray-100 text-gray-500'}`}>All</button>
+                <button onClick={() => {
+                  const m = new Date().getMonth() + 1
+                  const elapsed = ((m - 4 + 12) % 12) + 1
+                  setInvoicedMonthF(MONTHS_K.slice(0, elapsed))
+                }}
+                  className={`text-[10px] px-1.5 py-0.5 rounded ${invoicedMonthF.length > 1 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>FY YTD</button>
+              </div>
+              <div className="grid grid-cols-4 gap-0.5 mt-1">
+                {MONTHS.map((m, i) => (
+                  <button key={m} onClick={() => {
+                    setInvoicedMonthF(prev => prev.includes(MONTHS_K[i]) ? prev.filter(x => x !== MONTHS_K[i]) : [...prev, MONTHS_K[i]])
+                  }}
+                    className={`text-[10px] px-1 py-0.5 rounded ${invoicedMonthF.includes(MONTHS_K[i]) ? 'bg-blue-500 text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
+                    {m}
+                  </button>
+                ))}
+              </div>
+              {invoicedMonthF.length > 0 && (
+                <p className="text-[9px] text-blue-500 mt-0.5">{invoicedMonthF.length} month{invoicedMonthF.length > 1 ? 's' : ''} selected</p>
               )}
             </div>
 

@@ -499,6 +499,17 @@ export default function Products() {
         )}
       </div>
 
+      <div className="flex gap-1 mb-1">
+        <button onClick={() => { const all = {}; Object.keys(grouped).forEach(c => { all[c] = true }); setExpandedCats(all) }}
+          className="text-[10px] text-gray-500 hover:text-gray-700 px-2 py-1 rounded border border-gray-200">
+          Expand All
+        </button>
+        <button onClick={() => setExpandedCats({})}
+          className="text-[10px] text-gray-500 hover:text-gray-700 px-2 py-1 rounded border border-gray-200">
+          Collapse All
+        </button>
+      </div>
+
       <div className="flex flex-wrap gap-2 items-center">
         <div className="relative flex-1 min-w-[180px]">
           <input className="input pl-8 text-sm" placeholder={t('products_search')}
@@ -521,10 +532,10 @@ export default function Products() {
                 <span className="font-semibold text-sm text-gray-800">{cat}</span>
                 <span className="text-[10px] text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded">{prods.length}</span>
               </div>
-              {expandedCats[cat] === false ? <ChevronDown size={14} className="text-gray-400"/> : <ChevronUp size={14} className="text-gray-400"/>}
+              {expandedCats[cat] ? <ChevronUp size={14} className="text-gray-400"/> : <ChevronDown size={14} className="text-gray-400"/>}
             </button>
 
-            {expandedCats[cat] !== false && (
+            {expandedCats[cat] && (
               <div className="divide-y divide-gray-50">
                 {prods.map(p => (
                   <div key={p.id} className="px-4 py-2.5 flex items-center gap-3 hover:bg-gray-50/50">
