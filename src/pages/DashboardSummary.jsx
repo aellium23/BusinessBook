@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useDeals } from '../hooks/useDeals'
@@ -6,7 +6,28 @@ import { useTranslation } from '../hooks/useTranslation'
 import { Spinner, formatK } from '../components/ui'
 import Gauge from '../components/Gauge'
 import { MONTHS_K } from '../constants'
-import { TrendingUp, Target, AlertCircle, RefreshCw } from 'lucide-react'
+import { TrendingUp, Target, AlertCircle, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
+
+function CollapsibleSection({ id, title, icon, children, defaultOpen = true }) {
+  const key = `bb_dash_${id}`
+  const [open, setOpen] = useState(() => {
+    try { const v = localStorage.getItem(key); return v === null ? defaultOpen : v === '1' } catch { return defaultOpen }
+  })
+  const toggle = useCallback(() => {
+    setOpen(o => { const n = !o; try { localStorage.setItem(key, n ? '1' : '0') } catch {}; return n })
+  }, [key])
+  return (
+    <div>
+      <button onClick={toggle} className="w-full flex items-center justify-between py-1 group">
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1">
+          {icon} {title}
+        </p>
+        {open ? <ChevronUp size={14} className="text-gray-400"/> : <ChevronDown size={14} className="text-gray-400"/>}
+      </button>
+      {open && <div className="mt-2">{children}</div>}
+    </div>
+  )
+}
 
 // ── Active cycle helper ────────────────────────────────────────────────────
 function activeCycleNow() {
@@ -197,9 +218,10 @@ export default function DashboardSummary({ selectedBU = '' }) {
     return r
   }, [deals, accountTypes])
 
-  // Build gauge list for the role
-  const showVGT = isAdmin || profile?.bu === 'VGT'
-  const showECT = isAdmin || profile?.bu === 'ECT'
+  // Build gauge list for the role + BU filter
+  const showVGT = (isAdmin || profile?.bu === 'VGT') && (!selectedBU || selectedBU === 'VGT')
+  const showECT = (isAdmin || profile?.bu === 'ECT') && (!selectedBU || selectedBU === 'ECT')
+  const showIberia = !selectedBU
 
   const gauges = []
   if (showVGT) {
@@ -221,7 +243,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
       target: budgetData.ect_ext_ytd, py: priorYear.ect_ext,
     })
   }
-  if (isAdmin) {
+  if (isAdmin && showIberia) {
     const ib_actuals  = actuals.vgt_ext + actuals.ect_ext
     const ib_forecast = forecastYTD.vgt_ext + forecastYTD.ect_ext
     const ib_budget   = budgetData.vgt_ext_ytd + budgetData.ect_ext_ytd
@@ -273,8 +295,8 @@ export default function DashboardSummary({ selectedBU = '' }) {
 
       {/* Public vs Private */}
       {(publicPrivate.total_pipe > 0 || publicPrivate.total_inv > 0) && (
+        <CollapsibleSection id="pub_priv" title="Public vs Private" icon={<Target size={12}/>}>
         <div className="card p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Public vs Private</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-blue-50 rounded-lg p-2 text-center">
               <p className="text-micro text-gray-500">Public Pipeline</p>
@@ -303,11 +325,13 @@ export default function DashboardSummary({ selectedBU = '' }) {
             <p className="text-micro text-amber-500 mt-1">{formatK(publicPrivate.unlinked)} unlinked to accounts</p>
           )}
         </div>
+        </CollapsibleSection>
       )}
 
       {/* Pipeline snapshot */}
       {(
-        <div className="grid grid-cols-2 gap-3">
+        <div className={`grid gap-3 ${showVGT && showECT ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          {showVGT && (
           <div className="card p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1">
               <TrendingUp size={12}/> VGT pipeline
@@ -315,6 +339,8 @@ export default function DashboardSummary({ selectedBU = '' }) {
             <p className="text-2xl font-bold text-vgt mt-1">{formatK(pipeline.vgt)}</p>
             <p className="text-micro text-gray-400">open + offer + backlog</p>
           </div>
+          )}
+          {showECT && (
           <div className="card p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1">
               <TrendingUp size={12}/> ECT pipeline
@@ -322,6 +348,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
             <p className="text-2xl font-bold text-ect mt-1">{formatK(pipeline.ect)}</p>
             <p className="text-micro text-gray-400">open + offer + backlog</p>
           </div>
+          )}
         </div>
       )}
 

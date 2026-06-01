@@ -778,6 +778,16 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 {BUSINESS_MODELS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
               </select>
             </div>
+            {['opex','saas','pay_per_study'].includes(form.business_model) && !deal?.id && (
+              <div className="col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-2 flex items-center justify-between">
+                <p className="text-xs text-blue-700">
+                  Recurring revenue? You can create this directly as a <strong>Contract</strong>.
+                </p>
+                <a href="/sla" className="text-xs font-semibold text-blue-700 hover:text-blue-900 whitespace-nowrap ml-2">
+                  Create Contract →
+                </a>
+              </div>
+            )}
             {['capex','hybrid'].includes(form.business_model) && (
               <div>
                 <label className="label">Warranty (months)</label>
@@ -1073,28 +1083,47 @@ export default function DealForm({ deal, onClose, onSaved }) {
         )}
 
         {/* ── CONTRACT LINK ──────────────────────────────────── */}
-        {deal?.id && (isAdmin || profile?.role === 'manager') && (
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-blue-700">Contracts & Recurring</p>
-              <p className="text-[10px] text-blue-500">Create or view linked contracts</p>
+        {deal?.id && (isAdmin || profile?.role === 'manager') && !deal.converted_to_sla && (() => {
+          const isInvoiced = form.stage === 'Invoiced'
+          const isRecurring = ['opex','saas','pay_per_study'].includes(form.business_model)
+          const shouldPrompt = isInvoiced || isRecurring
+          const hasRecurringProducts = dealLines.some(l => ['per_volume','per_package'].includes(l.license_type) || (Number(l.annual_fee) || 0) > 0)
+          const urgent = isInvoiced && (isRecurring || hasRecurringProducts)
+          return (
+            <div className={`rounded-xl p-3 space-y-2 ${urgent ? 'bg-amber-50 border-2 border-amber-300' : 'bg-blue-50 border border-blue-200'}`}>
+              {urgent && (
+                <p className="text-xs font-bold text-amber-700">
+                  ⚠ This deal is Invoiced {isRecurring ? 'with recurring billing' : 'with recurring products'} — convert to Contract?
+                </p>
+              )}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`text-xs font-semibold ${urgent ? 'text-amber-700' : 'text-blue-700'}`}>Contracts & Recurring</p>
+                  <p className="text-[10px] text-gray-500">
+                    {deal.converted_to_sla ? 'Already converted' : shouldPrompt ? 'Recommended: convert to contract' : 'Create or view linked contracts'}
+                  </p>
+                </div>
+                <button type="button"
+                  onClick={async () => {
+                    const { createSlaFromDeal } = await import('../hooks/useSlas')
+                    const { data, error } = await createSlaFromDeal(
+                      { ...deal, ...form, id: deal.id },
+                      { warranty_months: parseInt(form.warranty_months) || 36 }
+                    )
+                    if (error) { alert(error.message); return }
+                    await supabase.from('deals').update({ converted_to_sla: true }).eq('id', deal.id)
+                    alert(`Contract created for ${form.client}`)
+                    onSaved(); onClose()
+                  }}
+                  className={`text-xs py-2 px-3 rounded-lg border font-semibold flex items-center gap-1 ${
+                    urgent ? 'border-amber-400 bg-white text-amber-700 hover:bg-amber-100' : 'border-blue-300 bg-white text-blue-700 hover:bg-blue-100'
+                  }`}>
+                  <Plus size={12}/> Convert to Contract
+                </button>
+              </div>
             </div>
-            <button type="button"
-              onClick={async () => {
-                const { createSlaFromDeal } = await import('../hooks/useSlas')
-                const { data, error } = await createSlaFromDeal(
-                  { ...deal, ...form, id: deal.id },
-                  { warranty_months: parseInt(form.warranty_months) || 36 }
-                )
-                if (error) { alert(error.message); return }
-                await supabase.from('deals').update({ converted_to_sla: true }).eq('id', deal.id)
-                alert(`Contract created for ${form.client}`)
-              }}
-              className="text-xs py-2 px-3 rounded-lg border border-blue-300 bg-white text-blue-700 font-semibold hover:bg-blue-100 flex items-center gap-1">
-              <Plus size={12}/> Create Contract
-            </button>
-          </div>
-        )}
+          )
+        })()}
 
         {/* ── INTERCOMPANY (ECT only) ────────────────────────────── */}
         {isECT && (

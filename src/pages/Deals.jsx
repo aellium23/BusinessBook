@@ -633,6 +633,7 @@ export default function Deals() {
       <div className="flex items-center justify-between pt-1">
         <div>
           <h1 className="text-xl font-bold text-gray-900">{t("deals_title")}</h1>
+          <p className="text-[10px] text-gray-400">New sales opportunities & one-time projects</p>
           <p className="text-sm text-gray-400">
             {deals.length} {t("deals_records")}
             {activeFilters > 0 && <span className="ml-1 text-blue-500">· {activeFilters} {t("deals_filters_active")}</span>}
