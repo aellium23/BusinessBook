@@ -7,7 +7,7 @@ import { useTranslation } from '../hooks/useTranslation'
 
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
-const CYCLES   = ['BUD','EST1','EST2']
+const CYCLES   = ['BUD','EST1','EST2','ACT']
 const BUS      = ['VGT','ECT','ALL']
 
 const PL_LINES = [
@@ -29,7 +29,15 @@ const CYCLE_CONFIG = {
   BUD:  { label:'Budget',  color:'#185FA5', bg:'#E6F1FB', badge:'bg-blue-100 text-blue-800' },
   EST1: { label:'EST 1',   color:'#0F6E56', bg:'#E1F5EE', badge:'bg-green-100 text-green-800' },
   EST2: { label:'EST 2',   color:'#BA7517', bg:'#FAEEDA', badge:'bg-amber-100 text-amber-800' },
+  ACT:  { label:'Actuals', color:'#7C3AED', bg:'#F3EDFF', badge:'bg-violet-100 text-violet-800' },
 }
+
+const COMPARE_OPTIONS = [
+  { id: 'act_bud',  label: 'ACT vs BUD',  left: 'ACT', right: 'BUD' },
+  { id: 'act_est1', label: 'ACT vs EST1', left: 'ACT', right: 'EST1' },
+  { id: 'act_est2', label: 'ACT vs EST2', left: 'ACT', right: 'EST2' },
+  { id: 'bud_est1', label: 'BUD vs EST1', left: 'BUD', right: 'EST1' },
+]
 const BU_CONFIG = {
   VGT: { color:'#1D9E75', bg:'#E1F5EE', label:'VGT · Portugal' },
   ECT: { color:'#D85A30', bg:'#FAECE7', label:'ECT · Spain'    },
@@ -85,6 +93,8 @@ export default function Budget() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
   const [saved, setSaved]     = useState(false)
+  const [budgetTab, setBudgetTab] = useState('edit')
+  const [compareMode, setCompareMode] = useState('act_bud')
   const [activeBu, setActiveBu]       = useState('VGT')
   const [activeCycle, setActiveCycle] = useState(ACTIVE_CYCLE())
   const [focusCell, setFocusCell]     = useState(null)
@@ -180,6 +190,135 @@ export default function Budget() {
         </button>}
       </div>
 
+      {/* Edit / Compare tab */}
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
+        <button onClick={() => setBudgetTab('edit')}
+          className={`px-3 py-1.5 rounded text-xs font-semibold ${budgetTab === 'edit' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>
+          Edit
+        </button>
+        <button onClick={() => setBudgetTab('compare')}
+          className={`px-3 py-1.5 rounded text-xs font-semibold ${budgetTab === 'compare' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>
+          Compare
+        </button>
+      </div>
+
+      {budgetTab === 'compare' && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 flex-wrap">
+            <select className="select text-sm w-auto" value={compareMode} onChange={e => setCompareMode(e.target.value)}>
+              {COMPARE_OPTIONS.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+            </select>
+            <div className="flex rounded-xl overflow-hidden border border-gray-200">
+              {BUS.map(bu => (
+                <button key={bu} onClick={() => setActiveBu(bu)}
+                  className="px-3 py-1.5 text-xs font-semibold transition-all"
+                  style={activeBu === bu ? { background: BU_CONFIG[bu].color, color:'white' } : { background:'white', color:'#6B7280' }}>
+                  {BU_CONFIG[bu].label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {(() => {
+            const cmp = COMPARE_OPTIONS.find(o => o.id === compareMode) || COMPARE_OPTIONS[0]
+            const fyIdx = (() => { const m = new Date().getMonth() + 1; return ((m - 4 + 12) % 12) })()
+            const ytdMonths = MONTHS_K.slice(0, fyIdx + 1)
+
+            return (
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="text-left px-4 py-2 font-bold w-32 sticky left-0 bg-gray-50">P&L Line</th>
+                      {MONTHS.map(m => <th key={m} className="px-1 py-2 text-center w-20 font-semibold text-gray-500">{m}</th>)}
+                      <th className="px-2 py-2 text-center w-20 font-bold text-gray-800">YTD</th>
+                      <th className="px-2 py-2 text-center w-20 font-bold text-gray-800">FY</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {PL_LINES.map(({ key: plKey, label, input, group }) => {
+                      const isTotal = group === 'total'
+                      const isCost = group === 'cost'
+
+                      function getMonthVal(cycle, bu, pk, month) {
+                        if (bu === 'ALL') {
+                          return ['VGT','ECT'].reduce((s, b) => {
+                            const row = rows.find(r => r.bu === b && r.cycle === cycle && r.pl_key === pk)
+                            return s + (Number(row?.[month]) || 0)
+                          }, 0)
+                        }
+                        const row = rows.find(r => r.bu === bu && r.cycle === cycle && r.pl_key === pk)
+                        return Number(row?.[month]) || 0
+                      }
+
+                      function getDerived(cycle, bu, month) {
+                        const vals = Object.fromEntries(PL_LINES.filter(l=>l.input).map(l=>[l.key, getMonthVal(cycle, bu, l.key, month)]))
+                        return calcDerived(vals)
+                      }
+
+                      function cellVal(cycle, month) {
+                        return input ? getMonthVal(cycle, activeBu, plKey, month) : getDerived(cycle, activeBu, month)[plKey] || 0
+                      }
+
+                      const leftYTD = ytdMonths.reduce((s, m) => s + cellVal(cmp.left, m), 0)
+                      const rightYTD = ytdMonths.reduce((s, m) => s + cellVal(cmp.right, m), 0)
+                      const leftFY = MONTHS_K.reduce((s, m) => s + cellVal(cmp.left, m), 0)
+                      const rightFY = MONTHS_K.reduce((s, m) => s + cellVal(cmp.right, m), 0)
+
+                      function varColor(variance, isCostLine) {
+                        if (variance === 0) return 'text-gray-400'
+                        const favorable = isCostLine ? variance < 0 : variance > 0
+                        return favorable ? 'text-green-600' : 'text-red-600'
+                      }
+
+                      return (
+                        <tr key={plKey} className={`border-b ${isTotal ? 'bg-gray-50 font-bold' : ''}`}>
+                          <td className={`px-4 py-1.5 sticky left-0 ${isTotal ? 'bg-gray-50 text-gray-900' : 'bg-white text-gray-600'}`}>{label}</td>
+                          {MONTHS_K.map((m, mi) => {
+                            const left = cellVal(cmp.left, m)
+                            const right = cellVal(cmp.right, m)
+                            const variance = left - right
+                            const pct = right !== 0 ? (variance / Math.abs(right) * 100) : 0
+                            return (
+                              <td key={m} className="px-1 py-1 text-center">
+                                <p className="text-xs font-semibold text-gray-800">{left ? left.toFixed(1) : '—'}</p>
+                                <p className="text-[9px] text-gray-400">{right ? right.toFixed(1) : '—'}</p>
+                                {(left || right) ? (
+                                  <p className={`text-[9px] font-bold ${varColor(variance, isCost)}`}>
+                                    {variance > 0 ? '+' : ''}{variance.toFixed(1)} ({pct > 0 ? '+' : ''}{pct.toFixed(0)}%)
+                                  </p>
+                                ) : null}
+                              </td>
+                            )
+                          })}
+                          <td className="px-2 py-1 text-center border-l-2 border-gray-200">
+                            <p className="text-xs font-bold text-gray-800">{leftYTD.toFixed(1)}</p>
+                            <p className="text-[9px] text-gray-400">{rightYTD.toFixed(1)}</p>
+                            {(leftYTD || rightYTD) ? (
+                              <p className={`text-[9px] font-bold ${varColor(leftYTD - rightYTD, isCost)}`}>
+                                {(leftYTD - rightYTD) > 0 ? '+' : ''}{(leftYTD - rightYTD).toFixed(1)}
+                              </p>
+                            ) : null}
+                          </td>
+                          <td className="px-2 py-1 text-center">
+                            <p className="text-xs font-bold text-gray-800">{leftFY.toFixed(1)}</p>
+                            <p className="text-[9px] text-gray-400">{rightFY.toFixed(1)}</p>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )
+          })()}
+          <p className="text-[10px] text-gray-400 text-center">
+            Top: {COMPARE_OPTIONS.find(o => o.id === compareMode)?.left} · Bottom: {COMPARE_OPTIONS.find(o => o.id === compareMode)?.right} · Green = favorable · Red = unfavorable · K€
+          </p>
+        </div>
+      )}
+
+      {budgetTab === 'edit' && (<>
       {/* Summary cards — all cycles at a glance */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         {CYCLES.map(cycle => {
@@ -382,6 +521,8 @@ export default function Budget() {
         }
         {refCycle && ` · Trend vs ${CYCLE_CONFIG[refCycle].label}`}
       </p>
+
+      </>)}
 
       {/* ── Manual FCT Section ──────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 space-y-4">
