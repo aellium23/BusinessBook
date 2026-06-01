@@ -33,7 +33,7 @@ function RenewalBadge({ sla }) {
   return null
 }
 
-function SlaCard({ sla, onEdit, onDelete, canEdit }) {
+function SlaCard({ sla, onEdit, onDelete, canEdit, canDelete }) {
   const [expanded, setExpanded] = useState(false)
   const { t } = useTranslation()
   const revenue = sla.revenue_by_fy || {}
@@ -84,14 +84,14 @@ function SlaCard({ sla, onEdit, onDelete, canEdit }) {
         </button>
         <div className="ml-auto flex items-center gap-1">
           {canEdit && (
-            <>
-              <button onClick={() => onEdit(sla)} className="text-gray-400 hover:text-navy min-h-tap p-1.5">
-                <Pencil size={13}/>
-              </button>
-              <button onClick={() => onDelete(sla)} className="text-gray-400 hover:text-red-500 min-h-tap p-1.5">
-                <Trash2 size={13}/>
-              </button>
-            </>
+            <button onClick={() => onEdit(sla)} className="text-gray-400 hover:text-navy min-h-tap p-1.5">
+              <Pencil size={13}/>
+            </button>
+          )}
+          {canDelete && (
+            <button onClick={() => onDelete(sla)} className="text-gray-400 hover:text-red-500 min-h-tap p-1.5">
+              <Trash2 size={13}/>
+            </button>
           )}
         </div>
       </div>
@@ -640,7 +640,8 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
 }
 
 export default function SLAs() {
-  const { canEdit, isAdmin, profile } = useAuth()
+  const { canEdit, isAdmin, profile, perms } = useAuth()
+  const canDelete = perms?.canDelete ?? false
   const { t } = useTranslation()
   const [search, setSearch]     = useState('')
   const [buF, setBuF]           = useState('')
@@ -807,7 +808,7 @@ export default function SLAs() {
           <h1 className="text-lg font-bold text-gray-900">{t('sla_title')}</h1>
           <p className="text-xs text-gray-400">{t('sla_subtitle')}</p>
         </div>
-        {canEdit && (
+        {(isAdmin || profile?.role === 'manager') && (
           <button onClick={() => { setEditSla(null); setFormOpen(true) }} className="btn-primary flex items-center gap-1">
             <Plus size={14}/> {t('sla_new')}
           </button>
@@ -1012,7 +1013,7 @@ export default function SLAs() {
                 <p className="text-xs font-semibold text-gray-500 uppercase mb-2">{fy} — {fySlas.length} contract{fySlas.length > 1 ? 's' : ''}</p>
                 <div className="space-y-2">
                   {fySlas.map(s => (
-                    <SlaCard key={s.id} sla={s} canEdit={canEdit}
+                    <SlaCard key={s.id} sla={s} canEdit={canEdit} canDelete={canDelete}
                       onEdit={s => { setEditSla(s); setFormOpen(true) }}
                       onDelete={setConfirmDel}/>
                   ))}
@@ -1031,7 +1032,7 @@ export default function SLAs() {
               description={t('sla_create_hint')}
               action={canEdit && <button onClick={() => setFormOpen(true)} className="btn-primary">New SLA</button>}/>
           ) : filtered.map(s => (
-            <SlaCard key={s.id} sla={s} canEdit={canEdit}
+            <SlaCard key={s.id} sla={s} canEdit={canEdit} canDelete={canDelete}
               onEdit={s => { setEditSla(s); setFormOpen(true) }}
               onDelete={setConfirmDel}/>
           ))}

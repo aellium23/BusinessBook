@@ -91,7 +91,7 @@ function DiscountChip({ deal }) {
 // Compact by default; taps expand "Details" (extra badges, description,
 // distribution chain, monthly breakdown). Keeps the Monthly toggle as a
 // subset of the full details — one chevron, one state.
-function DealCard({ deal, onEdit, onDelete, canEdit }) {
+function DealCard({ deal, onEdit, onDelete, canEdit, canDelete }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const fy26 = MONTHS_K.reduce((s, m) => s + (Number(deal[m]) || 0), 0)
@@ -176,9 +176,11 @@ function DealCard({ deal, onEdit, onDelete, canEdit }) {
               <button onClick={() => onEdit(deal)} className="text-gray-400 hover:text-navy min-h-tap min-w-tap p-1.5" aria-label="Edit">
                 <Pencil size={14}/>
               </button>
+              {canDelete && (
               <button onClick={() => onDelete(deal)} className="text-gray-400 hover:text-red-500 min-h-tap min-w-tap p-1.5" aria-label="Delete">
                 <Trash2 size={14}/>
               </button>
+              )}
             </>
           )}
           {isIC && (
@@ -473,7 +475,8 @@ function DealsMapView({ deals }) {
 }
 
 export default function Deals() {
-  const { canEdit, isAdmin, editOwnOnly, profile } = useAuth()
+  const { canEdit, isAdmin, editOwnOnly, profile, perms } = useAuth()
+  const canDelete = perms?.canDelete ?? false
   const canEditDeal = (deal) => {
     if (!canEdit) return false
     if (isAdmin) return true
@@ -878,7 +881,7 @@ export default function Deals() {
         : <>
             <div className="space-y-2">
               {paginated.map(d => (
-                <DealCard key={d.id} deal={d} canEdit={canEditDeal(d)}
+                <DealCard key={d.id} deal={d} canEdit={canEditDeal(d)} canDelete={canDelete}
                   onEdit={deal => { setEditDeal(deal); setFormOpen(true) }}
                   onDelete={setConfirmDel}
                 />

@@ -55,25 +55,27 @@ export default function Layout({ children }) {
     navigate('/login')
   }
 
-  const nav = [
-    { to: '/',        icon: LayoutDashboard, label: t("nav_dashboard") },
-    { to: '/deals',   icon: List,            label: t("nav_deals") },
-    { to: '/tasks',   icon: CheckSquare,     label: t("nav_tasks"),    badge: taskBadge },
-    { to: '/tenders', icon: FileText,        label: t("nav_tenders") },
-    { to: '/sla',      icon: RefreshCw,       label: t("nav_sla") },
-    { to: '/products', icon: Package,         label: t("nav_products") },
-    { to: '/clients',  icon: Building2,       label: t("nav_clients") },
-    { to: '/contacts', icon: Contact,         label: t("nav_contacts") },
-    { to: '/accounts', icon: GitBranch,       label: t("nav_accounts") },
-    { to: '/network',  icon: NetIcon,         label: t("nav_network") },
-    { to: '/whitespace', icon: LayoutGrid,    label: t("nav_whitespace") },
-    { to: '/history',  icon: History,         label: t("nav_history") },
-    { to: '/quotas',  icon: Target,          label: t("nav_targets") },
-    { to: '/budget',  icon: DollarSign,      label: t("nav_budget"),   adminOnly: true },
-    { to: '/audit',   icon: Shield,          label: t("nav_audit"),    adminOnly: true },
-    { to: '/settings',    icon: Settings, label: t("nav_settings"),    adminOnly: true },
-    { to: '/permissions',  icon: Shield,   label: t('nav_permissions'), adminOnly: true },
+  const { canAccessPage } = useAuth()
+  const allNav = [
+    { to: '/',        icon: LayoutDashboard, label: t("nav_dashboard"), page: 'dashboard' },
+    { to: '/deals',   icon: List,            label: t("nav_deals"),     page: 'deals' },
+    { to: '/tasks',   icon: CheckSquare,     label: t("nav_tasks"),     page: 'tasks', badge: taskBadge },
+    { to: '/tenders', icon: FileText,        label: t("nav_tenders"),   page: 'tenders' },
+    { to: '/sla',      icon: RefreshCw,       label: t("nav_sla"),      page: 'sla' },
+    { to: '/products', icon: Package,         label: t("nav_products"), page: 'products' },
+    { to: '/clients',  icon: Building2,       label: t("nav_clients"),  page: 'clients' },
+    { to: '/contacts', icon: Contact,         label: t("nav_contacts"), page: 'contacts' },
+    { to: '/accounts', icon: GitBranch,       label: t("nav_accounts"), page: 'accounts' },
+    { to: '/network',  icon: NetIcon,         label: t("nav_network"),  page: 'network' },
+    { to: '/whitespace', icon: LayoutGrid,    label: t("nav_whitespace"), page: 'whitespace' },
+    { to: '/history',  icon: History,         label: t("nav_history"),  page: 'history' },
+    { to: '/quotas',  icon: Target,          label: t("nav_targets"),  page: 'quotas' },
+    { to: '/budget',  icon: DollarSign,      label: t("nav_budget"),   page: 'budget' },
+    { to: '/audit',   icon: Shield,          label: t("nav_audit"),    page: 'audit' },
+    { to: '/settings',    icon: Settings, label: t("nav_settings"),    page: 'settings' },
+    { to: '/permissions',  icon: Shield,   label: t('nav_permissions'), page: 'permissions' },
   ]
+  const nav = allNav.filter(n => canAccessPage(n.page))
 
   return (
     <div className="min-h-screen flex flex-col overflow-x-hidden">
@@ -136,7 +138,7 @@ export default function Layout({ children }) {
       <div className="flex flex-1">
         {/* Sidebar — desktop */}
         <aside className="hidden sm:flex flex-col w-52 bg-white border-r border-gray-100 py-4 gap-1 shrink-0">
-          {nav.filter(n => !n.adminOnly || isAdmin).map(({ to, icon, label, badge }) => (
+          {nav.map(({ to, icon, label, badge }) => (
             <NavItem key={to} to={to} icon={icon} label={label} badge={badge} />
           ))}
           {/* BB Logo watermark at bottom of sidebar */}
@@ -174,7 +176,7 @@ export default function Layout({ children }) {
       {/* Bottom nav — mobile */}
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex z-40" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         {(() => {
-          const filtered = nav.filter(n => !n.adminOnly || isAdmin)
+          const filtered = nav
           const primary = filtered.slice(0, 4)  // 4 items + More button
           const secondary = filtered.slice(4)    // restantes no More menu
 
