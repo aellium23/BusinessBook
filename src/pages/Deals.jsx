@@ -517,7 +517,7 @@ export default function Deals() {
   const [confirmDel, setConfirmDel] = useState(null)
   const [showFilters, setShowFilters] = useState(false)
 
-  const { deals: rawDeals, loading, refetch, totals } = useDeals({
+  const { deals: rawDeals, loading, refetch } = useDeals({
     stage:  stageF  || undefined,
     region: regionF || undefined,
     bu:     profile?.role === 'distributor' ? undefined : (buF || undefined),
@@ -542,6 +542,17 @@ export default function Deals() {
     }
     return d
   }, [rawDeals, slaF, ownerF, forecastF, periodF, invoicedMonthF, profile])
+
+  // Totals computed from the client-side filtered deals (not the hook's raw totals)
+  const filteredTotals = useMemo(() => deals.reduce((acc, d) => {
+    const fy26 = MONTHS_K.reduce((s, m) => s + (d[m] || 0), 0)
+    if (d.is_intercompany_mirror) return acc
+    acc.pipeline += d.stage === 'Pipeline' ? (d.value_total || 0) : 0
+    acc.backlog  += d.stage === 'BackLog'  ? fy26 : 0
+    acc.invoiced += d.stage === 'Invoiced' ? fy26 : 0
+    acc.forecast += ['BackLog','Invoiced'].includes(d.stage) ? fy26 : 0
+    return acc
+  }, { pipeline: 0, backlog: 0, invoiced: 0, forecast: 0 }), [deals])
 
   // Forecast roll-up (Commit / Best case / Upside) — excludes IC mirrors + Lost/Omit
   const forecastTotals = useMemo(() => {
@@ -830,10 +841,10 @@ export default function Deals() {
       {/* Totais */}
       <div className="flex gap-4 overflow-x-auto pb-1">
         {[
-          { l:t("deals_pipeline"), v:totals.pipeline, c:'text-amber-700' },
-          { l:t("deals_backlog"),  v:totals.backlog,  c:'text-blue-700'  },
-          { l:t("deals_actuals"),  v:totals.invoiced, c:'text-green-700' },
-          { l:t("deals_fc"),       v:totals.forecast, c:'text-vgt font-bold' },
+          { l:t("deals_pipeline"), v:filteredTotals.pipeline, c:'text-amber-700' },
+          { l:t("deals_backlog"),  v:filteredTotals.backlog,  c:'text-blue-700'  },
+          { l:t("deals_actuals"),  v:filteredTotals.invoiced, c:'text-green-700' },
+          { l:t("deals_fc"),       v:filteredTotals.forecast, c:'text-vgt font-bold' },
           { l:t("deals_weighted"), v:deals.filter(d=>!d.is_intercompany_mirror).reduce((s,d)=>{
               const fy=MONTHS_K.reduce((ms,m)=>ms+(d[m]||0),0)
               const baseRaw=['BackLog','Invoiced'].includes(d.stage)?fy:(d.value_total||0)
@@ -857,7 +868,7 @@ export default function Deals() {
           ? <DealsMapView deals={deals} />
         : viewMode === 'kanban'
           ? <KanbanBoard
-              deals={deals}
+              deals={sortedDeals}
               canEdit={canEdit}
               onEdit={deal => { setEditDeal(deal); setFormOpen(true) }}
               onDelete={setConfirmDel}

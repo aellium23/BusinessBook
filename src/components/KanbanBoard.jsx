@@ -63,7 +63,11 @@ function KanbanCard({ deal, onEdit, onDelete, canEdit, dragHandlers }) {
             </p>
           )}
           <div className="flex items-center justify-between mt-1">
-            <span className="text-xs font-bold text-gray-800">{formatK(deal.value_total)}</span>
+            <span className="text-xs font-bold text-gray-800">
+              {['BackLog','Invoiced'].includes(deal.stage)
+                ? formatK(dealFY26(deal))
+                : formatK(deal.value_total)}
+            </span>
             {weight > 0 && weight < 1 && (
               <span className="text-[10px] text-blue-500">W: {formatK(weighted)}</span>
             )}

@@ -66,7 +66,7 @@ export function useDeals(filters = {}) {
     // Exclude intercompany mirrors from totals to avoid double counting
     if (d.is_intercompany_mirror) return acc
     acc.pipeline += d.stage === 'Pipeline' ? (d.value_total || 0) : 0
-    acc.backlog   += d.stage === 'BackLog'  ? (d.value_total || 0) : 0
+    acc.backlog   += d.stage === 'BackLog'  ? fy26 : 0
     acc.invoiced  += d.stage === 'Invoiced' ? fy26 : 0
     acc.forecast  += ['BackLog','Invoiced'].includes(d.stage) ? fy26 : 0
     return acc
