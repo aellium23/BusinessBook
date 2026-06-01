@@ -122,8 +122,7 @@ function PerformanceSection({ deals, budget, fy25, activeCycle, isAdmin }) {
       .reduce((s,d)=>{
         const rate = (!d.currency||d.currency==='EUR') ? 1 : (Number(d.exchange_rate)||1)
         const monthSum = months.reduce((ms,m)=>ms+(Number(d[m])||0),0)
-        const val = (monthSum === 0 && Number(d.value_total) > 0) ? Number(d.value_total) : monthSum
-        return s + val * rate
+        return s + monthSum * rate
       },0)/1000
   }
   function sumForecast(bu, months, salesType = null) {
@@ -133,8 +132,7 @@ function PerformanceSection({ deals, budget, fy25, activeCycle, isAdmin }) {
       .reduce((s,d)=>{
         const rate = (!d.currency||d.currency==='EUR') ? 1 : (Number(d.exchange_rate)||1)
         const monthSum = months.reduce((ms,m)=>ms+(Number(d[m])||0),0)
-        const val = (monthSum === 0 && Number(d.value_total) > 0) ? Number(d.value_total) : monthSum
-        return s + val * rate
+        return s + monthSum * rate
       },0)/1000
   }
   function sumPlan(bu, months) {
