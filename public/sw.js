@@ -1,8 +1,6 @@
-const CACHE = 'bb-v2'
-const STATIC = ['/','index.html']
+const CACHE = 'bb-v3'
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC)))
   self.skipWaiting()
 })
 
@@ -32,12 +30,36 @@ const OFFLINE_HTML = `<!DOCTYPE html>
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url)
   if (url.origin !== location.origin) return
+  if (e.request.method !== 'GET') return
+
+  // Supabase / API calls — network-only, no caching
   if (url.pathname.startsWith('/rest/') || url.pathname.startsWith('/auth/')) {
+    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)))
+    return
+  }
+
+  // Navigation requests (index.html / SPA routes) — NETWORK-FIRST.
+  // This guarantees the freshly deployed HTML (pointing to the latest
+  // hashed JS/CSS chunks) is always served, eliminating stale-bundle bugs.
+  if (e.request.mode === 'navigate') {
     e.respondWith(
-      fetch(e.request).catch(() => caches.match(e.request))
+      fetch(e.request)
+        .then(res => {
+          const clone = res.clone()
+          caches.open(CACHE).then(c => c.put(e.request, clone))
+          return res
+        })
+        .catch(() =>
+          caches.match(e.request).then(r => r || new Response(OFFLINE_HTML, {
+            headers: { 'Content-Type': 'text/html' }
+          }))
+        )
     )
     return
   }
+
+  // Hashed static assets (/assets/*-[hash].js|css) are immutable —
+  // cache-first is safe because the filename changes on every build.
   e.respondWith(
     caches.match(e.request).then(r => r || fetch(e.request).then(res => {
       if (res.status === 200) {
@@ -45,12 +67,6 @@ self.addEventListener('fetch', e => {
         caches.open(CACHE).then(c => c.put(e.request, clone))
       }
       return res
-    }).catch(() => {
-      if (e.request.mode === 'navigate') {
-        return new Response(OFFLINE_HTML, {
-          headers: { 'Content-Type': 'text/html' }
-        })
-      }
     }))
   )
 })
