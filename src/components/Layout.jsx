@@ -8,6 +8,7 @@ import { LayoutDashboard, List, DollarSign, Users, User, LogOut, ChevronRight, H
 import { useTranslation } from '../hooks/useTranslation'
 import { useSettings } from '../hooks/useSettings'
 import { LANGUAGES, setLang } from '../lib/i18n'
+import HelpGuide from './HelpGuide'
 
 function NavItem({ to, icon: Icon, label, badge }) {
   return (
@@ -173,6 +174,7 @@ export default function Layout({ children }) {
             {children}
           </div>
         </main>
+        <HelpGuide />
       </div>
 
       {/* Bottom nav — mobile */}

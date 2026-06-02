@@ -7,7 +7,7 @@ const AuthContext = createContext(null)
 // ── Permissões por role ───────────────────────────────────────────────────────
 export const ROLE_PERMISSIONS = {
   admin: {
-    pages:    ['dashboard','deals','clients','contacts','accounts','whitespace','network','audit','history','quotas','budget','users','settings','tasks','tenders','permissions','sla','products'],
+    pages:    ['dashboard','deals','clients','contacts','accounts','whitespace','network','audit','history','quotas','budget','settings','tasks','tenders','permissions','sla','products'],
     canEdit:  true,
     canDelete: true,
     editOwn:  false,
@@ -16,7 +16,7 @@ export const ROLE_PERMISSIONS = {
     manageUsers: true,
   },
   manager: {
-    pages:    ['dashboard','deals','clients','contacts','accounts','whitespace','network','history','quotas','tasks','tenders','sla','products'],
+    pages:    ['dashboard','deals','clients','contacts','accounts','whitespace','network','history','quotas','budget','tasks','tenders','sla','products'],
     canEdit:  true,
     canDelete: true,
     editOwn:  false,
