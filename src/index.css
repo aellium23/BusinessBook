@@ -73,3 +73,7 @@
     padding-bottom: 0.5rem;
   }
 }
+
+/* Hide scrollbar but keep scroll (for horizontal tab strips on mobile) */
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

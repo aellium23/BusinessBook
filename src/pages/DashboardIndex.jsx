@@ -67,60 +67,18 @@ export default function DashboardIndex() {
 
   return (
     <div className="p-4 space-y-4 max-w-5xl mx-auto">
-      {/* Header with view toggle */}
-      <div className="flex items-center justify-between pt-1">
-        <div>
+      {/* Header: title + BU filter */}
+      <div className="flex items-start justify-between gap-2 pt-1">
+        <div className="min-w-0">
           <h1 className="text-xl font-bold text-gray-900">{t('dash_title')}</h1>
-          <p className="text-sm text-gray-400 mt-0.5">
+          <p className="text-sm text-gray-400 mt-0.5 truncate">
             {view === 'summary'
               ? (t('dash_summary_sub') || 'At-a-glance performance vs budget')
               : (t('dash_classic_sub') || 'Detailed monthly and year-to-date breakdown')}
           </p>
         </div>
-        <div className="inline-flex rounded-control border border-gray-200 overflow-hidden" role="group" aria-label="Dashboard view">
-          <button type="button"
-            onClick={() => setView('summary')}
-            aria-pressed={view === 'summary'}
-            className={`px-3 py-1.5 text-xs flex items-center gap-1 ${
-              view === 'summary' ? 'bg-navy text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
-            }`}>
-            <GaugeIcon size={13}/> <span className="hidden sm:inline">{t('dash_view_summary') || 'Summary'}</span>
-          </button>
-          <button type="button"
-            onClick={() => setView('classic')}
-            aria-pressed={view === 'classic'}
-            className={`px-3 py-1.5 text-xs flex items-center gap-1 border-l border-gray-200 ${
-              view === 'classic' ? 'bg-navy text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
-            }`}>
-            <BarChart3 size={13}/> <span className="hidden sm:inline">{t('dash_view_classic') || 'Classic'}</span>
-          </button>
-          <button type="button"
-            onClick={() => setView('products')}
-            aria-pressed={view === 'products'}
-            className={`px-3 py-1.5 text-xs flex items-center gap-1 border-l border-gray-200 ${
-              view === 'products' ? 'bg-navy text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
-            }`}>
-            <Package size={13}/> <span className="hidden sm:inline">Products</span>
-          </button>
-          <button type="button"
-            onClick={() => setView('reps')}
-            aria-pressed={view === 'reps'}
-            className={`px-3 py-1.5 text-xs flex items-center gap-1 border-l border-gray-200 ${
-              view === 'reps' ? 'bg-navy text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
-            }`}>
-            <Users size={13}/> <span className="hidden sm:inline">Reps</span>
-          </button>
-          <button type="button"
-            onClick={() => setView('clients')}
-            aria-pressed={view === 'clients'}
-            className={`px-3 py-1.5 text-xs flex items-center gap-1 border-l border-gray-200 ${
-              view === 'clients' ? 'bg-navy text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
-            }`}>
-            <Building2 size={13}/> <span className="hidden sm:inline">Clients</span>
-          </button>
-        </div>
         {isAdmin && (
-          <div className="flex gap-0.5 bg-gray-100 p-0.5 rounded-lg">
+          <div className="flex gap-0.5 bg-gray-100 p-0.5 rounded-lg shrink-0">
             {['','VGT','ECT'].map(bu => (
               <button key={bu} onClick={() => setSelectedBU(bu)}
                 className={`px-2.5 py-1 rounded text-xs font-semibold ${
@@ -131,6 +89,32 @@ export default function DashboardIndex() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* View toggle — own row, horizontally scrollable on mobile */}
+      <div className="-mx-4 px-4 overflow-x-auto no-scrollbar">
+        <div className="inline-flex rounded-control border border-gray-200 overflow-hidden">
+          {[
+            { id: 'summary',  label: t('dash_view_summary') || 'Summary', icon: GaugeIcon },
+            { id: 'classic',  label: t('dash_view_classic') || 'Classic', icon: BarChart3 },
+            { id: 'products', label: 'Products', icon: Package },
+            { id: 'reps',     label: 'Reps',     icon: Users },
+            { id: 'clients',  label: 'Clients',  icon: Building2 },
+          ].map((v, i) => {
+            const Icon = v.icon
+            const active = view === v.id
+            return (
+              <button key={v.id} type="button"
+                onClick={() => setView(v.id)}
+                aria-pressed={active}
+                className={`px-3.5 py-2 text-xs flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 ${
+                  i > 0 ? 'border-l border-gray-200' : ''
+                } ${active ? 'bg-navy text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
+                <Icon size={14}/> <span>{v.label}</span>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {view === 'summary' ? <DashboardSummary selectedBU={effectiveBU} />
