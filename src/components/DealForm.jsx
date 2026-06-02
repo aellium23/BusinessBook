@@ -71,6 +71,8 @@ export default function DealForm({ deal, onClose, onSaved }) {
       ? regionForCountry(company.country) : '',
     country: profile?.role === 'distributor' && company?.country
       ? company.country : '',
+    sales_type: profile?.role === 'distributor' ? 'External' : 'Internal',
+    sales_owner: profile?.role === 'distributor' ? (profile?.full_name || profile?.email || '') : '',
   })
   const [saving, setSaving]   = useState(false)
   const [error, setError]     = useState('')
@@ -323,7 +325,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
         {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 
         {/* BU + Sales Type + Stage */}
-        <div className={`grid ${isDistributor ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'} gap-3`}>
+        <div className={`grid ${isDistributor ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3'} gap-3`}>
           {!isDistributor && (
           <div>
             <label className="label">{t("df_bu")} *</label>
@@ -335,6 +337,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
             {fieldErrors.bu && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.bu}</p>}
           </div>
           )}
+          {!isDistributor && (
           <div>
             <label className="label">{t("df_sales_type")}</label>
             <select className="select" value={form.sales_type} onChange={e => set('sales_type', e.target.value)}>
@@ -342,6 +345,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
               <option>External</option>
             </select>
           </div>
+          )}
           <div>
             <label className="label">{t("df_stage")} *</label>
             <select className={`select ${fieldErrors.stage ? 'border-red-400' : ''}`} value={form.stage} onChange={e => {
@@ -442,39 +446,43 @@ export default function DealForm({ deal, onClose, onSaved }) {
             <p className="text-[10px] text-amber-500 mt-1">{t("df_custom_client")} {form.client} {t("df_not_linked")}</p>
           )}
         </div>
-        {/* Region + Country */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="label">{t("df_region")}</label>
-            <select className="select" value={form.region} onChange={e => { set('region', e.target.value); set('country','') }}>
-              <option value="">—</option>
-              {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
+        {/* Region + Country — auto-filled for distributors from company */}
+        {!isDistributor && (
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">{t("df_region")}</label>
+              <select className="select" value={form.region} onChange={e => { set('region', e.target.value); set('country','') }}>
+                <option value="">—</option>
+                {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="label">{t("df_country")}</label>
+              <SearchableSelect
+                value={form.country}
+                onChange={v => set('country', v)}
+                options={(COUNTRY_MAP[form.region] || []).map(c => ({ value: c, label: c }))}
+                placeholder={t("df_country_search")}
+                emptyLabel="—"
+              />
+            </div>
           </div>
-          <div>
-            <label className="label">{t("df_country")}</label>
-            <SearchableSelect
-              value={form.country}
-              onChange={v => set('country', v)}
-              options={(COUNTRY_MAP[form.region] || []).map(c => ({ value: c, label: c }))}
-              placeholder={t("df_country_search")}
-              emptyLabel="—"
-            />
+        )}
+        {/* Owner */}
+        {!isDistributor && (
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">{t("df_owner")}</label>
+              <SearchableSelect
+                value={form.sales_owner}
+                onChange={v => set('sales_owner', v)}
+                options={owners.map(o => ({ value: o, label: o }))}
+                placeholder={t("df_owner_search")}
+                emptyLabel={t("df_owner_none")}
+              />
+            </div>
           </div>
-        </div>
-        {/* Owner + Type */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="label">{t("df_owner")}</label>
-            <SearchableSelect
-              value={form.sales_owner}
-              onChange={v => set('sales_owner', v)}
-              options={owners.map(o => ({ value: o, label: o }))}
-              placeholder={t("df_owner_search")}
-              emptyLabel={t("df_owner_none")}
-            />
-          </div>
-        </div>
+        )}
         {/* Description */}
         <div>
           <label className="label">{t("df_description")}</label>
@@ -502,8 +510,8 @@ export default function DealForm({ deal, onClose, onSaved }) {
             )}
           </div>
         )}
-        {/* Currency selector */}
-        <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+        {/* Currency selector — hidden for distributors (auto from company) */}
+        {!isDistributor && <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
           <div className="flex-1">
             <label className="label">{t("df_currency")}</label>
             <div className="flex gap-2 mt-1">
@@ -554,9 +562,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
               )}
             </div>
           )}
-        </div>
-        {/* Value + GM + Win Probability */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        </div>}
+        {/* Value + GM + Win Probability — hidden for distributors (auto from products) */}
+        {!isDistributor && <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div>
             <label className="label">
               {t("df_value")} {form.currency === 'EUR' ? '€' : form.currency === 'USD' ? '$' : '£'}
@@ -592,11 +600,12 @@ export default function DealForm({ deal, onClose, onSaved }) {
             />
             {fieldErrors.win_probability && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.win_probability}</p>}
           </div>
-        </div>
+        </div>}
         {/* ── BUSINESS MODEL & PRODUCTS ─────────────────────── */}
         <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
           <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{t("df_product_lbl")}</p>
-          <div className="grid grid-cols-2 gap-3">
+          {/* Business model selector — hidden for distributors, auto-inferred from products */}
+          {!isDistributor && <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">{t("df_business_model")}</label>
               <select className="select" value={form.business_model} onChange={e => set('business_model', e.target.value)}>
@@ -621,9 +630,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
                   onChange={e => set('warranty_months', e.target.value)} placeholder="36"/>
               </div>
             )}
-          </div>
+          </div>}
 
-          {['capex','hybrid'].includes(form.business_model) && (
+          {!isDistributor && ['capex','hybrid'].includes(form.business_model) && (
             <>
               <div className="grid grid-cols-2 gap-3">
                 <div>
