@@ -346,9 +346,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
       form.currency, form.exchange_rate])
 
   const resolvedProducts = useMemo(() => {
-    if (!isDistributor || Object.keys(authMap).length === 0) return catalogProducts
+    if (!isDistributor) return catalogProducts
     const country = form.country || ''
-    if (!country) return []
+    if (!country || Object.keys(authMap).length === 0) return []
     return catalogProducts
       .filter(p => authMap[`${p.id}_${country}`])
       .map(p => {
