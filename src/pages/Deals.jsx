@@ -68,6 +68,7 @@ export default function Deals() {
   const [ownerF, setOwnerF]     = useState('')
   const [forecastF, setForecastF] = useState('') // '' | 'commit' | 'best_case' | 'upside' | 'omit'
   const [slaF, setSlaF]         = useState(false)
+  const [discountF, setDiscountF] = useState(false) // filter pending discount requests
   const [periodF, setPeriodF]   = useState(0)   // dias; 0 = todos
   const [pageSize, setPageSize]             = useState(5)
   const [page, setPage]                     = useState(1)
@@ -107,6 +108,7 @@ export default function Deals() {
       ? rawDeals.filter(x => x.company_id === profile?.company_id)
       : rawDeals
     if (slaF) d = d.filter(x => x.is_sla)
+    if (discountF) d = d.filter(x => x.discount_status === 'pending')
     if (ownerF) d = d.filter(x => x.sales_owner?.toLowerCase().includes(ownerF.toLowerCase()))
     if (forecastF) d = d.filter(x => resolveForecastCategory(x) === forecastF)
     if (periodF > 0) {
@@ -118,7 +120,7 @@ export default function Deals() {
       d = d.filter(x => x.stage === 'Invoiced' && invoicedMonthF.some(m => (Number(x[m]) || 0) > 0))
     }
     return d
-  }, [rawDeals, slaF, ownerF, forecastF, periodF, invoicedMonthF.join(','), profile])
+  }, [rawDeals, slaF, discountF, ownerF, forecastF, periodF, invoicedMonthF.join(','), profile])
 
   // Totals computed from the client-side filtered deals (not the hook's raw totals)
   const filteredTotals = useMemo(() => deals.reduce((acc, d) => {
@@ -192,7 +194,7 @@ export default function Deals() {
   }, [rawDeals])
 
   // Contagem de filtros activos
-  const activeFilters = [search, stageF, regionF, buF, ownerF, forecastF, slaF, periodF > 0, invoicedMonthF.length > 0].filter(Boolean).length
+  const activeFilters = [search, stageF, regionF, buF, ownerF, forecastF, slaF, discountF, periodF > 0, invoicedMonthF.length > 0].filter(Boolean).length
 
   // Drag-drop on the Kanban: moving a card across stages
   async function handleStageChange(dealId, newStage) {
@@ -407,16 +409,28 @@ export default function Deals() {
             </div>
           </div>
 
-          {/* Toggle SLA + Reset */}
-          <div className="flex items-center justify-between">
-            <button onClick={handleSla}
-              className={`btn text-xs gap-1 ${slaF ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'btn-secondary'}`}>
-              <RefreshCw size={11}/> {t("deals_sla_only")}
-            </button>
+          {/* Toggle SLA + Pending Discounts + Reset */}
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex gap-2">
+              <button onClick={handleSla}
+                className={`btn text-xs gap-1 ${slaF ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'btn-secondary'}`}>
+                <RefreshCw size={11}/> {t("deals_sla_only")}
+              </button>
+              {(isAdmin || profile?.role === 'manager') && (() => {
+                const pendingCount = rawDeals.filter(d => d.discount_status === 'pending').length
+                return pendingCount > 0 ? (
+                  <button onClick={() => { setDiscountF(f => !f); resetPage() }}
+                    className={`btn text-xs gap-1 ${discountF ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'btn-secondary'}`}>
+                    ⏳ Pending Approvals
+                    <span className="bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">{pendingCount}</span>
+                  </button>
+                ) : null
+              })()}
+            </div>
             {activeFilters > 0 && (
               <button onClick={() => {
                 setSearch(''); setStageF(''); setRegionF(''); setBuF('')
-                setOwnerF(''); setForecastF(''); setSlaF(false); setPeriodF(0); setInvoicedMonthF([]); resetPage()
+                setOwnerF(''); setForecastF(''); setSlaF(false); setDiscountF(false); setPeriodF(0); setInvoicedMonthF([]); resetPage()
               }} className="text-xs text-red-500 hover:text-red-700 font-medium">
                 {t("deals_clear_filters")}
               </button>

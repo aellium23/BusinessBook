@@ -19,6 +19,20 @@ function DiscountApprovalPanel({ deal, onSave }) {
       discount_note:     note,
       discount_status:   status,
     }).eq('id', deal.id)
+    // Notify the distributor who created the deal about the decision
+    if (deal.created_by && status !== 'pending') {
+      const label = status === 'approved' ? 'approved' : status === 'rejected' ? 'rejected' : 'counter-offer'
+      await supabase.from('notifications').insert({
+        user_id: deal.created_by,
+        type: 'discount_response',
+        title: `Discount ${label}: ${deal.client || 'Deal'}`,
+        body: status === 'approved' ? `Your ${deal.discount_requested}% discount was approved.`
+          : status === 'counter' ? `Counter-offer: ${approved || '—'}% discount.`
+          : `Your discount request was rejected.`,
+        link_type: 'deal',
+        link_id: deal.id,
+      }).catch(() => {})
+    }
     setSaving(false)
     onSave?.()
   }
