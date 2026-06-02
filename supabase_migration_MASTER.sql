@@ -303,6 +303,8 @@ CREATE TABLE IF NOT EXISTS public.deals (
   discount_note_dist    text,
   discount_note         text,
   discount_status       text,
+  discount_approved     numeric(5,2),
+  transfer_price        numeric(14,2),
   -- Win probability & lost reason
   win_probability       numeric(5,2),
   lost_reason           text,

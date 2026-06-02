@@ -13,28 +13,36 @@ function DiscountApprovalPanel({ deal, onSave }) {
 
   async function save() {
     setSaving(true)
-    await supabase.from('deals').update({
-      discount_approved: parseFloat(approved) || null,
-      transfer_price:    parseFloat(transfer) || null,
-      discount_note:     note,
-      discount_status:   status,
-    }).eq('id', deal.id)
-    // Notify the distributor who created the deal about the decision
-    if (deal.created_by && status !== 'pending') {
-      const label = status === 'approved' ? 'approved' : status === 'rejected' ? 'rejected' : 'counter-offer'
-      await supabase.from('notifications').insert({
-        user_id: deal.created_by,
-        type: 'discount_response',
-        title: `Discount ${label}: ${deal.client || 'Deal'}`,
-        body: status === 'approved' ? `Your ${deal.discount_requested}% discount was approved.`
-          : status === 'counter' ? `Counter-offer: ${approved || '—'}% discount.`
-          : `Your discount request was rejected.`,
-        link_type: 'deal',
-        link_id: deal.id,
-      }).catch(() => {})
+    try {
+      const { error } = await supabase.from('deals').update({
+        discount_approved: parseFloat(approved) || null,
+        transfer_price:    parseFloat(transfer) || null,
+        discount_note:     note,
+        discount_status:   status,
+      }).eq('id', deal.id)
+      if (error) throw error
+      // Notify the distributor who created the deal about the decision (non-blocking)
+      if (deal.created_by && status !== 'pending') {
+        const label = status === 'approved' ? 'approved' : status === 'rejected' ? 'rejected' : 'counter-offer'
+        try {
+          await supabase.from('notifications').insert({
+            user_id: deal.created_by,
+            type: 'discount_response',
+            title: `Discount ${label}: ${deal.client || 'Deal'}`,
+            body: status === 'approved' ? `Your ${deal.discount_requested}% discount was approved.`
+              : status === 'counter' ? `Counter-offer: ${approved || '—'}% discount.`
+              : `Your discount request was rejected.`,
+            link_type: 'deal',
+            link_id: deal.id,
+          })
+        } catch (_) { /* notification failure must not block */ }
+      }
+      onSave?.()
+    } catch (e) {
+      alert(`Failed to save: ${e.message || e}`)
+    } finally {
+      setSaving(false)
     }
-    setSaving(false)
-    onSave?.()
   }
 
   return (
