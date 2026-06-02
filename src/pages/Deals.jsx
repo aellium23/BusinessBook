@@ -68,7 +68,7 @@ export default function Deals() {
   const [ownerF, setOwnerF]     = useState('')
   const [forecastF, setForecastF] = useState('') // '' | 'commit' | 'best_case' | 'upside' | 'omit'
   const [slaF, setSlaF]         = useState(false)
-  const [discountF, setDiscountF] = useState(false) // filter pending discount requests
+  const [discountF, setDiscountF] = useState('') // '' | 'pending' | 'approved' | 'rejected' | 'any'
   const [periodF, setPeriodF]   = useState(0)   // dias; 0 = todos
   const [pageSize, setPageSize]             = useState(5)
   const [page, setPage]                     = useState(1)
@@ -108,7 +108,8 @@ export default function Deals() {
       ? rawDeals.filter(x => x.company_id === profile?.company_id)
       : rawDeals
     if (slaF) d = d.filter(x => x.is_sla)
-    if (discountF) d = d.filter(x => x.discount_status === 'pending')
+    if (discountF === 'any') d = d.filter(x => !!x.discount_status)
+    else if (discountF) d = d.filter(x => x.discount_status === discountF)
     if (ownerF) d = d.filter(x => x.sales_owner?.toLowerCase().includes(ownerF.toLowerCase()))
     if (forecastF) d = d.filter(x => resolveForecastCategory(x) === forecastF)
     if (periodF > 0) {
@@ -225,22 +226,50 @@ export default function Deals() {
   return (
     <div className="p-4 space-y-4 max-w-4xl mx-auto">
 
-      {/* Pending discount approvals banner — always visible for admin/manager */}
+      {/* Discount approvals — banner + status filter, visible for admin/manager */}
       {(isAdmin || profile?.role === 'manager') && (() => {
+        const counts = {
+          pending:  rawDeals.filter(d => d.discount_status === 'pending').length,
+          approved: rawDeals.filter(d => d.discount_status === 'approved').length,
+          rejected: rawDeals.filter(d => d.discount_status === 'rejected').length,
+        }
+        const total = counts.pending + counts.approved + counts.rejected
+        if (total === 0) return null
         const pending = rawDeals.filter(d => d.discount_status === 'pending')
-        return pending.length > 0 ? (
-          <button onClick={() => { setDiscountF(f => !f); resetPage() }}
-            className={`w-full flex items-center gap-3 rounded-xl p-3 transition-colors ${
-              discountF ? 'bg-purple-100 border-2 border-purple-300' : 'bg-purple-50 border border-purple-200 hover:bg-purple-100'
-            }`}>
-            <span className="bg-red-500 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0">{pending.length}</span>
-            <div className="text-left flex-1">
-              <p className="text-sm font-semibold text-purple-800">Pending Discount Approvals</p>
-              <p className="text-[10px] text-purple-600">{pending.map(d => d.client).filter(Boolean).slice(0, 3).join(', ')}{pending.length > 3 ? ` +${pending.length - 3} more` : ''}</p>
+        return (
+          <div className={`rounded-xl p-3 space-y-2 ${counts.pending > 0 ? 'bg-purple-50 border border-purple-200' : 'bg-gray-50 border border-gray-200'}`}>
+            <div className="flex items-center gap-3">
+              <span className={`text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${counts.pending > 0 ? 'bg-red-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
+                {counts.pending}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-800">Discount Approvals</p>
+                {counts.pending > 0 && (
+                  <p className="text-[10px] text-purple-600 truncate">
+                    {pending.map(d => d.client).filter(Boolean).slice(0, 3).join(', ')}{counts.pending > 3 ? ` +${counts.pending - 3} more` : ''}
+                  </p>
+                )}
+              </div>
             </div>
-            <span className="text-xs text-purple-500 shrink-0">{discountF ? 'Show all ›' : 'Review ›'}</span>
-          </button>
-        ) : null
+            {/* Status filter chips */}
+            <div className="flex gap-1.5 flex-wrap">
+              {[
+                { id: 'pending',  label: `Pending ${counts.pending}`,   cls: 'bg-purple-100 text-purple-800 border-purple-300' },
+                { id: 'approved', label: `Approved ${counts.approved}`, cls: 'bg-green-100 text-green-800 border-green-300' },
+                { id: 'rejected', label: `Rejected ${counts.rejected}`, cls: 'bg-red-100 text-red-700 border-red-300' },
+                { id: 'any',      label: `All ${total}`,                cls: 'bg-gray-200 text-gray-700 border-gray-300' },
+              ].map(chip => (
+                <button key={chip.id}
+                  onClick={() => { setDiscountF(f => f === chip.id ? '' : chip.id); resetPage() }}
+                  className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-all ${
+                    discountF === chip.id ? chip.cls : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                  }`}>
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )
       })()}
 
       {/* Header */}
@@ -427,28 +456,16 @@ export default function Deals() {
             </div>
           </div>
 
-          {/* Toggle SLA + Pending Discounts + Reset */}
+          {/* Toggle SLA + Reset */}
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex gap-2">
-              <button onClick={handleSla}
-                className={`btn text-xs gap-1 ${slaF ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'btn-secondary'}`}>
-                <RefreshCw size={11}/> {t("deals_sla_only")}
-              </button>
-              {(isAdmin || profile?.role === 'manager') && (() => {
-                const pendingCount = rawDeals.filter(d => d.discount_status === 'pending').length
-                return pendingCount > 0 ? (
-                  <button onClick={() => { setDiscountF(f => !f); resetPage() }}
-                    className={`btn text-xs gap-1 ${discountF ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'btn-secondary'}`}>
-                    ⏳ Pending Approvals
-                    <span className="bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">{pendingCount}</span>
-                  </button>
-                ) : null
-              })()}
-            </div>
+            <button onClick={handleSla}
+              className={`btn text-xs gap-1 ${slaF ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'btn-secondary'}`}>
+              <RefreshCw size={11}/> {t("deals_sla_only")}
+            </button>
             {activeFilters > 0 && (
               <button onClick={() => {
                 setSearch(''); setStageF(''); setRegionF(''); setBuF('')
-                setOwnerF(''); setForecastF(''); setSlaF(false); setDiscountF(false); setPeriodF(0); setInvoicedMonthF([]); resetPage()
+                setOwnerF(''); setForecastF(''); setSlaF(false); setDiscountF(''); setPeriodF(0); setInvoicedMonthF([]); resetPage()
               }} className="text-xs text-red-500 hover:text-red-700 font-medium">
                 {t("deals_clear_filters")}
               </button>
