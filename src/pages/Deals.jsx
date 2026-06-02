@@ -225,6 +225,24 @@ export default function Deals() {
   return (
     <div className="p-4 space-y-4 max-w-4xl mx-auto">
 
+      {/* Pending discount approvals banner — always visible for admin/manager */}
+      {(isAdmin || profile?.role === 'manager') && (() => {
+        const pending = rawDeals.filter(d => d.discount_status === 'pending')
+        return pending.length > 0 ? (
+          <button onClick={() => { setDiscountF(f => !f); resetPage() }}
+            className={`w-full flex items-center gap-3 rounded-xl p-3 transition-colors ${
+              discountF ? 'bg-purple-100 border-2 border-purple-300' : 'bg-purple-50 border border-purple-200 hover:bg-purple-100'
+            }`}>
+            <span className="bg-red-500 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0">{pending.length}</span>
+            <div className="text-left flex-1">
+              <p className="text-sm font-semibold text-purple-800">Pending Discount Approvals</p>
+              <p className="text-[10px] text-purple-600">{pending.map(d => d.client).filter(Boolean).slice(0, 3).join(', ')}{pending.length > 3 ? ` +${pending.length - 3} more` : ''}</p>
+            </div>
+            <span className="text-xs text-purple-500 shrink-0">{discountF ? 'Show all ›' : 'Review ›'}</span>
+          </button>
+        ) : null
+      })()}
+
       {/* Header */}
       <div className="flex items-center justify-between pt-1">
         <div>
