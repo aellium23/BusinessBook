@@ -45,7 +45,7 @@ function dealScore(deal) {
   if (deal.stage === 'Invoiced') return { score: 100, color: 'green', label: 'Closed' }
 
   // Penalizar por probabilidade baixa
-  const prob = deal.win_probability ?? { Lead:10, Pipeline:30, 'Offer Presented':60, BackLog:80 }[deal.stage] ?? 30
+  const prob = deal.win_probability ?? { Lead:10, Pipeline:30, 'Offer Presented':60, BackLog:100 }[deal.stage] ?? 30
   if (prob < 20) score -= 25
   else if (prob < 40) score -= 10
 

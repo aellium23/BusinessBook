@@ -9,7 +9,7 @@ export const WEIGHTS = {
   Lead:              0.10,
   Pipeline:          0.30,
   'Offer Presented': 0.60,
-  BackLog:           0.80,
+  BackLog:           1.00,  // already adjudicated/won — 100%
   Invoiced:          1.00,
   Lost:              0,
 }

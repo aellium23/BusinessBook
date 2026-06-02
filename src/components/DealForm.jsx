@@ -218,7 +218,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
       const next = { ...f, [k]: v }
       // Auto-set win probability when stage changes
       if (k === 'stage') {
-        const defaults = { Lead:10, Pipeline:30, 'Offer Presented':60, BackLog:80, Invoiced:100, Lost:0 }
+        const defaults = { Lead:10, Pipeline:30, 'Offer Presented':60, BackLog:100, Invoiced:100, Lost:0 }
         if (defaults[v] !== undefined && !f._prob_edited) {
           next.win_probability = defaults[v]
         }
@@ -286,7 +286,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
         ? { discount_status: 'pending' } : {}),
       // Win probability
       win_probability: ['BackLog','Invoiced','Lost'].includes(form.stage)
-        ? { BackLog:80, Invoiced:100, Lost:0 }[form.stage]
+        ? { BackLog:100, Invoiced:100, Lost:0 }[form.stage]
         : (parseFloat(form.win_probability) || null),
       // Lost
       lost_reason: form.stage === 'Lost' ? (form.lost_reason || null) : null,
@@ -595,7 +595,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 form.stage === 'Lead' ? '10' :
                 form.stage === 'Pipeline' ? '30' :
                 form.stage === 'Offer Presented' ? '60' :
-                form.stage === 'BackLog' ? '80' :
+                form.stage === 'BackLog' ? '100' :
                 form.stage === 'Invoiced' ? '100' : '0'
               }
             />

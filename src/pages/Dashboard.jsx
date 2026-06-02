@@ -45,7 +45,7 @@ function KpiCard({ label, value, plan, py, color = 'gray' }) {
 }
 
 const TOOLTIP_STYLE = { fontSize: 11, borderRadius: 8 }
-const WEIGHTS = { Lead: 0.10, Pipeline: 0.30, 'Offer Presented': 0.60, BackLog: 0.80, Invoiced: 1.0, Lost: 0 }
+const WEIGHTS = { Lead: 0.10, Pipeline: 0.30, 'Offer Presented': 0.60, BackLog: 1.0, Invoiced: 1.0, Lost: 0 }
 const AGING_DAYS = 90
 
 export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) {
