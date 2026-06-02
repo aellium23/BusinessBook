@@ -5,7 +5,8 @@ import { useAuth } from '../hooks/useAuth'
 import { useDebounce } from '../hooks/useDebounce'
 import { BUBadge, formatK, Spinner, EmptyState, Modal } from '../components/ui'
 import DealForm from '../components/DealForm'
-import { Building2, Search, MapPin, Globe, RefreshCw, Plus, Pencil } from 'lucide-react'
+import MergeClientsModal from '../components/MergeClientsModal'
+import { Building2, Search, MapPin, Globe, RefreshCw, Plus, Pencil, GitMerge, Check } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 import { REGIONS } from '../constants'
 
@@ -142,7 +143,16 @@ export default function Clients() {
   const [page, setPage] = useState(1)
   const [formOpen, setFormOpen] = useState(false)
   const [editClient, setEditClient] = useState(null)
+  const [mergeMode, setMergeMode] = useState(false)
+  const [mergeSelection, setMergeSelection] = useState([])
+  const [mergeOpen, setMergeOpen] = useState(false)
   const pageSize = 10
+
+  function toggleMergeSelect(accId) {
+    setMergeSelection(prev =>
+      prev.includes(accId) ? prev.filter(id => id !== accId) : prev.length < 2 ? [...prev, accId] : prev
+    )
+  }
 
   useEffect(() => {
     if (!profile) return
@@ -174,8 +184,13 @@ export default function Clients() {
   }, [profile, isAdmin])
 
   function refresh() {
-    supabase.from('accounts').select('*').order('name')
-      .then(({ data }) => setAccounts(data || []))
+    Promise.all([
+      supabase.from('accounts').select('*').order('name'),
+      supabase.from('deals').select('*').eq('is_intercompany_mirror', false),
+    ]).then(([aRes, dRes]) => {
+      setAccounts(aRes.data || [])
+      setDeals(dRes.data || [])
+    })
   }
 
   const leafAccounts = useMemo(() => {
@@ -233,11 +248,21 @@ export default function Clients() {
           <p className="text-xs text-gray-400">{t('clients_subtitle')}</p>
           <Link to="/accounts" className="text-[10px] text-blue-500 hover:text-blue-700">{t('clients_go_accounts')}</Link>
         </div>
-        {canEdit && (
-          <button onClick={() => { setEditClient(null); setFormOpen(true) }} className="btn-primary flex items-center gap-1">
-            <Plus size={14}/> New Client
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <button onClick={() => { setMergeMode(m => !m); setMergeSelection([]) }}
+              className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                mergeMode ? 'bg-navy text-white' : 'btn-secondary'
+              }`}>
+              <GitMerge size={13}/> {mergeMode ? 'Cancel Merge' : 'Merge'}
+            </button>
+          )}
+          {canEdit && (
+            <button onClick={() => { setEditClient(null); setFormOpen(true) }} className="btn-primary flex items-center gap-1">
+              <Plus size={14}/> New Client
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -300,6 +325,14 @@ export default function Clients() {
           return (
           <div key={c.id} className="card overflow-hidden">
             <div className="p-3 flex items-center gap-3">
+              {mergeMode && (
+                <button onClick={() => toggleMergeSelect(c.id)}
+                  className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                    mergeSelection.includes(c.id) ? 'bg-navy border-navy text-white' : 'border-gray-300'
+                  }`}>
+                  {mergeSelection.includes(c.id) && <Check size={12}/>}
+                </button>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
                   <BUBadge bu={c.bu}/>
@@ -389,6 +422,24 @@ export default function Clients() {
           deal={selectedDeal}
           onClose={() => setSelectedDeal(null)}
           onSaved={() => setSelectedDeal(null)}
+        />
+      )}
+
+      {mergeMode && mergeSelection.length === 2 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
+          <button onClick={() => setMergeOpen(true)}
+            className="btn-primary shadow-lg px-6 py-3 rounded-full flex items-center gap-2 text-sm">
+            <GitMerge size={16}/> Merge 2 clients
+          </button>
+        </div>
+      )}
+
+      {mergeOpen && (
+        <MergeClientsModal
+          clients={accounts.filter(a => mergeSelection.includes(a.id))}
+          deals={deals}
+          onClose={() => setMergeOpen(false)}
+          onMerged={() => { setMergeMode(false); setMergeSelection([]); setMergeOpen(false); refresh() }}
         />
       )}
     </div>
