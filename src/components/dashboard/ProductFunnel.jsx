@@ -3,11 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useDeals } from '../../hooks/useDeals'
 import { supabase } from '../../lib/supabase'
 import { formatK, Spinner } from '../ui'
+import { MONTHS_K } from '../../constants'
 import { Package, ChevronRight } from 'lucide-react'
-
-const PIPELINE_STAGES = ['Lead', 'Pipeline', 'Offer Presented']
-const BACKLOG_STAGES   = ['BackLog']
-const INVOICED_STAGES  = ['Invoiced']
 
 export default function ProductFunnel({ selectedBU = '' }) {
   const navigate = useNavigate()
@@ -23,19 +20,11 @@ export default function ProductFunnel({ selectedBU = '' }) {
   const [groupBy, setGroupBy] = useState('product')
   const [sortBy, setSortBy] = useState('total')
 
-  // Build a deal stage lookup from the same deals the rest of the app uses
-  const dealStage = useMemo(() => {
-    const m = {}
-    for (const d of deals) m[d.id] = d.stage
-    return m
-  }, [deals])
-
   const dealIds = useMemo(() => deals.map(d => d.id), [deals])
 
   useEffect(() => {
     if (!dealIds.length) { setLines([]); setLinesLoading(false); return }
     setLinesLoading(true)
-    // Batch in chunks of 200 to avoid URL-length limits on .in()
     const chunks = []
     for (let i = 0; i < dealIds.length; i += 200) chunks.push(dealIds.slice(i, i + 200))
     Promise.all(chunks.map(ids =>
@@ -43,39 +32,68 @@ export default function ProductFunnel({ selectedBU = '' }) {
         .select('deal_id, net_price, product_name, product:product_id(brand, category, name)')
         .in('deal_id', ids)
     )).then(results => {
-      const all = results.flatMap(r => r.data || [])
-      setLines(all)
+      setLines(results.flatMap(r => r.data || []))
       setLinesLoading(false)
     }).catch(() => setLinesLoading(false))
   }, [dealIds.join(',')])
 
+  // Group product lines by deal so we can attribute the deal's real value
+  const linesByDeal = useMemo(() => {
+    const m = {}
+    for (const r of lines) {
+      if (!m[r.deal_id]) m[r.deal_id] = []
+      m[r.deal_id].push(r)
+    }
+    return m
+  }, [lines])
+
   const grouped = useMemo(() => {
     const map = {}
-    for (const r of lines) {
-      const stage = dealStage[r.deal_id]
-      if (!stage) continue
-      const key = groupBy === 'brand'    ? (r.product?.brand || 'Fujifilm')
-                : groupBy === 'category' ? (r.product?.category || '—')
-                : (r.product?.name || r.product_name || '—')
-      if (!map[key]) map[key] = { name: key, pipeline: 0, backlog: 0, invoiced: 0, count: 0 }
-      const net = Number(r.net_price) || 0
-      const g = map[key]
-      g.count += 1
-      if (PIPELINE_STAGES.includes(stage)) g.pipeline += net
-      else if (BACKLOG_STAGES.includes(stage)) g.backlog += net
-      else if (INVOICED_STAGES.includes(stage)) g.invoiced += net
+    const keyOf = (r) => groupBy === 'brand'    ? (r.product?.brand || 'Fujifilm')
+                       : groupBy === 'category' ? (r.product?.category || '—')
+                       : (r.product?.name || r.product_name || '—')
+
+    for (const d of deals) {
+      // Deal value per funnel bucket — SAME logic as the Deals page totals
+      const fy26 = MONTHS_K.reduce((s, m) => s + (Number(d[m]) || 0), 0)
+      const bucket = d.stage === 'Pipeline' ? 'pipeline'
+                   : d.stage === 'Offer Presented' || d.stage === 'Lead' ? 'pipeline'
+                   : d.stage === 'BackLog'  ? 'backlog'
+                   : d.stage === 'Invoiced' ? 'invoiced' : null
+      if (!bucket) continue
+      const dealValue = bucket === 'pipeline'
+        ? (Number(d.value_total) || 0)
+        : (fy26 || Number(d.value_total) || 0)
+      if (dealValue === 0) continue
+
+      const prodLines = linesByDeal[d.id] || []
+      if (prodLines.length === 0) {
+        // No product lines — attribute to "(no product)" so totals still reconcile
+        const k = '(no product)'
+        if (!map[k]) map[k] = { name: k, pipeline: 0, backlog: 0, invoiced: 0, count: 0 }
+        map[k][bucket] += dealValue
+        map[k].count += 1
+        continue
+      }
+      // Attribute the deal value across its products by net_price share
+      const lineTotal = prodLines.reduce((s, l) => s + (Number(l.net_price) || 0), 0)
+      for (const l of prodLines) {
+        const share = lineTotal > 0 ? (Number(l.net_price) || 0) / lineTotal : 1 / prodLines.length
+        const k = keyOf(l)
+        if (!map[k]) map[k] = { name: k, pipeline: 0, backlog: 0, invoiced: 0, count: 0 }
+        map[k][bucket] += dealValue * share
+        map[k].count += 1
+      }
     }
-    const arr = Object.values(map).map(g => ({
-      ...g,
-      total: g.pipeline + g.backlog + g.invoiced,
-    }))
+
+    const arr = Object.values(map).map(g => ({ ...g, total: g.pipeline + g.backlog + g.invoiced }))
     arr.sort((a, b) => {
       if (sortBy === 'pipeline') return b.pipeline - a.pipeline
       if (sortBy === 'invoiced') return b.invoiced - a.invoiced
       return b.total - a.total
     })
     return arr
-  }, [lines, dealStage, groupBy, sortBy])
+  }, [deals, linesByDeal, groupBy, sortBy])
 
   const totals = useMemo(() => grouped.reduce((a, g) => ({
     pipeline: a.pipeline + g.pipeline,
@@ -131,7 +149,7 @@ export default function ProductFunnel({ selectedBU = '' }) {
           <p className="text-sm text-gray-400 text-center py-8">No product data yet. Add products to deals to see the funnel.</p>
         ) : grouped.map(g => (
           <button key={g.name} type="button"
-            onClick={() => navigate(`/deals?${groupBy}=${encodeURIComponent(g.name)}`)}
+            onClick={() => g.name !== '(no product)' && navigate(`/deals?${groupBy}=${encodeURIComponent(g.name)}`)}
             className="w-full text-left bg-white border border-gray-200 rounded-xl p-3 space-y-2 hover:border-navy hover:shadow-sm transition-all">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
@@ -141,7 +159,7 @@ export default function ProductFunnel({ selectedBU = '' }) {
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <span className="text-sm font-bold text-gray-900">{formatK(g.total)}</span>
-                <ChevronRight size={14} className="text-gray-300"/>
+                {g.name !== '(no product)' && <ChevronRight size={14} className="text-gray-300"/>}
               </div>
             </div>
             <div className="flex h-3 rounded-full overflow-hidden bg-gray-100" style={{ width: `${Math.max(8, g.total / max * 100)}%` }}>
