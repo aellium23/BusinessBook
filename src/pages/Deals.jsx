@@ -70,6 +70,8 @@ export default function Deals() {
   const [forecastF, setForecastF] = useState('') // '' | 'commit' | 'best_case' | 'upside' | 'omit'
   const [slaF, setSlaF]         = useState(false)
   const [discountF, setDiscountF] = useState('') // '' | 'pending' | 'approved' | 'rejected' | 'any'
+  const [brandF, setBrandF]       = useState('')  // '' | 'Fujifilm' | 'Medsky' | etc.
+  const [productF, setProductF]   = useState('')  // '' | product name
   const [periodF, setPeriodF]   = useState(0)   // dias; 0 = todos
   const [pageSize, setPageSize]             = useState(5)
   const [page, setPage]                     = useState(1)
@@ -121,27 +123,32 @@ export default function Deals() {
     if (invoicedMonthF.length > 0) {
       d = d.filter(x => x.stage === 'Invoiced' && invoicedMonthF.some(m => (Number(x[m]) || 0) > 0))
     }
+    if (brandF) d = d.filter(x => (dealBrands[x.id] || ['Fujifilm']).includes(brandF))
+    if (productF) d = d.filter(x => (dealProducts[x.id] || []).some(p => p === productF))
     return d
-  }, [rawDeals, slaF, discountF, ownerF, forecastF, periodF, invoicedMonthF.join(','), profile])
+  }, [rawDeals, slaF, discountF, ownerF, forecastF, periodF, invoicedMonthF.join(','), brandF, productF, dealBrands, dealProducts, profile])
 
-  // Map of deal_id → set of non-Fujifilm brands present (for badges)
+  // Map of deal_id → brands[] and deal_id → product names[] (for filtering)
   const [dealBrands, setDealBrands] = useState({})
+  const [dealProducts, setDealProducts] = useState({})
   useEffect(() => {
     if (!rawDeals.length) return
     const ids = rawDeals.map(d => d.id)
-    supabase.from('deal_products').select('deal_id, product:product_id(brand)')
+    supabase.from('deal_products').select('deal_id, product_name, product:product_id(brand, name)')
       .in('deal_id', ids)
       .then(({ data }) => {
         if (!data) return
-        const map = {}
+        const bMap = {}, pMap = {}
         for (const row of data) {
-          const b = row.product?.brand
-          if (b && b !== 'Fujifilm') {
-            if (!map[row.deal_id]) map[row.deal_id] = new Set()
-            map[row.deal_id].add(b)
-          }
+          const b = row.product?.brand || 'Fujifilm'
+          const pName = row.product?.name || row.product_name || ''
+          if (!bMap[row.deal_id]) bMap[row.deal_id] = new Set()
+          bMap[row.deal_id].add(b)
+          if (!pMap[row.deal_id]) pMap[row.deal_id] = new Set()
+          if (pName) pMap[row.deal_id].add(pName)
         }
-        setDealBrands(Object.fromEntries(Object.entries(map).map(([k, v]) => [k, [...v]])))
+        setDealBrands(Object.fromEntries(Object.entries(bMap).map(([k, v]) => [k, [...v]])))
+        setDealProducts(Object.fromEntries(Object.entries(pMap).map(([k, v]) => [k, [...v]])))
       })
       .catch(() => {})
   }, [rawDeals])
@@ -218,7 +225,7 @@ export default function Deals() {
   }, [rawDeals])
 
   // Contagem de filtros activos
-  const activeFilters = [search, stageF, regionF, buF, ownerF, forecastF, slaF, discountF, periodF > 0, invoicedMonthF.length > 0].filter(Boolean).length
+  const activeFilters = [search, stageF, regionF, buF, ownerF, forecastF, slaF, discountF, brandF, productF, periodF > 0, invoicedMonthF.length > 0].filter(Boolean).length
 
   // Drag-drop on the Kanban: moving a card across stages
   async function handleStageChange(dealId, newStage) {
@@ -437,6 +444,37 @@ export default function Deals() {
               </select>
             </div>
 
+            {/* Brand */}
+            <div>
+              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Brand</label>
+              <select className="select text-xs w-full" value={brandF} onChange={e => { setBrandF(e.target.value); setProductF(''); resetPage() }}>
+                <option value="">All brands</option>
+                {(() => {
+                  const all = new Set()
+                  Object.values(dealBrands).forEach(bs => bs.forEach(b => all.add(b)))
+                  if (all.size === 0) all.add('Fujifilm')
+                  return [...all].sort().map(b => <option key={b} value={b}>{b}</option>)
+                })()}
+              </select>
+            </div>
+
+            {/* Product */}
+            <div>
+              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Product</label>
+              <select className="select text-xs w-full" value={productF} onChange={e => { setProductF(e.target.value); resetPage() }}>
+                <option value="">All products</option>
+                {(() => {
+                  const all = new Set()
+                  Object.entries(dealProducts).forEach(([did, ps]) => {
+                    if (!brandF || (dealBrands[did] || ['Fujifilm']).includes(brandF)) {
+                      ps.forEach(p => all.add(p))
+                    }
+                  })
+                  return [...all].sort().map(p => <option key={p} value={p}>{p}</option>)
+                })()}
+              </select>
+            </div>
+
             {/* Invoiced Month */}
             <div>
               <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">
@@ -493,7 +531,7 @@ export default function Deals() {
             {activeFilters > 0 && (
               <button onClick={() => {
                 setSearch(''); setStageF(''); setRegionF(''); setBuF('')
-                setOwnerF(''); setForecastF(''); setSlaF(false); setDiscountF(''); setPeriodF(0); setInvoicedMonthF([]); resetPage()
+                setOwnerF(''); setForecastF(''); setSlaF(false); setDiscountF(''); setBrandF(''); setProductF(''); setPeriodF(0); setInvoicedMonthF([]); resetPage()
               }} className="text-xs text-red-500 hover:text-red-700 font-medium">
                 {t("deals_clear_filters")}
               </button>
