@@ -19,24 +19,22 @@ function stageColor(stage) {
   }
 }
 
-function dealFY26(deal) {
-  return MONTHS_K.reduce((s, m) => s + (Number(deal[m]) || 0), 0)
+function dealValue(deal) {
+  const fy26 = MONTHS_K.reduce((s, m) => s + (Number(deal[m]) || 0), 0)
+  return fy26 || Number(deal.value_total) || 0
 }
 
 function columnTotal(deals, stage) {
   return deals
     .filter(d => d.stage === stage && !d.is_intercompany_mirror)
-    .reduce((s, d) => {
-      // For closed stages use monthly sum; otherwise deal value
-      if (stage === 'BackLog' || stage === 'Invoiced') return s + dealFY26(d)
-      return s + (Number(d.value_total) || 0)
-    }, 0)
+    .reduce((s, d) => s + dealValue(d), 0)
 }
 
 const KanbanCard = memo(function KanbanCard({ deal, onEdit, onDelete, canEdit, dragHandlers }) {
   const isIC   = deal.is_intercompany_mirror
+  const val    = dealValue(deal)
   const weight = WEIGHTS[deal.stage] ?? 0
-  const weighted = (Number(deal.value_total) || 0) * weight
+  const weighted = val * weight
   return (
     <div
       draggable={canEdit && !isIC}
@@ -65,9 +63,7 @@ const KanbanCard = memo(function KanbanCard({ deal, onEdit, onDelete, canEdit, d
           )}
           <div className="flex items-center justify-between mt-1">
             <span className="text-xs font-bold text-gray-800">
-              {['BackLog','Invoiced'].includes(deal.stage)
-                ? formatK(dealFY26(deal))
-                : formatK(deal.value_total)}
+              {formatK(val)}
             </span>
             {weight > 0 && weight < 1 && (
               <span className="text-[10px] text-blue-500">W: {formatK(weighted)}</span>

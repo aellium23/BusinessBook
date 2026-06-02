@@ -187,10 +187,11 @@ export default function Deals() {
   const filteredTotals = useMemo(() => deals.reduce((acc, d) => {
     const fy26 = MONTHS_K.reduce((s, m) => s + (Number(d[m]) || 0), 0)
     if (d.is_intercompany_mirror) return acc
-    acc.pipeline += d.stage === 'Pipeline' ? (Number(d.value_total) || 0) : 0
-    acc.backlog  += d.stage === 'BackLog'  ? fy26 : 0
-    acc.invoiced += d.stage === 'Invoiced' ? fy26 : 0
-    acc.forecast += ['BackLog','Invoiced'].includes(d.stage) ? fy26 : 0
+    const val = fy26 || Number(d.value_total) || 0
+    acc.pipeline += ['Lead', 'Pipeline', 'Offer Presented'].includes(d.stage) ? val : 0
+    acc.backlog  += d.stage === 'BackLog'  ? val : 0
+    acc.invoiced += d.stage === 'Invoiced' ? val : 0
+    acc.forecast += ['BackLog','Invoiced'].includes(d.stage) ? val : 0
     return acc
   }, { pipeline: 0, backlog: 0, invoiced: 0, forecast: 0 }), [deals])
 

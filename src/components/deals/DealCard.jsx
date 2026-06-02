@@ -156,15 +156,24 @@ export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete, b
           </p>
         </div>
         <div className="text-right shrink-0 min-w-0 max-w-28">
-          <div className="flex items-center justify-end gap-1">
-            <CurrencyBadge currency={deal.currency}/>
-            <p className="text-sm font-bold text-gray-900">
-              {deal.currency && deal.currency !== 'EUR'
-                ? `${deal.currency === 'USD' ? '$' : '£'}${(deal.value_total||0).toLocaleString()}`
-                : formatK(deal.value_total)}
-            </p>
-          </div>
-          <p className="text-xs text-gray-400">FY26: {formatK(fy26)}</p>
+          {(() => {
+            const primary = fy26 || Number(deal.value_total) || 0
+            return (
+              <>
+                <div className="flex items-center justify-end gap-1">
+                  <CurrencyBadge currency={deal.currency}/>
+                  <p className="text-sm font-bold text-gray-900">
+                    {deal.currency && deal.currency !== 'EUR'
+                      ? `${deal.currency === 'USD' ? '$' : '£'}${primary.toLocaleString()}`
+                      : formatK(primary)}
+                  </p>
+                </div>
+                {fy26 > 0 && Number(deal.value_total) > 0 && fy26 !== Number(deal.value_total) && (
+                  <p className="text-[10px] text-gray-400">Total: {formatK(deal.value_total)}</p>
+                )}
+              </>
+            )
+          })()}
           {deal.gm_pct > 0 && (
             <p className="text-[10px] text-green-600 font-semibold">GM {(deal.gm_pct * 100).toFixed(0)}%</p>
           )}
