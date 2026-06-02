@@ -320,7 +320,8 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
     // Derivar o role do permission_set para retrocompatibilidade
     const roleMap = {
       'Admin':'admin','Manager':'manager','Member':'member',
-      'Distributor':'distributor','Viewer':'viewer','Partner':'partner'
+      'Distributor':'distributor','Viewer':'viewer','Partner':'partner',
+      'Approver':'viewer',
     }
     const role = roleMap[ps?.name] || 'viewer'
 

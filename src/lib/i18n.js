@@ -806,6 +806,19 @@ const translations = {
 
     // formatK
     currency_default: '€',
+    // MyAccount page
+    account_title:        'My Account',
+    account_subtitle:     'Profile & security settings',
+    account_profile:      'Profile',
+    account_changepw:     'Change Password',
+    account_success:      'Password updated successfully!',
+    account_new_pw:       'New password',
+    account_placeholder1: 'Min. 8 characters',
+    account_confirm_pw:   'Confirm password',
+    account_placeholder2: 'Repeat password',
+    account_updating:     'Updating…',
+    account_update:       'Update password',
+    account_manage:       'Manage users & permissions',
   },
 
   es: {
@@ -1590,6 +1603,18 @@ const translations = {
     contacts_contact_word:  'contacto',
     contacts_contacts_word: 'contactos',
     contacts_delete_confirm:'¿Eliminar "{name}"?',
+    account_title:        'Mi Cuenta',
+    account_subtitle:     'Perfil y configuración de seguridad',
+    account_profile:      'Perfil',
+    account_changepw:     'Cambiar Contraseña',
+    account_success:      '¡Contraseña actualizada!',
+    account_new_pw:       'Nueva contraseña',
+    account_placeholder1: 'Mín. 8 caracteres',
+    account_confirm_pw:   'Confirmar contraseña',
+    account_placeholder2: 'Repetir contraseña',
+    account_updating:     'Actualizando…',
+    account_update:       'Actualizar contraseña',
+    account_manage:       'Gestionar usuarios y permisos',
   },
 
   pt: {
@@ -2374,6 +2399,18 @@ const translations = {
     contacts_contact_word:  'contacto',
     contacts_contacts_word: 'contactos',
     contacts_delete_confirm:'Eliminar "{name}"?',
+    account_title:        'Minha Conta',
+    account_subtitle:     'Perfil e definições de segurança',
+    account_profile:      'Perfil',
+    account_changepw:     'Alterar Palavra-passe',
+    account_success:      'Palavra-passe atualizada!',
+    account_new_pw:       'Nova palavra-passe',
+    account_placeholder1: 'Mín. 8 caracteres',
+    account_confirm_pw:   'Confirmar palavra-passe',
+    account_placeholder2: 'Repetir palavra-passe',
+    account_updating:     'A atualizar…',
+    account_update:       'Atualizar palavra-passe',
+    account_manage:       'Gerir utilizadores e permissões',
   },
 }
 

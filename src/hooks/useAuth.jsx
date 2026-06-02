@@ -175,12 +175,17 @@ export function AuthProvider({ children }) {
   const editOwnOnly = perms.editOwn
 
   // Verificar se o user pode aceder a uma página
+  // Brand-only approvers have no other page access
+  const isBrandApproverOnly = Array.isArray(profile?.approves_brands) && profile.approves_brands.length > 0
+    && !['admin','manager','member'].includes(role)
+
   function canAccessPage(page) {
     if (role === 'admin') return true
-    // Brand approvers get access to the Approvals page
     if (page === 'approvals') {
       return Array.isArray(profile?.approves_brands) && profile.approves_brands.length > 0
     }
+    // Brand-only approvers cannot access any other page
+    if (isBrandApproverOnly) return false
     return resolvedPages.includes(page)
   }
 
