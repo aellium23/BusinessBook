@@ -2,184 +2,1493 @@ import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { HelpCircle, X } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
+import { useTranslation } from '../hooks/useTranslation'
 
-// ── Help content per page ────────────────────────────────────────────────────
+// ── Help content per page — trilingual (en, es, pt) ────────────────────────
 const HELP = {
   '/': {
-    title: 'Dashboard',
-    description: 'Your central command center showing pipeline health, revenue metrics, and team performance at a glance.',
-    features: [
-      'Switch between Summary and Classic views using the tabs at the top.',
-      'KPI cards show live totals — click any card to drill into the underlying deals.',
-      'Charts update in real time as deals progress through stages.',
-    ],
-    admin: 'As an admin you can see data across all business units. Use the BU filter to focus on VGT or ECT.',
-    viewer: 'You have read-only access. Contact your admin to request edit permissions.',
+    en: {
+      title: 'Dashboard',
+      description: 'Your central command center showing pipeline health, revenue metrics, and team performance at a glance.',
+      features: [
+        'Switch between Summary and Classic views using the tabs at the top.',
+        'KPI cards show live totals — click any card to drill into the underlying deals.',
+        'Charts update in real time as deals progress through stages.',
+      ],
+      steps: [
+        '1. Select the BU filter (VGT / ECT / All) to scope the data.',
+        '2. Use the Summary tab for at-a-glance gauges comparing actuals vs budget.',
+        '3. Use the Classic tab for detailed monthly bar charts and funnel analytics.',
+        '4. Click a KPI card to jump directly to the Deals page pre-filtered.',
+      ],
+      shortcuts: [
+        'Ctrl+D — Quick-navigate to Deals from any page.',
+      ],
+      mistakes: [
+        'Forgetting to select a BU filter — you may be looking at consolidated data instead of your unit.',
+        'Comparing full-year budget against YTD actuals — the Summary view adjusts for elapsed months automatically.',
+      ],
+      seeAlso: [
+        { label: 'Deals — manage the pipeline that feeds these metrics', path: '/deals' },
+        { label: 'Budget — set and adjust the targets shown here', path: '/budget' },
+        { label: 'Quotas — individual sales targets', path: '/quotas' },
+      ],
+      admin: 'As an admin you can see data across all business units. Use the BU filter to focus on VGT or ECT.',
+      viewer: 'You have read-only access. Contact your admin to request edit permissions.',
+    },
+    es: {
+      title: 'Panel',
+      description: 'Tu centro de mando mostrando la salud del pipeline, metricas de ingreso y rendimiento del equipo.',
+      features: [
+        'Cambia entre las vistas Resumen y Clasico con las pestanas superiores.',
+        'Las tarjetas KPI muestran totales en vivo — haz clic para ver los deals subyacentes.',
+        'Los graficos se actualizan en tiempo real a medida que los deals avanzan por las etapas.',
+      ],
+      steps: [
+        '1. Selecciona el filtro de BU (VGT / ECT / Todas) para delimitar los datos.',
+        '2. Usa la pestana Resumen para ver gauges comparando reales vs presupuesto.',
+        '3. Usa la pestana Clasico para graficos mensuales detallados y analisis del embudo.',
+        '4. Haz clic en una tarjeta KPI para ir directamente a Oportunidades pre-filtradas.',
+      ],
+      shortcuts: [
+        'Ctrl+D — Navegar rapidamente a Oportunidades desde cualquier pagina.',
+      ],
+      mistakes: [
+        'Olvidar seleccionar un filtro de BU — puedes estar viendo datos consolidados en vez de tu unidad.',
+        'Comparar presupuesto anual contra reales YTD — la vista Resumen ajusta automaticamente por meses transcurridos.',
+      ],
+      seeAlso: [
+        { label: 'Oportunidades — gestiona el pipeline que alimenta estas metricas', path: '/deals' },
+        { label: 'Presupuesto — define y ajusta los objetivos mostrados aqui', path: '/budget' },
+        { label: 'Objetivos — objetivos de ventas individuales', path: '/quotas' },
+      ],
+      admin: 'Como admin puedes ver datos de todas las unidades de negocio. Usa el filtro BU para enfocar en VGT o ECT.',
+      viewer: 'Tienes acceso de solo lectura. Contacta a tu admin para solicitar permisos de edicion.',
+    },
+    pt: {
+      title: 'Painel',
+      description: 'O teu centro de comando mostrando a saude do pipeline, metricas de receita e desempenho da equipa.',
+      features: [
+        'Alterna entre as vistas Resumo e Classico usando as abas no topo.',
+        'Os cartoes KPI mostram totais em tempo real — clica para ver os deals subjacentes.',
+        'Os graficos atualizam-se em tempo real a medida que os deals avancam pelas fases.',
+      ],
+      steps: [
+        '1. Seleciona o filtro de BU (VGT / ECT / Todas) para delimitar os dados.',
+        '2. Usa a aba Resumo para ver gauges comparando reais vs orcamento.',
+        '3. Usa a aba Classico para graficos mensais detalhados e analise do funil.',
+        '4. Clica num cartao KPI para ir diretamente a Negocios pre-filtrados.',
+      ],
+      shortcuts: [
+        'Ctrl+D — Navegar rapidamente para Negocios a partir de qualquer pagina.',
+      ],
+      mistakes: [
+        'Esquecer de selecionar um filtro de BU — podes estar a ver dados consolidados em vez da tua unidade.',
+        'Comparar orcamento anual contra reais YTD — a vista Resumo ajusta automaticamente pelos meses decorridos.',
+      ],
+      seeAlso: [
+        { label: 'Negocios — gere o pipeline que alimenta estas metricas', path: '/deals' },
+        { label: 'Orcamento — define e ajusta os objetivos mostrados aqui', path: '/budget' },
+        { label: 'Objetivos — objetivos de vendas individuais', path: '/quotas' },
+      ],
+      admin: 'Como admin podes ver dados de todas as unidades de negocio. Usa o filtro BU para focar em VGT ou ECT.',
+      viewer: 'Tens acesso apenas de leitura. Contacta o teu admin para solicitar permissoes de edicao.',
+    },
   },
+
   '/deals': {
-    title: 'Deals',
-    description: 'Manage your sales pipeline from lead to invoice. View deals as a list, Kanban board, or on a map.',
-    features: [
-      'Use the view switcher (List / Kanban / Map) to change how deals are displayed.',
-      'Drag deals between columns in Kanban view to update their stage.',
-      'Click "+ Deal" to create a new deal with the quick form.',
-      'Use filters and search to narrow down by stage, BU, owner, or date range.',
-    ],
-    admin: 'You can edit or delete any deal regardless of ownership. Bulk actions are available in list view.',
-    viewer: 'You can view deal details but cannot create or modify deals.',
+    en: {
+      title: 'Deals',
+      description: 'Manage your sales pipeline from lead to invoice. View deals as a list, Kanban board, or on a map.',
+      features: [
+        'Use the view switcher (List / Kanban / Map) to change how deals are displayed.',
+        'Drag deals between columns in Kanban view to update their stage.',
+        'Click "+ Deal" to create a new deal with the quick form.',
+        'Use filters and search to narrow down by stage, BU, owner, or date range.',
+        'Expand a deal row to see monthly revenue breakdown and line items.',
+      ],
+      steps: [
+        '1. Click "+ Deal" (top right) to open the quick-create form.',
+        '2. Fill in BU, client, product, value, and stage, then Save.',
+        '3. Click a deal row to open the full edit form with all fields.',
+        '4. To filter, use the dropdowns: stage, BU, owner, region, period.',
+        '5. In Kanban view, drag a card to change its stage instantly.',
+        '6. To export, use the browser print (Ctrl+P) on the list view.',
+      ],
+      shortcuts: [
+        'Ctrl+N — Open new deal form (when on Deals page).',
+        'Esc — Close the deal form or dismiss filters.',
+      ],
+      mistakes: [
+        'Not setting the correct BU — deals will appear under the wrong pipeline.',
+        'Leaving value at 0 — this skips the deal from forecasts and dashboards.',
+        'Forgetting to set the recognition months (contract start/end) — monthly charts will show zero.',
+        'Changing stage to Invoiced without filling the invoice date.',
+      ],
+      seeAlso: [
+        { label: 'Contracts & SLAs — deals can generate SLA records', path: '/sla' },
+        { label: 'Products — line items reference the product catalog', path: '/products' },
+        { label: 'Tasks — create follow-up tasks linked to deals', path: '/tasks' },
+        { label: 'Tenders — link deals to public tenders', path: '/tenders' },
+        { label: 'White-space — find gaps in client-product coverage', path: '/whitespace' },
+      ],
+      admin: 'You can edit or delete any deal regardless of ownership. Bulk actions are available in list view.',
+      viewer: 'You can view deal details but cannot create or modify deals.',
+    },
+    es: {
+      title: 'Oportunidades',
+      description: 'Gestiona tu pipeline de ventas desde el lead hasta la factura. Visualiza deals como lista, Kanban o en mapa.',
+      features: [
+        'Usa el selector de vista (Lista / Kanban / Mapa) para cambiar la visualizacion.',
+        'Arrastra deals entre columnas en la vista Kanban para actualizar su etapa.',
+        'Haz clic en "+ Deal" para crear una nueva oportunidad con el formulario rapido.',
+        'Usa filtros y busqueda para filtrar por etapa, BU, responsable o rango de fechas.',
+        'Expande una fila de deal para ver el desglose mensual de ingresos.',
+      ],
+      steps: [
+        '1. Haz clic en "+ Deal" (arriba a la derecha) para abrir el formulario rapido.',
+        '2. Rellena BU, cliente, producto, valor y etapa, luego Guardar.',
+        '3. Haz clic en una fila de deal para abrir el formulario completo.',
+        '4. Para filtrar, usa los desplegables: etapa, BU, responsable, region, periodo.',
+        '5. En vista Kanban, arrastra una tarjeta para cambiar su etapa al instante.',
+        '6. Para exportar, usa la impresion del navegador (Ctrl+P) en la vista lista.',
+      ],
+      shortcuts: [
+        'Ctrl+N — Abrir formulario de nuevo deal (en la pagina de Oportunidades).',
+        'Esc — Cerrar el formulario o descartar filtros.',
+      ],
+      mistakes: [
+        'No seleccionar la BU correcta — los deals aparecerán en el pipeline incorrecto.',
+        'Dejar el valor en 0 — el deal se omitira de previsiones y paneles.',
+        'Olvidar configurar los meses de reconocimiento (inicio/fin de contrato).',
+        'Cambiar la etapa a Facturado sin rellenar la fecha de factura.',
+      ],
+      seeAlso: [
+        { label: 'Contratos y SLAs — los deals pueden generar registros SLA', path: '/sla' },
+        { label: 'Productos — las lineas referencian el catalogo de productos', path: '/products' },
+        { label: 'Tareas — crea tareas de seguimiento vinculadas a deals', path: '/tasks' },
+        { label: 'Licitaciones — vincula deals a concursos publicos', path: '/tenders' },
+      ],
+      admin: 'Puedes editar o eliminar cualquier deal independientemente del propietario.',
+      viewer: 'Puedes ver los detalles del deal pero no crear ni modificar.',
+    },
+    pt: {
+      title: 'Negocios',
+      description: 'Gere o teu pipeline de vendas do lead a fatura. Visualiza deals como lista, Kanban ou no mapa.',
+      features: [
+        'Usa o seletor de vista (Lista / Kanban / Mapa) para mudar a visualizacao.',
+        'Arrasta deals entre colunas na vista Kanban para atualizar a fase.',
+        'Clica em "+ Deal" para criar um novo negocio com o formulario rapido.',
+        'Usa filtros e pesquisa para filtrar por fase, BU, responsavel ou intervalo de datas.',
+        'Expande uma linha de deal para ver o detalhe mensal de receita.',
+      ],
+      steps: [
+        '1. Clica em "+ Deal" (canto superior direito) para abrir o formulario rapido.',
+        '2. Preenche BU, cliente, produto, valor e fase, depois Guardar.',
+        '3. Clica numa linha de deal para abrir o formulario completo.',
+        '4. Para filtrar, usa os menus: fase, BU, responsavel, regiao, periodo.',
+        '5. Na vista Kanban, arrasta um cartao para mudar a fase instantaneamente.',
+        '6. Para exportar, usa a impressao do navegador (Ctrl+P) na vista lista.',
+      ],
+      shortcuts: [
+        'Ctrl+N — Abrir formulario de novo deal (na pagina de Negocios).',
+        'Esc — Fechar o formulario ou descartar filtros.',
+      ],
+      mistakes: [
+        'Nao selecionar a BU correta — os deals aparecerao no pipeline errado.',
+        'Deixar o valor em 0 — o deal sera omitido de previsoes e paineis.',
+        'Esquecer de configurar os meses de reconhecimento (inicio/fim de contrato).',
+        'Mudar a fase para Faturado sem preencher a data de fatura.',
+      ],
+      seeAlso: [
+        { label: 'Contratos e SLAs — os deals podem gerar registos SLA', path: '/sla' },
+        { label: 'Produtos — as linhas referenciam o catalogo de produtos', path: '/products' },
+        { label: 'Tarefas — cria tarefas de seguimento associadas a deals', path: '/tasks' },
+        { label: 'Concursos — associa deals a concursos publicos', path: '/tenders' },
+      ],
+      admin: 'Podes editar ou eliminar qualquer deal independentemente do proprietario.',
+      viewer: 'Podes ver os detalhes do deal mas nao criar nem modificar.',
+    },
   },
+
   '/clients': {
-    title: 'Clients',
-    description: 'Your client directory. Each client can have multiple contacts, accounts, and associated deals.',
-    features: [
-      'Search clients by name, country, or segment.',
-      'Click a client row to see full details including linked contacts and deal history.',
-      'Use the "+" button to add a new client record.',
-    ],
-    admin: 'You can merge duplicate clients and manage client segments.',
-    viewer: 'You can browse clients but cannot add or edit records.',
+    en: {
+      title: 'Clients',
+      description: 'Your client directory. Each client can have multiple contacts, accounts, and associated deals.',
+      features: [
+        'Search clients by name, country, or segment.',
+        'Click a client row to see full details including linked contacts and deal history.',
+        'Use the "+" button to add a new client record.',
+        'Filter by region, country, type (Public/Private), or BU.',
+        'Expand a client card to view all associated deals inline.',
+      ],
+      steps: [
+        '1. Click "New Client" to open the creation form.',
+        '2. Enter the hospital/site name, select region and country.',
+        '3. Choose the client type: Public or Private.',
+        '4. Optionally link a distributor if sales go through a partner.',
+        '5. Save — the client is now available for linking in Deals and SLAs.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Creating duplicate client records — always search first to avoid duplicates.',
+        'Not setting the region/country — this breaks geographic filtering and the map view.',
+        'Confusing Clients with Accounts — Clients are individual sites; Accounts are organizational groups.',
+      ],
+      seeAlso: [
+        { label: 'Accounts — group clients into organizational hierarchies', path: '/accounts' },
+        { label: 'Contacts — add individual people at this client', path: '/contacts' },
+        { label: 'Deals — see all deals linked to this client', path: '/deals' },
+        { label: 'SLAs — view active contracts for this client', path: '/sla' },
+      ],
+      admin: 'You can merge duplicate clients and manage client segments.',
+      viewer: 'You can browse clients but cannot add or edit records.',
+    },
+    es: {
+      title: 'Clientes',
+      description: 'Tu directorio de clientes. Cada cliente puede tener multiples contactos, cuentas y oportunidades asociadas.',
+      features: [
+        'Busca clientes por nombre, pais o segmento.',
+        'Haz clic en una fila de cliente para ver todos los detalles.',
+        'Usa el boton "+" para anadir un nuevo cliente.',
+        'Filtra por region, pais, tipo (Publico/Privado) o BU.',
+        'Expande una tarjeta de cliente para ver los deals asociados.',
+      ],
+      steps: [
+        '1. Haz clic en "Nuevo Cliente" para abrir el formulario.',
+        '2. Introduce el nombre del hospital/centro, selecciona region y pais.',
+        '3. Elige el tipo de cliente: Publico o Privado.',
+        '4. Opcionalmente vincula un distribuidor si las ventas van por un partner.',
+        '5. Guardar — el cliente estara disponible para vincular en Oportunidades y SLAs.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Crear clientes duplicados — busca siempre antes para evitar duplicados.',
+        'No configurar region/pais — esto rompe el filtrado geografico.',
+        'Confundir Clientes con Cuentas — Clientes son centros individuales; Cuentas son grupos organizacionales.',
+      ],
+      seeAlso: [
+        { label: 'Cuentas — agrupa clientes en jerarquias organizacionales', path: '/accounts' },
+        { label: 'Contactos — anade personas individuales en este cliente', path: '/contacts' },
+        { label: 'Oportunidades — ve todos los deals vinculados', path: '/deals' },
+      ],
+      admin: 'Puedes fusionar clientes duplicados y gestionar segmentos.',
+      viewer: 'Puedes navegar clientes pero no anadir ni editar registros.',
+    },
+    pt: {
+      title: 'Clientes',
+      description: 'O teu diretorio de clientes. Cada cliente pode ter multiplos contactos, contas e negocios associados.',
+      features: [
+        'Pesquisa clientes por nome, pais ou segmento.',
+        'Clica numa linha de cliente para ver todos os detalhes.',
+        'Usa o botao "+" para adicionar um novo cliente.',
+        'Filtra por regiao, pais, tipo (Publico/Privado) ou BU.',
+        'Expande um cartao de cliente para ver os deals associados.',
+      ],
+      steps: [
+        '1. Clica em "Novo Cliente" para abrir o formulario.',
+        '2. Introduz o nome do hospital/centro, seleciona regiao e pais.',
+        '3. Escolhe o tipo de cliente: Publico ou Privado.',
+        '4. Opcionalmente liga um distribuidor se as vendas passam por um parceiro.',
+        '5. Guardar — o cliente fica disponivel para ligar em Negocios e SLAs.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Criar clientes duplicados — pesquisa sempre antes para evitar duplicados.',
+        'Nao configurar regiao/pais — isto quebra o filtro geografico.',
+        'Confundir Clientes com Contas — Clientes sao centros individuais; Contas sao grupos organizacionais.',
+      ],
+      seeAlso: [
+        { label: 'Contas — agrupa clientes em hierarquias organizacionais', path: '/accounts' },
+        { label: 'Contactos — adiciona pessoas individuais neste cliente', path: '/contacts' },
+        { label: 'Negocios — ve todos os deals associados', path: '/deals' },
+      ],
+      admin: 'Podes fundir clientes duplicados e gerir segmentos.',
+      viewer: 'Podes navegar clientes mas nao adicionar nem editar registos.',
+    },
   },
+
   '/contacts': {
-    title: 'Contacts',
-    description: 'Individual contacts linked to client organizations. Track key stakeholders and decision-makers.',
-    features: [
-      'Each contact is linked to a client — select the client first when creating a contact.',
-      'Add phone, email, and role information for each contact.',
-      'Use contacts when assigning deal stakeholders.',
-    ],
-    admin: 'You can manage all contacts across the organization.',
-    viewer: 'You can view contact details in read-only mode.',
+    en: {
+      title: 'Contacts',
+      description: 'Individual contacts linked to client organizations. Track key stakeholders and decision-makers.',
+      features: [
+        'Each contact is linked to a client — select the client first when creating a contact.',
+        'Add phone, email, and role information for each contact.',
+        'Use contacts when assigning deal stakeholders.',
+        'Filter contacts by client, role, or search by name/email.',
+      ],
+      steps: [
+        '1. Navigate to a client card or use the Contacts page.',
+        '2. Click "+ Contact" to add a new person.',
+        '3. Select the parent client from the dropdown.',
+        '4. Fill in name, email, phone, and job title/role.',
+        '5. Save — the contact appears in the client detail view and is available for deal assignment.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Creating contacts without linking to a client — orphaned contacts cannot be found easily.',
+        'Not filling in the role/title — makes it hard to identify decision-makers.',
+      ],
+      seeAlso: [
+        { label: 'Clients — the parent records for contacts', path: '/clients' },
+        { label: 'Deals — assign contacts as stakeholders on deals', path: '/deals' },
+      ],
+      admin: 'You can manage all contacts across the organization.',
+      viewer: 'You can view contact details in read-only mode.',
+    },
+    es: {
+      title: 'Contactos',
+      description: 'Contactos individuales vinculados a organizaciones cliente. Rastrea stakeholders y decisores clave.',
+      features: [
+        'Cada contacto esta vinculado a un cliente — selecciona el cliente primero al crear un contacto.',
+        'Anade telefono, email e informacion de rol para cada contacto.',
+        'Usa contactos al asignar stakeholders en los deals.',
+        'Filtra contactos por cliente, rol o busca por nombre/email.',
+      ],
+      steps: [
+        '1. Navega a una tarjeta de cliente o usa la pagina de Contactos.',
+        '2. Haz clic en "+ Contacto" para anadir una nueva persona.',
+        '3. Selecciona el cliente padre del desplegable.',
+        '4. Rellena nombre, email, telefono y cargo/rol.',
+        '5. Guardar — el contacto aparece en la vista del cliente.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Crear contactos sin vincular a un cliente — los contactos huerfanos no se encuentran facilmente.',
+        'No rellenar el rol/cargo — dificulta identificar a los decisores.',
+      ],
+      seeAlso: [
+        { label: 'Clientes — los registros padre de los contactos', path: '/clients' },
+        { label: 'Oportunidades — asigna contactos como stakeholders', path: '/deals' },
+      ],
+      admin: 'Puedes gestionar todos los contactos de la organizacion.',
+      viewer: 'Puedes ver los detalles de contacto en modo lectura.',
+    },
+    pt: {
+      title: 'Contactos',
+      description: 'Contactos individuais ligados a organizacoes cliente. Acompanha stakeholders e decisores chave.',
+      features: [
+        'Cada contacto esta ligado a um cliente — seleciona o cliente primeiro ao criar um contacto.',
+        'Adiciona telefone, email e informacao de cargo para cada contacto.',
+        'Usa contactos ao atribuir stakeholders nos deals.',
+        'Filtra contactos por cliente, cargo ou pesquisa por nome/email.',
+      ],
+      steps: [
+        '1. Navega a um cartao de cliente ou usa a pagina de Contactos.',
+        '2. Clica em "+ Contacto" para adicionar uma nova pessoa.',
+        '3. Seleciona o cliente pai do menu.',
+        '4. Preenche nome, email, telefone e cargo/funcao.',
+        '5. Guardar — o contacto aparece na vista do cliente.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Criar contactos sem ligar a um cliente — contactos orfaos nao se encontram facilmente.',
+        'Nao preencher o cargo/funcao — dificulta identificar os decisores.',
+      ],
+      seeAlso: [
+        { label: 'Clientes — os registos pai dos contactos', path: '/clients' },
+        { label: 'Negocios — atribui contactos como stakeholders', path: '/deals' },
+      ],
+      admin: 'Podes gerir todos os contactos da organizacao.',
+      viewer: 'Podes ver os detalhes de contacto em modo leitura.',
+    },
   },
+
   '/accounts': {
-    title: 'Accounts',
-    description: 'Account records representing billing entities or organizational divisions within clients.',
-    features: [
-      'Accounts are linked to clients and can be associated with deals for invoicing.',
-      'Track account-level revenue and contract details.',
-    ],
-    admin: 'Full create, edit, and delete access to all accounts.',
+    en: {
+      title: 'Accounts',
+      description: 'Account records representing organizational hierarchies — hospital groups, regional entities, and billing structures.',
+      features: [
+        'Accounts are organized in a tree structure (parent-child hierarchy).',
+        'Each account shows roll-up totals for deals, pipeline, and invoiced revenue.',
+        'Link accounts to clients and deals for structured invoicing.',
+        'Expand/Collapse all nodes to explore the organizational tree.',
+      ],
+      steps: [
+        '1. Click "New account" to create a top-level or child account.',
+        '2. Enter the name, select BU, and optionally pick a parent account.',
+        '3. Set region and country for geographic reporting.',
+        '4. Save — the account appears in the tree.',
+        '5. To restructure, edit an account and change its parent.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Creating circular parent relationships — the form prevents this, but plan your hierarchy first.',
+        'Confusing Accounts with Clients — Accounts are organizational groups; Clients are individual sites.',
+        'Deleting a parent account — children become top-level nodes.',
+      ],
+      seeAlso: [
+        { label: 'Clients — individual sites within account groups', path: '/clients' },
+        { label: 'Deals — link deals to accounts for structured reporting', path: '/deals' },
+      ],
+      admin: 'Full create, edit, and delete access to all accounts.',
+    },
+    es: {
+      title: 'Cuentas',
+      description: 'Registros de cuenta representando jerarquias organizacionales — grupos hospitalarios, entidades regionales y estructuras de facturacion.',
+      features: [
+        'Las cuentas se organizan en estructura de arbol (jerarquia padre-hijo).',
+        'Cada cuenta muestra totales acumulados de deals, pipeline e ingresos facturados.',
+        'Vincula cuentas a clientes y deals para facturacion estructurada.',
+        'Expande/Contrae todos los nodos para explorar el arbol organizacional.',
+      ],
+      steps: [
+        '1. Haz clic en "Nueva cuenta" para crear una cuenta de nivel superior o hija.',
+        '2. Introduce el nombre, selecciona BU y opcionalmente elige una cuenta padre.',
+        '3. Configura region y pais para informes geograficos.',
+        '4. Guardar — la cuenta aparece en el arbol.',
+        '5. Para reestructurar, edita una cuenta y cambia su padre.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Crear relaciones padre circulares — el formulario lo previene, pero planifica tu jerarquia.',
+        'Confundir Cuentas con Clientes — Cuentas son grupos organizacionales; Clientes son centros individuales.',
+      ],
+      seeAlso: [
+        { label: 'Clientes — centros individuales dentro de grupos de cuentas', path: '/clients' },
+        { label: 'Oportunidades — vincula deals a cuentas para reportes', path: '/deals' },
+      ],
+      admin: 'Acceso completo de creacion, edicion y eliminacion de todas las cuentas.',
+    },
+    pt: {
+      title: 'Contas',
+      description: 'Registos de conta representando hierarquias organizacionais — grupos hospitalares, entidades regionais e estruturas de faturacao.',
+      features: [
+        'As contas organizam-se em estrutura de arvore (hierarquia pai-filho).',
+        'Cada conta mostra totais acumulados de deals, pipeline e receita faturada.',
+        'Liga contas a clientes e deals para faturacao estruturada.',
+        'Expande/Recolhe todos os nos para explorar a arvore organizacional.',
+      ],
+      steps: [
+        '1. Clica em "Nova conta" para criar uma conta de nivel superior ou filha.',
+        '2. Introduz o nome, seleciona BU e opcionalmente escolhe uma conta pai.',
+        '3. Configura regiao e pais para relatorios geograficos.',
+        '4. Guardar — a conta aparece na arvore.',
+        '5. Para reestruturar, edita uma conta e muda o seu pai.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Criar relacoes pai circulares — o formulario previne isto, mas planifica a tua hierarquia.',
+        'Confundir Contas com Clientes — Contas sao grupos organizacionais; Clientes sao centros individuais.',
+      ],
+      seeAlso: [
+        { label: 'Clientes — centros individuais dentro de grupos de contas', path: '/clients' },
+        { label: 'Negocios — liga deals a contas para relatorios', path: '/deals' },
+      ],
+      admin: 'Acesso completo de criacao, edicao e eliminacao de todas as contas.',
+    },
   },
+
   '/tasks': {
-    title: 'Tasks',
-    description: 'Track action items, follow-ups, and deadlines. Tasks can be linked to deals or stand alone.',
-    features: [
-      'Create tasks with due dates, priorities, and assignees.',
-      'Overdue tasks appear with a red badge in the navigation.',
-      'Filter by status (open / done / overdue) or assigned user.',
-    ],
-    admin: 'You can reassign tasks between any team members.',
+    en: {
+      title: 'Tasks',
+      description: 'Track action items, follow-ups, and deadlines. Tasks can be linked to deals or tenders, or kept as personal to-dos.',
+      features: [
+        'Create tasks with due dates, priorities, and assignees.',
+        'Overdue tasks appear with a red badge in the navigation.',
+        'Filter by status (open / done / overdue) or assigned user.',
+        'Link tasks to specific deals or tenders for context.',
+        'View "My tasks", "Assigned to me", and "Assigned by me" tabs.',
+      ],
+      steps: [
+        '1. Click "+ Add task" to open the task form.',
+        '2. Enter a title and optional notes.',
+        '3. Set a deadline and priority (low / medium / high).',
+        '4. Optionally assign to a team member — leave empty for a personal task.',
+        '5. Link to a deal or tender if the task is related to one.',
+        '6. Save — the task appears in your list, sorted by deadline.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Not setting a deadline — the task will not trigger overdue alerts.',
+        'Assigning to yourself vs. leaving personal — both work, but "Assigned to me" uses the assignee field.',
+        'Forgetting to mark tasks as done — overdue counts accumulate in the nav badge.',
+      ],
+      seeAlso: [
+        { label: 'Deals — link tasks to deals for follow-up', path: '/deals' },
+        { label: 'Tenders — link tasks to tender deadlines', path: '/tenders' },
+      ],
+      admin: 'You can reassign tasks between any team members.',
+    },
+    es: {
+      title: 'Tareas',
+      description: 'Rastrea acciones, seguimientos y plazos. Las tareas pueden vincularse a deals o licitaciones, o mantenerse como pendientes personales.',
+      features: [
+        'Crea tareas con fechas limite, prioridades y asignados.',
+        'Las tareas vencidas aparecen con insignia roja en la navegacion.',
+        'Filtra por estado (abiertas / completadas / vencidas) o usuario asignado.',
+        'Vincula tareas a deals o licitaciones especificas para contexto.',
+      ],
+      steps: [
+        '1. Haz clic en "+ Anadir tarea" para abrir el formulario.',
+        '2. Introduce un titulo y notas opcionales.',
+        '3. Establece fecha limite y prioridad.',
+        '4. Opcionalmente asigna a un miembro del equipo.',
+        '5. Vincula a un deal o licitacion si la tarea esta relacionada.',
+        '6. Guardar — la tarea aparece en tu lista.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'No establecer fecha limite — la tarea no activara alertas de vencimiento.',
+        'Olvidar marcar tareas como completadas — los conteos de vencidas se acumulan.',
+      ],
+      seeAlso: [
+        { label: 'Oportunidades — vincula tareas a deals para seguimiento', path: '/deals' },
+        { label: 'Licitaciones — vincula tareas a plazos de licitaciones', path: '/tenders' },
+      ],
+      admin: 'Puedes reasignar tareas entre cualquier miembro del equipo.',
+    },
+    pt: {
+      title: 'Tarefas',
+      description: 'Acompanha acoes, seguimentos e prazos. As tarefas podem ligar-se a deals ou concursos, ou manter-se como pendentes pessoais.',
+      features: [
+        'Cria tarefas com prazos, prioridades e atribuidos.',
+        'As tarefas vencidas aparecem com insignia vermelha na navegacao.',
+        'Filtra por estado (abertas / concluidas / vencidas) ou utilizador atribuido.',
+        'Liga tarefas a deals ou concursos especificos para contexto.',
+      ],
+      steps: [
+        '1. Clica em "+ Adicionar tarefa" para abrir o formulario.',
+        '2. Introduz um titulo e notas opcionais.',
+        '3. Define prazo e prioridade.',
+        '4. Opcionalmente atribui a um membro da equipa.',
+        '5. Liga a um deal ou concurso se a tarefa esta relacionada.',
+        '6. Guardar — a tarefa aparece na tua lista.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Nao definir prazo — a tarefa nao ativara alertas de vencimento.',
+        'Esquecer de marcar tarefas como concluidas — os contadores de vencidas acumulam-se.',
+      ],
+      seeAlso: [
+        { label: 'Negocios — liga tarefas a deals para seguimento', path: '/deals' },
+        { label: 'Concursos — liga tarefas a prazos de concursos', path: '/tenders' },
+      ],
+      admin: 'Podes reatribuir tarefas entre qualquer membro da equipa.',
+    },
   },
+
   '/tenders': {
-    title: 'Tenders',
-    description: 'Manage tender submissions and RFP responses. Track deadlines and submission status.',
-    features: [
-      'Create tender records with requirements, deadlines, and linked deals.',
-      'Track tender status from draft through submission to award.',
-      'Attach documents and proposals to tender records.',
-    ],
-    admin: 'You can view and manage all tenders across business units.',
+    en: {
+      title: 'Tenders',
+      description: 'Manage tender submissions and RFP responses. Track deadlines, submission status, and link tenders to deals.',
+      features: [
+        'Create tender records with requirements, deadlines, and linked deals.',
+        'Track tender status from draft through submission to award.',
+        'Attach documents and proposals to tender records.',
+        'Filter by status, BU, or urgency. Overdue tenders are highlighted.',
+        'Each tender can be linked to an existing deal or create a new one.',
+      ],
+      steps: [
+        '1. Click "New tender" to open the form.',
+        '2. Enter the title, reference number, and BU.',
+        '3. Link or create a deal — this connects the tender to your pipeline.',
+        '4. Set the submission deadline and decision date.',
+        '5. Add collaborators who work on this tender.',
+        '6. Save and update the status as the tender progresses (Open > Submitted > Won/Lost).',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Not linking a deal — the tender will not affect pipeline or revenue calculations.',
+        'Missing the submission deadline — set calendar reminders outside the app for critical dates.',
+        'Forgetting to update status after decision — keeps the dashboard accurate.',
+      ],
+      seeAlso: [
+        { label: 'Deals — the pipeline entries linked to tenders', path: '/deals' },
+        { label: 'Tasks — create tasks for tender preparation milestones', path: '/tasks' },
+      ],
+      admin: 'You can view and manage all tenders across business units.',
+    },
+    es: {
+      title: 'Licitaciones',
+      description: 'Gestiona presentaciones de licitaciones y respuestas RFP. Rastrea plazos, estado y vincula con deals.',
+      features: [
+        'Crea registros de licitacion con requisitos, plazos y deals vinculados.',
+        'Rastrea el estado desde borrador hasta presentacion y adjudicacion.',
+        'Adjunta documentos y propuestas a los registros de licitacion.',
+        'Filtra por estado, BU o urgencia.',
+      ],
+      steps: [
+        '1. Haz clic en "Nueva licitacion" para abrir el formulario.',
+        '2. Introduce titulo, referencia y BU.',
+        '3. Vincula o crea un deal.',
+        '4. Establece fecha de presentacion y fecha de resolucion.',
+        '5. Anade colaboradores.',
+        '6. Guarda y actualiza el estado segun progrese.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'No vincular un deal — la licitacion no afectara el pipeline.',
+        'Perder la fecha de presentacion — configura recordatorios para fechas criticas.',
+      ],
+      seeAlso: [
+        { label: 'Oportunidades — las entradas de pipeline vinculadas a licitaciones', path: '/deals' },
+        { label: 'Tareas — crea tareas para hitos de preparacion', path: '/tasks' },
+      ],
+      admin: 'Puedes ver y gestionar todas las licitaciones de todas las unidades.',
+    },
+    pt: {
+      title: 'Concursos',
+      description: 'Gere submissoes de concursos e respostas RFP. Acompanha prazos, estado e liga com deals.',
+      features: [
+        'Cria registos de concurso com requisitos, prazos e deals associados.',
+        'Acompanha o estado desde rascunho ate submissao e adjudicacao.',
+        'Anexa documentos e propostas aos registos de concurso.',
+        'Filtra por estado, BU ou urgencia.',
+      ],
+      steps: [
+        '1. Clica em "Novo concurso" para abrir o formulario.',
+        '2. Introduz titulo, referencia e BU.',
+        '3. Liga ou cria um deal.',
+        '4. Define prazo de entrega e data de decisao.',
+        '5. Adiciona colaboradores.',
+        '6. Guarda e atualiza o estado conforme progride.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Nao ligar um deal — o concurso nao afetara o pipeline.',
+        'Perder o prazo de entrega — configura lembretes para datas criticas.',
+      ],
+      seeAlso: [
+        { label: 'Negocios — as entradas de pipeline associadas a concursos', path: '/deals' },
+        { label: 'Tarefas — cria tarefas para marcos de preparacao', path: '/tasks' },
+      ],
+      admin: 'Podes ver e gerir todos os concursos de todas as unidades.',
+    },
   },
+
   '/sla': {
-    title: 'Contracts & SLAs',
-    description: 'Manage service-level agreements and recurring contracts with clients.',
-    features: [
-      'Define SLA terms including response times and uptime guarantees.',
-      'Track contract renewal dates and recurring revenue.',
-      'Set up alerts for contracts approaching expiration.',
-    ],
-    admin: 'You can create and modify SLA templates for the organization.',
+    en: {
+      title: 'Contracts & SLAs',
+      description: 'Manage service-level agreements, maintenance contracts, and recurring revenue streams with clients.',
+      features: [
+        'Define SLA terms including response times and uptime guarantees.',
+        'Track contract renewal dates and recurring revenue.',
+        'Set up alerts for contracts approaching expiration (30/60/90 day windows).',
+        'View revenue recognition per fiscal year with automatic projections.',
+        'Switch between List and Kanban views to manage contract lifecycle.',
+        'Add product line items to SLAs from the product catalog.',
+      ],
+      steps: [
+        '1. Click "New SLA" to open the form.',
+        '2. Select BU, status, and enter the client name.',
+        '3. Choose the SLA owner and SLA type.',
+        '4. Enter annual value and set start/end dates.',
+        '5. Configure billing model (fixed or variable) and frequency.',
+        '6. Save — revenue is automatically projected across fiscal years.',
+        '7. Use the Renewal section on active SLAs to renew with a price increase.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Not setting start/end dates — revenue projections will be empty.',
+        'Forgetting to update status after contract renewal — keeps pipeline metrics accurate.',
+        'Creating SLAs without linking to a client — they will not roll up to client analytics.',
+        'Not adding product line items — total value may be manually entered instead of computed.',
+      ],
+      seeAlso: [
+        { label: 'Deals — deals can be converted to SLA contracts', path: '/deals' },
+        { label: 'Products — line items reference the product catalog', path: '/products' },
+        { label: 'Clients — the parent records for SLA contracts', path: '/clients' },
+      ],
+      admin: 'You can create and modify SLA templates for the organization.',
+    },
+    es: {
+      title: 'Contratos y SLAs',
+      description: 'Gestiona acuerdos de nivel de servicio, contratos de mantenimiento y flujos de ingresos recurrentes.',
+      features: [
+        'Define terminos de SLA incluyendo tiempos de respuesta y garantias.',
+        'Rastrea fechas de renovacion y ingresos recurrentes.',
+        'Configura alertas para contratos proximos a vencer.',
+        'Visualiza reconocimiento de ingresos por ano fiscal.',
+        'Alterna entre vistas Lista y Kanban.',
+      ],
+      steps: [
+        '1. Haz clic en "Nuevo SLA" para abrir el formulario.',
+        '2. Selecciona BU, estado e introduce el nombre del cliente.',
+        '3. Elige responsable SLA y tipo.',
+        '4. Introduce valor anual y fechas de inicio/fin.',
+        '5. Configura modelo de facturacion y frecuencia.',
+        '6. Guardar — los ingresos se proyectan automaticamente.',
+        '7. Usa la seccion de Renovacion en SLAs activos para renovar con aumento.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'No configurar fechas de inicio/fin — las proyecciones de ingresos estaran vacias.',
+        'Olvidar actualizar el estado tras la renovacion.',
+        'Crear SLAs sin vincular a un cliente.',
+      ],
+      seeAlso: [
+        { label: 'Oportunidades — los deals pueden convertirse en contratos SLA', path: '/deals' },
+        { label: 'Productos — las lineas referencian el catalogo', path: '/products' },
+        { label: 'Clientes — los registros padre de los contratos SLA', path: '/clients' },
+      ],
+      admin: 'Puedes crear y modificar plantillas SLA para la organizacion.',
+    },
+    pt: {
+      title: 'Contratos e SLAs',
+      description: 'Gere acordos de nivel de servico, contratos de manutencao e fluxos de receita recorrente.',
+      features: [
+        'Define termos de SLA incluindo tempos de resposta e garantias.',
+        'Acompanha datas de renovacao e receita recorrente.',
+        'Configura alertas para contratos proximos de expirar.',
+        'Visualiza reconhecimento de receita por ano fiscal.',
+        'Alterna entre vistas Lista e Kanban.',
+      ],
+      steps: [
+        '1. Clica em "Novo SLA" para abrir o formulario.',
+        '2. Seleciona BU, estado e introduz o nome do cliente.',
+        '3. Escolhe responsavel SLA e tipo.',
+        '4. Introduz valor anual e datas de inicio/fim.',
+        '5. Configura modelo de faturacao e frequencia.',
+        '6. Guardar — a receita e projetada automaticamente.',
+        '7. Usa a seccao de Renovacao em SLAs ativos para renovar com aumento.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Nao configurar datas de inicio/fim — as projecoes de receita ficarao vazias.',
+        'Esquecer de atualizar o estado apos renovacao.',
+        'Criar SLAs sem ligar a um cliente.',
+      ],
+      seeAlso: [
+        { label: 'Negocios — os deals podem converter-se em contratos SLA', path: '/deals' },
+        { label: 'Produtos — as linhas referenciam o catalogo', path: '/products' },
+        { label: 'Clientes — os registos pai dos contratos SLA', path: '/clients' },
+      ],
+      admin: 'Podes criar e modificar templates SLA para a organizacao.',
+    },
   },
+
   '/products': {
-    title: 'Products',
-    description: 'Your product catalog. Products can be added as line items to deals.',
-    features: [
-      'Manage product names, codes, and pricing.',
-      'Products are referenced when building deal line items.',
-      'Organize products by category or business unit.',
-    ],
-    admin: 'You can add, edit, or archive products in the catalog.',
+    en: {
+      title: 'Products',
+      description: 'Your product catalog. Products can be added as line items to deals and SLA contracts.',
+      features: [
+        'Manage product names, SKU codes, and pricing (license fee + annual fee).',
+        'Products are grouped by category with collapsible sections.',
+        'Configure allowed pricing models and license types per product.',
+        'Compose products from components for bundled offerings.',
+        'Toggle active/inactive status and distributor visibility.',
+      ],
+      steps: [
+        '1. Click "New Product" to open the product form.',
+        '2. Enter category, SKU, and product name.',
+        '3. Set license fee and annual fee (list prices in EUR).',
+        '4. Select allowed pricing models (License+Annual, Subscription, Pay per Study, SaaS).',
+        '5. Choose business unit and toggle Active/Distributor Visible flags.',
+        '6. Save — the product is available for deal line items.',
+        '7. For bundles, use the Components tab to add sub-products.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Not setting a category — products will appear ungrouped.',
+        'Leaving annual fee at 0 — SLA line items will show zero value.',
+        'Deactivating a product still referenced in active deals — deals keep the old product but new deals cannot select it.',
+      ],
+      seeAlso: [
+        { label: 'Deals — products are added as line items to deals', path: '/deals' },
+        { label: 'SLAs — products can be added to contract line items', path: '/sla' },
+        { label: 'White-space — identifies missing client-product combinations', path: '/whitespace' },
+      ],
+      admin: 'You can add, edit, or archive products in the catalog.',
+    },
+    es: {
+      title: 'Productos',
+      description: 'Tu catalogo de productos. Los productos se anaden como lineas en deals y contratos SLA.',
+      features: [
+        'Gestiona nombres, codigos SKU y precios de los productos.',
+        'Productos agrupados por categoria con secciones colapsables.',
+        'Configura modelos de precio y tipos de licencia por producto.',
+        'Compone productos a partir de componentes para ofertas en bundle.',
+      ],
+      steps: [
+        '1. Haz clic en "Nuevo Producto" para abrir el formulario.',
+        '2. Introduce categoria, SKU y nombre.',
+        '3. Establece cuota de licencia y cuota anual.',
+        '4. Selecciona modelos de precio permitidos.',
+        '5. Elige unidad de negocio y activa las flags.',
+        '6. Guardar — el producto esta disponible para lineas en deals.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'No establecer una categoria — los productos apareceran sin agrupar.',
+        'Dejar la cuota anual en 0 — las lineas SLA mostraran valor cero.',
+      ],
+      seeAlso: [
+        { label: 'Oportunidades — los productos se anaden como lineas en deals', path: '/deals' },
+        { label: 'SLAs — los productos pueden anadirse a lineas de contrato', path: '/sla' },
+      ],
+      admin: 'Puedes anadir, editar o archivar productos en el catalogo.',
+    },
+    pt: {
+      title: 'Produtos',
+      description: 'O teu catalogo de produtos. Os produtos sao adicionados como linhas em deals e contratos SLA.',
+      features: [
+        'Gere nomes, codigos SKU e precos dos produtos.',
+        'Produtos agrupados por categoria com seccoes recolhiveis.',
+        'Configura modelos de preco e tipos de licenca por produto.',
+        'Compoe produtos a partir de componentes para ofertas em bundle.',
+      ],
+      steps: [
+        '1. Clica em "Novo Produto" para abrir o formulario.',
+        '2. Introduz categoria, SKU e nome.',
+        '3. Define taxa de licenca e taxa anual.',
+        '4. Seleciona modelos de preco permitidos.',
+        '5. Escolhe unidade de negocio e ativa as flags.',
+        '6. Guardar — o produto fica disponivel para linhas em deals.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Nao definir uma categoria — os produtos aparecerao sem agrupamento.',
+        'Deixar a taxa anual em 0 — as linhas SLA mostrarao valor zero.',
+      ],
+      seeAlso: [
+        { label: 'Negocios — os produtos sao adicionados como linhas em deals', path: '/deals' },
+        { label: 'SLAs — os produtos podem ser adicionados a linhas de contrato', path: '/sla' },
+      ],
+      admin: 'Podes adicionar, editar ou arquivar produtos no catalogo.',
+    },
   },
+
   '/budget': {
-    title: 'Budget',
-    description: 'Financial planning with Profit & Loss views and Forecast (FCT) tracking.',
-    features: [
-      'Compare actual revenue against budget targets.',
-      'View P&L breakdowns by business unit or time period.',
-      'FCT tab shows rolling forecasts based on pipeline data.',
-    ],
-    admin: 'You can set and adjust budget targets for all business units.',
+    en: {
+      title: 'Budget',
+      description: 'Financial planning with Profit & Loss views and Forecast (FCT) tracking across budget cycles.',
+      features: [
+        'Compare actual revenue against budget targets (BUD, EST1, EST2, ACT).',
+        'View P&L breakdowns by business unit (VGT, ECT, Iberia).',
+        'FCT tab shows rolling forecasts based on pipeline data.',
+        'Period filters: Full Year, Q1-Q4, H1, H2.',
+        'Comparison mode: ACT vs BUD, ACT vs EST1, etc.',
+      ],
+      steps: [
+        '1. Select the BU tab (VGT / ECT / Iberia).',
+        '2. Choose the budget cycle (BUD, EST1, EST2, ACT).',
+        '3. Select the period (Full Year, Quarter, or Half).',
+        '4. Enter values for input rows (NS Internal, NS External, COGS, etc.).',
+        '5. Derived rows (Net Sales, Gross Margin, OP1, OP2) compute automatically.',
+        '6. Click "Save changes" to persist your edits.',
+        '7. Use Compare mode to see variance between two cycles.',
+      ],
+      shortcuts: [
+        'Tab — Move between cells in the budget grid.',
+      ],
+      mistakes: [
+        'Editing the wrong cycle — check the active cycle badge before entering data.',
+        'Not saving after editing — changes are lost when navigating away.',
+        'Entering values in thousands when the grid expects actual values (or vice versa).',
+      ],
+      seeAlso: [
+        { label: 'Dashboard — gauges compare actuals against these budget targets', path: '/' },
+        { label: 'Quotas — individual sales targets derived from budget', path: '/quotas' },
+        { label: 'History — view last year actual results', path: '/history' },
+      ],
+      admin: 'You can set and adjust budget targets for all business units.',
+    },
+    es: {
+      title: 'Presupuesto',
+      description: 'Planificacion financiera con vistas de P&L y seguimiento de prevision (FCT) por ciclos.',
+      features: [
+        'Compara ingresos reales contra objetivos de presupuesto.',
+        'Vista de P&L por unidad de negocio.',
+        'Pestana FCT con previsiones rolling.',
+        'Filtros de periodo: Ano Completo, Q1-Q4, H1, H2.',
+      ],
+      steps: [
+        '1. Selecciona la pestana de BU (VGT / ECT / Iberia).',
+        '2. Elige el ciclo de presupuesto.',
+        '3. Selecciona el periodo.',
+        '4. Introduce valores para las filas de entrada.',
+        '5. Las filas derivadas se calculan automaticamente.',
+        '6. Haz clic en "Guardar cambios".',
+      ],
+      shortcuts: ['Tab — Mover entre celdas en la rejilla.'],
+      mistakes: [
+        'Editar el ciclo incorrecto — verifica la insignia de ciclo activo.',
+        'No guardar despues de editar.',
+      ],
+      seeAlso: [
+        { label: 'Panel — los gauges comparan reales contra estos objetivos', path: '/' },
+        { label: 'Objetivos — objetivos individuales derivados del presupuesto', path: '/quotas' },
+      ],
+      admin: 'Puedes establecer y ajustar objetivos para todas las unidades.',
+    },
+    pt: {
+      title: 'Orcamento',
+      description: 'Planeamento financeiro com vistas de P&L e acompanhamento de previsao (FCT) por ciclos.',
+      features: [
+        'Compara receita real contra objetivos de orcamento.',
+        'Vista de P&L por unidade de negocio.',
+        'Aba FCT com previsoes rolling.',
+        'Filtros de periodo: Ano Completo, Q1-Q4, H1, H2.',
+      ],
+      steps: [
+        '1. Seleciona a aba de BU (VGT / ECT / Iberia).',
+        '2. Escolhe o ciclo de orcamento.',
+        '3. Seleciona o periodo.',
+        '4. Introduz valores para as linhas de entrada.',
+        '5. As linhas derivadas calculam-se automaticamente.',
+        '6. Clica em "Guardar alteracoes".',
+      ],
+      shortcuts: ['Tab — Mover entre celulas na grelha.'],
+      mistakes: [
+        'Editar o ciclo errado — verifica a insignia de ciclo ativo.',
+        'Nao guardar apos editar.',
+      ],
+      seeAlso: [
+        { label: 'Painel — os gauges comparam reais contra estes objetivos', path: '/' },
+        { label: 'Objetivos — objetivos individuais derivados do orcamento', path: '/quotas' },
+      ],
+      admin: 'Podes definir e ajustar objetivos para todas as unidades.',
+    },
   },
+
   '/network': {
-    title: 'Network',
-    description: 'Manage your distribution network including distributors and hub locations.',
-    features: [
-      'View and manage distributor relationships.',
-      'Track hub locations and their associated territories.',
-      'Link network entities to deals and clients.',
-    ],
-    admin: 'You can configure network hierarchy and assign territories.',
+    en: {
+      title: 'Network',
+      description: 'Manage your distribution network including distributors, hubs, and their associated territories.',
+      features: [
+        'View and manage distributor relationships.',
+        'Track hub locations and their associated territories.',
+        'Link network entities to deals and clients.',
+        'See performance metrics per distributor: pipeline, invoiced, target attainment.',
+      ],
+      steps: [
+        '1. View the list of distributors and hubs.',
+        '2. Click a distributor to see their dashboard: deals, clients, and target.',
+        '3. Use the admin panel to add new distributors or hubs.',
+        '4. Link distributors to client records and deals for chain tracking.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Not linking distributors to deals — distribution margin calculations will be missing.',
+        'Creating duplicate distributor records for the same partner.',
+      ],
+      seeAlso: [
+        { label: 'Deals — distribution chain and margin per level', path: '/deals' },
+        { label: 'Clients — link clients to their distributor', path: '/clients' },
+      ],
+      admin: 'You can configure network hierarchy and assign territories.',
+    },
+    es: {
+      title: 'Red',
+      description: 'Gestiona tu red de distribucion incluyendo distribuidores, hubs y sus territorios.',
+      features: [
+        'Ve y gestiona relaciones con distribuidores.',
+        'Rastrea ubicaciones de hubs y sus territorios asociados.',
+        'Vincula entidades de red a deals y clientes.',
+      ],
+      steps: [
+        '1. Ve la lista de distribuidores y hubs.',
+        '2. Haz clic en un distribuidor para ver su panel.',
+        '3. Usa el panel admin para anadir nuevos distribuidores.',
+        '4. Vincula distribuidores a clientes y deals.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'No vincular distribuidores a deals — faltaran calculos de margen.',
+        'Crear registros duplicados de distribuidores.',
+      ],
+      seeAlso: [
+        { label: 'Oportunidades — cadena de distribucion y margen por nivel', path: '/deals' },
+        { label: 'Clientes — vincula clientes a su distribuidor', path: '/clients' },
+      ],
+      admin: 'Puedes configurar la jerarquia de red y asignar territorios.',
+    },
+    pt: {
+      title: 'Rede',
+      description: 'Gere a tua rede de distribuicao incluindo distribuidores, hubs e seus territorios.',
+      features: [
+        'Ve e gere relacoes com distribuidores.',
+        'Acompanha localizacoes de hubs e seus territorios associados.',
+        'Liga entidades de rede a deals e clientes.',
+      ],
+      steps: [
+        '1. Ve a lista de distribuidores e hubs.',
+        '2. Clica num distribuidor para ver o seu painel.',
+        '3. Usa o painel admin para adicionar novos distribuidores.',
+        '4. Liga distribuidores a clientes e deals.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Nao ligar distribuidores a deals — faltarao calculos de margem.',
+        'Criar registos duplicados de distribuidores.',
+      ],
+      seeAlso: [
+        { label: 'Negocios — cadeia de distribuicao e margem por nivel', path: '/deals' },
+        { label: 'Clientes — liga clientes ao seu distribuidor', path: '/clients' },
+      ],
+      admin: 'Podes configurar a hierarquia de rede e atribuir territorios.',
+    },
   },
+
   '/quotas': {
-    title: 'Quotas',
-    description: 'Sales quota tracking and target management for individuals and teams.',
-    features: [
-      'View quota attainment percentages and progress bars.',
-      'Compare performance across team members or periods.',
-    ],
-    admin: 'You can set and adjust quotas for all team members.',
+    en: {
+      title: 'Quotas',
+      description: 'Sales quota tracking and target management for individuals and teams across the fiscal year.',
+      features: [
+        'View quota attainment percentages and progress bars.',
+        'Compare performance across team members or periods.',
+        'See actuals (invoiced) vs forecast (backlog + invoiced) vs target.',
+        'Team rollup shows consolidated performance.',
+      ],
+      steps: [
+        '1. View the quota table showing each sales owner.',
+        '2. Compare Actuals vs Forecast vs Target columns.',
+        '3. Click a row to see monthly breakdown.',
+        '4. Admins can edit targets by clicking the edit button.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Comparing individual targets without checking team rollup — individual goals may not sum to team target.',
+      ],
+      seeAlso: [
+        { label: 'Budget — team-level targets that feed quota assignments', path: '/budget' },
+        { label: 'Dashboard — quota attainment gauges', path: '/' },
+        { label: 'Deals — the deals that drive actuals and forecast', path: '/deals' },
+      ],
+      admin: 'You can set and adjust quotas for all team members.',
+    },
+    es: {
+      title: 'Objetivos de Ventas',
+      description: 'Seguimiento de cuotas y gestion de objetivos para individuos y equipos.',
+      features: [
+        'Ve porcentajes de consecucion y barras de progreso.',
+        'Compara rendimiento entre miembros del equipo.',
+        'Ve reales vs prevision vs objetivo.',
+      ],
+      steps: [
+        '1. Ve la tabla de cuotas mostrando cada responsable.',
+        '2. Compara columnas de Reales vs Prevision vs Objetivo.',
+        '3. Haz clic en una fila para ver desglose mensual.',
+        '4. Los admins pueden editar objetivos.',
+      ],
+      shortcuts: [],
+      mistakes: ['Comparar objetivos individuales sin verificar el total del equipo.'],
+      seeAlso: [
+        { label: 'Presupuesto — objetivos de equipo que alimentan las cuotas', path: '/budget' },
+        { label: 'Panel — gauges de consecucion', path: '/' },
+      ],
+      admin: 'Puedes establecer y ajustar cuotas para todos los miembros.',
+    },
+    pt: {
+      title: 'Objetivos de Vendas',
+      description: 'Acompanhamento de quotas e gestao de objetivos para individuos e equipas.',
+      features: [
+        'Ve percentagens de consecucao e barras de progresso.',
+        'Compara desempenho entre membros da equipa.',
+        'Ve reais vs previsao vs objetivo.',
+      ],
+      steps: [
+        '1. Ve a tabela de quotas mostrando cada responsavel.',
+        '2. Compara colunas de Reais vs Previsao vs Objetivo.',
+        '3. Clica numa linha para ver detalhe mensal.',
+        '4. Os admins podem editar objetivos.',
+      ],
+      shortcuts: [],
+      mistakes: ['Comparar objetivos individuais sem verificar o total da equipa.'],
+      seeAlso: [
+        { label: 'Orcamento — objetivos de equipa que alimentam as quotas', path: '/budget' },
+        { label: 'Painel — gauges de consecucao', path: '/' },
+      ],
+      admin: 'Podes definir e ajustar quotas para todos os membros.',
+    },
   },
+
   '/whitespace': {
-    title: 'WhiteSpace',
-    description: 'Identify untapped opportunities by analyzing gaps in your client-product coverage.',
-    features: [
-      'The matrix shows clients vs. products — gaps highlight upsell opportunities.',
-      'Click a cell to see existing deals or create a new one for that combination.',
-    ],
-    admin: 'You can see whitespace data across all business units.',
+    en: {
+      title: 'WhiteSpace',
+      description: 'Identify untapped opportunities by analyzing gaps in your client-product coverage matrix.',
+      features: [
+        'The matrix shows clients vs. products — gaps highlight upsell opportunities.',
+        'Click a cell to see existing deals or create a new one for that combination.',
+        'Color-coded cells: green = active deal, yellow = pipeline, empty = whitespace opportunity.',
+      ],
+      steps: [
+        '1. Review the matrix — rows are clients, columns are products.',
+        '2. Look for empty cells — these are potential upsell opportunities.',
+        '3. Click an empty cell to create a new deal for that client-product pair.',
+        '4. Click a filled cell to view or edit the existing deal.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Ignoring cells that show pipeline deals — they may need follow-up to close.',
+        'Not filtering by BU first — the matrix may be too large to read.',
+      ],
+      seeAlso: [
+        { label: 'Deals — create deals directly from whitespace gaps', path: '/deals' },
+        { label: 'Products — the product catalog shown as columns', path: '/products' },
+        { label: 'Clients — the client list shown as rows', path: '/clients' },
+      ],
+      admin: 'You can see whitespace data across all business units.',
+    },
+    es: {
+      title: 'Oportunidades',
+      description: 'Identifica oportunidades sin explotar analizando gaps en la cobertura cliente-producto.',
+      features: [
+        'La matriz muestra clientes vs productos — los huecos destacan oportunidades de upsell.',
+        'Haz clic en una celda para ver deals existentes o crear uno nuevo.',
+      ],
+      steps: [
+        '1. Revisa la matriz — filas son clientes, columnas son productos.',
+        '2. Busca celdas vacias — son oportunidades potenciales.',
+        '3. Haz clic en una celda vacia para crear un nuevo deal.',
+        '4. Haz clic en una celda llena para ver o editar el deal existente.',
+      ],
+      shortcuts: [],
+      mistakes: ['No filtrar por BU primero — la matriz puede ser demasiado grande.'],
+      seeAlso: [
+        { label: 'Oportunidades — crea deals directamente desde los gaps', path: '/deals' },
+        { label: 'Productos — el catalogo mostrado como columnas', path: '/products' },
+      ],
+      admin: 'Puedes ver datos de whitespace de todas las unidades.',
+    },
+    pt: {
+      title: 'Oportunidades',
+      description: 'Identifica oportunidades nao exploradas analisando gaps na cobertura cliente-produto.',
+      features: [
+        'A matriz mostra clientes vs produtos — os vazios destacam oportunidades de upsell.',
+        'Clica numa celula para ver deals existentes ou criar um novo.',
+      ],
+      steps: [
+        '1. Revisa a matriz — linhas sao clientes, colunas sao produtos.',
+        '2. Procura celulas vazias — sao oportunidades potenciais.',
+        '3. Clica numa celula vazia para criar um novo deal.',
+        '4. Clica numa celula preenchida para ver ou editar o deal existente.',
+      ],
+      shortcuts: [],
+      mistakes: ['Nao filtrar por BU primeiro — a matriz pode ser demasiado grande.'],
+      seeAlso: [
+        { label: 'Negocios — cria deals diretamente dos gaps', path: '/deals' },
+        { label: 'Produtos — o catalogo mostrado como colunas', path: '/products' },
+      ],
+      admin: 'Podes ver dados de whitespace de todas as unidades.',
+    },
   },
+
   '/history': {
-    title: 'History',
-    description: 'Browse historical deal data and track changes over time.',
-    features: [
-      'View past deal stages, amounts, and outcomes.',
-      'Filter history by date range, client, or deal owner.',
-    ],
+    en: {
+      title: 'History',
+      description: 'Browse historical deal data and track actual results from previous fiscal years.',
+      features: [
+        'View past deal stages, amounts, and outcomes.',
+        'Filter history by date range, client, or deal owner.',
+        'Monthly Net Sales and Gross Margin charts for FY25.',
+        'Compare VGT vs ECT performance historically.',
+      ],
+      steps: [
+        '1. Review the KPI summary cards at the top.',
+        '2. Scroll down to see monthly charts.',
+        '3. Use the detail table for month-by-month breakdown.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Comparing FY25 actuals with FY26 forecasts without accounting for seasonality.',
+      ],
+      seeAlso: [
+        { label: 'Budget — current year targets vs last year actuals', path: '/budget' },
+        { label: 'Dashboard — current year performance', path: '/' },
+      ],
+    },
+    es: {
+      title: 'Historial',
+      description: 'Consulta datos historicos de deals y resultados reales de anos fiscales anteriores.',
+      features: [
+        'Ve etapas, importes y resultados pasados.',
+        'Filtra historial por rango de fechas, cliente o responsable.',
+        'Graficos mensuales de Ventas Netas y Margen Bruto.',
+      ],
+      steps: [
+        '1. Revisa los resumes KPI en la parte superior.',
+        '2. Desplazate para ver graficos mensuales.',
+        '3. Usa la tabla de detalle para desglose mes a mes.',
+      ],
+      shortcuts: [],
+      mistakes: ['Comparar reales FY25 con previsiones FY26 sin considerar estacionalidad.'],
+      seeAlso: [
+        { label: 'Presupuesto — objetivos actuales vs reales del ano pasado', path: '/budget' },
+        { label: 'Panel — rendimiento del ano actual', path: '/' },
+      ],
+    },
+    pt: {
+      title: 'Historico',
+      description: 'Consulta dados historicos de deals e resultados reais de anos fiscais anteriores.',
+      features: [
+        'Ve fases, montantes e resultados passados.',
+        'Filtra historico por intervalo de datas, cliente ou responsavel.',
+        'Graficos mensais de Vendas Liquidas e Margem Bruta.',
+      ],
+      steps: [
+        '1. Revisa os resumos KPI no topo.',
+        '2. Desce para ver graficos mensais.',
+        '3. Usa a tabela de detalhe para detalhe mes a mes.',
+      ],
+      shortcuts: [],
+      mistakes: ['Comparar reais FY25 com previsoes FY26 sem considerar sazonalidade.'],
+      seeAlso: [
+        { label: 'Orcamento — objetivos atuais vs reais do ano passado', path: '/budget' },
+        { label: 'Painel — desempenho do ano atual', path: '/' },
+      ],
+    },
   },
+
   '/settings': {
-    title: 'Settings',
-    description: 'Configure application preferences, business units, stages, and system parameters.',
-    features: [
-      'Manage deal stages, forecast categories, and currency settings.',
-      'Configure business unit structure and team assignments.',
-      'Adjust system-wide defaults and display options.',
-    ],
-    admin: 'Full access to all settings. Changes affect all users in the organization.',
+    en: {
+      title: 'Settings',
+      description: 'Configure application preferences, business units, stages, currency, and system-wide parameters.',
+      features: [
+        'Manage deal stages, forecast categories, and currency settings.',
+        'Configure business unit structure and team assignments.',
+        'Adjust system-wide defaults and display options.',
+        'Exchange rate configuration for multi-currency deals.',
+      ],
+      steps: [
+        '1. Navigate through the settings sections.',
+        '2. Modify values as needed.',
+        '3. Save — changes take effect immediately for all users.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Changing deal stages without updating existing deals — they may become orphaned.',
+        'Modifying exchange rates — changes apply to future deals only, not retroactively.',
+      ],
+      seeAlso: [
+        { label: 'Permissions — control who can access which pages', path: '/permissions' },
+        { label: 'Users — manage user accounts and roles', path: '/users' },
+      ],
+      admin: 'Full access to all settings. Changes affect all users in the organization.',
+    },
+    es: {
+      title: 'Configuracion',
+      description: 'Configura preferencias, unidades de negocio, etapas, moneda y parametros del sistema.',
+      features: [
+        'Gestiona etapas de deals, categorias de prevision y moneda.',
+        'Configura estructura de unidades de negocio.',
+        'Ajusta valores por defecto del sistema.',
+      ],
+      steps: [
+        '1. Navega por las secciones de configuracion.',
+        '2. Modifica los valores necesarios.',
+        '3. Guardar — los cambios se aplican inmediatamente.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Cambiar etapas de deals sin actualizar deals existentes.',
+        'Modificar tasas de cambio — los cambios aplican solo a deals futuros.',
+      ],
+      seeAlso: [
+        { label: 'Permisos — controla quien accede a que paginas', path: '/permissions' },
+      ],
+      admin: 'Acceso completo a toda la configuracion. Los cambios afectan a todos los usuarios.',
+    },
+    pt: {
+      title: 'Definicoes',
+      description: 'Configura preferencias, unidades de negocio, fases, moeda e parametros do sistema.',
+      features: [
+        'Gere fases de deals, categorias de previsao e moeda.',
+        'Configura estrutura de unidades de negocio.',
+        'Ajusta valores por defeito do sistema.',
+      ],
+      steps: [
+        '1. Navega pelas seccoes de configuracao.',
+        '2. Modifica os valores necessarios.',
+        '3. Guardar — as alteracoes aplicam-se imediatamente.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Mudar fases de deals sem atualizar deals existentes.',
+        'Modificar taxas de cambio — as alteracoes aplicam-se apenas a deals futuros.',
+      ],
+      seeAlso: [
+        { label: 'Permissoes — controla quem acede a que paginas', path: '/permissions' },
+      ],
+      admin: 'Acesso completo a todas as definicoes. As alteracoes afetam todos os utilizadores.',
+    },
   },
+
   '/permissions': {
-    title: 'Permissions',
-    description: 'Manage user roles and permission sets that control access throughout the application.',
-    features: [
-      'Create custom permission sets with granular page-level access.',
-      'Assign permission sets to users to override default role permissions.',
-      'Control edit, delete, and visibility scopes per permission set.',
-    ],
-    admin: 'You are managing permissions for all users. Be careful with changes — they take effect immediately.',
+    en: {
+      title: 'Permissions',
+      description: 'Manage user roles and permission sets that control access throughout the application.',
+      features: [
+        'Create custom permission sets with granular page-level access.',
+        'Assign permission sets to users to override default role permissions.',
+        'Control edit, delete, and visibility scopes per permission set.',
+        'Manage user invitations and account activation.',
+      ],
+      steps: [
+        '1. View existing permission sets in the "Permission Sets" tab.',
+        '2. Click "New set" to create a custom permission template.',
+        '3. Name the set, select accessible pages, and configure actions (edit/delete).',
+        '4. Switch to the "Users" tab to assign permission sets to individuals.',
+        '5. Use "Add user" to invite new users via email.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Removing page access without warning users — they will see a restricted message.',
+        'Not assigning a permission set — user falls back to their role defaults.',
+        'Editing your own permissions — you cannot modify your own profile from this page.',
+      ],
+      seeAlso: [
+        { label: 'Settings — system-wide configuration', path: '/settings' },
+        { label: 'Audit Log — track permission changes', path: '/audit' },
+      ],
+      admin: 'You are managing permissions for all users. Be careful with changes — they take effect immediately.',
+    },
+    es: {
+      title: 'Permisos',
+      description: 'Gestiona roles de usuario y conjuntos de permisos que controlan el acceso en la aplicacion.',
+      features: [
+        'Crea conjuntos de permisos personalizados con acceso granular por pagina.',
+        'Asigna conjuntos a usuarios para anular los permisos por defecto.',
+        'Controla edicion, eliminacion y visibilidad por conjunto.',
+      ],
+      steps: [
+        '1. Ve los conjuntos existentes en la pestana "Conjuntos".',
+        '2. Haz clic en "Nuevo conjunto" para crear una plantilla.',
+        '3. Nombra el conjunto, selecciona paginas y configura acciones.',
+        '4. Cambia a la pestana "Usuarios" para asignar conjuntos.',
+        '5. Usa "Anadir usuario" para invitar via email.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Quitar acceso a paginas sin avisar a los usuarios.',
+        'No asignar un conjunto de permisos — el usuario usa los valores por defecto del rol.',
+      ],
+      seeAlso: [
+        { label: 'Configuracion — configuracion del sistema', path: '/settings' },
+        { label: 'Auditoria — rastrea cambios de permisos', path: '/audit' },
+      ],
+      admin: 'Gestionas permisos para todos los usuarios. Los cambios aplican inmediatamente.',
+    },
+    pt: {
+      title: 'Permissoes',
+      description: 'Gere papeis de utilizador e conjuntos de permissoes que controlam o acesso na aplicacao.',
+      features: [
+        'Cria conjuntos de permissoes personalizados com acesso granular por pagina.',
+        'Atribui conjuntos a utilizadores para substituir permissoes por defeito.',
+        'Controla edicao, eliminacao e visibilidade por conjunto.',
+      ],
+      steps: [
+        '1. Ve os conjuntos existentes na aba "Conjuntos".',
+        '2. Clica em "Novo conjunto" para criar um template.',
+        '3. Nomeia o conjunto, seleciona paginas e configura acoes.',
+        '4. Muda para a aba "Utilizadores" para atribuir conjuntos.',
+        '5. Usa "Adicionar utilizador" para convidar via email.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Remover acesso a paginas sem avisar os utilizadores.',
+        'Nao atribuir um conjunto de permissoes — o utilizador usa os valores por defeito do perfil.',
+      ],
+      seeAlso: [
+        { label: 'Definicoes — configuracao do sistema', path: '/settings' },
+        { label: 'Auditoria — acompanha alteracoes de permissoes', path: '/audit' },
+      ],
+      admin: 'Geres permissoes para todos os utilizadores. As alteracoes aplicam-se imediatamente.',
+    },
   },
+
   '/audit': {
-    title: 'Audit Log',
-    description: 'Track all changes made across the system for compliance and accountability.',
-    features: [
-      'View who changed what and when, with before/after values.',
-      'Filter by user, entity type, or date range.',
-    ],
-    admin: 'You have full access to the audit trail. Use this to investigate data discrepancies.',
+    en: {
+      title: 'Audit Log',
+      description: 'Track all changes made across the system for compliance and accountability.',
+      features: [
+        'View who changed what and when, with before/after values.',
+        'Filter by user, entity type, or date range.',
+        'Search the audit trail by keyword.',
+      ],
+      steps: [
+        '1. Browse the chronological list of changes.',
+        '2. Use filters to narrow by user, entity, or date.',
+        '3. Expand an entry to see before/after field values.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Searching too broadly — use entity type filters to narrow results.',
+      ],
+      seeAlso: [
+        { label: 'Permissions — audit who changed permission configurations', path: '/permissions' },
+        { label: 'Deals — the most frequently audited entity', path: '/deals' },
+      ],
+      admin: 'You have full access to the audit trail. Use this to investigate data discrepancies.',
+    },
+    es: {
+      title: 'Auditoria',
+      description: 'Rastrea todos los cambios realizados en el sistema para cumplimiento y responsabilidad.',
+      features: [
+        'Ve quien cambio que y cuando, con valores antes/despues.',
+        'Filtra por usuario, tipo de entidad o rango de fechas.',
+      ],
+      steps: [
+        '1. Navega la lista cronologica de cambios.',
+        '2. Usa filtros para acotar por usuario, entidad o fecha.',
+        '3. Expande una entrada para ver valores antes/despues.',
+      ],
+      shortcuts: [],
+      mistakes: ['Buscar demasiado amplio — usa filtros de tipo de entidad.'],
+      seeAlso: [
+        { label: 'Permisos — audita cambios en la configuracion de permisos', path: '/permissions' },
+      ],
+      admin: 'Tienes acceso completo al rastro de auditoria.',
+    },
+    pt: {
+      title: 'Auditoria',
+      description: 'Acompanha todas as alteracoes feitas no sistema para conformidade e responsabilidade.',
+      features: [
+        'Ve quem mudou o que e quando, com valores antes/depois.',
+        'Filtra por utilizador, tipo de entidade ou intervalo de datas.',
+      ],
+      steps: [
+        '1. Navega a lista cronologica de alteracoes.',
+        '2. Usa filtros para acotar por utilizador, entidade ou data.',
+        '3. Expande uma entrada para ver valores antes/depois.',
+      ],
+      shortcuts: [],
+      mistakes: ['Pesquisar demasiado amplo — usa filtros de tipo de entidade.'],
+      seeAlso: [
+        { label: 'Permissoes — audita alteracoes na configuracao de permissoes', path: '/permissions' },
+      ],
+      admin: 'Tens acesso completo ao rasto de auditoria.',
+    },
   },
 }
 
 const DEFAULT_HELP = {
-  title: 'Help',
-  description: 'Welcome to BusinessBook CRM. Use the navigation menu to access different modules.',
-  features: ['Click the help button on any page for context-specific guidance.'],
+  en: {
+    title: 'Help',
+    description: 'Welcome to BusinessBook CRM. Use the navigation menu to access different modules.',
+    features: ['Click the help button on any page for context-specific guidance.'],
+    steps: [],
+    shortcuts: [],
+    mistakes: [],
+    seeAlso: [],
+  },
+  es: {
+    title: 'Ayuda',
+    description: 'Bienvenido a BusinessBook CRM. Usa el menu de navegacion para acceder a los diferentes modulos.',
+    features: ['Haz clic en el boton de ayuda en cualquier pagina para orientacion contextual.'],
+    steps: [],
+    shortcuts: [],
+    mistakes: [],
+    seeAlso: [],
+  },
+  pt: {
+    title: 'Ajuda',
+    description: 'Bem-vindo ao BusinessBook CRM. Usa o menu de navegacao para aceder aos diferentes modulos.',
+    features: ['Clica no botao de ajuda em qualquer pagina para orientacao contextual.'],
+    steps: [],
+    shortcuts: [],
+    mistakes: [],
+    seeAlso: [],
+  },
+}
+
+// Section headers per language
+const SECTION_LABELS = {
+  en: { features: 'Key Features', steps: 'Step-by-Step', shortcuts: 'Keyboard Shortcuts', mistakes: 'Common Mistakes', seeAlso: 'Related Pages', adminTip: 'Admin Tip', note: 'Note' },
+  es: { features: 'Funcionalidades', steps: 'Paso a Paso', shortcuts: 'Atajos de Teclado', mistakes: 'Errores Comunes', seeAlso: 'Paginas Relacionadas', adminTip: 'Consejo Admin', note: 'Nota' },
+  pt: { features: 'Funcionalidades', steps: 'Passo a Passo', shortcuts: 'Atalhos de Teclado', mistakes: 'Erros Comuns', seeAlso: 'Paginas Relacionadas', adminTip: 'Dica Admin', note: 'Nota' },
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -187,11 +1496,14 @@ export default function HelpGuide() {
   const [open, setOpen] = useState(false)
   const { pathname } = useLocation()
   const { role } = useAuth()
+  const { lang } = useTranslation()
 
   // Close panel on page change
   useEffect(() => { setOpen(false) }, [pathname])
 
-  const page = HELP[pathname] || DEFAULT_HELP
+  const helpEntry = HELP[pathname] || DEFAULT_HELP
+  const page = helpEntry[lang] || helpEntry['en'] || DEFAULT_HELP['en']
+  const labels = SECTION_LABELS[lang] || SECTION_LABELS['en']
   const roleTip = role === 'admin' ? page.admin : role === 'viewer' ? page.viewer : null
 
   return (
@@ -226,9 +1538,10 @@ export default function HelpGuide() {
         <div className="px-5 py-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 60px)' }}>
           <p className="text-sm text-gray-600 leading-relaxed mb-4">{page.description}</p>
 
+          {/* Key Features */}
           {page.features?.length > 0 && (
             <>
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Key Features</h3>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{labels.features}</h3>
               <ul className="space-y-2 mb-4">
                 {page.features.map((f, i) => (
                   <li key={i} className="flex gap-2 text-sm text-gray-700 leading-snug">
@@ -240,10 +1553,66 @@ export default function HelpGuide() {
             </>
           )}
 
+          {/* Step-by-Step */}
+          {page.steps?.length > 0 && (
+            <>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{labels.steps}</h3>
+              <ol className="space-y-1.5 mb-4">
+                {page.steps.map((s, i) => (
+                  <li key={i} className="text-sm text-gray-700 leading-snug pl-1">{s}</li>
+                ))}
+              </ol>
+            </>
+          )}
+
+          {/* Keyboard Shortcuts */}
+          {page.shortcuts?.length > 0 && (
+            <>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{labels.shortcuts}</h3>
+              <ul className="space-y-1 mb-4">
+                {page.shortcuts.map((s, i) => (
+                  <li key={i} className="text-sm text-gray-600 leading-snug font-mono bg-gray-50 px-2 py-1 rounded">{s}</li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {/* Common Mistakes */}
+          {page.mistakes?.length > 0 && (
+            <>
+              <h3 className="text-xs font-semibold text-amber-500 uppercase tracking-wider mb-2">{labels.mistakes}</h3>
+              <ul className="space-y-2 mb-4">
+                {page.mistakes.map((m, i) => (
+                  <li key={i} className="flex gap-2 text-sm text-amber-700 leading-snug bg-amber-50 px-3 py-2 rounded-lg">
+                    <span className="shrink-0 mt-0.5">&#9888;</span>
+                    <span>{m}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {/* Related Pages */}
+          {page.seeAlso?.length > 0 && (
+            <>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{labels.seeAlso}</h3>
+              <ul className="space-y-1 mb-4">
+                {page.seeAlso.map((link, i) => (
+                  <li key={i}>
+                    <a href={link.path} className="text-sm text-blue-600 hover:text-blue-800 hover:underline leading-snug block py-0.5">
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {/* Role Tip */}
           {roleTip && (
             <div className="bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 mt-2">
               <h3 className="text-xs font-semibold text-blue-800 uppercase tracking-wider mb-1">
-                {role === 'admin' ? 'Admin Tip' : 'Note'}
+                {role === 'admin' ? labels.adminTip : labels.note}
               </h3>
               <p className="text-sm text-blue-700 leading-snug">{roleTip}</p>
             </div>

@@ -544,6 +544,43 @@ function CompaniesSection({ companies, onRefresh }) {
   const [adding, setAdding] = useState(false)
   const [form, setForm] = useState({ name:'', type:'distributor', country:'' })
   const [saving, setSaving] = useState(false)
+  const [editingAuth, setEditingAuth] = useState(null)
+  const [authProducts, setAuthProducts] = useState([])
+  const [catalogProducts, setCatalogProducts] = useState([])
+  const [addProd, setAddProd] = useState('')
+  const [addCountry, setAddCountry] = useState('')
+
+  useEffect(() => {
+    supabase.from('products').select('id, name, sku, category').eq('active', true).order('name')
+      .then(({ data }) => { if (data) setCatalogProducts(data) }).catch(() => {})
+  }, [])
+
+  async function loadAuth(co) {
+    setEditingAuth(co)
+    const { data } = await supabase.from('company_product_authorizations')
+      .select('*, product:product_id(id, name, sku)')
+      .eq('company_id', co.id).order('created_at')
+    setAuthProducts(data || [])
+  }
+
+  async function addAuth() {
+    if (!addProd || !addCountry || !editingAuth) return
+    await supabase.from('company_product_authorizations').insert({
+      company_id: editingAuth.id, product_id: addProd, country: addCountry
+    })
+    setAddProd(''); setAddCountry('')
+    loadAuth(editingAuth)
+  }
+
+  async function removeAuth(id) {
+    await supabase.from('company_product_authorizations').delete().eq('id', id)
+    if (editingAuth) loadAuth(editingAuth)
+  }
+
+  async function toggleAuth(id, active) {
+    await supabase.from('company_product_authorizations').update({ active: !active }).eq('id', id)
+    if (editingAuth) loadAuth(editingAuth)
+  }
 
   async function handleAdd() {
     if (!form.name.trim()) return
@@ -621,10 +658,10 @@ function CompaniesSection({ companies, onRefresh }) {
               </div>
               {list.map(co => (
                 <div key={co.id} className={`px-3 py-2.5 flex items-center gap-2 border-b border-gray-50 last:border-0 ${!co.active ? 'opacity-40' : ''}`}>
-                  <div className="flex-1 min-w-0">
+                  <button onClick={() => loadAuth(co)} className="flex-1 min-w-0 text-left hover:text-blue-700">
                     <p className="text-sm font-medium text-gray-800 truncate">{co.name}</p>
                     {co.country && <p className="text-[10px] text-gray-400">{co.country}</p>}
-                  </div>
+                  </button>
                   <button onClick={async () => { await supabase.from('companies').update({active:!co.active}).eq('id',co.id); onRefresh() }}
                     className={`w-7 h-3.5 rounded-full transition-colors relative shrink-0 ${co.active ? 'bg-green-400' : 'bg-gray-200'}`}>
                     <span className={`absolute top-0.5 w-2.5 h-2.5 bg-white rounded-full shadow transition-transform ${co.active ? 'translate-x-3.5' : 'translate-x-0.5'}`}/>
@@ -635,6 +672,61 @@ function CompaniesSection({ companies, onRefresh }) {
           )
         })}
       </div>
+
+      {/* Product Authorization Modal */}
+      {editingAuth && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setEditingAuth(null)}/>
+          <div className="relative bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-3xl shadow-2xl flex flex-col" style={{ maxHeight: '90dvh' }}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <div>
+                <h3 className="font-semibold text-sm text-gray-900">{editingAuth.name}</h3>
+                <p className="text-[10px] text-gray-400">Authorized Products & Markets</p>
+              </div>
+              <button onClick={() => setEditingAuth(null)} className="text-gray-400 hover:text-gray-600 p-1"><X size={16}/></button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+              {authProducts.length > 0 ? (
+                <div className="space-y-1">
+                  {authProducts.map(ap => (
+                    <div key={ap.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-gray-800 truncate">{ap.product?.name || '—'}</p>
+                        <p className="text-[10px] text-gray-400">{ap.country}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button onClick={() => toggleAuth(ap.id, ap.active)}
+                          className={`w-6 h-3 rounded-full relative ${ap.active ? 'bg-green-400' : 'bg-gray-200'}`}>
+                          <span className={`absolute top-0.5 w-2 h-2 bg-white rounded-full shadow transition-transform ${ap.active ? 'translate-x-3' : 'translate-x-0.5'}`}/>
+                        </button>
+                        <button onClick={() => removeAuth(ap.id)} className="text-gray-300 hover:text-red-500 p-1">
+                          <Trash2 size={11}/>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400 text-center py-4">No products authorized yet</p>
+              )}
+
+              <div className="border-t pt-3 space-y-2">
+                <p className="text-[10px] font-semibold text-gray-500 uppercase">Add Authorization</p>
+                <select className="select text-xs" value={addProd} onChange={e => setAddProd(e.target.value)}>
+                  <option value="">Select product…</option>
+                  {catalogProducts.map(p => <option key={p.id} value={p.id}>{p.name} ({p.category})</option>)}
+                </select>
+                <input className="input text-xs" value={addCountry} onChange={e => setAddCountry(e.target.value)}
+                  placeholder="Country (e.g. Portugal, Spain)" style={{ fontSize: '16px' }}/>
+                <button onClick={addAuth} disabled={!addProd || !addCountry}
+                  className="btn-primary text-xs w-full disabled:opacity-30">
+                  <Plus size={12}/> Authorize Product
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
