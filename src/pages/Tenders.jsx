@@ -19,11 +19,11 @@ import {
 } from 'lucide-react'
 
 const STATUS_CONFIG = {
-  open:       { label: 'Open',       color: 'text-blue-700',  bg: 'bg-blue-50',  border: 'border-blue-200' },
-  submitted:  { label: 'Submitted',  color: 'text-purple-700',bg: 'bg-purple-50',border: 'border-purple-200' },
-  won:        { label: 'Won',        color: 'text-green-700', bg: 'bg-green-50', border: 'border-green-200' },
-  lost:       { label: 'Lost',       color: 'text-red-700',   bg: 'bg-red-50',   border: 'border-red-200' },
-  cancelled:  { label: 'Cancelled',  color: 'text-gray-500',  bg: 'bg-gray-50',  border: 'border-gray-200' },
+  open:       { labelKey: 'tender_open',       color: 'text-blue-700',  bg: 'bg-blue-50',  border: 'border-blue-200' },
+  submitted:  { labelKey: 'tender_submitted',  color: 'text-purple-700',bg: 'bg-purple-50',border: 'border-purple-200' },
+  won:        { labelKey: 'tender_won',        color: 'text-green-700', bg: 'bg-green-50', border: 'border-green-200' },
+  lost:       { labelKey: 'tender_lost',       color: 'text-red-700',   bg: 'bg-red-50',   border: 'border-red-200' },
+  cancelled:  { labelKey: 'tender_cancelled',  color: 'text-gray-500',  bg: 'bg-gray-50',  border: 'border-gray-200' },
 }
 
 function daysDiff(dateStr) {
@@ -32,12 +32,13 @@ function daysDiff(dateStr) {
 }
 
 function DeadlineChip({ date, label }) {
+  const { t } = useTranslation()
   if (!date) return null
   const diff = daysDiff(date)
   const text = diff < 0
-    ? `${Math.abs(diff)}d overdue`
-    : diff === 0 ? 'Today'
-    : diff === 1 ? 'Tomorrow'
+    ? `${Math.abs(diff)}${t('tender_d_overdue')}`
+    : diff === 0 ? t('task_today')
+    : diff === 1 ? t('task_tomorrow')
     : `${diff}d`
   const cls = diff < 0
     ? 'bg-red-100 text-red-700 border-red-200'
@@ -102,7 +103,7 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
   async function handleSave() {
     const { valid, errors: valErrors } = validateTender(form)
     setFieldErrors(valErrors)
-    if (!valid) { setError('Please fix the highlighted fields'); return }
+    if (!valid) { setError(t('tender_fix_fields')); return }
     setSaving(true)
     const payload = {
       title:               form.title.trim(),
@@ -152,14 +153,14 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
   }
 
   const tabs = [
-    { id: 'details',      label: 'Details',      icon: Info,       show: true },
-    { id: 'products',     label: 'Products',     icon: Info,       show: true },
-    { id: 'requirements', label: 'Requirements', icon: ListChecks, show: isEdit },
-    { id: 'attachments',  label: 'Attachments',  icon: Paperclip,  show: isEdit },
-  ].filter(t => t.show)
+    { id: 'details',      label: t('tender_tab_details'),      icon: Info,       show: true },
+    { id: 'products',     label: t('tender_tab_products'),     icon: Info,       show: true },
+    { id: 'requirements', label: t('tender_tab_requirements'), icon: ListChecks, show: isEdit },
+    { id: 'attachments',  label: t('tender_tab_attachments'),  icon: Paperclip,  show: isEdit },
+  ].filter(tb => tb.show)
 
   return (
-    <Modal open onClose={onClose} title={isEdit ? 'Edit Tender / RFP' : 'New Tender / RFP'}>
+    <Modal open onClose={onClose} title={isEdit ? t('tender_edit_title') : t('tender_new_title')}>
       <div className="space-y-4 p-1 max-h-[70vh] overflow-y-auto">
 
         {/* Tabs — hidden until the tender exists (requirements/attachments need an id) */}
@@ -188,22 +189,22 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
         {/* Title + Reference */}
         <div className="grid grid-cols-3 gap-2">
           <div className="col-span-2">
-            <label className="label">Title *</label>
+            <label className="label">{t('tender_title_lbl')} *</label>
             <input className={`input ${fieldErrors.title ? 'border-red-400' : ''}`} value={form.title} onChange={e => set('title', e.target.value)}
-              placeholder="Tender title…" autoFocus />
+              placeholder={t('tender_title_ph')} autoFocus />
             {fieldErrors.title && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.title}</p>}
           </div>
           <div>
-            <label className="label">Reference</label>
+            <label className="label">{t('tender_ref')}</label>
             <input className={`input ${fieldErrors.reference ? 'border-red-400' : ''}`} value={form.reference} onChange={e => set('reference', e.target.value)}
-              placeholder="Ref. nº" />
+              placeholder={t('tender_ref_ph')} />
             {fieldErrors.reference && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.reference}</p>}
           </div>
         </div>
 
         {/* Deal link — searchable, optional, allows inline creation */}
         <div>
-          <label className="label">Linked deal <span className="text-gray-400">(optional)</span></label>
+          <label className="label">{t('tender_linked_deal')} <span className="text-gray-400">{t('df_optional')}</span></label>
           {creatingDeal ? (
             <QuickDealForm
               initialClient={prefillClient}
@@ -222,9 +223,9 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
                 value: d.id,
                 label: `[${d.bu}] ${d.client}${d.country ? ` — ${d.country}` : ''}`,
               }))}
-              placeholder="Search deals…"
-              emptyLabel="— No deal —"
-              createLabel="Create new deal"
+              placeholder={t('tender_search_deals')}
+              emptyLabel={t('no_deal')}
+              createLabel={t('tender_create_deal')}
               onCreateNew={query => { setPrefillClient(query || ''); setCreatingDeal(true) }}
             />
           )}
@@ -232,23 +233,23 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
 
         {/* Description */}
         <div>
-          <label className="label">Description</label>
+          <label className="label">{t('tender_description')}</label>
           <textarea className={`input min-h-[72px] resize-none ${fieldErrors.description ? 'border-red-400' : ''}`} value={form.description}
             onChange={e => set('description', e.target.value)}
-            placeholder="Scope, requirements, notes…" />
+            placeholder={t('tender_desc_ph')} />
           {fieldErrors.description && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.description}</p>}
         </div>
 
         {/* Dates */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">Submission deadline</label>
+            <label className="label">{t('tender_sub_deadline')}</label>
             <input className={`input ${fieldErrors.submission_deadline ? 'border-red-400' : ''}`} type="date" value={form.submission_deadline}
               onChange={e => set('submission_deadline', e.target.value)} />
             {fieldErrors.submission_deadline && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.submission_deadline}</p>}
           </div>
           <div>
-            <label className="label">Decision date</label>
+            <label className="label">{t('tender_decision')}</label>
             <input className={`input ${fieldErrors.decision_date ? 'border-red-400' : ''}`} type="date" value={form.decision_date}
               onChange={e => set('decision_date', e.target.value)} />
             {fieldErrors.decision_date && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.decision_date}</p>}
@@ -258,13 +259,13 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
         {/* Value + Currency + Status */}
         <div className="grid grid-cols-3 gap-2">
           <div className="col-span-2">
-            <label className="label">Estimated value</label>
+            <label className="label">{t('tender_est_value')}</label>
             <input className={`input ${fieldErrors.estimated_value ? 'border-red-400' : ''}`} type="number" value={form.estimated_value}
               onChange={e => set('estimated_value', e.target.value)} placeholder="0" />
             {fieldErrors.estimated_value && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.estimated_value}</p>}
           </div>
           <div>
-            <label className="label">Currency</label>
+            <label className="label">{t('tender_currency')}</label>
             <select className={`select ${fieldErrors.currency ? 'border-red-400' : ''}`} value={form.currency} onChange={e => set('currency', e.target.value)}>
               <option>EUR</option><option>USD</option><option>GBP</option>
             </select>
@@ -274,20 +275,20 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
 
         {/* Status */}
         <div>
-          <label className="label">Status</label>
+          <label className="label">{t('tender_status')}</label>
           <select className="select" value={form.status} onChange={e => set('status', e.target.value)}>
             {Object.entries(STATUS_CONFIG).map(([k, v]) => (
-              <option key={k} value={k}>{v.label}</option>
+              <option key={k} value={k}>{t(v.labelKey)}</option>
             ))}
           </select>
         </div>
 
         {/* Collaborators — sourced from quotas (sales owners) */}
         <div>
-          <label className="label">Collaborators <span className="text-gray-400">(sales owners)</span></label>
+          <label className="label">{t('tender_collab')} <span className="text-gray-400">({t('tender_collab_owners')})</span></label>
           {users.length === 0 ? (
             <p className="text-[11px] text-gray-400 mt-1">
-              No sales owners available. Add entries to <strong>Sales Target</strong> first.
+              {t('tenders_no_owners')}
             </p>
           ) : (
             <div className="flex flex-wrap gap-2 mt-1">
@@ -318,9 +319,9 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
 
         <div className="flex gap-2 pt-1">
           <button className="btn-primary flex-1" onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create tender'}
+            {saving ? t('tender_saving') : isEdit ? t('tender_save') : t('tender_create')}
           </button>
-          <button className="btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="btn-secondary" onClick={onClose}>{t('tender_cancel')}</button>
         </div>
 
         </>}
@@ -358,6 +359,7 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
 
 // ── Tender Card ────────────────────────────────────────────────────────────────
 const TenderCard = memo(function TenderCard({ tender, onEdit, onDelete, canEdit }) {
+  const { t } = useTranslation()
   const [expanded, setExpanded] = useState(false)
   const st = STATUS_CONFIG[tender.status] || STATUS_CONFIG.open
   const subDiff = tender.submission_deadline ? daysDiff(tender.submission_deadline) : null
@@ -375,14 +377,14 @@ const TenderCard = memo(function TenderCard({ tender, onEdit, onDelete, canEdit 
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${st.bg} ${st.color} ${st.border}`}>
-              {st.label}
+              {t(st.labelKey)}
             </span>
             {tender.reference && (
               <span className="text-[10px] text-gray-400 font-mono">#{tender.reference}</span>
             )}
             {isUrgent && (
               <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-full">
-                ⚡ Urgent
+                ⚡ {t('tender_urgent')}
               </span>
             )}
           </div>
@@ -411,8 +413,8 @@ const TenderCard = memo(function TenderCard({ tender, onEdit, onDelete, canEdit 
 
       {/* Deadlines */}
       <div className="flex flex-wrap gap-2 px-4 pb-3">
-        <DeadlineChip date={tender.submission_deadline} label="Submit" />
-        <DeadlineChip date={tender.decision_date}       label="Decision" />
+        <DeadlineChip date={tender.submission_deadline} label={t('tender_submit_lbl')} />
+        <DeadlineChip date={tender.decision_date}       label={t('tender_decision_lbl')} />
       </div>
 
       {/* Collaborators row */}
@@ -435,7 +437,7 @@ const TenderCard = memo(function TenderCard({ tender, onEdit, onDelete, canEdit 
           <button onClick={() => setExpanded(e => !e)}
             className="w-full flex items-center gap-1 px-4 py-2 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-50">
             {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-            {expanded ? 'Hide details' : 'Show details'}
+            {expanded ? t('tender_hide') : t('tender_show')}
           </button>
           {expanded && (
             <p className="px-4 pb-3 text-xs text-gray-600 whitespace-pre-wrap">{tender.description}</p>
@@ -448,11 +450,11 @@ const TenderCard = memo(function TenderCard({ tender, onEdit, onDelete, canEdit 
         <div className="flex gap-1 px-3 pb-3">
           <button onClick={() => onEdit(tender)}
             className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 px-2 py-1 rounded-lg hover:bg-gray-100">
-            <Edit3 size={11} /> Edit
+            <Edit3 size={11} /> {t('edit')}
           </button>
           <button onClick={() => onDelete(tender.id)}
             className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50">
-            <Trash2 size={11} /> Delete
+            <Trash2 size={11} /> {t('delete')}
           </button>
         </div>
       )}
@@ -519,8 +521,10 @@ export default function Tenders() {
     return matchSearch && matchStatus
   }), [tenders, debouncedSearch, statusFilter])
 
+  const { t } = useTranslation()
+
   async function handleDelete(id) {
-    if (!confirm('Delete this tender?')) return
+    if (!confirm(t('tender_delete'))) return
     await deleteTender(id)
     refetch()
   }
@@ -535,14 +539,14 @@ export default function Tenders() {
         <div>
           <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
             <FileText size={20} className="text-navy" />
-            Tenders & RFPs
+            {t('tenders_title')}
           </h1>
-          <p className="text-sm text-gray-400 mt-0.5">Public tenders and client proposals — collaborative tracking</p>
+          <p className="text-sm text-gray-400 mt-0.5">{t('tenders_collab_subtitle')}</p>
         </div>
         {canEdit && (
           <button className="btn-primary flex items-center gap-1.5 py-1.5 px-3 text-sm"
             onClick={() => setModal('new')}>
-            <Plus size={15} /> New tender
+            <Plus size={15} /> {t('tenders_new')}
           </button>
         )}
       </div>
@@ -550,10 +554,10 @@ export default function Tenders() {
       {/* Stats bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Total',     value: tenders.length,                         color: 'text-gray-700' },
-          { label: 'Open',      value: tenders.filter(t=>t.status==='open').length,      color: 'text-blue-600' },
-          { label: 'Submitted', value: tenders.filter(t=>t.status==='submitted').length, color: 'text-purple-600' },
-          { label: '⚡ Urgent', value: urgentCount,                            color: 'text-amber-600' },
+          { label: t('tender_total'),     value: tenders.length,                         color: 'text-gray-700' },
+          { label: t('tender_open'),      value: tenders.filter(td=>td.status==='open').length,      color: 'text-blue-600' },
+          { label: t('tender_submitted'), value: tenders.filter(td=>td.status==='submitted').length, color: 'text-purple-600' },
+          { label: `⚡ ${t('tender_urgent')}`, value: urgentCount,                            color: 'text-amber-600' },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-white rounded-xl border border-gray-200 p-3 text-center">
             <p className={`text-2xl font-bold ${color}`}>{value}</p>
@@ -566,18 +570,25 @@ export default function Tenders() {
       <div className="flex gap-2 flex-wrap">
         <div className="relative flex-1 min-w-40">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input className="input pl-8 py-1.5 text-sm" placeholder="Search tenders…"
+          <input className="input pl-8 py-1.5 text-sm" placeholder={t('tender_search_ph')}
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        {['active','all','open','submitted','won','lost'].map(s => (
-          <button key={s}
-            onClick={() => setStatusFilter(s)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all capitalize ${
-              statusFilter === s
+        {[
+          { id: 'active', label: t('tender_active') },
+          { id: 'all', label: t('tender_all') },
+          { id: 'open', label: t('tender_open') },
+          { id: 'submitted', label: t('tender_submitted') },
+          { id: 'won', label: t('tender_won') },
+          { id: 'lost', label: t('tender_lost') },
+        ].map(s => (
+          <button key={s.id}
+            onClick={() => setStatusFilter(s.id)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+              statusFilter === s.id
                 ? 'bg-navy text-white border-navy'
                 : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
             }`}>
-            {s}
+            {s.label}
           </button>
         ))}
       </div>
@@ -586,8 +597,8 @@ export default function Tenders() {
       {filtered.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
           <FileText size={32} className="mx-auto mb-3 opacity-40" />
-          <p className="font-medium text-gray-500">No tenders found</p>
-          <p className="text-sm mt-1">{canEdit ? 'Create one to track deadlines and collaborate.' : 'No tenders visible yet.'}</p>
+          <p className="font-medium text-gray-500">{t('tenders_no_found')}</p>
+          <p className="text-sm mt-1">{canEdit ? t('tenders_create_hint') : t('tenders_no_visible')}</p>
         </div>
       ) : (
         <div className="space-y-3">

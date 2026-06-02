@@ -23,10 +23,11 @@ function SlaStatusBadge({ status }) {
 }
 
 function RenewalBadge({ sla }) {
+  const { t } = useTranslation()
   const rd = sla.renewal_date || sla.end_date
   if (!rd || !['warranty','active','pending_renewal'].includes(sla.status)) return null
   const days = Math.ceil((new Date(rd) - new Date()) / 86400000)
-  if (days < 0) return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700">Expired</span>
+  if (days < 0) return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700">{t('sla_expired')}</span>
   if (days <= 30) return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700">{days}d</span>
   if (days <= 60) return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">{days}d</span>
   if (days <= 90) return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700">{days}d</span>
@@ -53,7 +54,7 @@ const SlaCard = memo(function SlaCard({ sla, onEdit, onDelete, canEdit, canDelet
         </div>
         <div className="text-right shrink-0">
           <p className="text-lg font-bold text-gray-900">{formatK(sla.annual_value)}</p>
-          <p className="text-[10px] text-gray-400">/year</p>
+          <p className="text-[10px] text-gray-400">{t('sla_per_year')}</p>
         </div>
       </div>
 
@@ -63,16 +64,16 @@ const SlaCard = memo(function SlaCard({ sla, onEdit, onDelete, canEdit, canDelet
         )}
         {sla.start_date && (
           <span className="flex items-center gap-1">
-            <Calendar size={9}/> Start: {new Date(sla.start_date).toLocaleDateString('pt-PT', { month: 'short', year: 'numeric' })}
+            <Calendar size={9}/> {t('sla_start')}: {new Date(sla.start_date).toLocaleDateString('pt-PT', { month: 'short', year: 'numeric' })}
           </span>
         )}
         {sla.warranty_end_date && sla.status === 'pipeline' && (
           <span className="flex items-center gap-1">
-            <Shield size={9}/> Warranty ends: {new Date(sla.warranty_end_date).toLocaleDateString('pt-PT', { month: 'short', year: 'numeric' })}
+            <Shield size={9}/> {t('sla_warranty_ends')}: {new Date(sla.warranty_end_date).toLocaleDateString('pt-PT', { month: 'short', year: 'numeric' })}
           </span>
         )}
         {sla.deal_owner && sla.deal_owner !== sla.sla_owner && (
-          <span className="text-gray-400">Deal: {sla.deal_owner}</span>
+          <span className="text-gray-400">{t('sla_deal_label')}: {sla.deal_owner}</span>
         )}
       </div>
 
@@ -80,7 +81,7 @@ const SlaCard = memo(function SlaCard({ sla, onEdit, onDelete, canEdit, canDelet
         <button onClick={() => setExpanded(e => !e)}
           className="text-[10px] text-gray-400 hover:text-gray-600 flex items-center gap-0.5 min-h-tap">
           {expanded ? <ChevronUp size={10}/> : <ChevronDown size={10}/>}
-          {expanded ? 'Hide' : 'FY breakdown'}
+          {expanded ? t('sla_hide') : t('sla_fy_break')}
         </button>
         <div className="ml-auto flex items-center gap-1">
           {canEdit && (
@@ -108,7 +109,7 @@ const SlaCard = memo(function SlaCard({ sla, onEdit, onDelete, canEdit, canDelet
           </div>
           {sla.previous_value && (
             <p className="text-[10px] text-orange-600 mt-1">
-              Previous value: {formatK(sla.previous_value)} — {sla.change_reason || 'reduced'}
+              {t('sla_prev_value_label')}: {formatK(sla.previous_value)} — {sla.change_reason || 'reduced'}
             </p>
           )}
         </div>
@@ -274,11 +275,11 @@ export default function SLAs() {
 
   const tf = typeFiltered
   const tabs = [
-    { id: 'active',   label: `Active (${tf.filter(s=>['warranty','active','pending_renewal'].includes(s.status)).length})` },
-    { id: 'pipeline', label: `Pipeline (${tf.filter(s=>['draft','waiting_po'].includes(s.status)).length})` },
-    { id: 'renewal',  label: `Renewal (${tf.filter(s=>['pending_renewal','renewed'].includes(s.status)).length})` },
-    { id: 'closed',   label: `Closed (${tf.filter(s=>['expired','cancelled'].includes(s.status)).length})` },
-    { id: 'all',      label: `All (${tf.length})` },
+    { id: 'active',   label: `${t('sla_tab_active')} (${tf.filter(s=>['warranty','active','pending_renewal'].includes(s.status)).length})` },
+    { id: 'pipeline', label: `${t('sla_tab_pipeline')} (${tf.filter(s=>['draft','waiting_po'].includes(s.status)).length})` },
+    { id: 'renewal',  label: `${t('sla_tab_renewal')} (${tf.filter(s=>['pending_renewal','renewed'].includes(s.status)).length})` },
+    { id: 'closed',   label: `${t('sla_tab_closed')} (${tf.filter(s=>['expired','cancelled'].includes(s.status)).length})` },
+    { id: 'all',      label: `${t('sla_tab_all')} (${tf.length})` },
   ]
 
   return (
@@ -301,27 +302,27 @@ export default function SLAs() {
           <div className="flex items-center gap-2">
             <AlertCircle size={14} className="text-red-600"/>
             <span className="text-sm text-red-700 font-medium">
-              {kpis.atRiskCount} contract{kpis.atRiskCount > 1 ? 's' : ''} ({formatK(kpis.atRiskValue)}) at risk or expiring within 30 days
+              {t('sla_at_risk_msg').replace('{n}', kpis.atRiskCount).replace('{v}', formatK(kpis.atRiskValue))}
             </span>
           </div>
-          <button onClick={() => setRenewalF('30')} className="text-xs text-red-600 font-semibold hover:text-red-800">View →</button>
+          <button onClick={() => setRenewalF('30')} className="text-xs text-red-600 font-semibold hover:text-red-800">{t('sla_view')} →</button>
         </div>
       )}
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <div className="card p-3">
-          <p className="text-[10px] text-gray-400 uppercase font-semibold">Active ARR</p>
+          <p className="text-[10px] text-gray-400 uppercase font-semibold">{t('sla_active_arr')}</p>
           <p className="text-xl font-bold text-green-600">{formatK(kpis.activeValue)}</p>
-          <p className="text-xs text-gray-500">{kpis.activeCount} contracts</p>
+          <p className="text-xs text-gray-500">{kpis.activeCount} {t('sla_contracts')}</p>
         </div>
         <div className="card p-3">
-          <p className="text-[10px] text-gray-400 uppercase font-semibold">Renewals 90d</p>
+          <p className="text-[10px] text-gray-400 uppercase font-semibold">{t('sla_renewals_90d')}</p>
           <p className="text-xl font-bold text-amber-600">{kpis.renewals90}</p>
-          <p className="text-xs text-gray-500">{formatK(kpis.renewals90Value)} at stake</p>
+          <p className="text-xs text-gray-500">{formatK(kpis.renewals90Value)} {t('sla_at_stake')}</p>
         </div>
         <div className="card p-3">
-          <p className="text-[10px] text-gray-400 uppercase font-semibold">Pipeline ARR</p>
+          <p className="text-[10px] text-gray-400 uppercase font-semibold">{t('sla_pipeline_arr')}</p>
           <p className="text-xl font-bold text-gray-700">{formatK(kpis.pipelineValue)}</p>
           <p className="text-xs text-gray-500">{t('sla_future_val')}</p>
         </div>
@@ -372,48 +373,48 @@ export default function SLAs() {
         )}
         {regions.length > 0 && (
           <select className="select text-xs w-auto" value={regionF} onChange={e => setRegionF(e.target.value)}>
-            <option value="">All Regions</option>
+            <option value="">{t('sla_all_regions')}</option>
             {regions.map(r => <option key={r}>{r}</option>)}
           </select>
         )}
         {countries.length > 0 && (
           <select className="select text-xs w-auto" value={countryF} onChange={e => setCountryF(e.target.value)}>
-            <option value="">All Countries</option>
+            <option value="">{t('sla_all_countries')}</option>
             {countries.map(c => <option key={c}>{c}</option>)}
           </select>
         )}
         {ownersList.length > 0 && (
           <select className="select text-xs w-auto" value={ownerF} onChange={e => setOwnerF(e.target.value)}>
-            <option value="">All Owners</option>
+            <option value="">{t('sla_all_owners')}</option>
             {ownersList.map(o => <option key={o}>{o}</option>)}
           </select>
         )}
         <select className="select text-xs w-auto" value={renewalF} onChange={e => setRenewalF(e.target.value)}>
-          <option value="">Renewal</option>
-          <option value="30">≤30 days</option>
-          <option value="60">≤60 days</option>
-          <option value="90">≤90 days</option>
+          <option value="">{t('sla_renewal')}</option>
+          <option value="30">{t('sla_renewal_30d')}</option>
+          <option value="60">{t('sla_renewal_60d')}</option>
+          <option value="90">{t('sla_renewal_90d')}</option>
         </select>
         <select className="select text-xs w-auto" value={statusF} onChange={e => setStatusF(e.target.value)}>
-          <option value="">All Status</option>
+          <option value="">{t('sla_all_status')}</option>
           {SLA_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
         </select>
         <select className="select text-xs w-auto" value={sortBy} onChange={e => setSortBy(e.target.value)}>
-          <option value="value_desc">Value ↓</option>
-          <option value="value_asc">Value ↑</option>
-          <option value="client">Client A→Z</option>
-          <option value="date_desc">Newest</option>
-          <option value="date_asc">Oldest</option>
-          <option value="renewal">Renewal soon</option>
+          <option value="value_desc">{t('sla_sort_value_desc')}</option>
+          <option value="value_asc">{t('sla_sort_value_asc')}</option>
+          <option value="client">{t('sla_sort_client')}</option>
+          <option value="date_desc">{t('sla_sort_newest')}</option>
+          <option value="date_asc">{t('sla_sort_oldest')}</option>
+          <option value="renewal">{t('sla_sort_renewal')}</option>
         </select>
         <div className="flex gap-0.5 bg-gray-100 p-0.5 rounded-lg ml-auto">
           <button onClick={() => setViewMode('list')}
             className={`px-2 py-1 rounded text-xs font-semibold ${viewMode === 'list' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>
-            List
+            {t('sla_view_list')}
           </button>
           <button onClick={() => setViewMode('kanban')}
             className={`px-2 py-1 rounded text-xs font-semibold ${viewMode === 'kanban' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>
-            Kanban
+            {t('sla_view_kanban')}
           </button>
         </div>
       </div>
@@ -421,9 +422,9 @@ export default function SLAs() {
       {/* Contract type tabs */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
         {[
-          { id: 'all_types', label: 'All Contracts' },
-          { id: 'maintenance', label: 'Maintenance SLAs' },
-          { id: 'variable', label: 'Variable Recurring' },
+          { id: 'all_types', label: t('sla_type_all') },
+          { id: 'maintenance', label: t('sla_type_maintenance') },
+          { id: 'variable', label: t('sla_type_variable') },
         ].map(tt => (
           <button key={tt.id} onClick={() => setTypeTab(tt.id)}
             className={`px-3 py-1.5 rounded text-xs font-semibold transition-all flex-1 ${
@@ -474,7 +475,7 @@ export default function SLAs() {
                         </div>
                         <p className="text-xs font-semibold text-gray-900 truncate">{s.client}</p>
                         {s.description && <p className="text-[10px] text-gray-400 truncate">{s.description}</p>}
-                        <p className="text-xs font-bold text-gray-700 mt-1">{formatK(s.annual_value)}<span className="text-[10px] text-gray-400 font-normal">/yr</span></p>
+                        <p className="text-xs font-bold text-gray-700 mt-1">{formatK(s.annual_value)}<span className="text-[10px] text-gray-400 font-normal">{t('sla_yr')}</span></p>
                       </div>
                     ))}
                   </div>
@@ -490,7 +491,7 @@ export default function SLAs() {
             if (!fySlas?.length) return null
             return (
               <div key={fy}>
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">{fy} — {fySlas.length} contract{fySlas.length > 1 ? 's' : ''}</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">{fy} — {fySlas.length} {fySlas.length > 1 ? t('sla_contracts_word') : t('sla_contract_word')}</p>
                 <div className="space-y-2">
                   {fySlas.map(s => (
                     <SlaCard key={s.id} sla={s} canEdit={canEdit} canDelete={canDelete}
@@ -510,7 +511,7 @@ export default function SLAs() {
           {filtered.length === 0 ? (
             <EmptyState icon="📋" title={t('sla_no_found')}
               description={t('sla_create_hint')}
-              action={canEdit && <button onClick={() => setFormOpen(true)} className="btn-primary">New SLA</button>}/>
+              action={canEdit && <button onClick={() => setFormOpen(true)} className="btn-primary">{t('sla_new_btn')}</button>}/>
           ) : filtered.map(s => (
             <SlaCard key={s.id} sla={s} canEdit={canEdit} canDelete={canDelete}
               onEdit={s => { setEditSla(s); setFormOpen(true) }}
@@ -534,8 +535,8 @@ export default function SLAs() {
             <p className="font-semibold text-gray-900">{t('sla_delete')}</p>
             <p className="text-sm text-gray-600">{confirmDel.client} — {formatK(confirmDel.annual_value)}/year</p>
             <div className="flex gap-2">
-              <button onClick={() => setConfirmDel(null)} className="btn-secondary flex-1">Cancel</button>
-              <button onClick={handleDelete} className="bg-red-600 text-white rounded-lg px-4 py-2 text-sm font-semibold flex-1">Delete</button>
+              <button onClick={() => setConfirmDel(null)} className="btn-secondary flex-1">{t('cancel')}</button>
+              <button onClick={handleDelete} className="bg-red-600 text-white rounded-lg px-4 py-2 text-sm font-semibold flex-1">{t('delete')}</button>
             </div>
           </div>
         </div>

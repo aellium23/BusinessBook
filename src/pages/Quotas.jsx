@@ -167,7 +167,7 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
           <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold text-gray-700 flex items-center gap-1">
-                <Package size={12}/> Sub-targets by product
+                <Package size={12}/> {t('quotas_sub_targets')}
               </p>
               <span className={`text-[10px] font-medium ${
                 Math.abs(subTotal - (Number(editVal) || target)) < 1 ? 'text-green-600' : 'text-amber-600'
@@ -194,7 +194,7 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
             </div>
             {Math.abs(subTotal - (Number(editVal) || target)) > 1 && (
               <p className="text-[10px] text-amber-600">
-                Sub-targets don't add up to the total target. Difference: {formatK(Math.abs(subTotal - (Number(editVal) || target)))}.
+                {t('quotas_sub_diff')} {formatK(Math.abs(subTotal - (Number(editVal) || target)))}.
               </p>
             )}
           </div>
@@ -207,17 +207,17 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
           {!editing && (
             <button onClick={() => setEditing(true)}
               className="flex-1 text-xs bg-gray-50 hover:bg-gray-100 text-gray-600 py-1.5 rounded-lg transition-colors">
-              Edit target
+              {t('quotas_edit_target')}
             </button>
           )}
           <button onClick={() => setShowSubTargets(s => !s)}
             className="text-xs bg-gray-50 hover:bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
-            <Package size={11}/> {showSubTargets ? 'Hide' : 'Sub-targets'}
+            <Package size={11}/> {showSubTargets ? t('quotas_hide') : t('quotas_sub_targets')}
           </button>
           {editing && (
             <button onClick={save}
               className="text-xs bg-navy text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
-              <Save size={11}/> Save
+              <Save size={11}/> {t('quotas_save')}
             </button>
           )}
           {isAdmin && !isManager && (
@@ -275,7 +275,7 @@ function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, profil
         {isAdmin && (
           <button onClick={() => setAddingNew(o=>!o)}
             className="text-xs flex items-center gap-1 text-gray-500 hover:text-gray-800">
-            <Plus size={12}/> Add member
+            <Plus size={12}/> {t('quotas_add_member')}
           </button>
         )}
       </div>
@@ -293,7 +293,7 @@ function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, profil
       ) : (
         <div className="border-2 border-dashed rounded-xl p-4 text-center text-xs text-gray-400"
           style={{ borderColor: color }}>
-          No quota set for {manager} yet
+          {t('quotas_no_quota').replace('{name}', manager)}
         </div>
       )}
 
@@ -331,17 +331,17 @@ function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, profil
       {/* Add new member form */}
       {addingNew && (
         <div className="border border-gray-200 rounded-xl p-3 space-y-2 bg-gray-50">
-          <p className="text-xs font-medium text-gray-600">Add team member — {bu}</p>
+          <p className="text-xs font-medium text-gray-600">{t('quotas_add_team_member')} — {bu}</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-navy/20"
-              placeholder="Name" value={newName} onChange={e => setNewName(e.target.value)}/>
+              placeholder={t('quotas_name_ph')} value={newName} onChange={e => setNewName(e.target.value)}/>
             <input type="number" className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-navy/20"
-              placeholder="Target €" value={newTarget} onChange={e => setNewTarget(e.target.value)}/>
+              placeholder={t('quotas_target_ph')} value={newTarget} onChange={e => setNewTarget(e.target.value)}/>
           </div>
           <div className="flex gap-2">
             <button onClick={() => setAddingNew(false)} className="text-xs text-gray-400 px-3 py-1.5">{t("quotas_cancel")}</button>
             <button onClick={addQuota} className="text-xs bg-navy text-white px-3 py-1.5 rounded-lg flex items-center gap-1">
-              <Save size={11}/> Save
+              <Save size={11}/> {t('quotas_save')}
             </button>
           </div>
         </div>

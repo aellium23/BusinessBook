@@ -14,9 +14,9 @@ import {
 } from 'lucide-react'
 
 const PRIORITY_CONFIG = {
-  high:   { label: 'High',   color: 'text-red-600',    bg: 'bg-red-50',    border: 'border-red-200',   dot: 'bg-red-500' },
-  medium: { label: 'Medium', color: 'text-amber-600',  bg: 'bg-amber-50',  border: 'border-amber-200', dot: 'bg-amber-400' },
-  low:    { label: 'Low',    color: 'text-blue-600',   bg: 'bg-blue-50',   border: 'border-blue-200',  dot: 'bg-blue-400' },
+  high:   { labelKey: 'tasks_priority_high',   color: 'text-red-600',    bg: 'bg-red-50',    border: 'border-red-200',   dot: 'bg-red-500' },
+  medium: { labelKey: 'tasks_priority_medium', color: 'text-amber-600',  bg: 'bg-amber-50',  border: 'border-amber-200', dot: 'bg-amber-400' },
+  low:    { labelKey: 'tasks_priority_low',    color: 'text-blue-600',   bg: 'bg-blue-50',   border: 'border-blue-200',  dot: 'bg-blue-400' },
 }
 
 function daysDiff(dateStr) {
@@ -25,14 +25,14 @@ function daysDiff(dateStr) {
   return diff
 }
 
-function DeadlineBadge({ deadline }) {
+function DeadlineBadge({ deadline, t }) {
   if (!deadline) return null
   const diff = daysDiff(deadline)
   const label = diff < 0
-    ? `${Math.abs(diff)}d overdue`
-    : diff === 0 ? 'Today'
-    : diff === 1 ? 'Tomorrow'
-    : `${diff}d left`
+    ? `${Math.abs(diff)}${t('task_overdue')}`
+    : diff === 0 ? t('task_today')
+    : diff === 1 ? t('task_tomorrow')
+    : `${diff}${t('task_left')}`
   const cls = diff < 0
     ? 'bg-red-100 text-red-700'
     : diff <= 2 ? 'bg-amber-100 text-amber-700'
@@ -47,6 +47,7 @@ function DeadlineBadge({ deadline }) {
 // ── TaskModal ──────────────────────────────────────────────────────────────────
 function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, pushNotification, onDealsChanged }) {
   const { user } = useAuth()
+  const { t } = useTranslation()
   const isEdit = !!task?.id
   const [form, setForm] = useState({
     title:       task?.title       ?? '',
@@ -68,7 +69,7 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
   async function handleSave() {
     const { valid, errors: valErrors } = validateTask(form)
     setFieldErrors(valErrors)
-    if (!valid) { setError('Please fix the highlighted fields'); return }
+    if (!valid) { setError(t('tasks_fix_fields')); return }
     setSaving(true)
     const isSalesOwnerOnly = form.assigned_to && form.assigned_to.startsWith('so_')
     const salesOwnerName = isSalesOwnerOnly ? form.assigned_to.replace('so_', '') : null
@@ -98,7 +99,7 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
         await pushNotification({
           userId:   form.assigned_to,
           type:     'task_assigned',
-          title:    'New task assigned to you',
+          title:    t('tasks_notif_title'),
           body:     form.title,
           linkType: 'task',
           linkId:   res.data?.id,
@@ -112,46 +113,46 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
   }
 
   return (
-    <Modal open onClose={onClose} title={isEdit ? 'Edit Task' : 'New Task'}
+    <Modal open onClose={onClose} title={isEdit ? t('task_edit_title') : t('task_new_title')}
       footer={
         <div className="flex gap-2">
-          <button className="btn-secondary flex-1" onClick={onClose}>Cancel</button>
+          <button className="btn-secondary flex-1" onClick={onClose}>{t('task_cancel')}</button>
           <button className="btn-primary flex-1" onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create task'}
+            {saving ? t('task_saving') : isEdit ? t('task_save') : t('task_create')}
           </button>
         </div>
       }>
       <div className="space-y-4 w-full">
         {/* Title */}
         <div>
-          <label className="label">Title *</label>
+          <label className="label">{t('task_title')} *</label>
           <input className={`input ${fieldErrors.title ? 'border-red-400' : ''}`} value={form.title} onChange={e => set('title', e.target.value)}
-            placeholder="What needs to be done?" />
+            placeholder={t('task_title_ph')} />
           {fieldErrors.title && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.title}</p>}
         </div>
 
         {/* Notes */}
         <div>
-          <label className="label">Notes</label>
+          <label className="label">{t('task_notes')}</label>
           <textarea className={`input min-h-[80px] resize-none ${fieldErrors.notes ? 'border-red-400' : ''}`} value={form.notes}
-            onChange={e => set('notes', e.target.value)} placeholder="Additional context…" />
+            onChange={e => set('notes', e.target.value)} placeholder={t('task_notes_ph')} />
           {fieldErrors.notes && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.notes}</p>}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* Deadline */}
           <div>
-            <label className="label">Deadline</label>
+            <label className="label">{t('task_deadline')}</label>
             <input className={`input ${fieldErrors.deadline ? 'border-red-400' : ''}`} type="date" value={form.deadline} onChange={e => set('deadline', e.target.value)} />
             {fieldErrors.deadline && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.deadline}</p>}
           </div>
           {/* Priority */}
           <div>
-            <label className="label">Priority</label>
+            <label className="label">{t('task_priority')}</label>
             <select className="select" value={form.priority} onChange={e => set('priority', e.target.value)}>
-              <option value="high">🔴 High</option>
-              <option value="medium">🟡 Medium</option>
-              <option value="low">🔵 Low</option>
+              <option value="high">🔴 {t('tasks_priority_high')}</option>
+              <option value="medium">🟡 {t('tasks_priority_medium')}</option>
+              <option value="low">🔵 {t('tasks_priority_low')}</option>
             </select>
           </div>
         </div>
@@ -159,9 +160,9 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
         {/* Assign to (directors only) — sourced from quotas (sales owners) */}
         {canAssign && (
           <div>
-            <label className="label">Assign to</label>
+            <label className="label">{t('task_assign')}</label>
             <select className="select" value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)}>
-              <option value="">— Personal task —</option>
+              <option value="">{t('task_personal')}</option>
               {users.map(u => (
                 <option key={u.id} value={u.id}>
                   {u.full_name}{u.bu ? ` · ${u.bu}` : ''}{!u.isUser ? ' (sales owner)' : ''}
@@ -170,7 +171,7 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
             </select>
             {users.length === 0 && (
               <p className="text-[11px] text-gray-400 mt-1">
-                No active users available to assign.
+                {t('tasks_no_users')}
               </p>
             )}
           </div>
@@ -178,7 +179,7 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
 
         {/* Link to deal or tender — mutually exclusive */}
         <div className="space-y-2">
-          <label className="label">Link to deal <span className="text-gray-400">(optional)</span></label>
+          <label className="label">{t('task_link_deal')} <span className="text-gray-400">{t('task_optional')}</span></label>
           {creatingDeal ? (
             <QuickDealForm
               initialClient={prefillClient}
@@ -195,22 +196,22 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
               value={form.deal_id}
               onChange={val => { set('deal_id', val); if (val) set('tender_id', '') }}
               options={deals.map(d => ({ value: d.id, label: `[${d.bu}] ${d.client}` }))}
-              placeholder="Search deals…"
-              emptyLabel="— No deal —"
-              createLabel="Create new deal"
+              placeholder={t('search_deals')}
+              emptyLabel={t('task_no_deal')}
+              createLabel={t('tender_create_deal')}
               onCreateNew={query => { setPrefillClient(query || ''); setCreatingDeal(true) }}
             />
           )}
         </div>
 
         <div className="space-y-2">
-          <label className="label">Link to tender <span className="text-gray-400">(optional)</span></label>
+          <label className="label">{t('task_link_tender')} <span className="text-gray-400">{t('task_optional')}</span></label>
           <SearchableSelect
             value={form.tender_id}
             onChange={val => { set('tender_id', val); if (val) set('deal_id', '') }}
             options={tenders.map(t => ({ value: t.id, label: t.title }))}
-            placeholder="Search tenders…"
-            emptyLabel="— No tender —"
+            placeholder={t('tender_search_ph')}
+            emptyLabel={t('task_no_tender')}
           />
         </div>
 
@@ -227,6 +228,7 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
 
 // ── Single Task Row ────────────────────────────────────────────────────────────
 function TaskRow({ task, onEdit, onDelete, currentUserId, canAssign, tenders = [] }) {
+  const { t } = useTranslation()
   const [toggling, setToggling] = useState(false)
   const isDone    = task.status === 'done'
   const isOverdue = !isDone && task.deadline && daysDiff(task.deadline) < 0
@@ -259,8 +261,8 @@ function TaskRow({ task, onEdit, onDelete, currentUserId, canAssign, tenders = [
             {task.title}
           </span>
           {/* Priority dot */}
-          <span className={`w-2 h-2 rounded-full shrink-0 ${prio.dot}`} title={prio.label} />
-          <DeadlineBadge deadline={task.deadline} />
+          <span className={`w-2 h-2 rounded-full shrink-0 ${prio.dot}`} title={t(prio.labelKey)} />
+          <DeadlineBadge deadline={task.deadline} t={t} />
         </div>
 
         {task.notes && (
@@ -278,7 +280,7 @@ function TaskRow({ task, onEdit, onDelete, currentUserId, canAssign, tenders = [
           {/* Owner (when viewing assigned tasks) */}
           {task.assigned_to === currentUserId && task.owner && (
             <span className="flex items-center gap-1 text-[10px] text-gray-400">
-              from {task.owner.full_name || task.owner.email}
+              {t('task_from')} {task.owner.full_name || task.owner.email}
             </span>
           )}
           {/* Deal link */}
@@ -311,6 +313,7 @@ function TaskRow({ task, onEdit, onDelete, currentUserId, canAssign, tenders = [
 
 // ── Section wrapper ────────────────────────────────────────────────────────────
 function Section({ title, count, overdueCount, children, defaultOpen = true }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(defaultOpen)
   return (
     <div className="space-y-2">
@@ -323,7 +326,7 @@ function Section({ title, count, overdueCount, children, defaultOpen = true }) {
         )}
         {overdueCount > 0 && (
           <span className="text-xs font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600">
-            {overdueCount} overdue
+            {overdueCount} {t('tasks_overdue')}
           </span>
         )}
       </button>
@@ -333,7 +336,7 @@ function Section({ title, count, overdueCount, children, defaultOpen = true }) {
 }
 
 // ── Notifications Panel ────────────────────────────────────────────────────────
-function NotificationsPanel({ onClose, notifications, markRead, markAllRead }) {
+function NotificationsPanel({ onClose, notifications, markRead, markAllRead, t }) {
   const typeIcon = {
     task_assigned:    '📋',
     task_due:         '⏰',
@@ -343,15 +346,15 @@ function NotificationsPanel({ onClose, notifications, markRead, markAllRead }) {
   return (
     <div className="absolute right-0 top-10 w-[min(320px,calc(100vw-2rem))] bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-        <span className="font-semibold text-sm text-gray-800">Notifications</span>
+        <span className="font-semibold text-sm text-gray-800">{t('notif_title')}</span>
         <div className="flex gap-2 items-center">
-          <button onClick={markAllRead} className="text-[10px] text-blue-600 hover:underline">Mark all read</button>
+          <button onClick={markAllRead} className="text-[10px] text-blue-600 hover:underline">{t('notif_mark_all')}</button>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
         </div>
       </div>
       <div className="max-h-96 overflow-y-auto divide-y divide-gray-50">
         {notifications.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-8">No notifications</p>
+          <p className="text-sm text-gray-400 text-center py-8">{t('notif_none')}</p>
         ) : notifications.map(n => (
           <div key={n.id}
             onClick={() => markRead(n.id)}
@@ -479,8 +482,8 @@ export default function Tasks() {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Tasks</h1>
-            <p className="text-sm text-gray-400 mt-0.5">Your to-dos and team tasks</p>
+            <h1 className="text-xl font-bold text-gray-900">{t('tasks_title')}</h1>
+            <p className="text-sm text-gray-400 mt-0.5">{t('tasks_subtitle')}</p>
           </div>
           {/* Notifications bell */}
           <div className="relative">
@@ -493,19 +496,19 @@ export default function Tasks() {
                 </span>
               )}
             </button>
-            {showNotif && <NotificationsPanel onClose={() => setShowNotif(false)} notifications={notifications} markRead={markRead} markAllRead={markAllRead} />}
+            {showNotif && <NotificationsPanel onClose={() => setShowNotif(false)} notifications={notifications} markRead={markRead} markAllRead={markAllRead} t={t} />}
           </div>
         </div>
         {/* Filter + New task — linha separada em mobile */}
         <div className="flex items-center gap-2">
           <select className="select text-sm flex-1" value={filter} onChange={e => setFilter(e.target.value)}>
-            <option value="all">All tasks</option>
-            <option value="open">Open only</option>
-            <option value="done">Done only</option>
+            <option value="all">{t('tasks_filter_all')}</option>
+            <option value="open">{t('tasks_filter_open')}</option>
+            <option value="done">{t('tasks_filter_done')}</option>
           </select>
           <button className="btn-primary flex items-center gap-1.5 py-2 px-3 text-sm shrink-0"
             onClick={() => setModal('new')}>
-            <Plus size={15} /> <span>New task</span>
+            <Plus size={15} /> <span>{t('tasks_new')}</span>
           </button>
         </div>
       </div>
@@ -517,7 +520,7 @@ export default function Tasks() {
         overdueCount={overdueIn(myTasks)}
       >
         {filterTasks(myTasks).length === 0 ? (
-          <p className="text-sm text-gray-400 py-4 text-center">No personal tasks</p>
+          <p className="text-sm text-gray-400 py-4 text-center">{t('tasks_no_personal')}</p>
         ) : filterTasks(myTasks).map(t => (
           <TaskRow key={t.id} task={t} currentUserId={user?.id} canAssign={canAssign} tenders={tenders}
             onEdit={(t, refetchOnly) => refetchOnly ? refetch() : setModal(t)}
@@ -525,7 +528,7 @@ export default function Tasks() {
         ))}
         <button onClick={() => setModal('new')}
           className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 mt-1 py-1">
-          <Plus size={13} /> Add task
+          <Plus size={13} /> {t('tasks_add_inline')}
         </button>
       </Section>
 

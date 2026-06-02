@@ -18,13 +18,14 @@ import {
   MapPin, Building, Network as NetIcon,
 } from 'lucide-react'
 
-const TABS = [
-  { id: 'distributors', label: 'Distributors', icon: Building },
-  { id: 'hubs',         label: 'Regional hubs', icon: Globe },
+const TAB_KEYS = [
+  { id: 'distributors', labelKey: 'network_tab_distributors', icon: Building },
+  { id: 'hubs',         labelKey: 'network_tab_hubs',         icon: Globe },
 ]
 
 // ── Distributor editor ─────────────────────────────────────────────────────
 function DistributorEditor({ item, hubs, onClose, onSaved }) {
+  const { t } = useTranslation()
   const isEdit = !!item?.id
   const [form, setForm] = useState({
     name:       item?.name       ?? '',
@@ -40,7 +41,7 @@ function DistributorEditor({ item, hubs, onClose, onSaved }) {
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
   async function handleSave() {
-    if (!form.name.trim()) { setError('Name is required'); return }
+    if (!form.name.trim()) { setError(t('network_name_required')); return }
     setSaving(true); setError(null)
     const payload = {
       name:       form.name.trim(),
@@ -63,25 +64,25 @@ function DistributorEditor({ item, hubs, onClose, onSaved }) {
       <div className="absolute inset-0 bg-black/50" onClick={onClose}/>
       <div className="relative bg-white w-full sm:max-w-md sm:rounded-modal rounded-t-3xl shadow-2xl flex flex-col" style={{ maxHeight: '90dvh' }}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-          <h3 className="font-semibold text-sm text-gray-900">{isEdit ? 'Edit distributor' : 'New distributor'}</h3>
+          <h3 className="font-semibold text-sm text-gray-900">{isEdit ? t('network_edit_distributor') : t('network_new_distributor')}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={16}/></button>
         </div>
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
           <div>
-            <label className="label">Name *</label>
+            <label className="label">{t('network_name')} *</label>
             <input className="input" value={form.name} autoFocus
               onChange={e => set('name', e.target.value)} placeholder="Ajoveco"/>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="label">Region</label>
+              <label className="label">{t('network_region')}</label>
               <select className="select" value={form.region} onChange={e => { set('region', e.target.value); set('country', '') }}>
                 <option value="">—</option>
                 {REGIONS.map(r => <option key={r}>{r}</option>)}
               </select>
             </div>
             <div>
-              <label className="label">Country</label>
+              <label className="label">{t('network_country')}</label>
               <select className="select" value={form.country} onChange={e => set('country', e.target.value)}>
                 <option value="">—</option>
                 {(COUNTRY_MAP[form.region] || []).map(c => <option key={c} value={c}>{c}</option>)}
@@ -89,34 +90,34 @@ function DistributorEditor({ item, hubs, onClose, onSaved }) {
             </div>
           </div>
           <div>
-            <label className="label">Sales Type</label>
+            <label className="label">{t('network_sales_type')}</label>
             <div className="grid grid-cols-2 gap-2">
               <button type="button" onClick={() => set('sales_type', 'external')}
                 className={`px-3 py-2 rounded-lg text-sm font-medium border-2 transition-all ${
                   form.sales_type === 'external' ? 'border-amber-400 bg-amber-50 text-amber-800' : 'border-gray-200 text-gray-500'
                 }`}>
-                External
+                {t('network_external')}
               </button>
               <button type="button" onClick={() => set('sales_type', 'internal')}
                 className={`px-3 py-2 rounded-lg text-sm font-medium border-2 transition-all ${
                   form.sales_type === 'internal' ? 'border-blue-400 bg-blue-50 text-blue-800' : 'border-gray-200 text-gray-500'
                 }`}>
-                Internal (Subsidiary)
+                {t('network_internal')}
               </button>
             </div>
           </div>
           <div>
-            <label className="label">Regional hub</label>
+            <label className="label">{t('network_regional_hub')}</label>
             <SearchableSelect
               value={form.hub_id}
               onChange={v => set('hub_id', v || '')}
               options={hubs.map(h => ({ value: h.id, label: h.name, hint: h.region }))}
-              placeholder="Search hubs…"
-              emptyLabel="— Not linked —"
+              placeholder={t('network_search_hubs')}
+              emptyLabel={t('network_not_linked')}
             />
           </div>
           <div>
-            <label className="label">Notes</label>
+            <label className="label">{t('network_notes')}</label>
             <textarea className="input min-h-[72px] resize-none" value={form.notes}
               onChange={e => set('notes', e.target.value)}/>
           </div>
@@ -127,9 +128,9 @@ function DistributorEditor({ item, hubs, onClose, onSaved }) {
           )}
         </div>
         <div className="flex gap-2 px-4 py-3 border-t border-gray-100" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
-          <button className="btn-secondary flex-1" onClick={onClose}>Cancel</button>
+          <button className="btn-secondary flex-1" onClick={onClose}>{t('cancel')}</button>
           <button className="btn-primary flex-1 flex items-center justify-center gap-1" onClick={handleSave} disabled={saving}>
-            <Save size={12}/> {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create'}
+            <Save size={12}/> {saving ? t('saving') : isEdit ? t('save') : t('network_create')}
           </button>
         </div>
       </div>
@@ -139,6 +140,7 @@ function DistributorEditor({ item, hubs, onClose, onSaved }) {
 
 // ── Hub editor ─────────────────────────────────────────────────────────────
 function HubEditor({ item, onClose, onSaved }) {
+  const { t } = useTranslation()
   const isEdit = !!item?.id
   const [form, setForm] = useState({
     name:   item?.name   ?? '',
@@ -151,7 +153,7 @@ function HubEditor({ item, onClose, onSaved }) {
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
   async function handleSave() {
-    if (!form.name.trim()) { setError('Name is required'); return }
+    if (!form.name.trim()) { setError(t('network_name_required')); return }
     setSaving(true); setError(null)
     const payload = {
       name:   form.name.trim(),
@@ -171,24 +173,24 @@ function HubEditor({ item, onClose, onSaved }) {
       <div className="absolute inset-0 bg-black/50" onClick={onClose}/>
       <div className="relative bg-white w-full sm:max-w-md sm:rounded-modal rounded-t-3xl shadow-2xl flex flex-col" style={{ maxHeight: '90dvh' }}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-          <h3 className="font-semibold text-sm text-gray-900">{isEdit ? 'Edit hub' : 'New regional hub'}</h3>
+          <h3 className="font-semibold text-sm text-gray-900">{isEdit ? t('network_edit_hub') : t('network_new_regional_hub')}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={16}/></button>
         </div>
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
           <div>
-            <label className="label">Name *</label>
+            <label className="label">{t('network_name')} *</label>
             <input className="input" value={form.name} autoFocus
               onChange={e => set('name', e.target.value)} placeholder="HCUS"/>
           </div>
           <div>
-            <label className="label">Region</label>
+            <label className="label">{t('network_region')}</label>
             <select className="select" value={form.region} onChange={e => set('region', e.target.value)}>
               <option value="">—</option>
               {REGIONS.map(r => <option key={r}>{r}</option>)}
             </select>
           </div>
           <div>
-            <label className="label">Notes</label>
+            <label className="label">{t('network_notes')}</label>
             <textarea className="input min-h-[72px] resize-none" value={form.notes}
               onChange={e => set('notes', e.target.value)}/>
           </div>
@@ -199,9 +201,9 @@ function HubEditor({ item, onClose, onSaved }) {
           )}
         </div>
         <div className="flex gap-2 px-4 py-3 border-t border-gray-100" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
-          <button className="btn-secondary flex-1" onClick={onClose}>Cancel</button>
+          <button className="btn-secondary flex-1" onClick={onClose}>{t('cancel')}</button>
           <button className="btn-primary flex-1 flex items-center justify-center gap-1" onClick={handleSave} disabled={saving}>
-            <Save size={12}/> {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create'}
+            <Save size={12}/> {saving ? t('saving') : isEdit ? t('save') : t('network_create')}
           </button>
         </div>
       </div>
@@ -212,6 +214,7 @@ function HubEditor({ item, onClose, onSaved }) {
 // ── Main page ──────────────────────────────────────────────────────────────
 export default function Network() {
   const { isAdmin, canEdit } = useAuth()
+  const { t } = useTranslation()
   const [tab, setTab]               = useState('distributors')
   const [distributors, setDistributors] = useState([])
   const [hubs, setHubs]             = useState([])
@@ -275,22 +278,22 @@ export default function Network() {
       <div className="flex items-start justify-between gap-2 flex-wrap">
         <div>
           <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <NetIcon size={20} className="text-navy"/> Distribution network
+            <NetIcon size={20} className="text-navy"/> {t('network_title')}
           </h1>
           <p className="text-sm text-gray-400 mt-0.5">
-            Regional hubs and distributors — the layers between VGT and the end customer.
+            {t('network_subtitle')}
           </p>
         </div>
         {canEdit && (
           <button onClick={() => setEditing({ type: tab, item: 'new' })} className="btn-primary">
-            <Plus size={15}/> <span className="hidden sm:inline">New {tab === 'hubs' ? 'hub' : 'distributor'}</span>
+            <Plus size={15}/> <span className="hidden sm:inline">{tab === 'hubs' ? t('network_new_hub') : t('network_new_distributor')}</span>
           </button>
         )}
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-gray-100">
-        {TABS.map(tb => {
+        {TAB_KEYS.map(tb => {
           const Icon = tb.icon
           const active = tab === tb.id
           return (
@@ -299,7 +302,7 @@ export default function Network() {
               className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold transition-colors border-b-2 ${
                 active ? 'text-navy border-navy' : 'text-gray-500 border-transparent hover:text-gray-700'
               }`}>
-              <Icon size={12}/> {tb.label}
+              <Icon size={12}/> {t(tb.labelKey)}
               <span className="ml-1 text-[10px] text-gray-400 font-normal">
                 ({tb.id === 'distributors' ? distributors.length : hubs.length})
               </span>
@@ -310,7 +313,7 @@ export default function Network() {
 
       <div className="relative">
         <Search size={14} className="absolute left-2.5 top-2.5 text-gray-400"/>
-        <input className="input pl-8 w-full" placeholder={tab === 'hubs' ? 'Search hubs…' : 'Search distributors…'}
+        <input className="input pl-8 w-full" placeholder={tab === 'hubs' ? t('network_search_hubs') : t('network_search_dist')}
           value={search} onChange={e => setSearch(e.target.value)}/>
       </div>
 
@@ -323,9 +326,9 @@ export default function Network() {
       {/* Distributors tab */}
       {tab === 'distributors' && (
         filteredDistributors.length === 0 ? (
-          <EmptyState icon="🚚" title="No distributors"
-            description="Add the distributors VGT sells through."
-            action={canEdit && <button onClick={() => setEditing({ type: 'distributors', item: 'new' })} className="btn-primary">New distributor</button>}/>
+          <EmptyState icon="🚚" title={t('network_no_distributors')}
+            description={t('network_no_distributors_desc')}
+            action={canEdit && <button onClick={() => setEditing({ type: 'distributors', item: 'new' })} className="btn-primary">{t('network_new_distributor')}</button>}/>
         ) : (
           <div className="space-y-4">
             {distByCountry.map(([country, list]) => (

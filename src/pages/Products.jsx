@@ -8,18 +8,18 @@ import SearchableSelect from '../components/SearchableSelect'
 import { Plus, Search, Pencil, Trash2, Package, ChevronDown, ChevronUp, X, Layers } from 'lucide-react'
 
 const PRICING_MODELS = [
-  { id: 'license_plus_annual', label: 'License + Annual Fee' },
-  { id: 'subscription',        label: 'Subscription' },
-  { id: 'pay_per_study',       label: 'Pay per Study' },
-  { id: 'saas',                label: 'SaaS' },
+  { id: 'license_plus_annual', labelKey: 'products_pm_license_annual' },
+  { id: 'subscription',        labelKey: 'products_pm_subscription' },
+  { id: 'pay_per_study',       labelKey: 'products_pm_pay_per_study' },
+  { id: 'saas',                labelKey: 'products_pm_saas' },
 ]
 
 const LICENSE_TYPES = [
-  { id: 'per_equipment', label: 'Per Equipment' },
-  { id: 'per_volume',    label: 'Per Volume' },
-  { id: 'per_package',   label: 'Package' },
-  { id: 'per_ccu',       label: 'Per CCU' },
-  { id: 'flat',          label: 'Flat Fee' },
+  { id: 'per_equipment', labelKey: 'products_lt_per_equipment' },
+  { id: 'per_volume',    labelKey: 'products_lt_per_volume' },
+  { id: 'per_package',   labelKey: 'products_lt_package' },
+  { id: 'per_ccu',       labelKey: 'products_lt_per_ccu' },
+  { id: 'flat',          labelKey: 'products_lt_flat' },
 ]
 
 function ComponentsEditor({ productId, allProducts, t }) {
@@ -163,8 +163,9 @@ function ToggleChip({ checked, label, onChange }) {
 
 /* --- Badge summary row for selected options --- */
 function SelectedBadges({ items, allOptions }) {
+  const { t } = useTranslation()
   if (!items || items.length === 0) return (
-    <p className="text-[11px] text-gray-400 italic mt-1">None selected</p>
+    <p className="text-[11px] text-gray-400 italic mt-1">{t('products_none_selected')}</p>
   )
   return (
     <div className="flex flex-wrap gap-1 mt-1.5">
@@ -172,7 +173,7 @@ function SelectedBadges({ items, allOptions }) {
         const opt = allOptions.find(o => o.id === id)
         return (
           <span key={id} className="inline-flex items-center text-[11px] font-medium bg-navy/10 text-navy px-2 py-0.5 rounded-full">
-            {opt?.label || id}
+            {opt?.labelKey ? t(opt.labelKey) : (opt?.label || id)}
           </span>
         )
       })}
@@ -260,10 +261,10 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
 
   const tabs = isEdit
     ? [
-        { id: 'details',    label: t('products_details') || 'Details',       icon: <Pencil size={13}/> },
-        { id: 'components', label: t('products_components') || 'Components', icon: <Layers size={13}/> },
+        { id: 'details',    label: t('products_details'),    icon: <Pencil size={13}/> },
+        { id: 'components', label: t('products_components'), icon: <Layers size={13}/> },
       ]
-    : [{ id: 'details', label: t('products_details') || 'Details', icon: <Pencil size={13}/> }]
+    : [{ id: 'details', label: t('products_details'), icon: <Pencil size={13}/> }]
 
   return (
     <Modal open title={isEdit ? t('products_edit') : t('products_new')} onClose={onClose}
@@ -301,7 +302,7 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
 
             {/* ---- SECTION 1: Identity ---- */}
             <div className="space-y-3">
-              <SectionHeader icon={<Package size={14}/>} title="Identity" subtitle="Category, SKU, and product name"/>
+              <SectionHeader icon={<Package size={14}/>} title={t('products_identity')} subtitle={t('products_identity_sub')}/>
               <div className="bg-gray-50/70 rounded-xl p-3 space-y-3 border border-gray-100">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -310,10 +311,10 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
                       value={form.category}
                       onChange={v => set('category', v)}
                       options={[...new Set((allProducts || []).map(p => p.category).filter(Boolean))].sort().map(c => ({ value: c, label: c }))}
-                      placeholder="Search category…"
-                      emptyLabel="— Select —"
+                      placeholder={t('products_search_cat')}
+                      emptyLabel={t('products_select')}
                       onCreateNew={(q) => { if (q) set('category', q) }}
-                      createLabel="New category"
+                      createLabel={t('products_new_cat')}
                     />
                   </div>
                   <div>
@@ -334,7 +335,7 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
 
             {/* ---- SECTION 2: Pricing ---- */}
             <div className="space-y-3">
-              <SectionHeader icon={<span className="text-sm font-bold">&#8364;</span>} title="Pricing" subtitle="List prices for license and annual fees"/>
+              <SectionHeader icon={<span className="text-sm font-bold">&#8364;</span>} title={t('products_pricing')} subtitle={t('products_pricing_sub')}/>
               <div className="bg-gray-50/70 rounded-xl p-3 border border-gray-100">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -351,13 +352,13 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
 
             {/* ---- SECTION 3: Allowed Pricing Models (multi-select) ---- */}
             <div className="space-y-3">
-              <SectionHeader icon={<span className="text-sm font-bold">$</span>} title={t('products_model') || 'Pricing Models'} subtitle="Select all pricing models this product supports"/>
+              <SectionHeader icon={<span className="text-sm font-bold">$</span>} title={t('products_model')} subtitle={t('products_models_sub')}/>
               <div className="bg-gray-50/70 rounded-xl p-3 border border-gray-100 space-y-2">
                 <div className="flex flex-wrap gap-2">
                   {PRICING_MODELS.map(m => (
                     <ToggleChip
                       key={m.id}
-                      label={m.label}
+                      label={t(m.labelKey)}
                       checked={(form.allowed_pricing_models || []).includes(m.id)}
                       onChange={() => toggleArrayItem('allowed_pricing_models', m.id)}
                     />
@@ -369,13 +370,13 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
 
             {/* ---- SECTION 4: Allowed License Types (multi-select) ---- */}
             <div className="space-y-3">
-              <SectionHeader icon={<span className="text-sm font-bold">#</span>} title="Allowed License Types" subtitle="Select all license types available for this product"/>
+              <SectionHeader icon={<span className="text-sm font-bold">#</span>} title={t('products_license_types')} subtitle={t('products_license_sub')}/>
               <div className="bg-gray-50/70 rounded-xl p-3 border border-gray-100 space-y-2">
                 <div className="flex flex-wrap gap-2">
                   {LICENSE_TYPES.map(lt => (
                     <ToggleChip
                       key={lt.id}
-                      label={lt.label}
+                      label={t(lt.labelKey)}
                       checked={(form.allowed_license_types || []).includes(lt.id)}
                       onChange={() => toggleArrayItem('allowed_license_types', lt.id)}
                     />
@@ -387,18 +388,18 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
 
             {/* ---- SECTION 5: Configuration ---- */}
             <div className="space-y-3">
-              <SectionHeader icon={<span className="text-sm">&#9881;</span>} title="Configuration" subtitle="Business unit and visibility settings"/>
+              <SectionHeader icon={<span className="text-sm">&#9881;</span>} title={t('products_config')} subtitle={t('products_config_sub')}/>
               <div className="bg-gray-50/70 rounded-xl p-3 border border-gray-100 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="label">Business Unit</label>
+                    <label className="label">{t('products_bu')}</label>
                     <select className="select" value={form.bu} onChange={e => set('bu', e.target.value)}>
                       <option value="VGT">VGT</option>
                       <option value="ECT">ECT</option>
                     </select>
                   </div>
                   <div>
-                    <label className="label">Sort Order</label>
+                    <label className="label">{t('products_sort_order')}</label>
                     <input className="input" type="number" min="0" value={form.sort_order} onChange={e => set('sort_order', e.target.value)}/>
                   </div>
                 </div>
@@ -406,13 +407,13 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
                   <ToggleSwitch
                     checked={form.active}
                     onChange={v => set('active', v)}
-                    label={t('products_active') || 'Active'}
+                    label={t('products_active')}
                     activeColor="green"
                   />
                   <ToggleSwitch
                     checked={form.distributor_visible}
                     onChange={v => set('distributor_visible', v)}
-                    label={t('products_dist_vis') || 'Distributor Visible'}
+                    label={t('products_dist_vis')}
                     activeColor="blue"
                   />
                 </div>
@@ -502,11 +503,11 @@ export default function Products() {
       <div className="flex gap-1 mb-1">
         <button onClick={() => { const all = {}; Object.keys(grouped).forEach(c => { all[c] = true }); setExpandedCats(all) }}
           className="text-[10px] text-gray-500 hover:text-gray-700 px-2 py-1 rounded border border-gray-200">
-          Expand All
+          {t('products_expand_all')}
         </button>
         <button onClick={() => setExpandedCats({})}
           className="text-[10px] text-gray-500 hover:text-gray-700 px-2 py-1 rounded border border-gray-200">
-          Collapse All
+          {t('products_collapse_all')}
         </button>
       </div>
 
@@ -542,7 +543,7 @@ export default function Products() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-medium text-gray-900 truncate">{p.name}</p>
-                        {!p.active && <span className="text-[9px] bg-red-100 text-red-600 px-1 rounded">inactive</span>}
+                        {!p.active && <span className="text-[9px] bg-red-100 text-red-600 px-1 rounded">{t('products_inactive')}</span>}
                         {compCounts[p.id] > 0 && (
                           <span className="text-[9px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded flex items-center gap-0.5">
                             <Layers size={8}/> {compCounts[p.id]}
