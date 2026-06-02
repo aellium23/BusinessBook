@@ -108,11 +108,13 @@ export default function Deals() {
     const brand = searchParams.get('brand')
     const category = searchParams.get('category')
     const noproduct = searchParams.get('noproduct')
-    if (product || brand || category || noproduct) {
+    const owner = searchParams.get('owner')
+    if (product || brand || category || noproduct || owner) {
       if (product) setProductF(product)
       if (brand) setBrandF(brand)
       if (category) setCategoryF(category)
       if (noproduct) setNoProductF(true)
+      if (owner) setOwnerF(owner === '(unassigned)' ? '' : owner)
       setShowFilters(true)
       setSearchParams({}, { replace: true })  // clear params after applying
     }
