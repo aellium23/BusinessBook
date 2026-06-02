@@ -300,11 +300,11 @@ export default function DealForm({ deal, onClose, onSaved }) {
       .catch(() => {})
     if (profile?.role === 'distributor' && profile?.company_id) {
       supabase.from('company_product_authorizations').select('product_id, country, price, active')
-        .eq('company_id', profile.company_id).eq('active', true)
+        .eq('company_id', profile.company_id)
         .then(({ data }) => {
           if (data) {
             const map = {}
-            data.forEach(a => { map[`${a.product_id}_${a.country}`] = a })
+            data.filter(a => a.active !== false).forEach(a => { map[`${a.product_id}_${a.country}`] = a })
             setAuthMap(map)
           }
         }).catch(() => {})
@@ -622,8 +622,28 @@ export default function DealForm({ deal, onClose, onSaved }) {
               options={accountsForBU.map(a => ({ value: a.id, label: a.name, hint: a.country || a.bu }))}
               placeholder={t("df_search_accounts")}
               emptyLabel={t("df_select_account")}
-              onCreateNew={(query) => {
-                if (query && query.trim()) { set('client', query.trim()); set('account_id', null) }
+              onCreateNew={async (query) => {
+                if (!query || !query.trim()) return
+                const name = query.trim()
+                set('client', name)
+                set('account_id', null)
+                const payload = {
+                  name,
+                  bu: form.bu || 'VGT',
+                  country: form.country || null,
+                  region: form.region || null,
+                  client_type: 'public',
+                }
+                if (isDistributor && company?.id) {
+                  const { data: dist } = await supabase.from('distributors')
+                    .select('id').eq('company_id', company.id).limit(1).single()
+                  if (dist) payload.distributor_id = dist.id
+                }
+                const { data: acc } = await supabase.from('accounts').insert(payload).select().single()
+                if (acc) {
+                  set('account_id', acc.id)
+                  setAccounts(prev => [...prev, acc])
+                }
               }}
               createLabel={t("df_new_client")}
               createRequiresQuery
@@ -846,9 +866,11 @@ export default function DealForm({ deal, onClose, onSaved }) {
             </>
           )}
 
-          {isDistributor && form.country && resolvedProducts.length === 0 && Object.keys(authMap).length > 0 && (
+          {isDistributor && form.country && resolvedProducts.length === 0 && (
             <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
-              {t("df_no_products_auth")} {form.country}. {t("df_contact_am")}
+              {Object.keys(authMap).length === 0
+                ? `No product authorizations found for your company. Contact your account manager.`
+                : `${t("df_no_products_auth")} ${form.country}. ${t("df_contact_am")}`}
             </p>
           )}
 
