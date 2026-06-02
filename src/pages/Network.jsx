@@ -346,7 +346,7 @@ export default function Network() {
                         <p className="text-sm font-semibold text-gray-900 truncate">{d.name}</p>
                         <div className="flex items-center gap-2 text-[11px] text-gray-500 mt-0.5 flex-wrap">
                           {d.region && <span>{d.region}</span>}
-                          {d.hub && <span className="bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded">Hub: {d.hub.name}</span>}
+                          {d.hub && <span className="bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded">{t('network_hub_label')}: {d.hub.name}</span>}
                         </div>
                         {d.notes && <p className="text-[11px] text-gray-600 mt-1 whitespace-pre-wrap line-clamp-2">{d.notes}</p>}
                       </div>
@@ -374,9 +374,9 @@ export default function Network() {
       {/* Hubs tab */}
       {tab === 'hubs' && (
         filteredHubs.length === 0 ? (
-          <EmptyState icon="🌐" title="No regional hubs"
-            description="Regional hubs are the Fujifilm entities that resell to distributors (e.g. HCUS). Admin-only."
-            action={isAdmin && <button onClick={() => setEditing({ type: 'hubs', item: 'new' })} className="btn-primary">New hub</button>}/>
+          <EmptyState icon="🌐" title={t('network_no_hubs')}
+            description={t('network_no_hubs_desc')}
+            action={isAdmin && <button onClick={() => setEditing({ type: 'hubs', item: 'new' })} className="btn-primary">{t('network_new_hub')}</button>}/>
         ) : (
           <div className="bg-white border border-gray-200 rounded-card overflow-hidden">
             <ul className="divide-y divide-gray-50">
@@ -389,7 +389,7 @@ export default function Network() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-semibold text-gray-900">{h.name}</p>
                         {h.region && <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{h.region}</span>}
-                        <span className="text-[10px] text-gray-400">{dCount} distributor{dCount !== 1 ? 's' : ''}</span>
+                        <span className="text-[10px] text-gray-400">{dCount} {dCount !== 1 ? t('network_distributors_count') : t('network_distributor_count')}</span>
                       </div>
                       {h.notes && <p className="text-[11px] text-gray-600 mt-1 whitespace-pre-wrap">{h.notes}</p>}
                     </div>

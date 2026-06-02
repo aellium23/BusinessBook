@@ -130,6 +130,7 @@ function AccountRow({ account, depth, open, children, onToggle, onEdit, onDelete
 }
 
 function AccountEditor({ account, accounts, defaultBU, onClose, onSaved }) {
+  const { t } = useTranslation()
   const isEdit = !!account?.id
   const [form, setForm] = useState({
     name:      account?.name       ?? '',
@@ -165,8 +166,8 @@ function AccountEditor({ account, accounts, defaultBU, onClose, onSaved }) {
     .sort((a, b) => a.name.localeCompare(b.name))
 
   async function handleSave() {
-    if (!form.name.trim()) { setError('Name is required'); return }
-    if (!form.bu) { setError('BU is required'); return }
+    if (!form.name.trim()) { setError(t('accounts_name_required')); return }
+    if (!form.bu) { setError(t('accounts_bu_required')); return }
     setSaving(true); setError(null)
 
     const payload = {
@@ -199,20 +200,20 @@ function AccountEditor({ account, accounts, defaultBU, onClose, onSaved }) {
         style={{ maxHeight: '90dvh' }}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <h3 className="font-semibold text-sm text-gray-900">
-            {isEdit ? 'Edit account' : 'New account'}
+            {isEdit ? t('accounts_edit') : t('accounts_new')}
           </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={16}/></button>
         </div>
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
           <div>
-            <label className="label">Name *</label>
+            <label className="label">{t('accounts_name')} *</label>
             <input className="input" value={form.name}
               onChange={e => set('name', e.target.value)} autoFocus
               placeholder="Hospital Group XYZ"/>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="label">BU *</label>
+              <label className="label">{t('accounts_bu')} *</label>
               <select className="select" value={form.bu} onChange={e => set('bu', e.target.value)}>
                 <option value="">—</option>
                 <option>VGT</option>
