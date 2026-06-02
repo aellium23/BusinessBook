@@ -214,6 +214,7 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
     description:    product?.description    || '',
     license_fee:    product?.license_fee    || 0,
     annual_fee:     product?.annual_fee     || 0,
+    brand:          product?.brand          || 'Fujifilm',
     allowed_pricing_models: ensureArray(
       product?.allowed_pricing_models || product?.pricing_model,
       ['license_plus_annual']
@@ -245,6 +246,7 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
       ...form,
       license_fee: parseFloat(form.license_fee) || 0,
       annual_fee:  parseFloat(form.annual_fee)  || 0,
+      brand:       form.brand || 'Fujifilm',
       sort_order:  parseInt(form.sort_order)    || 0,
       // backward compat: write single pricing_model from first selection
       pricing_model: (form.allowed_pricing_models && form.allowed_pricing_models.length > 0)
@@ -322,9 +324,21 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
                     <input className="input font-mono" value={form.sku} onChange={e => set('sku', e.target.value)} placeholder="e.g. S3D-BASE-1CCU"/>
                   </div>
                 </div>
-                <div>
-                  <label className="label">{t('products_name')} *</label>
-                  <input className="input" value={form.name} onChange={e => set('name', e.target.value)}/>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label">{t('products_name')} *</label>
+                    <input className="input" value={form.name} onChange={e => set('name', e.target.value)}/>
+                  </div>
+                  <div>
+                    <label className="label">Brand / Vendor</label>
+                    <input className="input" list="brand-options" value={form.brand}
+                      onChange={e => set('brand', e.target.value)} placeholder="Fujifilm"/>
+                    <datalist id="brand-options">
+                      <option value="Fujifilm"/>
+                      <option value="Medsky"/>
+                    </datalist>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Routes discount approvals to the brand's approver</p>
+                  </div>
                 </div>
                 <div>
                   <label className="label">{t('products_desc')}</label>

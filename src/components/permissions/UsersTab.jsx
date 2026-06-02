@@ -250,6 +250,31 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
             </select>
           </div>
 
+          {/* Discount approval brands */}
+          <div>
+            <label className="label">Discount Approver for Brands</label>
+            <div className="flex flex-wrap gap-1.5">
+              {['Fujifilm', 'Medsky'].map(b => {
+                const current = Array.isArray(profile.approves_brands) ? profile.approves_brands : []
+                const on = current.includes(b)
+                return (
+                  <button key={b} type="button"
+                    onClick={async () => {
+                      const next = on ? current.filter(x => x !== b) : [...current, b]
+                      await supabase.from('profiles').update({ approves_brands: next }).eq('id', profile.id)
+                      onSaved()
+                    }}
+                    className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-all ${
+                      on ? 'bg-navy text-white border-navy' : 'bg-white text-gray-500 border-gray-200'
+                    }`}>
+                    {on ? '✓ ' : ''}{b}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-[10px] text-gray-400 mt-0.5">User can approve discount requests for the selected brands only.</p>
+          </div>
+
           {/* Reset Password */}
           <div>
             <button onClick={handleSetPwd} disabled={isSelf}

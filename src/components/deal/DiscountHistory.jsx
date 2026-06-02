@@ -19,6 +19,8 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
   const [showForm, setShowForm] = useState(false)
   const [pct, setPct] = useState('')
   const [justification, setJustification] = useState('')
+  const [brand, setBrand] = useState('')      // brand the request routes to
+  const [dealBrands, setDealBrands] = useState([])  // brands present in this deal
   const [saving, setSaving] = useState(false)
 
   // Admin response state
@@ -35,6 +37,18 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
       .eq('deal_id', dealId)
       .order('created_at', { ascending: false })
     setRequests(data || [])
+    // Determine which brands are in this deal (from its products)
+    const { data: dps } = await supabase.from('deal_products')
+      .select('product_id').eq('deal_id', dealId)
+    if (dps?.length) {
+      const ids = dps.map(d => d.product_id).filter(Boolean)
+      if (ids.length) {
+        const { data: prods } = await supabase.from('products').select('brand').in('id', ids)
+        const brands = [...new Set((prods || []).map(p => p.brand || 'Fujifilm'))]
+        setDealBrands(brands)
+        if (brands.length === 1) setBrand(brands[0])
+      }
+    }
     setLoading(false)
   }
 
@@ -45,6 +59,8 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
   async function handleSubmit() {
     if (!pct || parseFloat(pct) <= 0) return
     if (!justification.trim()) { showToast('Please provide a justification', 'error'); return }
+    if (dealBrands.length > 1 && !brand) { showToast('Please select which brand this discount is for', 'error'); return }
+    const reqBrand = brand || dealBrands[0] || 'Fujifilm'
     setSaving(true)
     try {
       await supabase.from('deal_discount_requests').insert({
@@ -52,20 +68,30 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
         requested_by: profile?.id,
         requested_pct: parseFloat(pct),
         justification: justification.trim(),
+        brand: reqBrand,
       })
-      // Update deal discount_status to pending
       await supabase.from('deals').update({ discount_status: 'pending', discount_requested: parseFloat(pct) }).eq('id', dealId)
-      // Notify admins
+      // Route notification: brand approvers first, fall back to admin/manager
       try {
-        const { data: admins } = await supabase.from('profiles')
-          .select('id').in('role', ['admin', 'manager']).eq('active', true)
-        if (admins?.length) {
+        const { data: approvers } = await supabase.from('profiles')
+          .select('id, approves_brands').eq('active', true)
+        const brandApprovers = (approvers || []).filter(a =>
+          Array.isArray(a.approves_brands) && a.approves_brands.includes(reqBrand)
+        )
+        let targets = brandApprovers.map(a => a.id)
+        if (targets.length === 0) {
+          // No dedicated approver for this brand → notify admins/managers
+          const { data: admins } = await supabase.from('profiles')
+            .select('id').in('role', ['admin', 'manager']).eq('active', true)
+          targets = (admins || []).map(a => a.id)
+        }
+        if (targets.length) {
           await supabase.from('notifications').insert(
-            admins.map(a => ({
-              user_id: a.id,
+            targets.map(uid => ({
+              user_id: uid,
               type: 'discount_request',
-              title: `Discount request: ${dealClient || 'Deal'}`,
-              body: `${profile?.full_name || 'Distributor'} requested ${pct}% discount`,
+              title: `${reqBrand} discount request: ${dealClient || 'Deal'}`,
+              body: `${profile?.full_name || 'Distributor'} requested ${pct}% discount on ${reqBrand} products`,
               link_type: 'deal',
               link_id: dealId,
             }))
@@ -139,6 +165,16 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
       {/* New request form (distributor) */}
       {showForm && isDistributor && (
         <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 space-y-2">
+          {dealBrands.length > 1 && (
+            <div>
+              <label className="label">Brand *</label>
+              <select className="select" value={brand} onChange={e => setBrand(e.target.value)}>
+                <option value="">— Select brand —</option>
+                {dealBrands.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+              <p className="text-[10px] text-gray-400 mt-0.5">This deal has products from multiple brands. Pick which one the discount applies to.</p>
+            </div>
+          )}
           <div>
             <label className="label">Requested discount (%)</label>
             <input className="input" type="number" min="0" max="100" step="0.1"
@@ -172,10 +208,13 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
             <div key={req.id} className={`rounded-lg border p-3 space-y-2 ${
               req.status === 'pending' ? 'border-purple-200 bg-purple-50/50' : 'border-gray-200'
             }`}>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${st.cls}`}>
                   <Icon size={10}/> {st.label}
                 </span>
+                {req.brand && (
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{req.brand}</span>
+                )}
                 <span className="text-sm font-bold text-gray-900">{req.requested_pct}%</span>
                 <span className="text-[10px] text-gray-400 ml-auto">
                   {new Date(req.created_at).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -207,7 +246,11 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
               )}
 
               {/* Admin response form */}
-              {req.status === 'pending' && (isAdmin || profile?.role === 'manager') && (
+              {req.status === 'pending' && (
+                isAdmin ||
+                profile?.role === 'manager' ||
+                (Array.isArray(profile?.approves_brands) && req.brand && profile.approves_brands.includes(req.brand))
+              ) && (
                 isResponding ? (
                   <div className="border-t pt-2 space-y-2">
                     <div className="grid grid-cols-2 gap-2">

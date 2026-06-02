@@ -99,6 +99,7 @@ export default function Layout({ children }) {
     { to: '/audit',   icon: Shield,          label: t("nav_audit"),    page: 'audit' },
     { to: '/settings',    icon: Settings, label: t("nav_settings"),    page: 'settings' },
     { to: '/permissions',  icon: Shield,   label: t('nav_permissions'), page: 'permissions' },
+    { to: '/approvals',    icon: CheckSquare, label: 'Approvals',       page: 'approvals' },
   ]
   const nav = allNav.filter(n => canAccessPage(n.page))
 

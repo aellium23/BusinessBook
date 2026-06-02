@@ -177,6 +177,10 @@ export function AuthProvider({ children }) {
   // Verificar se o user pode aceder a uma página
   function canAccessPage(page) {
     if (role === 'admin') return true
+    // Brand approvers get access to the Approvals page
+    if (page === 'approvals') {
+      return Array.isArray(profile?.approves_brands) && profile.approves_brands.length > 0
+    }
     return resolvedPages.includes(page)
   }
 
