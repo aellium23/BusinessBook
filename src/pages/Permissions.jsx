@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { createClient } from '@supabase/supabase-js'
 import { supabase, anonClient } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useTranslation } from '../hooks/useTranslation'
@@ -399,15 +400,40 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
   const [saved, setSaved]   = useState(false)
   const [pwdMsg, setPwdMsg] = useState(null)
 
-  async function handleResetPwd() {
-    if (!confirm(`Send password reset email to ${profile.email}?`)) return
-    setPwdMsg('Sending...')
+  async function handleSetPwd() {
+    const newPwd = prompt(`New password for ${profile.email} (min 6 chars):`)
+    if (!newPwd) return
+    if (newPwd.length < 6) { alert('Password must be at least 6 characters'); return }
+    setPwdMsg('Setting...')
     try {
-      const { error } = await anonClient.auth.resetPasswordForEmail(profile.email, {
-        redirectTo: `${window.location.origin}/auth/set-password`,
-      })
-      if (error) setPwdMsg(`Error: ${error.message}`)
-      else setPwdMsg('Reset email sent! User will receive a link to set their password.')
+      // Login as the user with a temporary session, then update password
+      const tempClient = createClient(
+        import.meta.env.VITE_SUPABASE_URL,
+        import.meta.env.VITE_SUPABASE_ANON_KEY,
+        { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storage: { getItem: () => null, setItem: () => {}, removeItem: () => {} } } }
+      )
+      // Use admin endpoint via edge function if available, otherwise try direct
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/admin/users/${profile.id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({ password: newPwd }),
+        }
+      )
+      if (res.ok) {
+        setPwdMsg('Password set successfully!')
+      } else {
+        // Fallback: send reset email
+        await anonClient.auth.resetPasswordForEmail(profile.email, {
+          redirectTo: `${window.location.origin}/auth/set-password`,
+        })
+        setPwdMsg('Could not set directly. Reset email sent instead.')
+      }
     } catch (e) { setPwdMsg(`Error: ${e.message}`) }
     setTimeout(() => setPwdMsg(null), 5000)
   }
@@ -553,9 +579,9 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
 
           {/* Reset Password */}
           <div>
-            <button onClick={handleResetPwd} disabled={isSelf}
+            <button onClick={handleSetPwd} disabled={isSelf}
               className="text-xs text-blue-600 hover:text-blue-800 underline disabled:opacity-40">
-              Send password reset email
+              Set / Reset Password
             </button>
             {pwdMsg && <p className="text-[10px] text-green-600 mt-0.5">{pwdMsg}</p>}
           </div>
