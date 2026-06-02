@@ -35,11 +35,13 @@ export default function Approvals() {
 
   const filtered = useMemo(() => {
     if (tab === 'all') return requests
+    // "Open" groups pending + counter (both still need attention)
+    if (tab === 'pending') return requests.filter(r => r.status === 'pending' || r.status === 'counter')
     return requests.filter(r => r.status === tab)
   }, [requests, tab])
 
   const counts = useMemo(() => ({
-    pending:  requests.filter(r => r.status === 'pending').length,
+    pending:  requests.filter(r => r.status === 'pending' || r.status === 'counter').length,
     approved: requests.filter(r => r.status === 'approved').length,
     rejected: requests.filter(r => r.status === 'rejected').length,
   }), [requests])
@@ -95,7 +97,7 @@ export default function Approvals() {
 
       <div className="flex gap-1.5">
         {[
-          { id: 'pending',  label: `Pending ${counts.pending}` },
+          { id: 'pending',  label: `Open ${counts.pending}` },
           { id: 'approved', label: `Approved ${counts.approved}` },
           { id: 'rejected', label: `Rejected ${counts.rejected}` },
           { id: 'all',      label: 'All' },
@@ -174,7 +176,7 @@ function ApprovalCard({ req, onRespond }) {
         </div>
       )}
 
-      {req.status === 'pending' && (
+      {(req.status === 'pending' || req.status === 'counter') && (
         open ? (
           <div className="border-t pt-2 space-y-2">
             <div className="grid grid-cols-2 gap-2">
