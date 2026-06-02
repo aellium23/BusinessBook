@@ -105,6 +105,10 @@ export default function Deals() {
     search: debouncedSearch || undefined,
   })
 
+  // Map of deal_id → brands[] and deal_id → product names[] (for filtering)
+  const [dealBrands, setDealBrands] = useState({})
+  const [dealProducts, setDealProducts] = useState({})
+
   // Filtros client-side adicionais
   const deals = useMemo(() => {
     let d = profile?.role === 'distributor'
@@ -128,9 +132,6 @@ export default function Deals() {
     return d
   }, [rawDeals, slaF, discountF, ownerF, forecastF, periodF, invoicedMonthF.join(','), brandF, productF, dealBrands, dealProducts, profile])
 
-  // Map of deal_id → brands[] and deal_id → product names[] (for filtering)
-  const [dealBrands, setDealBrands] = useState({})
-  const [dealProducts, setDealProducts] = useState({})
   useEffect(() => {
     if (!rawDeals.length) return
     const ids = rawDeals.map(d => d.id)
