@@ -130,22 +130,7 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
         p_note: respNote || null,
       })
       if (error) throw error
-      // Notify distributor
-      const req = requests.find(r => r.id === reqId)
-      if (req?.requested_by) {
-        try {
-          await supabase.from('notifications').insert({
-            user_id: req.requested_by,
-            type: 'discount_response',
-            title: `Discount ${respStatus}: ${dealClient || 'Deal'}`,
-            body: respStatus === 'approved' ? `Your ${req.requested_pct}% discount was approved.`
-              : respStatus === 'counter' ? `Counter-offer: ${respPct}% discount.`
-              : 'Your discount request was rejected.',
-            link_type: 'deal',
-            link_id: dealId,
-          })
-        } catch (_) {}
-      }
+      // Notification is created inside the RPC (SECURITY DEFINER)
       setRespondingId(null); setRespStatus('approved'); setRespPct(''); setRespNote('')
       load()
     } catch (e) { showToast(e.message, 'error') }

@@ -1,19 +1,16 @@
 -- ============================================================
--- BusinessBook — Discount Response Function (brand approvers)
+-- BusinessBook — Discount Response Function (brand approvers) v2
 -- ============================================================
 -- Run in: Supabase Dashboard → SQL Editor
 --
--- Fixes:
---  1. deals.discount_status may have an old CHECK that rejects 'counter'
---  2. Brand approvers (no BU) can't UPDATE deals via RLS, so their
---     decision couldn't update the deal summary status.
---
--- Solution: a SECURITY DEFINER function that updates both the request
--- and the deal, after verifying the caller is allowed to act on that
--- request's brand (admin/manager OR approves_brands contains the brand).
+-- Handles the full response in ONE call (bypasses RLS safely):
+--   1. validates caller (admin/manager OR brand approver)
+--   2. updates the discount request
+--   3. updates the deal summary status
+--   4. creates the notification for the requester (distributor)
 -- ============================================================
 
--- 1. Remove any restrictive CHECK on deals.discount_status
+-- Remove any restrictive CHECK on deals.discount_status
 DO $$
 DECLARE c text;
 BEGIN
@@ -27,26 +24,26 @@ BEGIN
   END LOOP;
 END $$;
 
--- 2. Response function (bypasses RLS safely, with internal authz)
 CREATE OR REPLACE FUNCTION public.respond_discount_request(
   p_request_id uuid,
   p_status     text,
   p_approved_pct numeric,
   p_note       text
 )
-RETURNS TABLE (deal_id uuid, requested_by uuid, requested_pct numeric, client text)
+RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_req   public.deal_discount_requests%ROWTYPE;
-  v_can   boolean;
+  v_req    public.deal_discount_requests%ROWTYPE;
+  v_client text;
+  v_can    boolean;
+  v_body   text;
 BEGIN
   SELECT * INTO v_req FROM public.deal_discount_requests WHERE id = p_request_id;
   IF NOT FOUND THEN RAISE EXCEPTION 'Request not found'; END IF;
 
-  -- Authorization: admin/manager OR brand approver for this request's brand
   SELECT EXISTS (
     SELECT 1 FROM public.profiles p
     WHERE p.id = auth.uid() AND p.active = true
@@ -72,11 +69,26 @@ BEGIN
   UPDATE public.deals SET
     discount_status   = p_status,
     discount_approved = CASE WHEN p_status IN ('approved','counter') THEN p_approved_pct ELSE NULL END
-  WHERE id = v_req.deal_id;
+  WHERE id = v_req.deal_id
+  RETURNING client INTO v_client;
 
-  RETURN QUERY
-    SELECT v_req.deal_id, v_req.requested_by, v_req.requested_pct, d.client
-    FROM public.deals d WHERE d.id = v_req.deal_id;
+  -- Notify the requester (distributor)
+  IF v_req.requested_by IS NOT NULL THEN
+    v_body := CASE
+      WHEN p_status = 'approved' THEN 'Your ' || v_req.requested_pct || '% discount was approved.'
+      WHEN p_status = 'counter'  THEN 'Counter-offer: ' || COALESCE(p_approved_pct::text,'—') || '%.'
+      ELSE 'Your discount request was rejected.'
+    END;
+    INSERT INTO public.notifications (user_id, type, title, body, link_type, link_id)
+    VALUES (
+      v_req.requested_by,
+      'discount_response',
+      'Discount ' || p_status || ': ' || COALESCE(v_client, 'Deal'),
+      v_body,
+      'deal',
+      v_req.deal_id
+    );
+  END IF;
 END $$;
 
 GRANT EXECUTE ON FUNCTION public.respond_discount_request(uuid, text, numeric, text) TO authenticated;

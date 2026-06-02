@@ -56,18 +56,6 @@ export default function Approvals() {
         p_note: note || null,
       })
       if (error) throw error
-      if (req.requested_by) {
-        await supabase.from('notifications').insert({
-          user_id: req.requested_by,
-          type: 'discount_response',
-          title: `Discount ${status}: ${req.deal?.client || 'Deal'}`,
-          body: status === 'approved' ? `Your ${req.requested_pct}% discount was approved.`
-            : status === 'counter' ? `Counter-offer: ${approvedPct}%.`
-            : 'Your discount request was rejected.',
-          link_type: 'deal',
-          link_id: req.deal_id,
-        }).catch(() => {})
-      }
       showToast(`Request ${status}`, 'success')
       load()
     } catch (e) { showToast(e.message, 'error') }
