@@ -3,6 +3,10 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  test: {
+    // Vitest runs unit tests under src/. Playwright e2e specs live in e2e/.
+    exclude: ['**/node_modules/**', '**/e2e/**', '**/dist/**'],
+  },
   build: {
     rollupOptions: {
       output: {

@@ -142,7 +142,8 @@ export default function DealForm({ deal, onClose, onSaved }) {
   }, [profile?.role, profile?.company_id])
   useEffect(() => {
     if (deal?.id) {
-      supabase.from('deal_products').select('*').eq('deal_id', deal.id).order('created_at')
+      // Use the security view so cost_price/margin_pct are nulled for non-admin/manager roles
+      supabase.from('deal_products_v').select('*').eq('deal_id', deal.id).order('created_at')
         .then(({ data }) => { if (data) setDealLines(data.map(d => ({ ...d, _key: d.id }))) })
         .catch(() => {})
     }
