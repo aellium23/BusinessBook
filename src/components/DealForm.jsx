@@ -307,6 +307,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
   const [hubs, setHubs]               = useState([])
   const [dealLines, setDealLines]     = useState([])
   const [catalogProducts, setCatalogProducts] = useState([])
+  const [authMap, setAuthMap] = useState({})
   const [existingClients, setExistingClients] = useState([])
 
   const isMaint = false
@@ -340,6 +341,17 @@ export default function DealForm({ deal, onClose, onSaved }) {
     supabase.from('products').select('*').eq('active', true).order('sort_order').order('name')
       .then(({ data }) => { if (data) setCatalogProducts(data) })
       .catch(() => {})
+    if (profile?.role === 'distributor' && profile?.company_id) {
+      supabase.from('company_product_authorizations').select('product_id, country, price, active')
+        .eq('company_id', profile.company_id).eq('active', true)
+        .then(({ data }) => {
+          if (data) {
+            const map = {}
+            data.forEach(a => { map[`${a.product_id}_${a.country}`] = a })
+            setAuthMap(map)
+          }
+        }).catch(() => {})
+    }
     supabase.from('deals').select('client').then(({ data }) => {
       if (data) setExistingClients([...new Set(data.map(d => d.client).filter(Boolean))].sort())
     }).catch(() => {})
@@ -376,6 +388,21 @@ export default function DealForm({ deal, onClose, onSaved }) {
       form.ce_month, form.ce_year, form.sla_billing_month, form.sla_billing_year,
       form.currency, form.exchange_rate])
   const isDistributor = profile?.role === 'distributor'
+
+  const resolvedProducts = useMemo(() => {
+    if (!isDistributor || Object.keys(authMap).length === 0) return catalogProducts
+    const country = form.country || ''
+    if (!country) return []
+    return catalogProducts
+      .filter(p => authMap[`${p.id}_${country}`])
+      .map(p => {
+        const auth = authMap[`${p.id}_${country}`]
+        if (auth?.price) {
+          return { ...p, license_fee: auth.price, annual_fee: auth.price }
+        }
+        return p
+      })
+  }, [catalogProducts, authMap, isDistributor, form.country])
 
   // Distributor stage flow — restricted stages
   const DIST_STAGES = ['Lead', 'Offer Presented', 'BackLog', 'Lost']
@@ -824,10 +851,16 @@ export default function DealForm({ deal, onClose, onSaved }) {
             </>
           )}
 
+          {isDistributor && form.country && resolvedProducts.length === 0 && Object.keys(authMap).length > 0 && (
+            <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
+              No products authorized for {form.country}. Contact your account manager.
+            </p>
+          )}
+
           <ProductLineItems
             lines={dealLines}
             onChange={setDealLines}
-            products={catalogProducts}
+            products={resolvedProducts}
             businessModel={form.business_model}
             userRole={profile?.role}
             t={t}
