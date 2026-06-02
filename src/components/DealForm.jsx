@@ -442,7 +442,8 @@ export default function DealForm({ deal, onClose, onSaved }) {
           <div>
             <label className="label">{t("df_region")}</label>
             <select className="select" value={form.region} onChange={e => { set('region', e.target.value); set('country','') }}>
-              {REGIONS.map(r => <option key={r}>{r}</option>)}
+              <option value="">—</option>
+              {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
             </select>
           </div>
           <div>
