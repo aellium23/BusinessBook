@@ -308,24 +308,27 @@ export default function DealForm({ deal, onClose, onSaved }) {
     if (result.data?.id && dealLines.length > 0) {
       await saveDealProducts(result.data.id, dealLines)
     }
-    // Auto-notify admins when a distributor requests a discount
-    if (isDistributor && form.discount_requested && parseFloat(form.discount_requested) > 0) {
-      const { data: admins } = await supabase.from('profiles')
-        .select('id').in('role', ['admin', 'manager']).eq('active', true)
-      if (admins?.length) {
-        const notifs = admins.map(a => ({
-          user_id: a.id,
-          type: 'discount_request',
-          title: `Discount request: ${form.client || 'Unknown'}`,
-          body: `${profile?.full_name || 'Distributor'} requested ${form.discount_requested}% discount`,
-          link_type: 'deal',
-          link_id: result.data.id,
-        }))
-        await supabase.from('notifications').insert(notifs).catch(() => {})
+    // Auto-notify admins when a distributor requests a discount (non-blocking)
+    try {
+      if (isDistributor && form.discount_requested && parseFloat(form.discount_requested) > 0) {
+        const { data: admins } = await supabase.from('profiles')
+          .select('id').in('role', ['admin', 'manager']).eq('active', true)
+        if (admins?.length) {
+          await supabase.from('notifications').insert(
+            admins.map(a => ({
+              user_id: a.id,
+              type: 'discount_request',
+              title: `Discount request: ${form.client || 'Unknown'}`,
+              body: `${profile?.full_name || 'Distributor'} requested ${form.discount_requested}% discount`,
+              link_type: 'deal',
+              link_id: result.data.id,
+            }))
+          )
+        }
       }
-    }
-    onSaved(); onClose()
+    } catch (_) { /* notification failure must not block save */ }
     setSaving(false)
+    onSaved(); onClose()
   }
   return (
     <Modal open title={deal?.id ? t("df_edit_deal") : t("df_new_deal")} onClose={onClose}

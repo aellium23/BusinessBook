@@ -111,22 +111,26 @@ export default function DiscountSection({ form, set, deal, isDistributor, onSave
       </div>
 
       {/* Requested discount % + justification */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="label">{t("df_disc_req")}</label>
-          <input className="input" type="number" min="0" max="100"
-            value={form.discount_requested}
-            onChange={e => set('discount_requested', e.target.value)}
-            disabled={!isDistributor && !!deal?.id}
-            placeholder="e.g. 15"/>
-        </div>
-        <div>
-          <label className="label">{t("df_your_note")}</label>
-          <input className="input" value={form.discount_note_dist}
-            onChange={e => set('discount_note_dist', e.target.value)}
-            disabled={!isDistributor}
-            placeholder={t("df_placeholder_discount")}/>
-        </div>
+      <div>
+        <label className="label">{t("df_disc_req")} (%)</label>
+        <input className="input" type="number" min="0" max="100"
+          value={form.discount_requested}
+          onChange={e => set('discount_requested', e.target.value)}
+          disabled={!isDistributor && !!deal?.id}
+          placeholder="e.g. 15"/>
+      </div>
+      <div>
+        <label className="label">{t("df_your_note")} {isDistributor ? '*' : ''}</label>
+        <textarea className="input min-h-[100px] resize-y" rows={4}
+          value={form.discount_note_dist}
+          onChange={e => set('discount_note_dist', e.target.value)}
+          disabled={!isDistributor}
+          placeholder={isDistributor
+            ? 'Explain why this discount is needed: competitive situation, client budget, strategic account, volume commitment…'
+            : t("df_placeholder_discount")}/>
+        {isDistributor && (
+          <p className="text-[10px] text-gray-400 mt-1">Provide a detailed justification to speed up the approval process.</p>
+        )}
       </div>
 
       {/* Admin response - only visible/editable by admin/vgt */}
