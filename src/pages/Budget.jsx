@@ -675,7 +675,7 @@ export default function Budget() {
                           <div className="grid grid-cols-6 gap-0.5">
                             {MONTHS.map((m, mi) => (
                               <div key={m} className="text-center">
-                                <p className="text-[8px] text-gray-300">{m}</p>
+                                <p className="text-[10px] text-gray-300">{m}</p>
                                 <p className="text-[10px] font-semibold text-gray-700">{Number(extRow[MONTHS_K[mi]]) || '—'}</p>
                               </div>
                             ))}
@@ -688,7 +688,7 @@ export default function Budget() {
                           <div className="grid grid-cols-6 gap-0.5">
                             {MONTHS.map((m, mi) => (
                               <div key={m} className="text-center">
-                                <p className="text-[8px] text-gray-300">{m}</p>
+                                <p className="text-[10px] text-gray-300">{m}</p>
                                 <p className="text-[10px] font-semibold text-gray-700">{Number(intRow[MONTHS_K[mi]]) || '—'}</p>
                               </div>
                             ))}
