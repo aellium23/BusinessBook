@@ -246,7 +246,7 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
       ...form,
       license_fee: parseFloat(form.license_fee) || 0,
       annual_fee:  parseFloat(form.annual_fee)  || 0,
-      brand:       form.brand || 'Fujifilm',
+      brand:       (form.brand || 'Fujifilm').trim(),
       sort_order:  parseInt(form.sort_order)    || 0,
       // backward compat: write single pricing_model from first selection
       pricing_model: (form.allowed_pricing_models && form.allowed_pricing_models.length > 0)

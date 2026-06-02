@@ -45,7 +45,7 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
       const ids = dps.map(d => d.product_id).filter(Boolean)
       if (ids.length) {
         const { data: prods } = await supabase.from('products').select('brand').in('id', ids)
-        brands = [...new Set((prods || []).map(p => p.brand || 'Fujifilm'))]
+        brands = [...new Set((prods || []).map(p => (p.brand || 'Fujifilm').trim()))]
         setDealBrands(brands)
         if (brands.length === 1) setBrand(brands[0])
       }
