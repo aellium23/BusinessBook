@@ -188,7 +188,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
       .map(p => {
         const auth = authMap[`${p.id}_${country}`]
         if (auth?.price) {
-          return { ...p, license_fee: auth.price, annual_fee: auth.price }
+          return { ...p, license_fee: auth.price }
         }
         return p
       })

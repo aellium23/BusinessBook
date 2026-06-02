@@ -54,21 +54,26 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
   }
 
   function addLine(product) {
-    const price = isCapex ? (product.license_fee || 0) : (product.annual_fee || 0)
     const lt = inferLicenseType(product)
+    const isVol = ['per_volume', 'per_package'].includes(lt)
+    // For volume/package licensing, license_fee = price per unit/study
+    // For capex/flat, license_fee = upfront license price
+    const unitPrice = isVol
+      ? (product.license_fee || product.annual_fee || 0)
+      : isCapex ? (product.license_fee || 0) : (product.annual_fee || 0)
     const newLine = {
       _key: Date.now() + Math.random(),
       product_id:    product.id,
       product_name:  product.name,
       license_type:  lt,
-      quantity:      1,
+      quantity:      isVol ? 0 : 1,
       volume:        '',
       package_size:  lt === 'per_package' ? 10000 : '',
-      unit_price:    price,
-      cost_price:    price,
+      unit_price:    unitPrice,
+      cost_price:    unitPrice,
       margin_pct:    0,
       discount_pct:  0,
-      net_price:     price,
+      net_price:     isVol ? 0 : unitPrice,
       annual_fee:    product.annual_fee || 0,
       notes:         '',
     }
@@ -242,11 +247,11 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
               </div>
 
               {/* Price (read-only) + Discount request + Net */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div>
                   <label className="text-[10px] text-gray-400">{isVolume ? 'Price / study €' : 'Unit price €'}</label>
                   <div className="input text-xs py-1 bg-gray-100 text-gray-600 cursor-not-allowed">
-                    {unit > 0 ? unit.toLocaleString() : '—'}
+                    {unit > 0 ? `€${unit}` : '—'}
                   </div>
                 </div>
                 <div>

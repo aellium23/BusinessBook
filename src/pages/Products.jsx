@@ -339,11 +339,22 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
               <div className="bg-gray-50/70 rounded-xl p-3 border border-gray-100">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="label">{t('products_license')} (&euro;)</label>
+                    <label className="label">
+                      {(form.allowed_pricing_models || []).some(m => ['pay_per_study','subscription'].includes(m))
+                        ? 'Price per Unit / Study (€)'
+                        : `${t('products_license')} (€)`}
+                    </label>
                     <input className="input" type="number" min="0" step="0.01" value={form.license_fee} onChange={e => set('license_fee', e.target.value)}/>
+                    {(form.allowed_pricing_models || []).includes('pay_per_study') && (
+                      <p className="text-[10px] text-purple-500 mt-0.5">e.g. €0.53 per study for CWM Dose</p>
+                    )}
                   </div>
                   <div>
-                    <label className="label">{t('products_annual')} (&euro;)</label>
+                    <label className="label">
+                      {(form.allowed_pricing_models || []).some(m => ['pay_per_study','subscription'].includes(m))
+                        ? 'Annual Fee / Minimum (€)'
+                        : `${t('products_annual')} (€)`}
+                    </label>
                     <input className="input" type="number" min="0" step="0.01" value={form.annual_fee} onChange={e => set('annual_fee', e.target.value)}/>
                   </div>
                 </div>
