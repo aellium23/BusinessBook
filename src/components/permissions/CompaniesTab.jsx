@@ -386,5 +386,10 @@ function SalesTargetsSection({ companies, onRefresh }) {
 
 // ── Main export ──────────────────────────────────────────────────────────────
 export default function CompaniesTab({ companies, onRefresh }) {
-  return <CompaniesSection companies={companies} onRefresh={onRefresh}/>
+  return (
+    <div className="space-y-6">
+      <CompaniesSection companies={companies} onRefresh={onRefresh}/>
+      <SalesTargetsSection companies={companies} onRefresh={onRefresh}/>
+    </div>
+  )
 }
