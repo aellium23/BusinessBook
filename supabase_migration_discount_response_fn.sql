@@ -10,6 +10,9 @@
 --   4. creates the notification for the requester (distributor)
 -- ============================================================
 
+-- Drop prior version first (return type changed from TABLE to void)
+DROP FUNCTION IF EXISTS public.respond_discount_request(uuid, text, numeric, text);
+
 -- Remove any restrictive CHECK on deals.discount_status
 DO $$
 DECLARE c text;
