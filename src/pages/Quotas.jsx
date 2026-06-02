@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { formatK, Spinner } from '../components/ui'
 import { Target, Plus, Save, Trash2, ChevronDown, ChevronUp, Crown, Package } from 'lucide-react'
+import SalesOverlayConfig from '../components/SalesOverlayConfig'
 import { useTranslation } from '../hooks/useTranslation'
 import { MONTHS_K, PRODUCTS, safeJsonParse } from '../constants'
 
@@ -526,6 +527,16 @@ export default function Quotas() {
               <TeamSection bu={bu} quotas={scopedQuotas} actuals={actuals} forecast={forecast}
                 onRefresh={load} isAdmin={isAdmin} profile={profile}/>
             </div>
+          ))}
+        </div>
+      )}
+
+      {/* Sales Overlay Rules — admin/manager only */}
+      {isManagerLevel && (
+        <div className="border-t border-gray-200 pt-6 space-y-4">
+          {visibleBUs.map(bu => (
+            <SalesOverlayConfig key={bu} bu={bu}
+              salesOwners={quotas.map(q => ({ name: q.sales_owner, bu: q.bu }))}/>
           ))}
         </div>
       )}

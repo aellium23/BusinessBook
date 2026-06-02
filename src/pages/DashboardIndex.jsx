@@ -7,6 +7,7 @@ import DashboardSummary from './DashboardSummary'
 import ProductFunnel from '../components/dashboard/ProductFunnel'
 import SalesRepFunnel from '../components/dashboard/SalesRepFunnel'
 import TopClients from '../components/dashboard/TopClients'
+import MemberDashboard from '../components/dashboard/MemberDashboard'
 import { Gauge as GaugeIcon, BarChart3, Package, Users, Building2 } from 'lucide-react'
 
 const STORAGE_KEY = 'bb_dashboard_view'
@@ -49,6 +50,19 @@ export default function DashboardIndex() {
   // Distributors skip the view toggle and go directly to the dedicated dashboard
   if (isDistributor) {
     return <DashboardClassic selectedBU="" />
+  }
+
+  // Sales reps (member) get a personal dashboard similar to distributors
+  if (profile?.role === 'member') {
+    return (
+      <div className="p-4 space-y-4 max-w-5xl mx-auto">
+        <div className="pt-1">
+          <h1 className="text-xl font-bold text-gray-900">{t('dash_title') || 'Dashboard'}</h1>
+          <p className="text-sm text-gray-400">{profile?.full_name} · {profile?.bu}</p>
+        </div>
+        <MemberDashboard />
+      </div>
+    )
   }
 
   return (
