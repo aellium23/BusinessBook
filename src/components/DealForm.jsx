@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Modal } from '../components/ui'
+import { Modal, formatK } from './ui'
 import { upsertDeal, upsertDealWithIntercompany } from '../hooks/useDeals'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
@@ -13,7 +13,6 @@ import DealTimeline from './DealTimeline'
 import SearchableSelect from './SearchableSelect'
 import ProductLineItems from './ProductLineItems'
 import { FORECAST_CATEGORIES, defaultForecastFromStage, DISTRIBUTION_PATHS, computeMargins, BUSINESS_MODELS } from '../constants'
-import { formatK } from './ui'
 import { saveDealProducts } from '../hooks/useDealProducts'
 import { getAllowedTransitions, canTransition } from '../lib/stateMachine'
 import { validateDeal } from '../lib/validation'
@@ -260,6 +259,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
   const [existingClients, setExistingClients] = useState([])
 
   const isMaint = false
+  const isDistributor = profile?.role === 'distributor'
   const accountsForBU = useMemo(() => {
     let filtered = accounts.filter(a => !form.bu || a.bu === form.bu)
     if (isDistributor && company?.country) {
@@ -344,7 +344,6 @@ export default function DealForm({ deal, onClose, onSaved }) {
   }, [form.is_sla, form.sla_annual_value, form.cs_month, form.cs_year,
       form.ce_month, form.ce_year, form.sla_billing_month, form.sla_billing_year,
       form.currency, form.exchange_rate])
-  const isDistributor = profile?.role === 'distributor'
 
   const resolvedProducts = useMemo(() => {
     if (!isDistributor || Object.keys(authMap).length === 0) return catalogProducts
