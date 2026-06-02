@@ -26,8 +26,9 @@ export default function SalesRepFunnel({ selectedBU = '' }) {
       if (!bucket) continue
       const val = bucket === 'pipeline' ? (Number(d.value_total) || 0) : (fy26 || Number(d.value_total) || 0)
       if (val === 0) continue
-      const key = d.sales_owner || '(unassigned)'
-      if (!map[key]) map[key] = { name: key, pipeline: 0, backlog: 0, invoiced: 0, weighted: 0, count: 0 }
+      const rawName = (d.sales_owner || '(unassigned)').trim()
+      const key = rawName.toLowerCase()  // case-insensitive grouping
+      if (!map[key]) map[key] = { name: rawName, pipeline: 0, backlog: 0, invoiced: 0, weighted: 0, count: 0 }
       const g = map[key]
       g[bucket] += val
       g.count += 1

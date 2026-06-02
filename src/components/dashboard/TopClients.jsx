@@ -28,8 +28,9 @@ export default function TopClients({ selectedBU = '' }) {
       if (!bucket) continue
       const val = fy26 || Number(d.value_total) || 0
       if (val === 0) continue
-      const key = d.client || '(no client)'
-      if (!map[key]) map[key] = { name: key, region: d.region || '—', pipeline: 0, backlog: 0, invoiced: 0, count: 0 }
+      const rawName = (d.client || '(no client)').trim()
+      const key = rawName.toLowerCase()  // case-insensitive grouping
+      if (!map[key]) map[key] = { name: rawName, region: d.region || '—', pipeline: 0, backlog: 0, invoiced: 0, count: 0 }
       map[key][bucket] += val
       map[key].count += 1
     }
