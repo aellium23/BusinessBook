@@ -72,9 +72,14 @@ export default function DiscountSection({ form, set, deal, isDistributor, onSave
       'bg-gray-50 border-gray-200'
     }`}>
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
-          {t("df_disc_request")}
-        </p>
+        <div>
+          <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+            {t("df_disc_request")}
+          </p>
+          {isDistributor && (
+            <p className="text-[10px] text-gray-400">Optional — request approval for a discount beyond your standard pricing.</p>
+          )}
+        </div>
         {deal?.discount_status && (
           <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
             deal.discount_status === 'approved' ? 'bg-green-100 text-green-700' :
@@ -91,16 +96,8 @@ export default function DiscountSection({ form, set, deal, isDistributor, onSave
         )}
       </div>
 
-      {/* Distributor fills these */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <div>
-          <label className="label">{t("df_list_price")}</label>
-          <input className="input" type="number"
-            value={form.list_price}
-            onChange={e => set('list_price', e.target.value)}
-            disabled={!isDistributor && !!deal?.id}
-            placeholder={t("df_placeholder_price")}/>
-        </div>
+      {/* Requested discount % + justification */}
+      <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="label">{t("df_disc_req")}</label>
           <input className="input" type="number" min="0" max="100"
@@ -110,24 +107,12 @@ export default function DiscountSection({ form, set, deal, isDistributor, onSave
             placeholder="e.g. 15"/>
         </div>
         <div>
-          <label className="label">{t("df_your_price")}</label>
-          <div className="input bg-gray-50 text-gray-600 text-sm">
-            {form.list_price && form.discount_requested
-              ? `€${(Number(form.list_price) * (1 - Number(form.discount_requested)/100)).toLocaleString('pt-PT', {maximumFractionDigits:0})}`
-              : '—'}
-          </div>
+          <label className="label">{t("df_your_note")}</label>
+          <input className="input" value={form.discount_note_dist}
+            onChange={e => set('discount_note_dist', e.target.value)}
+            disabled={!isDistributor}
+            placeholder={t("df_placeholder_discount")}/>
         </div>
-      </div>
-
-      {/* Distributor note */}
-      <div>
-        <label className="label">
-          {isDistributor ? t("df_your_note") : t("df_dist_note")}
-        </label>
-        <input className="input" value={form.discount_note_dist}
-          onChange={e => set('discount_note_dist', e.target.value)}
-          disabled={!isDistributor}
-          placeholder={t("df_placeholder_discount")}/>
       </div>
 
       {/* Admin response - only visible/editable by admin/vgt */}

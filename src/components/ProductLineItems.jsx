@@ -203,7 +203,80 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
         </div>
       </div>
 
-      {lines.map((line, idx) => (
+      {lines.map((line, idx) => {
+        const isVolume = ['per_volume', 'per_package'].includes(line.license_type)
+        const qtyLabel = line.license_type === 'per_ccu' ? 'CCUs'
+          : line.license_type === 'per_equipment' ? 'Equipments' : 'Qty'
+
+        // ── DISTRIBUTOR VIEW — price read-only, only discount request editable ──
+        if (isDistributor) {
+          const unit = parseFloat(line.unit_price) || 0
+          return (
+            <div key={line._key || line.id || idx} className="bg-gray-50 rounded-lg p-3 space-y-2">
+              <div className="flex items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800 truncate">{line.product_name}</p>
+                  <p className="text-[10px] text-gray-400">
+                    {(getAllowedTypes(line).find(t => t.id === line.license_type) || {}).label || line.license_type}
+                  </p>
+                </div>
+                <button onClick={() => removeLine(idx)} className="text-gray-300 hover:text-red-500 p-1 min-h-tap">
+                  <X size={14}/>
+                </button>
+              </div>
+
+              {/* Single contextual quantity driver */}
+              <div>
+                <label className="text-[10px] text-purple-500">
+                  {isVolume ? 'Annual Studies (volume)' : qtyLabel}
+                </label>
+                <input className="input text-xs py-1 border-purple-200" type="number" min={isVolume ? 0 : 1}
+                  value={isVolume ? (line.volume || '') : line.quantity}
+                  onChange={e => updateLine(idx, isVolume ? 'volume' : 'quantity', e.target.value)}
+                  placeholder={isVolume ? 'e.g. 50000' : '1'}/>
+                {line.license_type === 'per_package' && line.package_size > 0 && (
+                  <p className="text-[10px] text-gray-400 mt-0.5">
+                    Billed in packages of {Number(line.package_size).toLocaleString()} — {line.quantity || 0} package(s)
+                  </p>
+                )}
+              </div>
+
+              {/* Price (read-only) + Discount request + Net */}
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="text-[10px] text-gray-400">{isVolume ? 'Price / study €' : 'Unit price €'}</label>
+                  <div className="input text-xs py-1 bg-gray-100 text-gray-600 cursor-not-allowed">
+                    {unit > 0 ? unit.toLocaleString() : '—'}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] text-amber-600">Discount req. %</label>
+                  <input className="input text-xs py-1 border-amber-200" type="number" min="0" max="100"
+                    value={line.discount_pct}
+                    onChange={e => updateLine(idx, 'discount_pct', e.target.value)}/>
+                </div>
+                <div>
+                  <label className="text-[10px] text-gray-700 font-semibold">Net €</label>
+                  <div className="input text-xs py-1 font-semibold bg-white text-gray-900">
+                    {(parseFloat(line.net_price) || 0).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+
+              {Number(line.annual_fee) > 0 && (
+                <p className="text-[10px] text-blue-600">Annual fee: €{Number(line.annual_fee).toLocaleString()}/yr</p>
+              )}
+              {unit === 0 && (
+                <p className="text-[10px] text-amber-600 bg-amber-50 rounded px-2 py-1">
+                  No authorized price set for this product. Contact your account manager.
+                </p>
+              )}
+            </div>
+          )
+        }
+
+        // ── INTERNAL VIEW (admin/manager/member) — full editing ──
+        return (
         <div key={line._key || line.id || idx} className="bg-gray-50 rounded-lg p-3 space-y-2">
           <div className="flex items-start gap-2">
             <div className="flex-1 min-w-0">
@@ -228,17 +301,16 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
                 {getAllowedTypes(line).map(lt => <option key={lt.id} value={lt.id}>{lt.label}</option>)}
               </select>
             </div>
-            <div>
-              <label className="text-[10px] text-gray-400">
-                {line.license_type === 'per_ccu' ? 'CCUs' :
-                 line.license_type === 'per_equipment' ? 'Equipments' : 'Qty'}
-              </label>
-              <input className="input text-xs py-1" type="number" min="1" value={line.quantity}
-                onChange={e => updateLine(idx, 'quantity', e.target.value)}/>
-            </div>
+            {!isVolume && (
+              <div>
+                <label className="text-[10px] text-gray-400">{qtyLabel}</label>
+                <input className="input text-xs py-1" type="number" min="1" value={line.quantity}
+                  onChange={e => updateLine(idx, 'quantity', e.target.value)}/>
+              </div>
+            )}
           </div>
 
-          {['per_volume', 'per_package'].includes(line.license_type) && (
+          {isVolume && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 <label className="text-[10px] text-purple-500">Annual Studies</label>
@@ -257,23 +329,19 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
             </div>
           )}
 
-          <div className={`grid gap-2 ${isDistributor ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'}`}>
-            {!isDistributor && (
-              <>
-                <div>
-                  <label className="text-[10px] text-gray-400">Cost €</label>
-                  <input className="input text-xs py-1" type="number" value={line.cost_price || line.unit_price}
-                    onChange={e => updateLine(idx, 'cost_price', e.target.value)}/>
-                </div>
-                <div>
-                  <label className="text-[10px] text-green-500">Margin %</label>
-                  <input className="input text-xs py-1 border-green-200" type="number" min="0" value={line.margin_pct || 0}
-                    onChange={e => updateLine(idx, 'margin_pct', e.target.value)}/>
-                </div>
-              </>
-            )}
+          <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <label className="text-[10px] text-gray-400">{isDistributor ? 'Price €' : 'Sell €'}</label>
+              <label className="text-[10px] text-gray-400">Cost €</label>
+              <input className="input text-xs py-1" type="number" value={line.cost_price || line.unit_price}
+                onChange={e => updateLine(idx, 'cost_price', e.target.value)}/>
+            </div>
+            <div>
+              <label className="text-[10px] text-green-500">Margin %</label>
+              <input className="input text-xs py-1 border-green-200" type="number" min="0" value={line.margin_pct || 0}
+                onChange={e => updateLine(idx, 'margin_pct', e.target.value)}/>
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-400">Sell €</label>
               <input className="input text-xs py-1" type="number" value={line.unit_price}
                 onChange={e => updateLine(idx, 'unit_price', e.target.value)}/>
             </div>
@@ -298,7 +366,8 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
               onChange={e => updateLine(idx, 'annual_fee', e.target.value)}/>
           </div>
         </div>
-      ))}
+        )
+      })}
 
       <div className="flex gap-2">
         <div className="relative flex-1">
