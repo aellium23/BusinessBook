@@ -46,17 +46,14 @@ export default function Approvals() {
 
   async function respond(req, status, approvedPct, note) {
     try {
-      await supabase.from('deal_discount_requests').update({
-        status,
-        approved_pct: (status === 'approved' || status === 'counter') ? (parseFloat(approvedPct) || null) : null,
-        response_note: note || null,
-        responded_by: profile?.id,
-        responded_at: new Date().toISOString(),
-      }).eq('id', req.id)
-      await supabase.from('deals').update({
-        discount_status: status,
-        discount_approved: (status === 'approved' || status === 'counter') ? (parseFloat(approvedPct) || null) : null,
-      }).eq('id', req.deal_id)
+      const pct = (status === 'approved' || status === 'counter') ? (parseFloat(approvedPct) || null) : null
+      const { error } = await supabase.rpc('respond_discount_request', {
+        p_request_id: req.id,
+        p_status: status,
+        p_approved_pct: pct,
+        p_note: note || null,
+      })
+      if (error) throw error
       if (req.requested_by) {
         await supabase.from('notifications').insert({
           user_id: req.requested_by,

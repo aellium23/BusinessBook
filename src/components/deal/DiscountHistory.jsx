@@ -122,18 +122,14 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
   async function handleRespond(reqId) {
     setRespSaving(true)
     try {
-      await supabase.from('deal_discount_requests').update({
-        status: respStatus,
-        approved_pct: respStatus === 'approved' || respStatus === 'counter' ? (parseFloat(respPct) || null) : null,
-        response_note: respNote || null,
-        responded_by: profile?.id,
-        responded_at: new Date().toISOString(),
-      }).eq('id', reqId)
-      // Update deal-level status
-      await supabase.from('deals').update({
-        discount_status: respStatus,
-        discount_approved: respStatus === 'approved' || respStatus === 'counter' ? (parseFloat(respPct) || null) : null,
-      }).eq('id', dealId)
+      const pct = (respStatus === 'approved' || respStatus === 'counter') ? (parseFloat(respPct) || null) : null
+      const { error } = await supabase.rpc('respond_discount_request', {
+        p_request_id: reqId,
+        p_status: respStatus,
+        p_approved_pct: pct,
+        p_note: respNote || null,
+      })
+      if (error) throw error
       // Notify distributor
       const req = requests.find(r => r.id === reqId)
       if (req?.requested_by) {
