@@ -19,15 +19,26 @@ const STORAGE_KEY = 'bb_dashboard_view'
 export default function DashboardIndex() {
   const { t } = useTranslation()
   const { profile, isAdmin } = useAuth()
+  const isDistributor = profile?.role === 'distributor'
+
+  // Distributors go straight to the Classic view which has DistributorDashboard
   const [view, setView] = useState(() => {
+    if (isDistributor) return 'classic'
     if (typeof window === 'undefined') return 'summary'
     return localStorage.getItem(STORAGE_KEY) || 'summary'
   })
   const [selectedBU, setSelectedBU] = useState('')
 
   useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, view) } catch {}
-  }, [view])
+    if (!isDistributor) {
+      try { localStorage.setItem(STORAGE_KEY, view) } catch {}
+    }
+  }, [view, isDistributor])
+
+  // Distributors skip the view toggle and go directly to the dedicated dashboard
+  if (isDistributor) {
+    return <DashboardClassic selectedBU="" />
+  }
 
   return (
     <div className="p-4 space-y-4 max-w-5xl mx-auto">

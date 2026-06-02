@@ -361,9 +361,9 @@ function DistributorQuota({ quotas, actuals, forecast, profile }) {
   const myQuota = quotas[0] || null
   const target  = myQuota?.target_eur || 0
 
-  // Actuals e forecast deste distribuidor
-  const myActuals  = Object.values(actuals)[0]  || 0
-  const myForecast = Object.values(forecast)[0] || 0
+  // Actuals e forecast deste distribuidor (sum all keys — deals may have different sales_owners)
+  const myActuals  = Object.values(actuals).reduce((s, v) => s + (v || 0), 0)
+  const myForecast = Object.values(forecast).reduce((s, v) => s + (v || 0), 0)
 
   const actPct = target > 0 ? Math.round(myActuals  / target * 100) : 0
   const fcPct  = target > 0 ? Math.round(myForecast / target * 100) : 0

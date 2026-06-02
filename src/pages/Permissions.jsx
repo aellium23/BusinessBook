@@ -604,7 +604,7 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
 function CompaniesSection({ companies, onRefresh }) {
   const { t } = useTranslation()
   const [adding, setAdding] = useState(false)
-  const [form, setForm] = useState({ name:'', type:'distributor', country:'' })
+  const [form, setForm] = useState({ name:'', type:'distributor', country:'', default_currency:'EUR' })
   const [saving, setSaving] = useState(false)
   const [editingAuth, setEditingAuth] = useState(null)
   const [authProducts, setAuthProducts] = useState([])
@@ -651,8 +651,9 @@ function CompaniesSection({ companies, onRefresh }) {
       name: form.name.trim(), type: form.type,
       bu: form.type === 'internal_vgt' ? 'VGT' : form.type === 'internal_ect' ? 'ECT' : null,
       country: form.country || null, active: true,
+      default_currency: form.default_currency || 'EUR',
     })
-    setForm({ name:'', type:'distributor', country:'' })
+    setForm({ name:'', type:'distributor', country:'', default_currency:'EUR' })
     setAdding(false); setSaving(false); onRefresh()
   }
 
@@ -697,6 +698,15 @@ function CompaniesSection({ companies, onRefresh }) {
                 onChange={e => setForm(f => ({...f, country: e.target.value}))}
                 placeholder={t('perm_country_ph')} style={{fontSize:'16px'}}/>
             </div>
+            <div>
+              <label className="label">Default Currency</label>
+              <select className="select" value={form.default_currency}
+                onChange={e => setForm(f => ({...f, default_currency: e.target.value}))}>
+                <option value="EUR">EUR</option>
+                <option value="USD">USD</option>
+                <option value="GBP">GBP</option>
+              </select>
+            </div>
           </div>
           <div className="flex gap-2">
             <button onClick={() => setAdding(false)} className="btn-secondary flex-1 text-xs">Cancelar</button>
@@ -722,8 +732,24 @@ function CompaniesSection({ companies, onRefresh }) {
                 <div key={co.id} className={`px-3 py-2.5 flex items-center gap-2 border-b border-gray-50 last:border-0 ${!co.active ? 'opacity-40' : ''}`}>
                   <button onClick={() => loadAuth(co)} className="flex-1 min-w-0 text-left hover:text-blue-700">
                     <p className="text-sm font-medium text-gray-800 truncate">{co.name}</p>
-                    {co.country && <p className="text-[10px] text-gray-400">{co.country}</p>}
+                    <div className="flex items-center gap-2">
+                      {co.country && <span className="text-[10px] text-gray-400">{co.country}</span>}
+                      {co.default_currency && co.default_currency !== 'EUR' && (
+                        <span className="text-[10px] font-medium text-blue-600 bg-blue-50 px-1 rounded">{co.default_currency}</span>
+                      )}
+                    </div>
                   </button>
+                  <select className="text-[10px] border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-600 shrink-0"
+                    value={co.default_currency || 'EUR'}
+                    onClick={e => e.stopPropagation()}
+                    onChange={async (e) => {
+                      await supabase.from('companies').update({ default_currency: e.target.value }).eq('id', co.id)
+                      onRefresh()
+                    }}>
+                    <option value="EUR">EUR</option>
+                    <option value="USD">USD</option>
+                    <option value="GBP">GBP</option>
+                  </select>
                   <button onClick={async () => { await supabase.from('companies').update({active:!co.active}).eq('id',co.id); onRefresh() }}
                     className={`w-7 h-3.5 rounded-full transition-colors relative shrink-0 ${co.active ? 'bg-green-400' : 'bg-gray-200'}`}>
                     <span className={`absolute top-0.5 w-2.5 h-2.5 bg-white rounded-full shadow transition-transform ${co.active ? 'translate-x-3.5' : 'translate-x-0.5'}`}/>

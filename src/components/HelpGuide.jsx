@@ -35,6 +35,7 @@ const HELP = {
       ],
       admin: 'As an admin you can see data across all business units. Use the BU filter to focus on VGT or ECT.',
       viewer: 'You have read-only access. Contact your admin to request edit permissions.',
+      distributor: 'You see your company\'s pipeline and targets.',
     },
     es: {
       title: 'Panel',
@@ -64,6 +65,7 @@ const HELP = {
       ],
       admin: 'Como admin puedes ver datos de todas las unidades de negocio. Usa el filtro BU para enfocar en VGT o ECT.',
       viewer: 'Tienes acceso de solo lectura. Contacta a tu admin para solicitar permisos de edicion.',
+      distributor: 'Ves el pipeline y los objetivos de tu empresa.',
     },
     pt: {
       title: 'Painel',
@@ -93,6 +95,7 @@ const HELP = {
       ],
       admin: 'Como admin podes ver dados de todas as unidades de negocio. Usa o filtro BU para focar em VGT ou ECT.',
       viewer: 'Tens acesso apenas de leitura. Contacta o teu admin para solicitar permissoes de edicao.',
+      distributor: 'Ves o pipeline e os objetivos da tua empresa.',
     },
   },
 
@@ -134,6 +137,7 @@ const HELP = {
       ],
       admin: 'You can edit or delete any deal regardless of ownership. Bulk actions are available in list view.',
       viewer: 'You can view deal details but cannot create or modify deals.',
+      distributor: 'You see only deals linked to your company. Select products from your authorized catalog.',
     },
     es: {
       title: 'Oportunidades',
@@ -171,6 +175,7 @@ const HELP = {
       ],
       admin: 'Puedes editar o eliminar cualquier deal independientemente del propietario.',
       viewer: 'Puedes ver los detalles del deal pero no crear ni modificar.',
+      distributor: 'Solo ves los deals vinculados a tu empresa. Selecciona productos de tu catalogo autorizado.',
     },
     pt: {
       title: 'Negocios',
@@ -208,6 +213,7 @@ const HELP = {
       ],
       admin: 'Podes editar ou eliminar qualquer deal independentemente do proprietario.',
       viewer: 'Podes ver os detalhes do deal mas nao criar nem modificar.',
+      distributor: 'Ves apenas os deals ligados a tua empresa. Seleciona produtos do teu catalogo autorizado.',
     },
   },
 
@@ -243,6 +249,7 @@ const HELP = {
       ],
       admin: 'You can merge duplicate clients and manage client segments.',
       viewer: 'You can browse clients but cannot add or edit records.',
+      distributor: 'Your customer accounts.',
     },
     es: {
       title: 'Clientes',
@@ -274,6 +281,7 @@ const HELP = {
       ],
       admin: 'Puedes fusionar clientes duplicados y gestionar segmentos.',
       viewer: 'Puedes navegar clientes pero no anadir ni editar registros.',
+      distributor: 'Las cuentas de tus clientes.',
     },
     pt: {
       title: 'Clientes',
@@ -305,6 +313,7 @@ const HELP = {
       ],
       admin: 'Podes fundir clientes duplicados e gerir segmentos.',
       viewer: 'Podes navegar clientes mas nao adicionar nem editar registos.',
+      distributor: 'As contas dos teus clientes.',
     },
   },
 
@@ -336,6 +345,7 @@ const HELP = {
       ],
       admin: 'You can manage all contacts across the organization.',
       viewer: 'You can view contact details in read-only mode.',
+      distributor: 'Your contacts at customer sites.',
     },
     es: {
       title: 'Contactos',
@@ -364,6 +374,7 @@ const HELP = {
       ],
       admin: 'Puedes gestionar todos los contactos de la organizacion.',
       viewer: 'Puedes ver los detalles de contacto en modo lectura.',
+      distributor: 'Tus contactos en los centros de los clientes.',
     },
     pt: {
       title: 'Contactos',
@@ -392,6 +403,7 @@ const HELP = {
       ],
       admin: 'Podes gerir todos os contactos da organizacao.',
       viewer: 'Podes ver os detalhes de contacto em modo leitura.',
+      distributor: 'Os teus contactos nos centros dos clientes.',
     },
   },
 
@@ -510,6 +522,7 @@ const HELP = {
         { label: 'Tenders — link tasks to tender deadlines', path: '/tenders' },
       ],
       admin: 'You can reassign tasks between any team members.',
+      distributor: 'View and manage tasks assigned to you.',
     },
     es: {
       title: 'Tareas',
@@ -538,6 +551,7 @@ const HELP = {
         { label: 'Licitaciones — vincula tareas a plazos de licitaciones', path: '/tenders' },
       ],
       admin: 'Puedes reasignar tareas entre cualquier miembro del equipo.',
+      distributor: 'Visualiza y gestiona las tareas asignadas a ti.',
     },
     pt: {
       title: 'Tarefas',
@@ -566,6 +580,7 @@ const HELP = {
         { label: 'Concursos — liga tarefas a prazos de concursos', path: '/tenders' },
       ],
       admin: 'Podes reatribuir tarefas entre qualquer membro da equipa.',
+      distributor: 'Visualiza e gere as tarefas atribuidas a ti.',
     },
   },
 
@@ -599,6 +614,7 @@ const HELP = {
         { label: 'Tasks — create tasks for tender preparation milestones', path: '/tasks' },
       ],
       admin: 'You can view and manage all tenders across business units.',
+      distributor: 'Collaborate on tenders with your Fujifilm contact.',
     },
     es: {
       title: 'Licitaciones',
@@ -627,6 +643,7 @@ const HELP = {
         { label: 'Tareas — crea tareas para hitos de preparacion', path: '/tasks' },
       ],
       admin: 'Puedes ver y gestionar todas las licitaciones de todas las unidades.',
+      distributor: 'Colabora en licitaciones con tu contacto de Fujifilm.',
     },
     pt: {
       title: 'Concursos',
@@ -655,6 +672,7 @@ const HELP = {
         { label: 'Tarefas — cria tarefas para marcos de preparacao', path: '/tasks' },
       ],
       admin: 'Podes ver e gerir todos os concursos de todas as unidades.',
+      distributor: 'Colabora em concursos com o teu contacto da Fujifilm.',
     },
   },
 
@@ -1048,6 +1066,7 @@ const HELP = {
         { label: 'Deals — the deals that drive actuals and forecast', path: '/deals' },
       ],
       admin: 'You can set and adjust quotas for all team members.',
+      distributor: 'Your FY26 sales target and progress.',
     },
     es: {
       title: 'Objetivos de Ventas',
@@ -1070,6 +1089,7 @@ const HELP = {
         { label: 'Panel — gauges de consecucion', path: '/' },
       ],
       admin: 'Puedes establecer y ajustar cuotas para todos los miembros.',
+      distributor: 'Tu objetivo de ventas FY26 y tu progreso.',
     },
     pt: {
       title: 'Objetivos de Vendas',
@@ -1092,6 +1112,7 @@ const HELP = {
         { label: 'Painel — gauges de consecucao', path: '/' },
       ],
       admin: 'Podes definir e ajustar quotas para todos os membros.',
+      distributor: 'O teu objetivo de vendas FY26 e o teu progresso.',
     },
   },
 
@@ -1189,6 +1210,7 @@ const HELP = {
         { label: 'Budget — current year targets vs last year actuals', path: '/budget' },
         { label: 'Dashboard — current year performance', path: '/' },
       ],
+      distributor: 'Your historical sales data.',
     },
     es: {
       title: 'Historial',
@@ -1209,6 +1231,7 @@ const HELP = {
         { label: 'Presupuesto — objetivos actuales vs reales del ano pasado', path: '/budget' },
         { label: 'Panel — rendimiento del ano actual', path: '/' },
       ],
+      distributor: 'Tus datos historicos de ventas.',
     },
     pt: {
       title: 'Historico',
@@ -1229,6 +1252,7 @@ const HELP = {
         { label: 'Orcamento — objetivos atuais vs reais do ano passado', path: '/budget' },
         { label: 'Painel — desempenho do ano atual', path: '/' },
       ],
+      distributor: 'Os teus dados historicos de vendas.',
     },
   },
 
@@ -1486,16 +1510,16 @@ const DEFAULT_HELP = {
 
 // Section headers per language
 const SECTION_LABELS = {
-  en: { features: 'Key Features', steps: 'Step-by-Step', shortcuts: 'Keyboard Shortcuts', mistakes: 'Common Mistakes', seeAlso: 'Related Pages', adminTip: 'Admin Tip', note: 'Note' },
-  es: { features: 'Funcionalidades', steps: 'Paso a Paso', shortcuts: 'Atajos de Teclado', mistakes: 'Errores Comunes', seeAlso: 'Paginas Relacionadas', adminTip: 'Consejo Admin', note: 'Nota' },
-  pt: { features: 'Funcionalidades', steps: 'Passo a Passo', shortcuts: 'Atalhos de Teclado', mistakes: 'Erros Comuns', seeAlso: 'Paginas Relacionadas', adminTip: 'Dica Admin', note: 'Nota' },
+  en: { features: 'Key Features', steps: 'Step-by-Step', shortcuts: 'Keyboard Shortcuts', mistakes: 'Common Mistakes', seeAlso: 'Related Pages', adminTip: 'Admin Tip', distributorTip: 'Distributor Tip', note: 'Note' },
+  es: { features: 'Funcionalidades', steps: 'Paso a Paso', shortcuts: 'Atajos de Teclado', mistakes: 'Errores Comunes', seeAlso: 'Paginas Relacionadas', adminTip: 'Consejo Admin', distributorTip: 'Consejo Distribuidor', note: 'Nota' },
+  pt: { features: 'Funcionalidades', steps: 'Passo a Passo', shortcuts: 'Atalhos de Teclado', mistakes: 'Erros Comuns', seeAlso: 'Paginas Relacionadas', adminTip: 'Dica Admin', distributorTip: 'Dica Distribuidor', note: 'Nota' },
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
 export default function HelpGuide() {
   const [open, setOpen] = useState(false)
   const { pathname } = useLocation()
-  const { role } = useAuth()
+  const { profile, role: authRole } = useAuth()
   const { lang } = useTranslation()
 
   // Close panel on page change
@@ -1504,7 +1528,8 @@ export default function HelpGuide() {
   const helpEntry = HELP[pathname] || DEFAULT_HELP
   const page = helpEntry[lang] || helpEntry['en'] || DEFAULT_HELP['en']
   const labels = SECTION_LABELS[lang] || SECTION_LABELS['en']
-  const roleTip = role === 'admin' ? page.admin : role === 'viewer' ? page.viewer : null
+  const effectiveRole = profile?.role || authRole
+  const roleTip = effectiveRole === 'admin' ? page.admin : effectiveRole === 'distributor' ? page.distributor : effectiveRole === 'viewer' ? page.viewer : null
 
   return (
     <>
@@ -1612,7 +1637,7 @@ export default function HelpGuide() {
           {roleTip && (
             <div className="bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 mt-2">
               <h3 className="text-xs font-semibold text-blue-800 uppercase tracking-wider mb-1">
-                {role === 'admin' ? labels.adminTip : labels.note}
+                {effectiveRole === 'admin' ? labels.adminTip : effectiveRole === 'distributor' ? labels.distributorTip : labels.note}
               </h3>
               <p className="text-sm text-blue-700 leading-snug">{roleTip}</p>
             </div>

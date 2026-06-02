@@ -252,7 +252,7 @@ function DiscountApprovalPanel({ deal, onSave }) {
 }
 
 export default function DealForm({ deal, onClose, onSaved }) {
-  const { profile, isAdmin, canEdit } = useAuth()
+  const { profile, isAdmin, canEdit, company } = useAuth()
   const { t } = useTranslation()
   const { getRate } = useFxRates()
   const [form, setForm] = useState(() => deal ? {
@@ -289,8 +289,12 @@ export default function DealForm({ deal, onClose, onSaved }) {
     company_id: deal.company_id || '',
   } : {
     ...EMPTY,
-    bu: isAdmin ? '' : profile?.role?.toUpperCase() || '',
+    bu: isAdmin ? '' : (profile?.role === 'distributor'
+      ? (profile?.bu || company?.bu || 'VGT')
+      : (profile?.bu?.toUpperCase() || '')),
     company_id: profile?.role === 'distributor' ? (profile?.company_id || '') : '',
+    currency: profile?.role === 'distributor' && company?.default_currency
+      ? company.default_currency : 'EUR',
   })
   const [saving, setSaving]   = useState(false)
   const [error, setError]     = useState('')

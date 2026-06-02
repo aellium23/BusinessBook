@@ -51,6 +51,203 @@ function sumMonthly(row, monthKeys) {
   return monthKeys.reduce((s, k) => s + (Number(row[k]) || 0), 0)
 }
 
+// ── Distributor Dashboard ─────────────────────────────────────────────────
+function DistributorDashboard() {
+  const { profile, company } = useAuth()
+  const { t } = useTranslation()
+  const { deals: allDeals, loading } = useDeals()
+  const [quota, setQuota] = useState(null)
+
+  const companyId = profile?.company_id
+
+  // Load distributor's sales target
+  useEffect(() => {
+    if (!companyId) return
+    supabase.from('quotas').select('*').eq('company_id', companyId).limit(1)
+      .then(({ data }) => { if (data?.length) setQuota(data[0]) })
+      .catch(() => {})
+  }, [companyId])
+
+  // Filter deals for this distributor
+  const myDeals = useMemo(() =>
+    allDeals.filter(d => d.company_id === companyId),
+    [allDeals, companyId]
+  )
+
+  // Pipeline value (Lead + Pipeline + Offer Presented + BackLog)
+  const pipelineValue = useMemo(() =>
+    myDeals
+      .filter(d => ['Lead','Pipeline','Offer Presented','BackLog'].includes(d.stage))
+      .reduce((s, d) => s + (Number(d.value_total) || 0), 0),
+    [myDeals]
+  )
+
+  // Actuals: Invoiced deals, sum of monthly columns
+  const ytdKeys = useMemo(() => MONTHS_K.slice(0, ((new Date().getMonth() + 1 - 4 + 12) % 12) + 1), [])
+  const actuals = useMemo(() =>
+    myDeals
+      .filter(d => d.stage === 'Invoiced')
+      .reduce((s, d) => s + ytdKeys.reduce((ms, m) => ms + (Number(d[m]) || 0), 0), 0),
+    [myDeals, ytdKeys]
+  )
+
+  // Forecast: Invoiced + BackLog
+  const forecast = useMemo(() =>
+    myDeals
+      .filter(d => ['Invoiced','BackLog'].includes(d.stage))
+      .reduce((s, d) => s + ytdKeys.reduce((ms, m) => ms + (Number(d[m]) || 0), 0), 0),
+    [myDeals, ytdKeys]
+  )
+
+  // Stage breakdown
+  const stageCounts = useMemo(() => {
+    const counts = {}
+    myDeals.forEach(d => { counts[d.stage] = (counts[d.stage] || 0) + 1 })
+    return counts
+  }, [myDeals])
+
+  const target = quota?.target_eur || 0
+  const actPct = target > 0 ? Math.round(actuals / target * 100) : 0
+  const fcPct = target > 0 ? Math.round(forecast / target * 100) : 0
+
+  if (loading) return <Spinner />
+
+  return (
+    <div className="space-y-5">
+      {/* Company header */}
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-navy/10 text-navy flex items-center justify-center text-lg font-bold">
+          {(company?.name || profile?.full_name || '?')[0]}
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-gray-900">
+            {company?.name || 'My Dashboard'}
+          </h2>
+          <p className="text-xs text-gray-400">
+            FY26 YTD {company?.default_currency && company.default_currency !== 'EUR'
+              ? `(${company.default_currency})`
+              : ''}
+          </p>
+        </div>
+      </div>
+
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="card p-4">
+          <p className="text-micro text-gray-500">Pipeline</p>
+          <p className="text-xl font-bold text-navy mt-1">{formatK(pipelineValue)}</p>
+          <p className="text-micro text-gray-400">{myDeals.filter(d => !['Invoiced','Lost'].includes(d.stage)).length} deals</p>
+        </div>
+        <div className="card p-4">
+          <p className="text-micro text-gray-500">Invoiced YTD</p>
+          <p className="text-xl font-bold text-green-600 mt-1">{formatK(actuals)}</p>
+          <p className="text-micro text-gray-400">{stageCounts['Invoiced'] || 0} deals</p>
+        </div>
+        <div className="card p-4">
+          <p className="text-micro text-gray-500">Forecast YTD</p>
+          <p className="text-xl font-bold text-blue-600 mt-1">{formatK(forecast)}</p>
+          <p className="text-micro text-gray-400">Invoiced + BackLog</p>
+        </div>
+        <div className="card p-4">
+          <p className="text-micro text-gray-500">Total Deals</p>
+          <p className="text-xl font-bold text-gray-700 mt-1">{myDeals.length}</p>
+          <p className="text-micro text-gray-400">all stages</p>
+        </div>
+      </div>
+
+      {/* Target vs Actuals */}
+      {target > 0 && (
+        <div className="card p-5 space-y-4">
+          <div className="flex items-center gap-2">
+            <Target size={14} className="text-gray-400"/>
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Sales Target FY26
+            </p>
+          </div>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-3xl font-bold text-gray-900">{formatK(target)}</p>
+              <p className="text-xs text-gray-400 mt-0.5">Annual target</p>
+            </div>
+            <div className="text-right">
+              <p className="text-lg font-bold" style={{ color: actPct >= 95 ? '#16A34A' : actPct >= 70 ? '#D97706' : '#DC2626' }}>
+                {actPct}%
+              </p>
+              <p className="text-micro text-gray-400">achieved</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div>
+              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                <span>Actuals</span>
+                <span className="font-medium">{formatK(actuals)}</span>
+              </div>
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all bg-green-500"
+                  style={{ width: `${Math.min(actPct, 100)}%` }}/>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                <span>Forecast</span>
+                <span className="font-medium">{formatK(forecast)}</span>
+              </div>
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all bg-blue-400"
+                  style={{ width: `${Math.min(fcPct, 100)}%` }}/>
+              </div>
+            </div>
+          </div>
+          <div className="pt-2 border-t border-gray-100">
+            <p className="text-xs text-gray-400">
+              Gap to target: <span className="font-semibold text-gray-600">{formatK(Math.max(0, target - forecast))}</span>
+            </p>
+          </div>
+        </div>
+      )}
+
+      {!target && (
+        <div className="card p-6 text-center bg-gray-50 border-dashed">
+          <Target size={24} className="mx-auto text-gray-300 mb-2"/>
+          <p className="text-sm text-gray-500">No sales target set for your company yet.</p>
+          <p className="text-xs text-gray-400 mt-1">Contact your account manager to set a target.</p>
+        </div>
+      )}
+
+      {/* Stage breakdown */}
+      {myDeals.length > 0 && (
+        <div className="card p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1 mb-3">
+            <TrendingUp size={12}/> Pipeline by Stage
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {['Lead','Pipeline','Offer Presented','BackLog','Invoiced','Lost'].map(stage => {
+              const count = stageCounts[stage] || 0
+              const value = myDeals.filter(d => d.stage === stage).reduce((s,d) => s + (Number(d.value_total)||0), 0)
+              if (count === 0) return null
+              const colors = {
+                Lead: 'bg-gray-50 text-gray-700',
+                Pipeline: 'bg-blue-50 text-blue-700',
+                'Offer Presented': 'bg-purple-50 text-purple-700',
+                BackLog: 'bg-amber-50 text-amber-700',
+                Invoiced: 'bg-green-50 text-green-700',
+                Lost: 'bg-red-50 text-red-700',
+              }
+              return (
+                <div key={stage} className={`rounded-lg p-2.5 ${colors[stage]}`}>
+                  <p className="text-micro font-medium">{stage}</p>
+                  <p className="text-sm font-bold mt-0.5">{formatK(value)}</p>
+                  <p className="text-micro opacity-60">{count} deal{count !== 1 ? 's' : ''}</p>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function DashboardSummary({ selectedBU = '' }) {
   const { profile, isAdmin } = useAuth()
   const { t }                = useTranslation()
@@ -283,6 +480,11 @@ export default function DashboardSummary({ selectedBU = '' }) {
   }
 
   if (loading) return <Spinner />
+
+  // Distributors see a simplified dashboard focused on their own pipeline & targets
+  if (profile?.role === 'distributor') {
+    return <DistributorDashboard />
+  }
 
   return (
     <div className="space-y-6">
