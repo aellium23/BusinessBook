@@ -116,19 +116,19 @@ export default function Contacts() {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Users size={20} className="text-navy"/> Contacts
+            <Users size={20} className="text-navy"/> {t('contacts_title')}
           </h1>
           <p className="text-sm text-gray-400 mt-0.5">
-            Stakeholders and decision-makers across your clients
+            {t('contacts_subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-1.5">
           <button onClick={() => exportToCSV(filtered)} className="btn-secondary text-xs">
-            <Download size={13}/> Export
+            <Download size={13}/> {t('contacts_export')}
           </button>
           {canEdit && (
             <button onClick={() => setEditing('new')} className="btn-primary">
-              <Plus size={15}/> <span className="hidden sm:inline">New contact</span>
+              <Plus size={15}/> <span className="hidden sm:inline">{t('contacts_new')}</span>
             </button>
           )}
         </div>
@@ -138,23 +138,23 @@ export default function Contacts() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
           <p className="text-2xl font-bold text-gray-900">{items.length}</p>
-          <p className="text-[10px] text-gray-400 uppercase tracking-wide">Total</p>
+          <p className="text-[10px] text-gray-400 uppercase tracking-wide">{t('contacts_total')}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
           <p className="text-2xl font-bold text-purple-700">
             {items.filter(c => c.role_type === 'decision_maker').length}
           </p>
-          <p className="text-[10px] text-gray-400 uppercase tracking-wide">Decision makers</p>
+          <p className="text-[10px] text-gray-400 uppercase tracking-wide">{t('contacts_decision_makers')}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
           <p className="text-2xl font-bold text-green-700">
             {items.filter(c => c.role_type === 'champion').length}
           </p>
-          <p className="text-[10px] text-gray-400 uppercase tracking-wide">Champions</p>
+          <p className="text-[10px] text-gray-400 uppercase tracking-wide">{t('contacts_champions')}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
           <p className="text-2xl font-bold text-gray-900">{clients.length}</p>
-          <p className="text-[10px] text-gray-400 uppercase tracking-wide">Clients</p>
+          <p className="text-[10px] text-gray-400 uppercase tracking-wide">{t('contacts_clients')}</p>
         </div>
       </div>
 
@@ -162,7 +162,7 @@ export default function Contacts() {
       <div className="space-y-2">
         <div className="relative">
           <Search size={14} className="absolute left-2.5 top-2.5 text-gray-400"/>
-          <input className="input pl-8 w-full" placeholder="Search name, email, job title, client…"
+          <input className="input pl-8 w-full" placeholder={t('contacts_search_ph')}
             value={search} onChange={e => setSearch(e.target.value)}/>
           {search && (
             <button type="button"
@@ -175,28 +175,28 @@ export default function Contacts() {
           {isAdmin && (
             <select className="select text-xs py-1.5" value={buFilter}
               onChange={e => setBuFilter(e.target.value)}>
-              <option value="">All BUs</option>
+              <option value="">{t('contacts_all_bu')}</option>
               <option value="VGT">VGT</option>
               <option value="ECT">ECT</option>
             </select>
           )}
           <select className="select text-xs py-1.5" value={roleFilter}
             onChange={e => setRoleFilter(e.target.value)}>
-            <option value="">All roles</option>
+            <option value="">{t('contacts_all_roles')}</option>
             {CONTACT_ROLES.map(r => (
               <option key={r.id} value={r.id}>{r.label}</option>
             ))}
           </select>
           <select className="select text-xs py-1.5 flex-1 min-w-40" value={clientFilter}
             onChange={e => setClientFilter(e.target.value)}>
-            <option value="">All clients</option>
+            <option value="">{t('contacts_all_clients')}</option>
             {clients.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
           {activeFilters > 0 && (
             <button type="button"
               onClick={() => { setBuFilter(''); setRoleFilter(''); setClientFilter(''); setSearch('') }}
               className="text-xs text-red-500 hover:text-red-700 font-medium px-2">
-              Clear
+              {t('contacts_clear')}
             </button>
           )}
         </div>
@@ -211,15 +211,15 @@ export default function Contacts() {
       {/* Grouped list */}
       {grouped.length === 0 ? (
         <EmptyState icon="👥" title={t("contacts_empty_title")}
-          description={activeFilters > 0 ? t("contacts_empty_desc") : 'Add your first stakeholder.'}
-          action={canEdit && <button onClick={() => setEditing('new')} className="btn-primary">Add contact</button>}/>
+          description={activeFilters > 0 ? t("contacts_empty_desc") : t('contacts_add_first')}
+          action={canEdit && <button onClick={() => setEditing('new')} className="btn-primary">{t('contacts_add')}</button>}/>
       ) : (
         <div className="space-y-4">
           {grouped.map(([clientName, list]) => (
             <div key={clientName} className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
               <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
                 <p className="text-sm font-bold text-gray-800 truncate">{clientName}</p>
-                <span className="text-[10px] text-gray-400 shrink-0">{list.length} contact{list.length !== 1 ? 's' : ''}</span>
+                <span className="text-[10px] text-gray-400 shrink-0">{list.length} {list.length !== 1 ? t('contacts_contacts_word') : t('contacts_contact_word')}</span>
               </div>
               <ul className="divide-y divide-gray-50">
                 {list.map(c => {

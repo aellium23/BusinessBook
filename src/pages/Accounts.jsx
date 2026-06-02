@@ -221,39 +221,39 @@ function AccountEditor({ account, accounts, defaultBU, onClose, onSaved }) {
               </select>
             </div>
             <div>
-              <label className="label">Parent</label>
+              <label className="label">{t('accounts_parent')}</label>
               <SearchableSelect
                 value={form.parent_id}
                 onChange={v => set('parent_id', v)}
                 options={parentOptions.map(a => ({ value: a.id, label: a.name }))}
                 placeholder="Search…"
-                emptyLabel="(top-level)"
+                emptyLabel={t('accounts_top_level')}
               />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="label">Region</label>
+              <label className="label">{t('accounts_region')}</label>
               <SearchableSelect
                 value={form.region}
                 onChange={v => { set('region', v); set('country', '') }}
                 options={REGIONS.map(r => ({ value: r, label: r }))}
-                emptyLabel="— Select —"
+                emptyLabel={t('products_select')}
               />
             </div>
             <div>
-              <label className="label">Country</label>
+              <label className="label">{t('accounts_country')}</label>
               <SearchableSelect
                 value={form.country}
                 onChange={v => set('country', v)}
                 options={ALL_COUNTRIES.map(c => ({ value: c, label: c }))}
                 placeholder="Search…"
-                emptyLabel="— Select —"
+                emptyLabel={t('products_select')}
               />
             </div>
           </div>
           <div>
-            <label className="label">Notes</label>
+            <label className="label">{t('accounts_notes')}</label>
             <textarea className="input min-h-[72px] resize-none" value={form.notes}
               onChange={e => set('notes', e.target.value)}/>
           </div>
@@ -265,10 +265,10 @@ function AccountEditor({ account, accounts, defaultBU, onClose, onSaved }) {
         </div>
         <div className="flex gap-2 px-4 py-3 border-t border-gray-100"
           style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
-          <button className="btn-secondary flex-1" onClick={onClose}>Cancel</button>
+          <button className="btn-secondary flex-1" onClick={onClose}>{t('cancel')}</button>
           <button className="btn-primary flex-1 flex items-center justify-center gap-1"
             onClick={handleSave} disabled={saving}>
-            <Save size={12}/> {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create account'}
+            <Save size={12}/> {saving ? t('saving') : isEdit ? t('save') : t('accounts_create')}
           </button>
         </div>
       </div>
@@ -385,17 +385,17 @@ export default function Accounts() {
       <div className="flex items-start justify-between gap-2 flex-wrap">
         <div>
           <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <GitBranch size={20} className="text-navy"/> Accounts
+            <GitBranch size={20} className="text-navy"/> {t('accounts_title')}
           </h1>
           <p className="text-xs text-gray-400 mt-0.5">{t('accounts_subtitle') || 'Organizational hierarchy and structure'}</p>
           <Link to="/clients" className="text-[10px] text-blue-500 hover:text-blue-700">{t('accounts_go_clients') || 'View individual clients →'}</Link>
         </div>
         <div className="flex gap-1.5">
-          <button onClick={expandAll}   className="btn-secondary text-xs">Expand all</button>
-          <button onClick={collapseAll} className="btn-secondary text-xs">Collapse all</button>
+          <button onClick={expandAll}   className="btn-secondary text-xs">{t('accounts_expand_all')}</button>
+          <button onClick={collapseAll} className="btn-secondary text-xs">{t('accounts_collapse_all')}</button>
           {canEdit && (
             <button onClick={() => setEditing('new')} className="btn-primary">
-              <Plus size={15}/> <span className="hidden sm:inline">New account</span>
+              <Plus size={15}/> <span className="hidden sm:inline">{t('accounts_new')}</span>
             </button>
           )}
         </div>
@@ -404,23 +404,23 @@ export default function Accounts() {
       <div className="flex gap-2 flex-wrap items-center">
         <div className="relative flex-1 min-w-40">
           <Search size={14} className="absolute left-2.5 top-2.5 text-gray-400"/>
-          <input className="input pl-8 w-full" placeholder="Search accounts…"
+          <input className="input pl-8 w-full" placeholder={t('accounts_search')}
             value={search} onChange={e => setSearch(e.target.value)}/>
         </div>
         {isAdmin && (
           <select className="select text-xs py-1.5" value={buF}
             onChange={e => setBuF(e.target.value)}>
-            <option value="">All BUs</option>
+            <option value="">{t('accounts_all_bu')}</option>
             <option>VGT</option>
             <option>ECT</option>
           </select>
         )}
         <select className="select text-xs py-1.5 w-auto" value={regionF} onChange={e => { setRegionF(e.target.value); setCountryF('') }}>
-          <option value="">All Regions</option>
+          <option value="">{t('accounts_all_regions')}</option>
           {[...new Set(accounts.map(a => a.region).filter(Boolean))].sort().map(r => <option key={r}>{r}</option>)}
         </select>
         <select className="select text-xs py-1.5 w-auto" value={countryF} onChange={e => setCountryF(e.target.value)}>
-          <option value="">All Countries</option>
+          <option value="">{t('accounts_all_countries')}</option>
           {[...new Set(accounts.filter(a => !regionF || a.region === regionF).map(a => a.country).filter(Boolean))].sort().map(c => <option key={c}>{c}</option>)}
         </select>
       </div>
@@ -434,14 +434,14 @@ export default function Accounts() {
       {topLevel.length === 0 ? (
         <EmptyState icon="🏥" title={t("accounts_empty_title")}
           description={t("accounts_empty_desc")}
-          action={canEdit && <button onClick={() => setEditing('new')} className="btn-primary">New account</button>}/>
+          action={canEdit && <button onClick={() => setEditing('new')} className="btn-primary">{t('accounts_new')}</button>}/>
       ) : (
         <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
           <div className="flex items-center gap-3 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400 bg-gray-50 border-b border-gray-100">
-            <span className="flex-1">Account</span>
-            <span className="w-12 text-right">Deals</span>
-            <span className="w-16 text-right">Pipeline</span>
-            <span className="w-16 text-right">Invoiced</span>
+            <span className="flex-1">{t('accounts_col_account')}</span>
+            <span className="w-12 text-right">{t('accounts_col_deals')}</span>
+            <span className="w-16 text-right">{t('accounts_col_pipeline')}</span>
+            <span className="w-16 text-right">{t('accounts_col_invoiced')}</span>
             {canEdit && <span className="w-12"/>}
           </div>
           {topLevel.map(a => renderNode(a, 0))}
