@@ -66,6 +66,13 @@ const COUNTRY_MAP = {
   APAC:   ['Japan','China','South Korea','Australia','India','Singapore','Malaysia','Thailand','Indonesia','Vietnam','New Zealand','Other APAC'],
   NA:     ['USA','Canada','Other NA'],
 }
+function regionForCountry(country) {
+  if (!country) return ''
+  for (const [region, countries] of Object.entries(COUNTRY_MAP)) {
+    if (countries.includes(country)) return region
+  }
+  return ''
+}
 
 const CAL = { Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12 }
 const FY_ABS = { Apr:16,May:17,Jun:18,Jul:19,Aug:20,Sep:21,Oct:22,Nov:23,Dec:24,Jan:25,Feb:26,Mar:27 }
@@ -223,11 +230,15 @@ export default function DealForm({ deal, onClose, onSaved }) {
   } : {
     ...EMPTY,
     bu: isAdmin ? '' : (profile?.role === 'distributor'
-      ? (profile?.bu || company?.bu || 'VGT')
+      ? 'VGT'
       : (profile?.bu?.toUpperCase() || '')),
     company_id: profile?.role === 'distributor' ? (profile?.company_id || '') : '',
     currency: profile?.role === 'distributor' && company?.default_currency
       ? company.default_currency : 'EUR',
+    region: profile?.role === 'distributor' && company?.country
+      ? regionForCountry(company.country) : '',
+    country: profile?.role === 'distributor' && company?.country
+      ? company.country : '',
   })
   const [saving, setSaving]   = useState(false)
   const [error, setError]     = useState('')
@@ -249,7 +260,15 @@ export default function DealForm({ deal, onClose, onSaved }) {
   const [existingClients, setExistingClients] = useState([])
 
   const isMaint = false
-  const accountsForBU = accounts.filter(a => !form.bu || a.bu === form.bu)
+  const accountsForBU = useMemo(() => {
+    let filtered = accounts.filter(a => !form.bu || a.bu === form.bu)
+    if (isDistributor && company?.country) {
+      filtered = filtered.filter(a =>
+        !a.country || a.country === company.country
+      )
+    }
+    return filtered
+  }, [accounts, form.bu, isDistributor, company?.country])
 
   // Auto-calculate SLA monthly recognition
   useEffect(() => {
@@ -517,16 +536,18 @@ export default function DealForm({ deal, onClose, onSaved }) {
         {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 
         {/* BU + Sales Type + Stage */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className={`grid ${isDistributor ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'} gap-3`}>
+          {!isDistributor && (
           <div>
             <label className="label">{t("df_bu")} *</label>
-            <select className={`select ${fieldErrors.bu ? 'border-red-400' : ''}`} value={form.bu} onChange={e => set('bu', e.target.value)} disabled={!isAdmin && !isDistributor}>
+            <select className={`select ${fieldErrors.bu ? 'border-red-400' : ''}`} value={form.bu} onChange={e => set('bu', e.target.value)} disabled={!isAdmin}>
               <option value="">—</option>
               <option value="VGT">VGT</option>
               <option value="ECT">ECT</option>
             </select>
             {fieldErrors.bu && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.bu}</p>}
           </div>
+          )}
           <div>
             <label className="label">{t("df_sales_type")}</label>
             <select className="select" value={form.sales_type} onChange={e => set('sales_type', e.target.value)}>
