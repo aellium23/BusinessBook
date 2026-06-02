@@ -275,39 +275,66 @@ export default function Clients() {
         {paginated.length === 0 ? (
           <EmptyState icon="🏥" title={t('clients_none')} description="Create a client or adjust filters."
             action={canEdit && <button onClick={() => setFormOpen(true)} className="btn-primary">New Client</button>}/>
-        ) : paginated.map(c => (
-          <div key={c.id} className="card p-3 flex items-center gap-3">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                <BUBadge bu={c.bu}/>
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${c.client_type === 'public' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
-                  {c.client_type === 'public' ? 'Public' : 'Private'}
-                </span>
-                {c.slaCount > 0 && (
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700 flex items-center gap-0.5">
-                    <RefreshCw size={8}/> {c.slaCount} SLA
+        ) : paginated.map(c => {
+          const clientDeals = deals.filter(d => d.account_id === c.id || (d.client && d.client.toLowerCase() === c.name.toLowerCase()))
+          return (
+          <div key={c.id} className="card overflow-hidden">
+            <div className="p-3 flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                  <BUBadge bu={c.bu}/>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${c.client_type === 'public' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                    {c.client_type === 'public' ? 'Public' : 'Private'}
                   </span>
-                )}
+                  {c.slaCount > 0 && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700 flex items-center gap-0.5">
+                      <RefreshCw size={8}/> {c.slaCount} SLA
+                    </span>
+                  )}
+                </div>
+                <p className="font-semibold text-sm text-gray-900 truncate">{c.name}</p>
+                <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                  {c.country && <span className="flex items-center gap-0.5"><MapPin size={8}/> {c.country}</span>}
+                  {c.region && <span>{c.region}</span>}
+                  {c.dealCount > 0 && <span>{c.dealCount} deals</span>}
+                </div>
               </div>
-              <p className="font-semibold text-sm text-gray-900 truncate">{c.name}</p>
-              <div className="flex items-center gap-2 text-[10px] text-gray-400">
-                {c.country && <span className="flex items-center gap-0.5"><MapPin size={8}/> {c.country}</span>}
-                {c.distributor?.name && <span>via {c.distributor.name}</span>}
-                {c.dealCount > 0 && <span>{c.dealCount} deals</span>}
+              <div className="text-right shrink-0">
+                {c.invoiced > 0 && <p className="text-sm font-bold text-green-600">{formatK(c.invoiced)}</p>}
+                {c.pipeline > 0 && <p className="text-[10px] text-amber-600">+{formatK(c.pipeline)} pipe</p>}
               </div>
+              {canEdit && (
+                <button onClick={() => { setEditClient(c); setFormOpen(true) }}
+                  className="text-gray-400 hover:text-navy p-1.5 min-h-tap shrink-0">
+                  <Pencil size={13}/>
+                </button>
+              )}
             </div>
-            <div className="text-right shrink-0">
-              {c.invoiced > 0 && <p className="text-sm font-bold text-green-600">{formatK(c.invoiced)}</p>}
-              {c.pipeline > 0 && <p className="text-[10px] text-amber-600">+{formatK(c.pipeline)} pipe</p>}
-            </div>
-            {canEdit && (
-              <button onClick={() => { setEditClient(c); setFormOpen(true) }}
-                className="text-gray-400 hover:text-navy p-1.5 min-h-tap shrink-0">
-                <Pencil size={13}/>
-              </button>
+            {clientDeals.length > 0 && (
+              <details className="border-t border-gray-100">
+                <summary className="px-3 py-1.5 text-[10px] text-gray-400 cursor-pointer hover:text-gray-600">
+                  View {clientDeals.length} deal{clientDeals.length > 1 ? 's' : ''}
+                </summary>
+                <div className="px-3 pb-2 space-y-1">
+                  {clientDeals.map(d => (
+                    <div key={d.id} className="flex items-center justify-between bg-gray-50 rounded px-2 py-1.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${
+                          d.stage === 'Invoiced' ? 'bg-green-100 text-green-700' :
+                          d.stage === 'BackLog' ? 'bg-purple-100 text-purple-700' :
+                          d.stage === 'Lost' ? 'bg-red-100 text-red-600' :
+                          'bg-amber-100 text-amber-700'
+                        }`}>{d.stage}</span>
+                        <span className="text-xs text-gray-700 truncate">{d.description || d.product || '—'}</span>
+                      </div>
+                      <span className="text-xs font-semibold text-gray-800 shrink-0 ml-2">{formatK(Number(d.value_total) || 0)}</span>
+                    </div>
+                  ))}
+                </div>
+              </details>
             )}
           </div>
-        ))}
+        )})}
       </div>
 
       {totalPages > 1 && (

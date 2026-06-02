@@ -157,13 +157,12 @@ export default function Budget() {
       return { ...vals, ...calcDerived(vals) }
     }
     return {
-      VGT: { BUD: calc('VGT','BUD'), EST1: calc('VGT','EST1'), EST2: calc('VGT','EST2') },
-      ECT: { BUD: calc('ECT','BUD'), EST1: calc('ECT','EST1'), EST2: calc('ECT','EST2') },
-      ALL: {
-        BUD:  Object.fromEntries(Object.keys(calc('VGT','BUD')).map(k=>[k,(calc('VGT','BUD')[k]||0)+(calc('ECT','BUD')[k]||0)])),
-        EST1: Object.fromEntries(Object.keys(calc('VGT','EST1')).map(k=>[k,(calc('VGT','EST1')[k]||0)+(calc('ECT','EST1')[k]||0)])),
-        EST2: Object.fromEntries(Object.keys(calc('VGT','EST2')).map(k=>[k,(calc('VGT','EST2')[k]||0)+(calc('ECT','EST2')[k]||0)])),
-      },
+      VGT: Object.fromEntries(CYCLES.map(c => [c, calc('VGT', c)])),
+      ECT: Object.fromEntries(CYCLES.map(c => [c, calc('ECT', c)])),
+      ALL: Object.fromEntries(CYCLES.map(c => {
+        const v = calc('VGT', c), e = calc('ECT', c)
+        return [c, Object.fromEntries(Object.keys(v).map(k => [k, (v[k]||0)+(e[k]||0)]))]
+      })),
     }
   }, [rows])
 
@@ -172,7 +171,7 @@ export default function Budget() {
 
   const buCfg    = BU_CONFIG[activeBu]
   const cycleCfg = CYCLE_CONFIG[activeCycle]
-  const refCycle = activeCycle === 'EST2' ? 'EST1' : activeCycle === 'EST1' ? 'BUD' : null
+  const refCycle = activeCycle === 'ACT' ? 'BUD' : activeCycle === 'EST2' ? 'EST1' : activeCycle === 'EST1' ? 'BUD' : null
 
   return (
     <div className="p-4 space-y-4 max-w-6xl mx-auto">

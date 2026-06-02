@@ -45,13 +45,16 @@ function computeRollups(accounts, deals) {
   // Stats per account (own only)
   const own = {}
   accounts.forEach(a => { own[a.id] = { count: 0, pipeline: 0, invoiced: 0 } })
+  const nameToId = {}
+  accounts.forEach(a => { nameToId[a.name.toLowerCase()] = a.id })
   deals.forEach(d => {
-    if (!d.account_id || !own[d.account_id]) return
+    const accId = d.account_id || (d.client ? nameToId[d.client.toLowerCase()] : null)
+    if (!accId || !own[accId]) return
     const fy26 = MONTHS_K.reduce((s, m) => s + (Number(d[m]) || 0), 0)
-    own[d.account_id].count += 1
-    own[d.account_id].pipeline += ['Lead','Pipeline','Offer Presented','BackLog'].includes(d.stage)
+    own[accId].count += 1
+    own[accId].pipeline += ['Lead','Pipeline','Offer Presented','BackLog'].includes(d.stage)
       ? (Number(d.value_total) || 0) : 0
-    own[d.account_id].invoiced += d.stage === 'Invoiced' ? fy26 : 0
+    own[accId].invoiced += d.stage === 'Invoiced' ? fy26 : 0
   })
 
   // Roll-ups: own + all descendants
@@ -282,6 +285,8 @@ export default function Accounts() {
   const [search, setSearch]     = useState('')
   const [buF, setBuF]           = useState('')
   const [editing, setEditing]   = useState(null)
+  const [regionF, setRegionF]   = useState('')
+  const [countryF, setCountryF] = useState('')
   const [open, setOpen]         = useState(() => new Set())
 
   async function refresh() {
@@ -306,12 +311,14 @@ export default function Accounts() {
 
   const filteredIds = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q && !buF) return null // no filter — render whole tree
+    if (!q && !buF && !regionF && !countryF) return null
     const kept = new Set()
     accounts.forEach(a => {
       const matchSearch = !q || [a.name, a.country, a.region, a.notes].filter(Boolean).join(' ').toLowerCase().includes(q)
       const matchBu = !buF || a.bu === buF
-      if (matchSearch && matchBu) {
+      const matchRegion = !regionF || a.region === regionF
+      const matchCountry = !countryF || a.country === countryF
+      if (matchSearch && matchBu && matchRegion && matchCountry) {
         // Keep the match + all its ancestors so the tree stays connected
         kept.add(a.id)
         let parent = a.parent_id
@@ -323,7 +330,7 @@ export default function Accounts() {
       }
     })
     return kept
-  }, [accounts, search, buF])
+  }, [accounts, search, buF, regionF, countryF])
 
   async function handleDelete(a) {
     if (!confirm(`Delete "${a.name}"? Children become top-level.`)) return
@@ -407,6 +414,14 @@ export default function Accounts() {
             <option>ECT</option>
           </select>
         )}
+        <select className="select text-xs py-1.5 w-auto" value={regionF} onChange={e => { setRegionF(e.target.value); setCountryF('') }}>
+          <option value="">All Regions</option>
+          {[...new Set(accounts.map(a => a.region).filter(Boolean))].sort().map(r => <option key={r}>{r}</option>)}
+        </select>
+        <select className="select text-xs py-1.5 w-auto" value={countryF} onChange={e => setCountryF(e.target.value)}>
+          <option value="">All Countries</option>
+          {[...new Set(accounts.filter(a => !regionF || a.region === regionF).map(a => a.country).filter(Boolean))].sort().map(c => <option key={c}>{c}</option>)}
+        </select>
       </div>
 
       {error && (
