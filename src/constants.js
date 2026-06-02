@@ -2,6 +2,7 @@
 // Centralised to avoid duplication across pages/components.
 
 export const STAGES = ['Lead', 'Pipeline', 'Offer Presented', 'BackLog', 'Invoiced', 'Lost']
+export const DIST_STAGES = ['Lead', 'Offer Presented', 'BackLog', 'Lost']
 
 // Default weights used for weighted forecast when a deal has no explicit win_probability
 export const WEIGHTS = {
@@ -15,6 +16,22 @@ export const WEIGHTS = {
 
 export const REGIONS = ['Europe', 'MEA', 'LATAM', 'APAC', 'NA']
 export const BUS     = ['VGT', 'ECT']
+
+export const COUNTRY_MAP = {
+  Europe: ['Portugal','Spain','France','Germany','Italy','Netherlands','Belgium','UK','Switzerland','Sweden','Norway','Denmark','Finland','Austria','Poland','Czech Republic','Romania','Greece','Turkey','Other Europe'],
+  MEA:    ['UAE','Saudi Arabia','Qatar','Kuwait','Bahrain','Oman','Egypt','Morocco','Algeria','Tunisia','South Africa','Israel','Jordan','Iraq','Nigeria','Kenya','Ghana','Other MEA'],
+  LATAM:  ['Mexico','Brazil','Argentina','Chile','Colombia','Peru','Costa Rica','Panama','El Salvador','Guatemala','Ecuador','Bolivia','Venezuela','Dominican Republic','Other LATAM'],
+  APAC:   ['Japan','China','South Korea','Australia','India','Singapore','Malaysia','Thailand','Indonesia','Vietnam','New Zealand','Other APAC'],
+  NA:     ['USA','Canada','Other NA'],
+}
+
+export function regionForCountry(country) {
+  if (!country) return ''
+  for (const [region, countries] of Object.entries(COUNTRY_MAP)) {
+    if (countries.includes(country)) return region
+  }
+  return ''
+}
 
 // Fiscal-year month ordering (Apr → Mar)
 export const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']

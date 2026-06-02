@@ -1,194 +1,27 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Modal, formatK } from './ui'
+import { Modal } from './ui'
 import { upsertDeal, upsertDealWithIntercompany } from '../hooks/useDeals'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { useFxRates } from '../hooks/useFxRates'
 import { logger } from '../lib/logger'
-import { Link, Clock, Plus, AlertCircle, CheckCircle, XCircle, RefreshCw as CounterIcon } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 import AttachmentsList from './AttachmentsList'
 import ContactsList from './ContactsList'
-import DealTimeline from './DealTimeline'
 import SearchableSelect from './SearchableSelect'
 import ProductLineItems from './ProductLineItems'
-import { FORECAST_CATEGORIES, defaultForecastFromStage, DISTRIBUTION_PATHS, computeMargins, BUSINESS_MODELS } from '../constants'
+import { FORECAST_CATEGORIES, defaultForecastFromStage, BUSINESS_MODELS, REGIONS, COUNTRY_MAP, MONTHS, MONTHS_K, DIST_STAGES, regionForCountry } from '../constants'
 import { saveDealProducts } from '../hooks/useDealProducts'
 import { getAllowedTransitions, canTransition } from '../lib/stateMachine'
 import { validateDeal } from '../lib/validation'
 import { calcSLARecognition } from './deal/RevenueRecognition'
 import IntercompanySection from './deal/IntercompanySection'
-
-// ── MarginsPanel — live calculation of margin per level ──────────────────
-function MarginsPanel({ form, t }) {
-  const m = computeMargins({
-    distribution_path:  form.distribution_path,
-    value_total:        parseFloat(form.value_total) || 0,
-    vgt_cost:           parseFloat(form.vgt_cost) || 0,
-    distributor_price:  parseFloat(form.distributor_price) || 0,
-    end_customer_price: parseFloat(form.end_customer_price) || 0,
-  })
-  if (!m) return null
-  const rows = [
-    { label: 'VGT', value: m.vgt, color: 'bg-vgt/10 text-vgt' },
-    ...(m.hub         ? [{ label: 'Hub',         value: m.hub,         color: 'bg-purple-100 text-purple-700' }] : []),
-    ...(m.distributor ? [{ label: 'Distributor', value: m.distributor, color: 'bg-amber-100 text-amber-700'   }] : []),
-  ]
-  const hasValues = rows.some(r => r.value && (r.value.abs !== 0 || r.value.pct !== 0))
-  if (!hasValues) return null
-  return (
-    <div className="bg-white border border-gray-100 rounded-control p-3">
-      <p className="text-micro font-semibold text-gray-700 uppercase tracking-wide mb-2">
-        {t("df_margin_per_level")}
-      </p>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-        {rows.map(r => (
-          <div key={r.label} className={`rounded-control px-3 py-2 ${r.color}`}>
-            <p className="text-micro font-semibold uppercase tracking-wide opacity-70">{r.label}</p>
-            <p className="text-sm font-bold mt-0.5">{formatK(r.value.abs)}</p>
-            <p className="text-micro opacity-70">{r.value.pct.toFixed(1)}%</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
-const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
-const YEARS    = [2023,2024,2025,2026,2027,2028,2029,2030,2031]
-const REGIONS  = ['Europe','MEA','LATAM','APAC','NA']
-const COUNTRY_MAP = {
-  Europe: ['Portugal','Spain','France','Germany','Italy','Netherlands','Belgium','UK','Switzerland','Sweden','Norway','Denmark','Finland','Austria','Poland','Czech Republic','Romania','Greece','Turkey','Other Europe'],
-  MEA:    ['UAE','Saudi Arabia','Qatar','Kuwait','Bahrain','Oman','Egypt','Morocco','Algeria','Tunisia','South Africa','Israel','Jordan','Iraq','Nigeria','Kenya','Ghana','Other MEA'],
-  LATAM:  ['Mexico','Brazil','Argentina','Chile','Colombia','Peru','Costa Rica','Panama','El Salvador','Guatemala','Ecuador','Bolivia','Venezuela','Dominican Republic','Other LATAM'],
-  APAC:   ['Japan','China','South Korea','Australia','India','Singapore','Malaysia','Thailand','Indonesia','Vietnam','New Zealand','Other APAC'],
-  NA:     ['USA','Canada','Other NA'],
-}
-function regionForCountry(country) {
-  if (!country) return ''
-  for (const [region, countries] of Object.entries(COUNTRY_MAP)) {
-    if (countries.includes(country)) return region
-  }
-  return ''
-}
-
-const CAL = { Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12 }
-const FY_ABS = { Apr:16,May:17,Jun:18,Jul:19,Aug:20,Sep:21,Oct:22,Nov:23,Dec:24,Jan:25,Feb:26,Mar:27 }
-
-function calAbs(m, y) { return (y - 2025) * 12 + CAL[m] }
-
-function calcMonthly(value, csM, csY, ceM, ceY, recM, recY) {
-  if (!csM || !csY || !ceM || !ceY) return null
-  const cs = calAbs(csM, parseInt(csY)), ce = calAbs(ceM, parseInt(ceY))
-  const rec = recM && recY ? calAbs(recM, parseInt(recY)) : cs
-  const n = Math.max(1, ce - cs + 1), slice = value / n
-  return MONTHS.map(m => {
-    const i = FY_ABS[m]
-    if (i < rec) return 0
-    const catchup = Math.max(0, Math.min(i, rec) - cs + 1)
-    if (i === rec) return slice * catchup
-    if (i <= ce) return slice
-    return 0
-  })
-}
-
-const EMPTY = {
-  bu:'', sales_type:'External', stage:'Pipeline',
-  client:'', region:'Europe', country:'',
-  sales_owner:'', description:'',
-  go_live_month: '', go_live_year: '',
-  invoice_date: '',
-  value_total:'', gm_pct:'',
-  rec_month:'', rec_year:'',
-  cs_day:1, cs_month:'', cs_year:'', ce_day:31, ce_month:'', ce_year:'',
-  lost_reason:'',
-  win_probability:'',
-  currency: 'EUR',
-  exchange_rate: '',
-  end_customer: '',
-  distributor: '',
-  hub: '',
-  end_customer_value: '',
-  // Structured distribution network (PR 5)
-  distribution_path:  '',
-  distributor_id:     null,
-  hub_id:             null,
-  vgt_cost:           '',
-  distributor_price:  '',
-  end_customer_price: '',
-  company_id: '',
-  list_price: '',
-  discount_requested: '',
-  discount_note_dist: '',
-  product: '',
-  business_model: '',
-  warranty_months: 36,
-  equipment_count: '',
-  annual_studies: '',
-  annual_exams: '',
-}
-
-const FY26_MONTHS = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
-
-function DiscountApprovalPanel({ deal, onSave }) {
-  const { t } = useTranslation()
-  const [approved, setApproved] = useState(deal.discount_approved ?? '')
-  const [transfer, setTransfer] = useState(deal.transfer_price ?? '')
-  const [note, setNote]         = useState(deal.discount_note || '')
-  const [status, setStatus]     = useState(deal.discount_status || 'pending')
-  const [saving, setSaving]     = useState(false)
-
-  async function save() {
-    setSaving(true)
-    await supabase.from('deals').update({
-      discount_approved: parseFloat(approved) || null,
-      transfer_price:    parseFloat(transfer) || null,
-      discount_note:     note,
-      discount_status:   status,
-    }).eq('id', deal.id)
-    setSaving(false)
-    onSave?.()
-  }
-
-  return (
-    <div className="border-t border-gray-200 pt-3 space-y-3">
-      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">{t("df_vgt_response")}</p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <div>
-          <label className="label">{t("df_decision")}</label>
-          <select className="select" value={status} onChange={e => setStatus(e.target.value)}>
-            <option value="pending">{t("df_pending")}</option>
-            <option value="approved">{t("df_approved")}</option>
-            <option value="counter">{t("df_counter")}</option>
-            <option value="rejected">{t("df_rejected")}</option>
-          </select>
-        </div>
-        <div>
-          <label className="label">{t("df_approved_disc")}</label>
-          <input className="input" type="number" min="0" max="100"
-            value={approved} onChange={e => setApproved(e.target.value)}
-            placeholder={t("df_placeholder_equipment")}/>
-        </div>
-        <div>
-          <label className="label">{t("df_transfer")}</label>
-          <input className="input" type="number"
-            value={transfer} onChange={e => setTransfer(e.target.value)}
-            placeholder={t("df_placeholder_price_dist")}/>
-        </div>
-      </div>
-      <div>
-        <label className="label">{t("df_note_dist")}</label>
-        <input className="input" value={note} onChange={e => setNote(e.target.value)}
-          placeholder={t("df_placeholder_reason")}/>
-      </div>
-      <button onClick={save} disabled={saving}
-        className="w-full btn-primary text-xs">
-        {saving ? t("df_saving") : t("df_save")}
-      </button>
-    </div>
-  )
-}
+import DealMonthlyGrid from './deal/DealMonthlyGrid'
+import DealActivityNotes from './deal/DealActivityNotes'
+import DistributionSection from './deal/DistributionSection'
+import DiscountSection from './deal/DiscountSection'
+import { EMPTY_DEAL as EMPTY } from './deal/dealDefaults'
 
 export default function DealForm({ deal, onClose, onSaved }) {
   const { profile, isAdmin, canEdit, company } = useAuth()
@@ -242,8 +75,6 @@ export default function DealForm({ deal, onClose, onSaved }) {
   const [saving, setSaving]   = useState(false)
   const [error, setError]     = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
-  const [preview, setPreview] = useState(null)
-  const [icPreview, setIcPreview] = useState(null)
   const [nextAction, setNextAction] = useState('')
   const [nextActionDate, setNextActionDate] = useState('')
   const [actNote, setActNote] = useState('')
@@ -256,9 +87,6 @@ export default function DealForm({ deal, onClose, onSaved }) {
   const [dealLines, setDealLines]     = useState([])
   const [catalogProducts, setCatalogProducts] = useState([])
   const [authMap, setAuthMap] = useState({})
-  const [existingClients, setExistingClients] = useState([])
-
-  const isMaint = false
   const isDistributor = profile?.role === 'distributor'
   const accountsForBU = useMemo(() => {
     let filtered = accounts.filter(a => !form.bu || a.bu === form.bu)
@@ -269,7 +97,6 @@ export default function DealForm({ deal, onClose, onSaved }) {
     }
     return filtered
   }, [accounts, form.bu, isDistributor, company?.country])
-
   // Auto-calculate SLA monthly recognition
   useEffect(() => {
     // Carregar sales owners da tabela quotas (nomes únicos por BU)
@@ -299,8 +126,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
       .then(({ data }) => { if (data) setCatalogProducts(data) })
       .catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Load product authorizations for distributors — separate effect with profile dependency
+  // Load product authorizations for distributors
   useEffect(() => {
     if (profile?.role === 'distributor' && profile?.company_id) {
       supabase.from('company_product_authorizations').select('product_id, country, price, active')
@@ -314,18 +140,13 @@ export default function DealForm({ deal, onClose, onSaved }) {
         }).catch(() => {})
     }
   }, [profile?.role, profile?.company_id])
-
   useEffect(() => {
-    supabase.from('deals').select('client').then(({ data }) => {
-      if (data) setExistingClients([...new Set(data.map(d => d.client).filter(Boolean))].sort())
-    }).catch(() => {})
     if (deal?.id) {
       supabase.from('deal_products').select('*').eq('deal_id', deal.id).order('created_at')
         .then(({ data }) => { if (data) setDealLines(data.map(d => ({ ...d, _key: d.id }))) })
         .catch(() => {})
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
   useEffect(() => {
     if (!form.is_sla || !form.sla_annual_value || !form.cs_month || !form.cs_year ||
         !form.ce_month || !form.ce_year || !form.sla_billing_month || !form.sla_billing_year) return
@@ -340,7 +161,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
     setForm(f => {
       const next = { ...f }
       const MK = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
-      FY26_MONTHS.forEach((m, i) => {
+      MONTHS.forEach((m, i) => {
         const val = result.recognition[m]?.value || 0
         next[MK[i]] = val > 0 ? Math.round(val) : ''
       })
@@ -351,7 +172,6 @@ export default function DealForm({ deal, onClose, onSaved }) {
   }, [form.is_sla, form.sla_annual_value, form.cs_month, form.cs_year,
       form.ce_month, form.ce_year, form.sla_billing_month, form.sla_billing_year,
       form.currency, form.exchange_rate])
-
   const resolvedProducts = useMemo(() => {
     if (!isDistributor) return catalogProducts
     const country = form.country || ''
@@ -366,44 +186,25 @@ export default function DealForm({ deal, onClose, onSaved }) {
         return p
       })
   }, [catalogProducts, authMap, isDistributor, form.country])
-
-  // Distributor stage flow — restricted stages
-  const DIST_STAGES = ['Lead', 'Offer Presented', 'BackLog', 'Lost']
-
-  // Products list — extensible
-  const PRODUCTS = [
-    { value: 'Dose',            label: 'Dose',                    hasEquipment: true,  hasStudies: true,  hasExams: false },
-    { value: 'AI Reporting',    label: 'AI Reporting',            hasEquipment: false, hasStudies: false, hasExams: true  },
-    { value: 'CWM 5',          label: 'CWM 5',                   hasEquipment: false, hasStudies: false, hasExams: true  },
-    { value: 'Command Center',  label: 'Command Center',          hasEquipment: false, hasStudies: false, hasExams: true  },
-  ]
-  const selectedProduct = PRODUCTS.find(p => p.value === form.product)
-
-  // DealTimeline handles its own fetching; we only need to write new notes here.
   async function addActivity() {
     if (!deal?.id || !actNote) return
     setAddingAct(true)
-    const { error } = await supabase.from('deal_activities').insert({
-      deal_id: deal.id,
-      user_id: profile?.id,
+    await supabase.from('deal_activities').insert({
+      deal_id: deal.id, user_id: profile?.id,
       user_name: profile?.full_name || profile?.email,
-      action_type: 'note',
-      note: actNote,
-      next_action: nextAction || null,
-      next_action_date: nextActionDate || null,
+      action_type: 'note', note: actNote,
+      next_action: nextAction || null, next_action_date: nextActionDate || null,
     })
-
     setActNote(''); setNextAction(''); setNextActionDate('')
     setAddingAct(false)
   }
   const isECT   = form.bu === 'ECT'
   const hasIC   = isECT && parseFloat(form.intercompany_value) > 0
 
-  // Auto-set BU=VGT for distributors (default, mas podem mudar para ECT)
+  // Auto-set BU=VGT for distributors
   useEffect(() => {
     if (isDistributor && !form.bu) set('bu', 'VGT')
   }, [isDistributor, form.bu])
-
   function set(k, v) {
     setForm(f => {
       const next = { ...f, [k]: v }
@@ -418,26 +219,6 @@ export default function DealForm({ deal, onClose, onSaved }) {
       return next
     })
   }
-
-  // Monthly preview for main deal
-  useEffect(() => {
-    if (!isMaint || !form.value_total || !form.cs_month || !form.cs_year || !form.ce_month || !form.ce_year) {
-      setPreview(null); return
-    }
-    const m = calcMonthly(parseFloat(form.value_total), form.cs_month, form.cs_year,
-      form.ce_month, form.ce_year, form.rec_month || null, form.rec_year || null)
-    if (m) setPreview(m)
-  }, [isMaint, form.value_total, form.cs_month, form.cs_year, form.ce_month, form.ce_year, form.rec_month, form.rec_year])
-
-  // Monthly preview for intercompany VGT mirror
-  useEffect(() => {
-    if (!hasIC || !preview) { setIcPreview(null); return }
-    const icVal = parseFloat(form.intercompany_value)
-    const total = preview.reduce((s, v) => s + v, 0)
-    if (total === 0) { setIcPreview(null); return }
-    setIcPreview(preview.map(v => Math.round((v / total) * icVal * 100) / 100))
-  }, [hasIC, form.intercompany_value, preview])
-
   async function handleSave() {
     const { valid, errors: valErrors } = validateDeal(form)
     setFieldErrors(valErrors)
@@ -449,9 +230,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
     }
     setSaving(true); setError('')
 
-    const monthly = isMaint && preview
-      ? Object.fromEntries(MONTHS_K.map((m, i) => [m, preview[i] || 0]))
-      : Object.fromEntries(MONTHS_K.map(m => [m, parseFloat(form[m]) || 0]))
+    const monthly = Object.fromEntries(MONTHS_K.map(m => [m, parseFloat(form[m]) || 0]))
 
     const payload = {
       ...(deal?.id ? { id: deal.id } : {}),
@@ -508,7 +287,6 @@ export default function DealForm({ deal, onClose, onSaved }) {
       created_by: profile?.id || null,
       ...monthly,
     }
-
     let result
     if (hasIC) {
       result = await upsertDealWithIntercompany(
@@ -519,7 +297,6 @@ export default function DealForm({ deal, onClose, onSaved }) {
     } else {
       result = await upsertDeal({ ...payload, intercompany_value: null })
     }
-
     if (result.error) { logger.error('Failed to save deal', { error: result.error.message, dealId: deal?.id }); setError(result.error.message); setSaving(false); return }
     if (result.data?.id && dealLines.length > 0) {
       await saveDealProducts(result.data.id, dealLines)
@@ -527,7 +304,6 @@ export default function DealForm({ deal, onClose, onSaved }) {
     onSaved(); onClose()
     setSaving(false)
   }
-
   return (
     <Modal open title={deal?.id ? t("df_edit_deal") : t("df_new_deal")} onClose={onClose}
       footer={
@@ -661,7 +437,6 @@ export default function DealForm({ deal, onClose, onSaved }) {
             <p className="text-[10px] text-amber-500 mt-1">{t("df_custom_client")} {form.client} {t("df_not_linked")}</p>
           )}
         </div>
-
         {/* Region + Country */}
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -681,7 +456,6 @@ export default function DealForm({ deal, onClose, onSaved }) {
             />
           </div>
         </div>
-
         {/* Owner + Type */}
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -695,14 +469,12 @@ export default function DealForm({ deal, onClose, onSaved }) {
             />
           </div>
         </div>
-
         {/* Description */}
         <div>
           <label className="label">{t("df_description")}</label>
           <input className={`input ${fieldErrors.description ? 'border-red-400' : ''}`} value={form.description} onChange={e => set('description', e.target.value)} placeholder={t("df_placeholder_details")} />
           {fieldErrors.description && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.description}</p>}
         </div>
-
         {/* Lost reason */}
         {form.stage === 'Lost' && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-3">
@@ -724,7 +496,6 @@ export default function DealForm({ deal, onClose, onSaved }) {
             )}
           </div>
         )}
-
         {/* Currency selector */}
         <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
           <div className="flex-1">
@@ -778,7 +549,6 @@ export default function DealForm({ deal, onClose, onSaved }) {
             </div>
           )}
         </div>
-
         {/* Value + GM + Win Probability */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div>
@@ -817,11 +587,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
             {fieldErrors.win_probability && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.win_probability}</p>}
           </div>
         </div>
-
         {/* ── BUSINESS MODEL & PRODUCTS ─────────────────────── */}
         <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
           <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{t("df_product_lbl")}</p>
-
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">{t("df_business_model")}</label>
@@ -872,7 +640,6 @@ export default function DealForm({ deal, onClose, onSaved }) {
               </p>
             </>
           )}
-
           {isDistributor && form.country && resolvedProducts.length === 0 && (
             <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
               {Object.keys(authMap).length === 0
@@ -920,226 +687,14 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </div>
         </div>
 
-        {/* ── DISTRIBUTION & MARGINS ──────────────────────────────
-            New structured distribution network:
-              direct:       VGT → Distributor → Client
-              hub_mediated: VGT → Hub → Distributor → Client
-            Legacy free-text fields (distributor/hub) are preserved so
-            old deals keep rendering; new deals use the FK-based selects.
-        */}
+        {/* ── DISTRIBUTION & MARGINS ─────────────────────────────── */}
         {(form.region !== 'Europe' || form.sales_type === 'External') && (
-          <div className="bg-gray-50 border border-gray-200 rounded-card p-4 space-y-3">
-            <div>
-              <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
-                {t("df_distribution_margins")}
-              </p>
-              <p className="text-micro text-gray-400 mt-0.5">
-                {t("df_distribution_hint")}
-              </p>
-            </div>
-
-            {/* Path selector */}
-            <div className="flex gap-2">
-              {DISTRIBUTION_PATHS.map(p => {
-                const active = form.distribution_path === p.id
-                return (
-                  <button key={p.id} type="button"
-                    onClick={() => {
-                      set('distribution_path', p.id)
-                      if (p.id === 'direct') { set('hub_id', null) }
-                    }}
-                    className={`flex-1 text-left rounded-control border p-3 transition-colors ${
-                      active
-                        ? 'border-navy bg-white ring-2 ring-navy/10'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
-                    }`}>
-                    <p className="text-xs font-bold text-gray-900">{p.label}</p>
-                    <p className="text-micro text-gray-500 mt-0.5">{p.hint}</p>
-                  </button>
-                )
-              })}
-            </div>
-
-            {form.distribution_path && (
-              <>
-                {/* Distributor + Hub selectors */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="label">{t("df_distributor")}</label>
-                    <SearchableSelect
-                      value={form.distributor_id || ''}
-                      onChange={v => set('distributor_id', v || null)}
-                      options={distributors
-                        .filter(d => !form.country || !d.country || d.country.toLowerCase() === form.country.toLowerCase())
-                        .map(d => ({ value: d.id, label: d.name, hint: d.country }))}
-                      placeholder={t("df_distributor_search")}
-                      emptyLabel={t("df_distributor_none")}
-                    />
-                  </div>
-                  {form.distribution_path === 'hub_mediated' && (
-                    <div>
-                      <label className="label">{t("df_hub")}</label>
-                      <SearchableSelect
-                        value={form.hub_id || ''}
-                        onChange={v => set('hub_id', v || null)}
-                        options={hubs.map(h => ({ value: h.id, label: h.name, hint: h.region }))}
-                        placeholder={t("df_hub_search")}
-                        emptyLabel={t("df_hub_none")}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* End customer */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="label">{t("df_end_customer")}</label>
-                    <input className="input" value={form.end_customer}
-                      onChange={e => set('end_customer', e.target.value)}
-                      placeholder={t("df_end_customer_hint")}/>
-                  </div>
-                  <div>
-                    <label className="label">{t("df_ec_value")}</label>
-                    <input className="input" type="number" value={form.end_customer_value}
-                      onChange={e => set('end_customer_value', e.target.value)}
-                      placeholder={t("df_ec_value_hint")}/>
-                  </div>
-                </div>
-
-                {/* Price levels */}
-                <div className="bg-white border border-gray-100 rounded-control p-3 space-y-3">
-                  <p className="text-micro font-semibold text-gray-700 uppercase tracking-wide">
-                    {t("df_prices_title")}
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="label">{t("df_vgt_cost")}</label>
-                      <input className="input" type="number" value={form.vgt_cost}
-                        onChange={e => set('vgt_cost', e.target.value)}
-                        placeholder="0"/>
-                    </div>
-                    <div>
-                      <label className="label">
-                        {form.distribution_path === 'hub_mediated' ? t("df_price_vgt_hub") : t("df_price_vgt_distributor")}
-                      </label>
-                      <input className="input" type="number" value={form.value_total}
-                        onChange={e => set('value_total', e.target.value)}
-                        placeholder="0"/>
-                    </div>
-                    {form.distribution_path === 'hub_mediated' && (
-                      <div>
-                        <label className="label">{t("df_price_hub_distributor")}</label>
-                        <input className="input" type="number" value={form.distributor_price}
-                          onChange={e => set('distributor_price', e.target.value)}
-                          placeholder="0"/>
-                      </div>
-                    )}
-                    <div>
-                      <label className="label">{t("df_price_distributor_client")}</label>
-                      <input className="input" type="number" value={form.end_customer_price}
-                        onChange={e => set('end_customer_price', e.target.value)}
-                        placeholder="0"/>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Live margins */}
-                <MarginsPanel form={form} t={t}/>
-              </>
-            )}
-          </div>
+          <DistributionSection form={form} set={set} distributors={distributors} hubs={hubs} t={t}/>
         )}
 
         {/* ── DISCOUNT REQUEST ─────────────────────────────────── */}
         {(isDistributor || deal?.discount_status || deal?.discount_requested) && (
-          <div className={`rounded-xl p-4 space-y-3 border ${
-            deal?.discount_status === 'approved' ? 'bg-green-50 border-green-200' :
-            deal?.discount_status === 'rejected' ? 'bg-red-50 border-red-200' :
-            deal?.discount_status === 'counter'  ? 'bg-amber-50 border-amber-200' :
-            deal?.discount_status === 'pending'  ? 'bg-blue-50 border-blue-200' :
-            'bg-gray-50 border-gray-200'
-          }`}>
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
-                {t("df_disc_request")}
-              </p>
-              {deal?.discount_status && (
-                <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
-                  deal.discount_status === 'approved' ? 'bg-green-100 text-green-700' :
-                  deal.discount_status === 'rejected' ? 'bg-red-100 text-red-700' :
-                  deal.discount_status === 'counter'  ? 'bg-amber-100 text-amber-700' :
-                  'bg-blue-100 text-blue-700'
-                }`}>
-                  {deal.discount_status === 'approved' && <CheckCircle size={10}/>}
-                  {deal.discount_status === 'rejected' && <XCircle size={10}/>}
-                  {deal.discount_status === 'counter'  && <CounterIcon size={10}/>}
-                  {deal.discount_status === 'pending'  && <AlertCircle size={10}/>}
-                  {deal.discount_status.charAt(0).toUpperCase() + deal.discount_status.slice(1)}
-                </span>
-              )}
-            </div>
-
-            {/* Distributor fills these */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="label">{t("df_list_price")}</label>
-                <input className="input" type="number"
-                  value={form.list_price}
-                  onChange={e => set('list_price', e.target.value)}
-                  disabled={!isDistributor && !!deal?.id}
-                  placeholder={t("df_placeholder_price")}/>
-              </div>
-              <div>
-                <label className="label">{t("df_disc_req")}</label>
-                <input className="input" type="number" min="0" max="100"
-                  value={form.discount_requested}
-                  onChange={e => set('discount_requested', e.target.value)}
-                  disabled={!isDistributor && !!deal?.id}
-                  placeholder="e.g. 15"/>
-              </div>
-              <div>
-                <label className="label">{t("df_your_price")}</label>
-                <div className="input bg-gray-50 text-gray-600 text-sm">
-                  {form.list_price && form.discount_requested
-                    ? `€${(Number(form.list_price) * (1 - Number(form.discount_requested)/100)).toLocaleString('pt-PT', {maximumFractionDigits:0})}`
-                    : '—'}
-                </div>
-              </div>
-            </div>
-
-            {/* Distributor note */}
-            <div>
-              <label className="label">
-                {isDistributor ? t("df_your_note") : t("df_dist_note")}
-              </label>
-              <input className="input" value={form.discount_note_dist}
-                onChange={e => set('discount_note_dist', e.target.value)}
-                disabled={!isDistributor}
-                placeholder={t("df_placeholder_discount")}/>
-            </div>
-
-            {/* Admin response - only visible/editable by admin/vgt */}
-            {!isDistributor && deal?.discount_requested && (
-              <DiscountApprovalPanel deal={deal} onSave={onSaved}/>
-            )}
-
-            {/* Distributor sees response */}
-            {isDistributor && deal?.discount_status && deal.discount_status !== 'pending' && (
-              <div className={`p-3 rounded-lg ${
-                deal.discount_status === 'approved' ? 'bg-green-100' :
-                deal.discount_status === 'rejected' ? 'bg-red-100' : 'bg-amber-100'
-              }`}>
-                <p className="text-xs font-semibold text-gray-700 mb-1">{t("df_vgt_response_label")}</p>
-                {deal.discount_approved !== null && (
-                  <p className="text-sm font-bold text-gray-900">
-                    {t("df_approved_pct")} {deal.discount_approved}%
-                    {deal.transfer_price && ` → Transfer price: €${deal.transfer_price.toLocaleString()}`}
-                  </p>
-                )}
-                {deal.discount_note && <p className="text-xs text-gray-600 mt-0.5">{deal.discount_note}</p>}
-              </div>
-            )}
-          </div>
+          <DiscountSection form={form} set={set} deal={deal} isDistributor={isDistributor} onSaved={onSaved} t={t}/>
         )}
 
         {/* ── CONTRACT LINK ──────────────────────────────────── */}
@@ -1190,132 +745,6 @@ export default function DealForm({ deal, onClose, onSaved }) {
           <IntercompanySection form={form} set={set} hasIC={hasIC}/>
         )}
 
-        {/* Maintenance contract dates — removed, now in Contracts module */}
-        {false && (
-          <div className="rounded-xl border border-gray-200 overflow-hidden">
-            {/* Header */}
-            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-              <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{t("df_contract")}</p>
-            </div>
-
-            <div className="p-4 space-y-4">
-              {/* Start + End on same row */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label mb-1">Start date</label>
-                  <div className="flex gap-1">
-                    <select className="select w-16 text-sm" value={form.cs_day||1} onChange={e => set('cs_day', e.target.value)}>
-                      {Array.from({length:31},(_,i)=>i+1).map(d=><option key={d}>{d}</option>)}
-                    </select>
-                    <select className="select w-20 text-sm" value={form.cs_month||''} onChange={e => set('cs_month', e.target.value)}>
-                      <option value="">Mon</option>
-                      {MONTHS.map(m=><option key={m}>{m}</option>)}
-                    </select>
-                    <select className="select w-[84px] text-sm" value={form.cs_year||''} onChange={e => set('cs_year', e.target.value)}>
-                      <option value="">Yr</option>
-                      {YEARS.map(y=><option key={y}>{y}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <label className="label mb-1">End date</label>
-                  <div className="flex gap-1">
-                    <select className="select w-16 text-sm" value={form.ce_day||31} onChange={e => set('ce_day', e.target.value)}>
-                      {Array.from({length:31},(_,i)=>i+1).map(d=><option key={d}>{d}</option>)}
-                    </select>
-                    <select className="select w-20 text-sm" value={form.ce_month||''} onChange={e => set('ce_month', e.target.value)}>
-                      <option value="">Mon</option>
-                      {MONTHS.map(m=><option key={m}>{m}</option>)}
-                    </select>
-                    <select className="select w-[84px] text-sm" value={form.ce_year||''} onChange={e => set('ce_year', e.target.value)}>
-                      <option value="">Yr</option>
-                      {YEARS.map(y=><option key={y}>{y}</option>)}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Duration pill */}
-              {form.cs_month && form.cs_year && form.ce_month && form.ce_year && (() => {
-                const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-                const s = new Date(`${form.cs_year}-${String(M.indexOf(form.cs_month)+1).padStart(2,'0')}-${String(form.cs_day||1).padStart(2,'0')}`)
-                const e = new Date(`${form.ce_year}-${String(M.indexOf(form.ce_month)+1).padStart(2,'0')}-${String(form.ce_day||28).padStart(2,'0')}`)
-                const days = Math.round((e - s) / 86400000) + 1
-                const months = Math.round(days / 30.44 * 10) / 10
-                const expired = e < new Date()
-                const expiring = !expired && (e - new Date()) < 90*24*60*60*1000
-                return (
-                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
-                    expired  ? 'bg-red-50 text-red-700 border border-red-200' :
-                    expiring ? 'bg-amber-50 text-amber-700 border border-amber-200' :
-                               'bg-green-50 text-green-700 border border-green-200'
-                  }`}>
-                    {expired ? '⚠ Expired' : expiring ? '⏰ Expiring soon' : '✓ Active'}
-                    <span className="opacity-60">·</span>
-                    {days} days · {months} months
-                    {form.sla_annual_value && (
-                      <><span className="opacity-60">·</span>Total €{Math.round(parseFloat(form.sla_annual_value) * days / 365).toLocaleString()}</>
-                    )}
-                  </div>
-                )
-              })()}
-
-              {/* Revenue recognition — only when SLA + billing month set */}
-              {form.is_sla && form.sla_billing_month && form.sla_billing_year && form.sla_annual_value && form.cs_month && form.cs_year && form.ce_month && form.ce_year && (() => {
-                const result = calcSLARecognition({
-                  startDay: parseInt(form.cs_day)||1,
-                  startMonth: form.cs_month, startYear: parseInt(form.cs_year),
-                  endDay: parseInt(form.ce_day)||31,
-                  endMonth: form.ce_month, endYear: parseInt(form.ce_year),
-                  billingMonth: form.sla_billing_month,
-                  billingYear: parseInt(form.sla_billing_year),
-                  annualValue: form.sla_annual_value,
-                  currency: form.currency, exchangeRate: form.exchange_rate,
-                })
-                if (!result) return null
-                const catchupMonths = FY26_MONTHS.indexOf(form.sla_billing_month)
-                return (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold text-gray-700">Revenue recognition · FY26</p>
-                      <span className="text-xs font-bold text-blue-700">
-                        Total €{Math.round(result.totalRecognized).toLocaleString()}
-                      </span>
-                    </div>
-                    {/* 12 month grid - 2 rows of 6 */}
-                    <div className="grid grid-cols-6 gap-1.5">
-                      {FY26_MONTHS.map(m => {
-                        const r = result.recognition[m]
-                        const v = Math.round(r?.value || 0)
-                        const t = r?.type || 'none'
-                        return (
-                          <div key={m} className={`rounded-lg p-2 text-center ${
-                            t==='billing'  ? 'bg-blue-600 text-white' :
-                            t==='normal'   ? 'bg-blue-50 text-blue-700 border border-blue-100' :
-                            t==='deferred' ? 'bg-gray-50 text-gray-400 border border-gray-100' :
-                                             'bg-white text-gray-200 border border-gray-100'
-                          }`}>
-                            <div className="text-[10px] font-semibold">{m}</div>
-                            <div className={`text-[11px] font-bold mt-0.5 ${t==='billing'?'text-white':''}`}>
-                              {v>0 ? `€${v>=1000?Math.round(v/100)/10+'K':v}` : '—'}
-                            </div>
-                            {t==='billing' && <div className="text-[8px] opacity-75 mt-0.5">BILL</div>}
-                          </div>
-                        )
-                      })}
-                    </div>
-                    <div className="flex gap-3 text-[10px] text-gray-400">
-                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-blue-600 inline-block"/> Billing (catchup {catchupMonths}m)</span>
-                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-blue-50 border border-blue-100 inline-block"/>{t("df_linear")}</span>
-                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-gray-50 border border-gray-100 inline-block"/>{t("df_deferred")}</span>
-                    </div>
-                  </div>
-                )
-              })()}
-            </div>
-          </div>
-        )}
-
         {/* Invoice Date */}
         {['BackLog','Invoiced'].includes(form.stage) && (
           <div>
@@ -1326,59 +755,23 @@ export default function DealForm({ deal, onClose, onSaved }) {
         )}
 
         {/* Monthly recognition */}
-        <div>
-          <p className="label mb-2">{t("df_monthly_recognition")}</p>
-          {form.go_live_month && (() => {
-            const glIdx = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(form.go_live_month)
-            const fyIdx = (glIdx - 3 + 12) % 12
-            const hasRevenueBeforeGL = MONTHS_K.slice(0, fyIdx).some(m => form[m] > 0)
-            return hasRevenueBeforeGL ? (
-              <p className="text-[10px] text-amber-600 bg-amber-50 rounded px-2 py-1 mb-2">
-                ⚠ Revenue recognized before Go-Live ({form.go_live_month} {form.go_live_year}) — verify with finance
-              </p>
-            ) : null
-          })()}
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-            {MONTHS.map((m, i) => (
-              <div key={m}>
-                <label className="text-[10px] text-gray-400">{m}</label>
-                <input className="input py-1 text-xs" type="number"
-                  value={form[MONTHS_K[i]] || ''} onChange={e => set(MONTHS_K[i], e.target.value)} placeholder="0" />
-              </div>
-            ))}
-          </div>
-        </div>
+        <DealMonthlyGrid form={form} set={set} t={t}/>
 
         {/* Unified activity timeline — replaces the old Change History + Activity Log */}
         {deal?.id && (
-          <div className="space-y-2">
-            <p className="label flex items-center gap-1.5"><Clock size={12}/> {t("df_activity")}</p>
-
-            {/* Add note / next action — writes to deal_activities */}
-            <div className="bg-gray-50 rounded-lg p-3 space-y-2">
-              <textarea className="input text-xs resize-none" rows={2}
-                placeholder={t("df_note_placeholder")}
-                value={actNote} onChange={e => setActNote(e.target.value)}/>
-              <div className="grid grid-cols-2 gap-2">
-                <input className="input text-xs py-1" placeholder={t("df_next_action")}
-                  value={nextAction} onChange={e => setNextAction(e.target.value)}/>
-                <input className="input text-xs py-1" type="date"
-                  value={nextActionDate} onChange={e => setNextActionDate(e.target.value)}/>
-              </div>
-              <button
-                onClick={async () => {
-                  await addActivity()
-                  setTimelineNonce(n => n + 1) // force DealTimeline to refetch
-                }}
-                disabled={!actNote || addingAct}
-                className="btn-secondary text-xs w-full">
-                <Plus size={11}/> {addingAct ? t("df_adding") : t("df_add_note")}
-              </button>
-            </div>
-
-            {/* Unified timeline: notes + auto-tracked field changes + attachments */}
-            <DealTimeline key={timelineNonce} dealId={deal.id}/>
-          </div>
+          <DealActivityNotes
+            dealId={deal.id}
+            actNote={actNote} setActNote={setActNote}
+            nextAction={nextAction} setNextAction={setNextAction}
+            nextActionDate={nextActionDate} setNextActionDate={setNextActionDate}
+            addingAct={addingAct}
+            onAddActivity={async () => {
+              await addActivity()
+              setTimelineNonce(n => n + 1)
+            }}
+            timelineNonce={timelineNonce}
+            t={t}
+          />
         )}
 
         {/* Stakeholders / Contacts — keyed by BU + client name */}
