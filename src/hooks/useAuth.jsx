@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { safeJsonParse } from '../constants'
+import { logger } from '../lib/logger'
 
 const AuthContext = createContext(null)
 
@@ -78,7 +79,7 @@ export function AuthProvider({ children }) {
       .single()
 
     if (error) {
-
+      logger.error('Failed to load user profile', { userId, error: error.message })
       // Fallback so loading never stays true forever
       setProfile({ id: userId, email: userEmail, role: 'viewer' })
       setCompany(null); setPermSet(null)

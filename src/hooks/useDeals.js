@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
 import { useToast } from '../components/Toast'
 import { MONTHS_K } from '../constants'
+import { logger } from '../lib/logger'
 
 export function useDeals(filters = {}) {
   const { profile, isAdmin } = useAuth()
@@ -53,7 +54,7 @@ export function useDeals(filters = {}) {
 
     const { data, error } = await q
     if (!mounted.current) return
-    if (error) { setError(error.message); showToast(`Failed to load deals: ${error.message}`, 'error') }
+    if (error) { logger.error('Failed to fetch deals', { error: error.message, filters }); setError(error.message); showToast(`Failed to load deals: ${error.message}`, 'error') }
     else { setDeals((data ?? []).filter(d => !d.converted_to_sla)); setError(null) }
     setLoading(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -63,6 +64,7 @@ export function useDeals(filters = {}) {
     // Aguardar profile carregar antes de fazer o fetch
     if (profile !== undefined && profile !== null) {
       fetch().catch(e => {
+        logger.error('Deals fetch exception', { error: e.message })
         if (mounted.current) { setError(e.message); setLoading(false) }
       })
     }

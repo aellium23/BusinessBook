@@ -90,11 +90,14 @@ export function CurrencyBadge({ currency }) {
   return <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${color}`}>{currency}</span>
 }
 
-export function formatK(n) {
+export function formatK(n, currency) {
   if (n === null || n === undefined) return '—'
-  if (Math.abs(n) >= 1000000) return `€${(n/1000000).toFixed(1)}M`
-  if (Math.abs(n) >= 1000) return `€${(n/1000).toFixed(1)}K`
-  return `€${Math.round(n)}`
+  const sym = currency
+    ? ({ USD: '$', GBP: '£', CHF: 'CHF ', BRL: 'R$', CLP: 'CLP ', MXN: 'MXN ' }[currency] || '€')
+    : '€'
+  if (Math.abs(n) >= 1000000) return `${sym}${(n/1000000).toFixed(1)}M`
+  if (Math.abs(n) >= 1000) return `${sym}${(n/1000).toFixed(1)}K`
+  return `${sym}${Math.round(n)}`
 }
 
 export function Modal({ open, onClose, title, children, footer }) {

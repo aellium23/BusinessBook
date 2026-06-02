@@ -4,6 +4,7 @@ import { upsertDeal, upsertDealWithIntercompany } from '../hooks/useDeals'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { useFxRates } from '../hooks/useFxRates'
+import { logger } from '../lib/logger'
 import { Link, Clock, Plus, AlertCircle, CheckCircle, XCircle, RefreshCw as CounterIcon } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 import AttachmentsList from './AttachmentsList'
@@ -20,7 +21,7 @@ import { calcSLARecognition } from './deal/RevenueRecognition'
 import IntercompanySection from './deal/IntercompanySection'
 
 // ── MarginsPanel — live calculation of margin per level ──────────────────
-function MarginsPanel({ form }) {
+function MarginsPanel({ form, t }) {
   const m = computeMargins({
     distribution_path:  form.distribution_path,
     value_total:        parseFloat(form.value_total) || 0,
@@ -39,7 +40,7 @@ function MarginsPanel({ form }) {
   return (
     <div className="bg-white border border-gray-100 rounded-control p-3">
       <p className="text-micro font-semibold text-gray-700 uppercase tracking-wide mb-2">
-        Margin per level
+        {t("df_margin_per_level")}
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         {rows.map(r => (
@@ -146,34 +147,34 @@ function DiscountApprovalPanel({ deal, onSave }) {
 
   return (
     <div className="border-t border-gray-200 pt-3 space-y-3">
-      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">VGT Response</p>
+      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">{t("df_vgt_response")}</p>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <div>
           <label className="label">{t("df_decision")}</label>
           <select className="select" value={status} onChange={e => setStatus(e.target.value)}>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
+            <option value="pending">{t("df_pending")}</option>
+            <option value="approved">{t("df_approved")}</option>
             <option value="counter">{t("df_counter")}</option>
-            <option value="rejected">Rejected</option>
+            <option value="rejected">{t("df_rejected")}</option>
           </select>
         </div>
         <div>
           <label className="label">{t("df_approved_disc")}</label>
           <input className="input" type="number" min="0" max="100"
             value={approved} onChange={e => setApproved(e.target.value)}
-            placeholder="e.g. 12"/>
+            placeholder={t("df_placeholder_equipment")}/>
         </div>
         <div>
           <label className="label">{t("df_transfer")}</label>
           <input className="input" type="number"
             value={transfer} onChange={e => setTransfer(e.target.value)}
-            placeholder="Price to distributor"/>
+            placeholder={t("df_placeholder_price_dist")}/>
         </div>
       </div>
       <div>
         <label className="label">{t("df_note_dist")}</label>
         <input className="input" value={note} onChange={e => setNote(e.target.value)}
-          placeholder="Reason, conditions, expiry…"/>
+          placeholder={t("df_placeholder_reason")}/>
       </div>
       <button onClick={save} disabled={saving}
         className="w-full btn-primary text-xs">
@@ -494,7 +495,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
       result = await upsertDeal({ ...payload, intercompany_value: null })
     }
 
-    if (result.error) { setError(result.error.message); setSaving(false); return }
+    if (result.error) { logger.error('Failed to save deal', { error: result.error.message, dealId: deal?.id }); setError(result.error.message); setSaving(false); return }
     if (result.data?.id && dealLines.length > 0) {
       await saveDealProducts(result.data.id, dealLines)
     }
@@ -503,7 +504,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
   }
 
   return (
-    <Modal open title={deal?.id ? 'Edit deal' : 'New deal'} onClose={onClose}
+    <Modal open title={deal?.id ? t("df_edit_deal") : t("df_new_deal")} onClose={onClose}
       footer={
         <div className="flex gap-2">
           <button onClick={onClose} className="btn-secondary flex-1">{t("df_cancel")}</button>
@@ -563,13 +564,13 @@ export default function DealForm({ deal, onClose, onSaved }) {
         {!isDistributor && (
           <div>
             <label className="label flex items-center gap-1">
-              Forecast category
+              {t("df_forecast_cat")}
               <span className="text-[10px] text-gray-400 font-normal">
-                (Auto from stage: <strong>{FORECAST_CATEGORIES.find(c => c.id === defaultForecastFromStage(form.stage))?.label}</strong>)
+                ({t("df_auto_from_stage")} <strong>{FORECAST_CATEGORIES.find(c => c.id === defaultForecastFromStage(form.stage))?.label}</strong>)
               </span>
             </label>
             <div className="flex gap-2 flex-wrap">
-              {[{ id: '', label: 'Auto' }, ...FORECAST_CATEGORIES].map(opt => {
+              {[{ id: '', label: t("df_auto") }, ...FORECAST_CATEGORIES].map(opt => {
                 const active = (form.forecast_category || '') === opt.id
                 return (
                   <button key={opt.id || 'auto'} type="button"
@@ -599,15 +600,15 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 if (acc) set('client', acc.name)
               }}
               options={accountsForBU.map(a => ({ value: a.id, label: a.name, hint: a.country || a.bu }))}
-              placeholder="Search accounts…"
-              emptyLabel="— Select account —"
+              placeholder={t("df_search_accounts")}
+              emptyLabel={t("df_select_account")}
               onCreateNew={(query) => { if (query) set('client', query) }}
-              createLabel="New client"
+              createLabel={t("df_new_client")}
             />
           </div>
           {fieldErrors.client && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.client}</p>}
           {form.client && !form.account_id && !fieldErrors.client && (
-            <p className="text-[10px] text-amber-500 mt-1">Custom client: {form.client} (not linked to account)</p>
+            <p className="text-[10px] text-amber-500 mt-1">{t("df_custom_client")} {form.client} {t("df_not_linked")}</p>
           )}
         </div>
 
@@ -991,7 +992,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 </div>
 
                 {/* Live margins */}
-                <MarginsPanel form={form}/>
+                <MarginsPanel form={form} t={t}/>
               </>
             )}
           </div>

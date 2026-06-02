@@ -1,8 +1,9 @@
-import { useMemo, useEffect, useState } from 'react'
+import { useMemo, useEffect, useState, useRef } from 'react'
 import { useDeals } from '../hooks/useDeals'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { formatK } from '../components/ui'
+import { logger } from '../lib/logger'
 import {
   ComposedChart, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip,
   ResponsiveContainer, Legend, ReferenceLine, Cell
@@ -420,6 +421,17 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
   const [fy25, setFy25]      = useState([])
   const [fctSnapshots, setFctSnapshots] = useState([])
   const [slaRecurring, setSlaRecurring] = useState({ active: 0, value: 0, pipeline: 0 })
+  const loadStart = useRef(performance.now())
+  const perfLogged = useRef(false)
+
+  // Log total data load time once deals finish loading
+  useEffect(() => {
+    if (!loading && !perfLogged.current) {
+      perfLogged.current = true
+      const duration = Math.round(performance.now() - loadStart.current)
+      logger.perf('Dashboard data load', duration, { dealCount: allDeals.length })
+    }
+  }, [loading, allDeals.length])
 
   useEffect(() => {
     supabase.from('budget').select('*')

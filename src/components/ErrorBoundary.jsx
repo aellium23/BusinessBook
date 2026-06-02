@@ -1,5 +1,6 @@
 import { Component } from 'react'
 import { AlertTriangle } from 'lucide-react'
+import { logger } from '../lib/logger'
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -12,10 +13,10 @@ export default class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, info) {
-    // Log full error + component stack so it is easy to debug in production
-    // (hook into Sentry/LogRocket here when those are wired up)
-    // eslint-disable-next-line no-console
-    console.error('[ErrorBoundary]', error, info?.componentStack)
+    logger.error('React error boundary', {
+      error: error?.message || String(error),
+      componentStack: info?.componentStack,
+    })
   }
 
   reset = () => this.setState({ error: null })

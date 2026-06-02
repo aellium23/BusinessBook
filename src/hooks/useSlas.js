@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
 import { projectSlaRevenue } from '../constants'
+import { logger } from '../lib/logger'
 
 export function useSlas(filters = {}) {
   const { profile, isAdmin } = useAuth()
@@ -23,7 +24,7 @@ export function useSlas(filters = {}) {
       q = q.eq('bu', profile.bu)
     }
     const { data, error } = await q
-
+    if (error) logger.error('Failed to fetch SLAs', { error: error.message, filters })
     setSlas(data || [])
     setLoading(false)
   }, [profile?.id, profile?.role, profile?.bu, isAdmin,
@@ -37,17 +38,20 @@ export function useSlas(filters = {}) {
 export async function createSla(sla) {
   const { data, error } = await supabase
     .from('slas').insert(sla).select().single()
+  if (error) logger.error('Failed to create SLA', { error: error.message, client: sla.client })
   return { data, error }
 }
 
 export async function updateSla(id, updates) {
   const { data, error } = await supabase
     .from('slas').update(updates).eq('id', id).select().single()
+  if (error) logger.error('Failed to update SLA', { error: error.message, id })
   return { data, error }
 }
 
 export async function deleteSla(id) {
   const { error } = await supabase.from('slas').delete().eq('id', id)
+  if (error) logger.error('Failed to delete SLA', { error: error.message, id })
   return { error }
 }
 
