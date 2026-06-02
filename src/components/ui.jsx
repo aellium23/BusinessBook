@@ -1,6 +1,7 @@
 import { FORECAST_CATEGORIES, resolveForecastCategory } from '../constants'
 
 export function BUBadge({ bu }) {
+  if (!bu) return null
   return bu === 'VGT'
     ? <span className="badge-vgt">VGT</span>
     : <span className="badge-ect">ECT</span>

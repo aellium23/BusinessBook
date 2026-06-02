@@ -24,8 +24,14 @@ export function useDeals(filters = {}) {
 
     // Filtros por role
     if (!isAdmin) {
-      if (profile?.role === 'distributor' && profile?.company_id) {
-        q = q.eq('company_id', profile.company_id)
+      if (profile?.role === 'distributor') {
+        if (profile?.company_id) {
+          q = q.eq('company_id', profile.company_id)
+        } else {
+          // Distributor without company_id: return empty to avoid data leak
+          if (mounted.current) { setDeals([]); setError(null); setLoading(false) }
+          return
+        }
       } else if (profile?.bu === 'VGT') {
         q = q.eq('bu', 'VGT')
       } else if (profile?.bu === 'ECT') {

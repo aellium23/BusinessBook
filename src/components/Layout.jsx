@@ -100,11 +100,13 @@ export default function Layout({ children }) {
           <span className="text-white/80 text-xs sm:hidden font-medium truncate max-w-20">{(profile?.full_name || profile?.email || '').split(" ")[0]}</span>
           <span className={`text-xs px-2 py-0.5 rounded font-bold shrink-0 ${
             isAdmin ? 'bg-amber-400 text-amber-900' :
+            profile?.role === 'distributor' ? 'bg-teal-500 text-white' :
             profile?.role?.includes('vgt') ? 'bg-vgt text-white' :
             profile?.role?.includes('ect') ? 'bg-ect text-white' :
             profile?.role?.includes('viewer') ? 'bg-blue-500 text-white' : 'bg-gray-500 text-white'
           }`}>
             {profile?.role === 'admin' ? 'ADMIN' :
+             profile?.role === 'distributor' ? 'DIST' :
              profile?.role === 'vgt_editor' ? 'VGT' :
              profile?.role === 'ect_editor' ? 'ECT' :
              profile?.role === 'viewer_all' ? 'VIEWER' :
