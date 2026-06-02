@@ -145,10 +145,12 @@ export default function Clients() {
   const pageSize = 10
 
   useEffect(() => {
+    if (!profile) return
+    const isDistributor = profile.role === 'distributor'
     let dealsQ = supabase.from('deals').select('*').eq('is_intercompany_mirror', false)
-    if (profile?.role === 'distributor' && profile?.company_id) {
+    if (isDistributor && profile.company_id) {
       dealsQ = dealsQ.eq('company_id', profile.company_id)
-    } else if (!isAdmin && profile?.bu) {
+    } else if (!isAdmin && profile.bu) {
       dealsQ = dealsQ.eq('bu', profile.bu)
     }
     Promise.all([
@@ -158,7 +160,7 @@ export default function Clients() {
     ]).then(([aRes, dRes, distRes]) => {
       const allAccounts = aRes.data || []
       const filteredDeals = dRes.data || []
-      if (profile?.role === 'distributor' && profile?.company_id) {
+      if (isDistributor && profile.company_id) {
         const dealAccountIds = new Set(filteredDeals.map(d => d.account_id).filter(Boolean))
         const dealClientNames = new Set(filteredDeals.map(d => d.client?.toLowerCase()).filter(Boolean))
         setAccounts(allAccounts.filter(a => dealAccountIds.has(a.id) || dealClientNames.has(a.name?.toLowerCase())))
