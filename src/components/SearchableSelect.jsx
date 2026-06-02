@@ -26,6 +26,7 @@ export default function SearchableSelect({
   size        = 'md',
   onCreateNew,
   createLabel = 'Create new',
+  createRequiresQuery = false,
   searchable  = true,
 }) {
   const [open, setOpen]   = useState(false)
@@ -107,12 +108,17 @@ export default function SearchableSelect({
               className="w-full text-left px-3 py-2 text-sm text-gray-400 hover:bg-gray-50">
               {emptyLabel}
             </button>
-            {onCreateNew && (
+            {onCreateNew && (!createRequiresQuery || query.trim()) && (
               <button type="button"
                 onClick={() => { onCreateNew(query); setOpen(false); setQuery('') }}
                 className="w-full text-left px-3 py-2 text-sm border-b border-gray-100 bg-gray-50 hover:bg-gray-100 text-navy font-medium flex items-center gap-1">
                 <Plus size={13}/> {createLabel}{query ? `: "${query}"` : ''}
               </button>
+            )}
+            {onCreateNew && createRequiresQuery && !query.trim() && (
+              <p className="px-3 py-2 text-[11px] text-gray-400 border-b border-gray-100">
+                Type a name above to create a new entry
+              </p>
             )}
             {filtered.length === 0 ? (
               <p className="px-3 py-2 text-sm text-gray-400">No results</p>

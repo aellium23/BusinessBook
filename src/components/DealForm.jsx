@@ -622,8 +622,11 @@ export default function DealForm({ deal, onClose, onSaved }) {
               options={accountsForBU.map(a => ({ value: a.id, label: a.name, hint: a.country || a.bu }))}
               placeholder={t("df_search_accounts")}
               emptyLabel={t("df_select_account")}
-              onCreateNew={(query) => { if (query) set('client', query) }}
+              onCreateNew={(query) => {
+                if (query && query.trim()) { set('client', query.trim()); set('account_id', null) }
+              }}
               createLabel={t("df_new_client")}
+              createRequiresQuery
             />
           </div>
           {fieldErrors.client && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.client}</p>}
