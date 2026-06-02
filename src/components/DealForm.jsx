@@ -867,11 +867,15 @@ export default function DealForm({ deal, onClose, onSaved }) {
           )}
 
           {isDistributor && form.country && resolvedProducts.length === 0 && (
-            <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
-              {Object.keys(authMap).length === 0
+            <div className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 space-y-1">
+              <p>{Object.keys(authMap).length === 0
                 ? `No product authorizations found for your company. Contact your account manager.`
-                : `${t("df_no_products_auth")} ${form.country}. ${t("df_contact_am")}`}
-            </p>
+                : `${t("df_no_products_auth")} ${form.country}. ${t("df_contact_am")}`}</p>
+              <p className="text-[10px] text-amber-400">
+                Debug: {catalogProducts.length} catalog products, {Object.keys(authMap).length} authorizations, country="{form.country}"
+                {Object.keys(authMap).length > 0 && `, keys: ${Object.keys(authMap).slice(0,3).join(', ')}`}
+              </p>
+            </div>
           )}
 
           <ProductLineItems
