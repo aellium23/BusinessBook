@@ -55,6 +55,8 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
   const [psId, setPsId]     = useState(profile.permission_set_id || '')
   const [active, setActive] = useState(profile.active !== false)
   const [ownerId, setOwner] = useState(profile.sales_owner_id || '')
+  const [editName, setEditName] = useState(profile.full_name || '')
+  const [editRole, setEditRole] = useState(profile.role || 'viewer')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved]   = useState(false)
   const [pwdMsg, setPwdMsg] = useState(null)
@@ -103,6 +105,8 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
   async function save() {
     setSaving(true)
     await supabase.from('profiles').update({
+      full_name:         editName.trim() || null,
+      role:              editRole || 'viewer',
       permission_set_id: psId || null,
       sales_owner_id:    ownerId || null,
       sales_owner_name:  salesOwners.find(o => o.id === ownerId)?.name || null,
@@ -174,6 +178,29 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
 
       {open && (
         <div className="border-t border-gray-100 p-3 space-y-3 bg-gray-50">
+
+          {/* Name + Role */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="label">Full Name</label>
+              <input className="input text-sm" value={editName}
+                onChange={e => setEditName(e.target.value)}
+                placeholder="User full name" style={{ fontSize: '16px' }}/>
+            </div>
+            <div>
+              <label className="label">Role</label>
+              <select className="select text-sm" value={editRole}
+                onChange={e => setEditRole(e.target.value)}>
+                <option value="admin">Admin</option>
+                <option value="manager">Manager</option>
+                <option value="member">Member</option>
+                <option value="distributor">Distributor</option>
+                <option value="viewer">Viewer</option>
+                <option value="partner">Partner</option>
+              </select>
+            </div>
+          </div>
+          <p className="text-[10px] text-gray-400">{profile.email}</p>
 
           {/* Permission Set */}
           <div>
