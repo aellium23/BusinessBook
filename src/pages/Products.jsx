@@ -512,7 +512,7 @@ export default function Products() {
       </div>
 
       <div className="flex flex-wrap gap-2 items-center">
-        <div className="relative flex-1 min-w-[180px]">
+        <div className="relative flex-1 min-w-0">
           <input className="input pl-8 text-sm" placeholder={t('products_search')}
             value={search} onChange={e => setSearch(e.target.value)} style={{ fontSize: '16px' }}/>
           <Search size={14} className="absolute left-2.5 top-3 text-gray-400"/>
@@ -559,13 +559,13 @@ export default function Products() {
                     <div className="text-right shrink-0 space-y-0.5">
                       {p.license_fee > 0 && (
                         <p className="text-xs font-semibold text-gray-700">
-                          <span className="text-[9px] text-gray-400 mr-1">{t('products_license')}</span>
+                          <span className="text-[10px] text-gray-400 mr-1">{t('products_license')}</span>
                           {formatK(p.license_fee)}
                         </p>
                       )}
                       {p.annual_fee > 0 && (
                         <p className="text-xs text-blue-600">
-                          <span className="text-[9px] text-gray-400 mr-1">{t('products_annual')}</span>
+                          <span className="text-[10px] text-gray-400 mr-1">{t('products_annual')}</span>
                           {formatK(p.annual_fee)}
                         </p>
                       )}

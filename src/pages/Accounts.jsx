@@ -102,10 +102,10 @@ function AccountRow({ account, depth, open, children, onToggle, onEdit, onDelete
           <span className="w-12 text-right text-gray-500" title="Own / Roll-up deals">
             {own.count}{hasChildren ? ` · Σ ${roll.count}` : ''}
           </span>
-          <span className="w-16 text-right text-amber-700 font-semibold" title="Pipeline (own / roll-up)">
+          <span className="hidden sm:block w-16 text-right text-amber-700 font-semibold" title="Pipeline (own / roll-up)">
             {formatK(hasChildren ? roll.pipeline : own.pipeline)}
           </span>
-          <span className="w-16 text-right text-green-700 font-semibold" title="Invoiced FY26 (own / roll-up)">
+          <span className="hidden sm:block w-16 text-right text-green-700 font-semibold" title="Invoiced FY26 (own / roll-up)">
             {formatK(hasChildren ? roll.invoiced : own.invoiced)}
           </span>
           {canEdit && (
@@ -440,8 +440,8 @@ export default function Accounts() {
           <div className="flex items-center gap-3 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400 bg-gray-50 border-b border-gray-100">
             <span className="flex-1">{t('accounts_col_account')}</span>
             <span className="w-12 text-right">{t('accounts_col_deals')}</span>
-            <span className="w-16 text-right">{t('accounts_col_pipeline')}</span>
-            <span className="w-16 text-right">{t('accounts_col_invoiced')}</span>
+            <span className="hidden sm:block w-16 text-right">{t('accounts_col_pipeline')}</span>
+            <span className="hidden sm:block w-16 text-right">{t('accounts_col_invoiced')}</span>
             {canEdit && <span className="w-12"/>}
           </div>
           {topLevel.map(a => renderNode(a, 0))}

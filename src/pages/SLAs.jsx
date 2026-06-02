@@ -436,7 +436,7 @@ export default function SLAs() {
       </div>
 
       {/* Status tabs */}
-      <div className="flex gap-1 overflow-x-auto border-b border-gray-200">
+      <div className="flex gap-1 flex-wrap border-b border-gray-200">
         {tabs.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`px-3 py-2 text-xs font-semibold whitespace-nowrap border-b-2 transition-all ${
@@ -449,13 +449,13 @@ export default function SLAs() {
 
       {/* Contract list / Kanban */}
       {viewMode === 'kanban' ? (
-        <div className="overflow-x-auto">
-          <div className="flex gap-3 min-w-[900px]">
+        <div className="sm:overflow-x-auto">
+          <div className="flex gap-3 max-sm:flex-col sm:overflow-visible">
             {SLA_STATUSES.map(st => {
               const colSlas = typeFiltered.filter(s => s.status === st.id)
               const colValue = colSlas.reduce((s, a) => s + (Number(a.annual_value) || 0), 0)
               return (
-                <div key={st.id} className="flex-1 min-w-[160px]">
+                <div key={st.id} className="max-sm:w-full sm:flex-1 sm:min-w-[160px]">
                   <div className={`rounded-t-lg px-2 py-1.5 flex items-center justify-between ${st.color.split(' ').filter(c => c.startsWith('bg-')).join(' ')}`}>
                     <span className={`text-[10px] font-bold uppercase ${st.color.split(' ').filter(c => c.startsWith('text-')).join(' ')}`}>
                       {st.label}

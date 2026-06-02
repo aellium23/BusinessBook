@@ -204,9 +204,9 @@ export default function WhiteSpace() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="text-left font-semibold text-gray-600 px-3 py-2 min-w-56">Account</th>
+                  <th className="text-left font-semibold text-gray-600 px-3 py-2 min-w-40 sm:min-w-56">Account</th>
                   {PRODUCTS.map(p => (
-                    <th key={p} className="text-center font-semibold text-gray-600 px-2 py-2 min-w-28">
+                    <th key={p} className="text-center font-semibold text-gray-600 px-2 py-2 min-w-20 sm:min-w-28">
                       {p}
                       <div className="text-[10px] text-gray-400 font-normal">{colTotals[p]} accounts</div>
                     </th>

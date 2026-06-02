@@ -137,8 +137,8 @@ export default function KanbanBoard({ deals = [], onEdit, onDelete, onMove, canE
   })
 
   return (
-    <div className="overflow-x-auto pb-2 -mx-1 px-1">
-      <div className="flex gap-3 min-w-max">
+    <div className="sm:overflow-x-auto pb-2 -mx-1 px-1">
+      <div className="flex gap-3 max-sm:flex-col">
         {columns.map(stage => {
           const list = perStage[stage] || []
           const total = columnTotal(deals, stage)
@@ -150,7 +150,7 @@ export default function KanbanBoard({ deals = [], onEdit, onDelete, onMove, canE
               onDragOver={e => { if (canEdit) { e.preventDefault(); setHoverStage(stage) } }}
               onDragLeave={() => setHoverStage(h => h === stage ? null : h)}
               onDrop={e => handleDrop(e, stage)}
-              className={`w-64 shrink-0 rounded-xl border transition-colors ${
+              className={`max-sm:w-full sm:w-64 sm:shrink-0 rounded-xl border transition-colors ${
                 isInvalidHover ? 'border-red-300 bg-red-50/50 opacity-60' :
                 isHover && isValidDrop ? 'border-navy bg-navy/5' :
                 draggingId && !isValidDrop ? 'border-gray-200 bg-gray-50 opacity-40' :

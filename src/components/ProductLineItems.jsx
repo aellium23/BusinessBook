@@ -220,7 +220,7 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
               <label className="text-[10px] text-gray-400">Licensing</label>
               <select className="select text-xs py-1" value={line.license_type || 'flat'}
@@ -239,7 +239,7 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
           </div>
 
           {['per_volume', 'per_package'].includes(line.license_type) && (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 <label className="text-[10px] text-purple-500">Annual Studies</label>
                 <input className="input text-xs py-1 border-purple-200" type="number" value={line.volume || ''}
@@ -257,7 +257,7 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
             </div>
           )}
 
-          <div className={`grid gap-2 ${isDistributor ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'}`}>
+          <div className={`grid gap-2 ${isDistributor ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'}`}>
             {!isDistributor && (
               <>
                 <div>
