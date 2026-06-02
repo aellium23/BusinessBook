@@ -679,28 +679,32 @@ export default function DealForm({ deal, onClose, onSaved }) {
             }}
           />
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">
-                {t("df_equipment")}
-                <span className="text-gray-400 font-normal ml-1">{t("df_total_units")}</span>
-              </label>
-              <input className="input" type="number" min="0"
-                value={form.equipment_count}
-                onChange={e => set('equipment_count', e.target.value)}
-                placeholder={t("df_placeholder_equipment")}/>
+          {/* Deal-level equipment/studies metadata — internal only; for
+              distributors the volume lives per-product in the line items. */}
+          {!isDistributor && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">
+                  {t("df_equipment")}
+                  <span className="text-gray-400 font-normal ml-1">{t("df_total_units")}</span>
+                </label>
+                <input className="input" type="number" min="0"
+                  value={form.equipment_count}
+                  onChange={e => set('equipment_count', e.target.value)}
+                  placeholder={t("df_placeholder_equipment")}/>
+              </div>
+              <div>
+                <label className="label">
+                  {t("df_annual_studies")}
+                  <span className="text-gray-400 font-normal ml-1">{t("df_studies_year")}</span>
+                </label>
+                <input className="input" type="number" min="0"
+                  value={form.annual_studies}
+                  onChange={e => set('annual_studies', e.target.value)}
+                  placeholder={t("df_placeholder_studies")}/>
+              </div>
             </div>
-            <div>
-              <label className="label">
-                {t("df_annual_studies")}
-                <span className="text-gray-400 font-normal ml-1">{t("df_studies_year")}</span>
-              </label>
-              <input className="input" type="number" min="0"
-                value={form.annual_studies}
-                onChange={e => set('annual_studies', e.target.value)}
-                placeholder={t("df_placeholder_studies")}/>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* ── DISTRIBUTION & MARGINS ─────────────────────────────── */}
@@ -710,14 +714,18 @@ export default function DealForm({ deal, onClose, onSaved }) {
           <DistributionSection form={form} set={set} distributors={distributors} hubs={hubs} t={t}/>
         )}
 
-        {/* ── DISCOUNT REQUESTS (history-based) ──────────────────── */}
-        {deal?.id && (
-          <DiscountHistory dealId={deal.id} dealClient={form.client} isDistributor={isDistributor}/>
-        )}
-
-        {/* ── PROJECT TCO ────────────────────────────────────── */}
-        {deal?.id && (
-          <ProjectTCO dealId={deal.id} dealLines={dealLines} isDistributor={isDistributor}/>
+        {/* ── DISCOUNT REQUESTS + PROJECT TCO ──────────────────────
+            These attach records to the deal, so they require a saved
+            deal first. On new deals, show a hint. */}
+        {deal?.id ? (
+          <>
+            <DiscountHistory dealId={deal.id} dealClient={form.client} isDistributor={isDistributor}/>
+            <ProjectTCO dealId={deal.id} dealLines={dealLines} isDistributor={isDistributor}/>
+          </>
+        ) : (
+          <p className="text-[11px] text-gray-400 bg-gray-50 rounded-lg px-3 py-2 text-center">
+            Save the deal first to request discounts and add project (TCO) costs.
+          </p>
         )}
 
         {/* ── CONTRACT LINK ──────────────────────────────────── */}

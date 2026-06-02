@@ -34,13 +34,15 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
   }, [filteredProducts])
 
   function inferLicenseType(product) {
+    // The product's configured allowed types are authoritative
     const allowed = product?.allowed_license_types
     if (Array.isArray(allowed) && allowed.length > 0) return allowed[0]
     const name = (product?.name || '').toLowerCase()
     const sku = (product?.sku || '').toLowerCase()
     if (sku.includes('ccu') || name.includes('ccu')) return 'per_ccu'
-    if (name.includes('cwm') || name.includes('connectivity')) return 'per_equipment'
-    if (name.includes('per study') || name.includes('pay per')) return 'per_volume'
+    // CWM Dose is licensed by study volume; Connectivity / CWM-ES by equipment
+    if (name.includes('dose') || name.includes('per study') || name.includes('pay per')) return 'per_volume'
+    if (name.includes('connectivity') || name.includes('cwm-es') || name.includes('cwm es')) return 'per_equipment'
     return 'flat'
   }
 
