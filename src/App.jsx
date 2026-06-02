@@ -54,9 +54,28 @@ const SetPassword = lazyWithRetry(() => import('./pages/SetPassword'))
 const Permissions = lazyWithRetry(() => import('./pages/Permissions'))
 const Approvals = lazyWithRetry(() => import('./pages/Approvals'))
 
+// The user's landing route — dashboard for most, /approvals for
+// approval-only users (brand approvers with no dashboard access).
+function useHomeRoute() {
+  const { canAccessPage } = useAuth()
+  if (canAccessPage('dashboard')) return '/'
+  if (canAccessPage('approvals')) return '/approvals'
+  return '/account'
+}
+
 function Guard({ page, element }) {
   const { canAccessPage } = useAuth()
-  return canAccessPage(page) ? element : <Navigate to="/" replace />
+  const home = useHomeRoute()
+  if (canAccessPage(page)) return element
+  // Avoid redirect loops: if the blocked page IS the home target, send to /account
+  return <Navigate to={page === 'dashboard' ? home : home} replace />
+}
+
+function HomeRedirect({ children }) {
+  const { canAccessPage } = useAuth()
+  const home = useHomeRoute()
+  if (canAccessPage('dashboard')) return children
+  return <Navigate to={home} replace />
 }
 
 function AppRoutes() {
@@ -86,7 +105,7 @@ function AppRoutes() {
     <Layout>
       <Suspense fallback={fallback}>
         <Routes>
-          <Route path="/"             element={<Guard page="dashboard"   element={<DashboardIndex />} />} />
+          <Route path="/"             element={<HomeRedirect><Guard page="dashboard" element={<DashboardIndex />} /></HomeRedirect>} />
           <Route path="/deals"        element={<Guard page="deals"       element={<Deals />} />} />
           <Route path="/clients"      element={<Guard page="clients"     element={<Clients />} />} />
           <Route path="/contacts"     element={<Guard page="contacts"    element={<Contacts />} />} />
