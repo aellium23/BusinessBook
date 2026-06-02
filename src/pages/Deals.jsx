@@ -351,11 +351,11 @@ function exportToCSV(deals) {
 }
 
 const PAGE_SIZE_OPTIONS = [5, 10, 25]
-const PERIOD_OPTIONS = [
-  { label: 'All time', days: 0 },
-  { label: 'Last 7 days', days: 7 },
-  { label: 'Last 30 days', days: 30 },
-  { label: 'Last 90 days', days: 90 },
+const PERIOD_KEYS = [
+  { key: 'deals_period_all', days: 0 },
+  { key: 'deals_period_7d', days: 7 },
+  { key: 'deals_period_30d', days: 30 },
+  { key: 'deals_period_90d', days: 90 },
 ]
 
 const REGION_COLORS = {
@@ -679,7 +679,7 @@ export default function Deals() {
       <div className="flex items-center justify-between pt-1">
         <div>
           <h1 className="text-xl font-bold text-gray-900">{t("deals_title")}</h1>
-          <p className="text-[10px] text-gray-400">New sales opportunities & one-time projects</p>
+          <p className="text-[10px] text-gray-400">{t("deals_subtitle")}</p>
           <p className="text-sm text-gray-400">
             {deals.length} {t("deals_records")}
             {activeFilters > 0 && <span className="ml-1 text-blue-500">· {activeFilters} {t("deals_filters_active")}</span>}
@@ -709,7 +709,7 @@ export default function Deals() {
             <button type="button"
               onClick={() => setViewMode('map')}
               aria-pressed={viewMode === 'map'}
-              title="Map view"
+              title={t("deals_view_map")}
               className={`px-2.5 py-1.5 text-xs flex items-center gap-1 border-l border-gray-200 ${
                 viewMode === 'map' ? 'bg-navy text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
               }`}>
@@ -718,16 +718,16 @@ export default function Deals() {
           </div>
 
           <select className="select text-xs w-auto" value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1) }}>
-            <option value="date_desc">Newest</option>
-            <option value="date_asc">Oldest</option>
-            <option value="value_desc">Value ↓</option>
-            <option value="value_asc">Value ↑</option>
-            <option value="client">Client A→Z</option>
-            <option value="stage">Stage</option>
+            <option value="date_desc">{t("deals_sort_newest")}</option>
+            <option value="date_asc">{t("deals_sort_oldest")}</option>
+            <option value="value_desc">{t("deals_sort_value_desc")}</option>
+            <option value="value_asc">{t("deals_sort_value_asc")}</option>
+            <option value="client">{t("deals_sort_client")}</option>
+            <option value="stage">{t("deals_sort_stage")}</option>
           </select>
 
           <button onClick={() => exportToCSV(deals)} className="btn-secondary text-xs">
-            <Download size={14}/> Export
+            <Download size={14}/> {t("deals_export")}
           </button>
           <button
             onClick={() => setShowFilters(o => !o)}
@@ -807,7 +807,7 @@ export default function Deals() {
               <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Forecast</label>
               <select className="select text-xs w-full" value={forecastF}
                 onChange={e => { setForecastF(e.target.value); resetPage() }}>
-                <option value="">All forecasts</option>
+                <option value="">{t("deals_all_forecasts")}</option>
                 {FORECAST_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
               </select>
             </div>
@@ -815,7 +815,7 @@ export default function Deals() {
             {/* Invoiced Month */}
             <div>
               <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">
-                Invoiced Month
+                {t("deals_invoiced_month")}
               </label>
               <div className="flex gap-1 flex-wrap">
                 <button onClick={() => setInvoicedMonthF([])}
@@ -846,7 +846,7 @@ export default function Deals() {
             <div>
               <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">{t("deals_period")}</label>
               <select className="select text-xs w-full" value={periodF} onChange={e => handlePeriod(e.target.value)}>
-                {PERIOD_OPTIONS.map(p => <option key={p.days} value={p.days}>{p.label}</option>)}
+                {PERIOD_KEYS.map(p => <option key={p.days} value={p.days}>{t(p.key)}</option>)}
               </select>
             </div>
 
@@ -863,7 +863,7 @@ export default function Deals() {
           <div className="flex items-center justify-between">
             <button onClick={handleSla}
               className={`btn text-xs gap-1 ${slaF ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'btn-secondary'}`}>
-              <RefreshCw size={11}/> SLA only
+              <RefreshCw size={11}/> {t("deals_sla_only")}
             </button>
             {activeFilters > 0 && (
               <button onClick={() => {
@@ -988,11 +988,11 @@ export default function Deals() {
           <div className="relative bg-white rounded-t-3xl sm:rounded-2xl p-6 w-full sm:max-w-xs shadow-xl" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
             <h3 className="font-semibold text-gray-900 mb-2">{t("deals_delete_q")}</h3>
             <p className="text-sm text-gray-500 mb-1">
-              <strong>{confirmDel.client}</strong> will be permanently removed.
+              <strong>{confirmDel.client}</strong> {t("deals_will_be_removed")}
             </p>
             {confirmDel.intercompany_value > 0 && (
               <p className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded mb-3">
-                The linked VGT intercompany deal will also be deleted.
+                {t("deals_ic_also_deleted")}
               </p>
             )}
             <div className="flex gap-2 mt-4">

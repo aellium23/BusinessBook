@@ -758,20 +758,20 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
       {/* ── RECURRING BUSINESS ──────────────────────────────────────────── */}
       {isAdmin && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Recurring Business (SLA)</p>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">{t("dash_recurring_sla")}</p>
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-green-50 rounded-lg p-3 text-center">
-              <p className="text-[10px] text-gray-500">Active ARR</p>
+              <p className="text-[10px] text-gray-500">{t("dash_active_arr")}</p>
               <p className="text-lg font-bold text-green-600">{formatK(slaRecurring.value)}</p>
-              <p className="text-[10px] text-gray-400">{slaRecurring.active} contracts</p>
+              <p className="text-[10px] text-gray-400">{slaRecurring.active} {t("dash_contracts")}</p>
             </div>
             <div className="bg-gray-50 rounded-lg p-3 text-center">
-              <p className="text-[10px] text-gray-500">Pipeline</p>
+              <p className="text-[10px] text-gray-500">{t("deals_pipeline")}</p>
               <p className="text-lg font-bold text-gray-600">{formatK(slaRecurring.pipeline)}</p>
-              <p className="text-[10px] text-gray-400">future recurring</p>
+              <p className="text-[10px] text-gray-400">{t("dash_future_recurring")}</p>
             </div>
             <div className="bg-amber-50 rounded-lg p-3 text-center">
-              <p className="text-[10px] text-gray-500">Manual FCT</p>
+              <p className="text-[10px] text-gray-500">{t("dash_manual_fct")}</p>
               <p className="text-lg font-bold text-amber-600">
                 {fctSnapshots.length > 0
                   ? (() => {
@@ -787,7 +787,7 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
                     })()
                   : '—'}
               </p>
-              <p className="text-[10px] text-gray-400">last snapshot</p>
+              <p className="text-[10px] text-gray-400">{t("dash_last_snapshot")}</p>
             </div>
           </div>
         </div>
@@ -967,7 +967,7 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
 
       {/* ── SALES FUNNEL ──────────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Sales funnel</p>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">{t("dash_sales_funnel")}</p>
         <div className="space-y-2">
           {[
             { label:'Lead',            value: deals.filter(d=>d.stage==='Lead'&&!d.is_intercompany_mirror).reduce((s,d)=>s+(Number(d.value_total)||0)/1000,0), color:'#F4C0D1', text:'#4B1528' },

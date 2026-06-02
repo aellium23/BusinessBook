@@ -1035,7 +1035,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                   value={form.list_price}
                   onChange={e => set('list_price', e.target.value)}
                   disabled={!isDistributor && !!deal?.id}
-                  placeholder="Catalogue price"/>
+                  placeholder={t("df_placeholder_price")}/>
               </div>
               <div>
                 <label className="label">{t("df_disc_req")}</label>
@@ -1063,7 +1063,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
               <input className="input" value={form.discount_note_dist}
                 onChange={e => set('discount_note_dist', e.target.value)}
                 disabled={!isDistributor}
-                placeholder="Reason for discount request, competition, client budget…"/>
+                placeholder={t("df_placeholder_discount")}/>
             </div>
 
             {/* Admin response - only visible/editable by admin/vgt */}
@@ -1077,7 +1077,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 deal.discount_status === 'approved' ? 'bg-green-100' :
                 deal.discount_status === 'rejected' ? 'bg-red-100' : 'bg-amber-100'
               }`}>
-                <p className="text-xs font-semibold text-gray-700 mb-1">VGT response</p>
+                <p className="text-xs font-semibold text-gray-700 mb-1">{t("df_vgt_response_label")}</p>
                 {deal.discount_approved !== null && (
                   <p className="text-sm font-bold text-gray-900">
                     {t("df_approved_pct")} {deal.discount_approved}%
@@ -1106,9 +1106,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
               )}
               <div className="flex items-center justify-between">
                 <div>
-                  <p className={`text-xs font-semibold ${urgent ? 'text-amber-700' : 'text-blue-700'}`}>Contracts & Recurring</p>
+                  <p className={`text-xs font-semibold ${urgent ? 'text-amber-700' : 'text-blue-700'}`}>{t("df_contracts_recurring")}</p>
                   <p className="text-[10px] text-gray-500">
-                    {deal.converted_to_sla ? 'Already converted' : shouldPrompt ? 'Recommended: convert to contract' : 'Create or view linked contracts'}
+                    {deal.converted_to_sla ? t("df_already_converted") : shouldPrompt ? t("df_recommended_convert") : t("df_create_view_contracts")}
                   </p>
                 </div>
                 <button type="button"
@@ -1126,7 +1126,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                   className={`text-xs py-2 px-3 rounded-lg border font-semibold flex items-center gap-1 ${
                     urgent ? 'border-amber-400 bg-white text-amber-700 hover:bg-amber-100' : 'border-blue-300 bg-white text-blue-700 hover:bg-blue-100'
                   }`}>
-                  <Plus size={12}/> Convert to Contract
+                  <Plus size={12}/> {t("df_convert_to_contract")}
                 </button>
               </div>
             </div>
@@ -1267,15 +1267,15 @@ export default function DealForm({ deal, onClose, onSaved }) {
         {/* Invoice Date */}
         {['BackLog','Invoiced'].includes(form.stage) && (
           <div>
-            <label className="label">Invoice Date</label>
+            <label className="label">{t("df_invoice_date")}</label>
             <input className="input" type="date" value={form.invoice_date} onChange={e => set('invoice_date', e.target.value)}/>
-            <p className="text-[10px] text-gray-400 mt-0.5">Date when invoice was issued to customer</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">{t("df_invoice_hint")}</p>
           </div>
         )}
 
         {/* Monthly recognition */}
         <div>
-          <p className="label mb-2">Monthly recognition · FY26</p>
+          <p className="label mb-2">{t("df_monthly_recognition")}</p>
           {form.go_live_month && (() => {
             const glIdx = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(form.go_live_month)
             const fyIdx = (glIdx - 3 + 12) % 12
@@ -1305,10 +1305,10 @@ export default function DealForm({ deal, onClose, onSaved }) {
             {/* Add note / next action — writes to deal_activities */}
             <div className="bg-gray-50 rounded-lg p-3 space-y-2">
               <textarea className="input text-xs resize-none" rows={2}
-                placeholder="Note or update…"
+                placeholder={t("df_note_placeholder")}
                 value={actNote} onChange={e => setActNote(e.target.value)}/>
               <div className="grid grid-cols-2 gap-2">
-                <input className="input text-xs py-1" placeholder="Next action"
+                <input className="input text-xs py-1" placeholder={t("df_next_action")}
                   value={nextAction} onChange={e => setNextAction(e.target.value)}/>
                 <input className="input text-xs py-1" type="date"
                   value={nextActionDate} onChange={e => setNextActionDate(e.target.value)}/>
@@ -1320,7 +1320,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 }}
                 disabled={!actNote || addingAct}
                 className="btn-secondary text-xs w-full">
-                <Plus size={11}/> {addingAct ? 'Adding…' : 'Add note'}
+                <Plus size={11}/> {addingAct ? t("df_adding") : t("df_add_note")}
               </button>
             </div>
 

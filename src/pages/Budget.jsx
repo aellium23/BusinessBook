@@ -195,11 +195,11 @@ export default function Budget() {
       <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
         <button onClick={() => setBudgetTab('edit')}
           className={`px-3 py-1.5 rounded text-xs font-semibold ${budgetTab === 'edit' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>
-          Edit
+          {tr("budget_edit")}
         </button>
         <button onClick={() => setBudgetTab('compare')}
           className={`px-3 py-1.5 rounded text-xs font-semibold ${budgetTab === 'compare' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>
-          Compare
+          {tr("budget_compare")}
         </button>
       </div>
 
@@ -230,7 +230,7 @@ export default function Budget() {
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="bg-gray-50">
-                      <th className="text-left px-4 py-2 font-bold w-32 sticky left-0 bg-gray-50">P&L Line</th>
+                      <th className="text-left px-4 py-2 font-bold w-32 sticky left-0 bg-gray-50">{tr("budget_pl_line")}</th>
                       {MONTHS.map(m => <th key={m} className="px-1 py-2 text-center w-20 font-semibold text-gray-500">{m}</th>)}
                       <th className="px-2 py-2 text-center w-20 font-bold text-gray-800">YTD</th>
                       <th className="px-2 py-2 text-center w-20 font-bold text-gray-800">FY</th>
@@ -530,9 +530,9 @@ export default function Budget() {
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
             <p className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
-              <Camera size={14}/> Manual Forecast (FCT)
+              <Camera size={14}/> {tr("budget_manual_fct")}
             </p>
-            <p className="text-[10px] text-gray-400">Snapshots from management review meetings</p>
+            <p className="text-[10px] text-gray-400">{tr("budget_fct_subtitle")}</p>
           </div>
           {!fctForm && (
             <button onClick={() => {
@@ -549,7 +549,7 @@ export default function Budget() {
                 notes: '',
               })
             }} className="btn-primary text-xs flex items-center gap-1">
-              <Plus size={12}/> New FCT Snapshot
+              <Plus size={12}/> {tr("budget_new_fct")}
             </button>
           )}
         </div>
@@ -567,13 +567,13 @@ export default function Budget() {
                 <option value="VGT">VGT</option>
                 <option value="ECT">ECT</option>
               </select>
-              <span className="text-[10px] text-blue-500">Pre-filled from budget · adjust as needed</span>
+              <span className="text-[10px] text-blue-500">{tr("budget_prefilled")}</span>
             </div>
 
             {['ns_ext', 'ns_int'].map(plKey => (
               <div key={plKey}>
                 <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">
-                  {plKey === 'ns_ext' ? 'External Sales (K€)' : 'Internal Sales (K€)'}
+                  {plKey === 'ns_ext' ? tr("budget_ext_sales") : tr("budget_int_sales")}
                 </p>
                 <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
                   {MONTHS_K.map((m, i) => (
@@ -594,14 +594,14 @@ export default function Budget() {
             ))}
 
             <div>
-              <label className="text-[10px] text-gray-500">Notes (optional)</label>
+              <label className="text-[10px] text-gray-500">{tr("budget_notes_opt")}</label>
               <input className="input text-xs" value={fctForm.notes}
                 onChange={e => setFctForm(f => ({ ...f, notes: e.target.value }))}
                 placeholder="e.g. EST1 reviewed with Director — adjusted Q3 pipeline"/>
             </div>
 
             <div className="flex gap-2">
-              <button onClick={() => setFctForm(null)} className="btn-secondary text-xs flex-1">Cancel</button>
+              <button onClick={() => setFctForm(null)} className="btn-secondary text-xs flex-1">{tr("cancel")}</button>
               <button onClick={async () => {
                 setFctSaving(true)
                 const base = { cycle: fctForm.cycle, bu: fctForm.bu, created_by: null, notes: fctForm.notes || null }
@@ -614,7 +614,7 @@ export default function Budget() {
                 setFctForm(null)
                 setFctSaving(false)
               }} disabled={fctSaving} className="btn-primary text-xs flex-1">
-                {fctSaving ? 'Saving…' : 'Save Snapshot'}
+                {fctSaving ? tr("saving") : tr("budget_save_snapshot")}
               </button>
             </div>
           </div>
@@ -623,7 +623,7 @@ export default function Budget() {
         {/* FCT History */}
         {fctSnapshots.length > 0 && (
           <div className="space-y-2">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase">Snapshot History</p>
+            <p className="text-[10px] font-semibold text-gray-400 uppercase">{tr("budget_snapshot_history")}</p>
             {(() => {
               const byDate = {}
               for (const s of fctSnapshots) {
