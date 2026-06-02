@@ -74,6 +74,7 @@ export default function Deals() {
   const [brandF, setBrandF]       = useState('')  // '' | 'Fujifilm' | 'Medsky' | etc.
   const [productF, setProductF]   = useState('')  // '' | product name
   const [categoryF, setCategoryF] = useState('')  // '' | category name
+  const [noProductF, setNoProductF] = useState(false) // deals without product lines
   const [periodF, setPeriodF]   = useState(0)   // dias; 0 = todos
   const [pageSize, setPageSize]             = useState(5)
   const [page, setPage]                     = useState(1)
@@ -106,10 +107,12 @@ export default function Deals() {
     const product = searchParams.get('product')
     const brand = searchParams.get('brand')
     const category = searchParams.get('category')
-    if (product || brand || category) {
+    const noproduct = searchParams.get('noproduct')
+    if (product || brand || category || noproduct) {
       if (product) setProductF(product)
       if (brand) setBrandF(brand)
       if (category) setCategoryF(category)
+      if (noproduct) setNoProductF(true)
       setShowFilters(true)
       setSearchParams({}, { replace: true })  // clear params after applying
     }
@@ -149,8 +152,9 @@ export default function Deals() {
     if (brandF) d = d.filter(x => (dealBrands[x.id] || ['Fujifilm']).includes(brandF))
     if (productF) d = d.filter(x => (dealProducts[x.id] || []).some(p => p === productF))
     if (categoryF) d = d.filter(x => (dealCategories[x.id] || []).includes(categoryF))
+    if (noProductF) d = d.filter(x => !(dealProducts[x.id] || []).length)
     return d
-  }, [rawDeals, slaF, discountF, ownerF, forecastF, periodF, invoicedMonthF.join(','), brandF, productF, categoryF, dealBrands, dealProducts, dealCategories, profile])
+  }, [rawDeals, slaF, discountF, ownerF, forecastF, periodF, invoicedMonthF.join(','), brandF, productF, categoryF, noProductF, dealBrands, dealProducts, dealCategories, profile])
 
   useEffect(() => {
     if (!rawDeals.length) return
@@ -249,7 +253,7 @@ export default function Deals() {
   }, [rawDeals])
 
   // Contagem de filtros activos
-  const activeFilters = [search, stageF, regionF, buF, ownerF, forecastF, slaF, discountF, brandF, productF, categoryF, periodF > 0, invoicedMonthF.length > 0].filter(Boolean).length
+  const activeFilters = [search, stageF, regionF, buF, ownerF, forecastF, slaF, discountF, brandF, productF, categoryF, noProductF, periodF > 0, invoicedMonthF.length > 0].filter(Boolean).length
 
   // Drag-drop on the Kanban: moving a card across stages
   async function handleStageChange(dealId, newStage) {
@@ -555,7 +559,7 @@ export default function Deals() {
             {activeFilters > 0 && (
               <button onClick={() => {
                 setSearch(''); setStageF(''); setRegionF(''); setBuF('')
-                setOwnerF(''); setForecastF(''); setSlaF(false); setDiscountF(''); setBrandF(''); setProductF(''); setCategoryF(''); setPeriodF(0); setInvoicedMonthF([]); resetPage()
+                setOwnerF(''); setForecastF(''); setSlaF(false); setDiscountF(''); setBrandF(''); setProductF(''); setCategoryF(''); setNoProductF(false); setPeriodF(0); setInvoicedMonthF([]); resetPage()
               }} className="text-xs text-red-500 hover:text-red-700 font-medium">
                 {t("deals_clear_filters")}
               </button>

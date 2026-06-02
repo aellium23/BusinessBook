@@ -149,7 +149,7 @@ export default function ProductFunnel({ selectedBU = '' }) {
           <p className="text-sm text-gray-400 text-center py-8">No product data yet. Add products to deals to see the funnel.</p>
         ) : grouped.map(g => (
           <button key={g.name} type="button"
-            onClick={() => g.name !== '(no product)' && navigate(`/deals?${groupBy}=${encodeURIComponent(g.name)}`)}
+            onClick={() => navigate(g.name === '(no product)' ? '/deals?noproduct=1' : `/deals?${groupBy}=${encodeURIComponent(g.name)}`)}
             className="w-full text-left bg-white border border-gray-200 rounded-xl p-3 space-y-2 hover:border-navy hover:shadow-sm transition-all">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
@@ -159,7 +159,7 @@ export default function ProductFunnel({ selectedBU = '' }) {
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <span className="text-sm font-bold text-gray-900">{formatK(g.total)}</span>
-                {g.name !== '(no product)' && <ChevronRight size={14} className="text-gray-300"/>}
+                <ChevronRight size={14} className="text-gray-300"/>
               </div>
             </div>
             <div className="flex h-3 rounded-full overflow-hidden bg-gray-100" style={{ width: `${Math.max(8, g.total / max * 100)}%` }}>
