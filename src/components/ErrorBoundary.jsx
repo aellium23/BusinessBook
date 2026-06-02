@@ -17,6 +17,16 @@ export default class ErrorBoundary extends Component {
       error: error?.message || String(error),
       componentStack: info?.componentStack,
     })
+    // Auto-recover from stale-chunk errors after a deploy (once per 10s)
+    const msg = error?.message || String(error)
+    if (/MIME type|dynamically imported module|Failed to fetch dynamically|Loading chunk|Importing a module script failed/i.test(msg)) {
+      const KEY = 'chunk_reload_at'
+      const last = Number(sessionStorage.getItem(KEY) || 0)
+      if (Date.now() - last > 10000) {
+        sessionStorage.setItem(KEY, String(Date.now()))
+        window.location.reload()
+      }
+    }
   }
 
   reset = () => this.setState({ error: null })

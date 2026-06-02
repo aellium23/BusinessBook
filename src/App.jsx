@@ -7,27 +7,51 @@ import ErrorBoundary from './components/ErrorBoundary'
 import Layout from './components/Layout'
 import { Spinner } from './components/ui'
 
-const Login = React.lazy(() => import('./pages/Login'))
-const DashboardIndex = React.lazy(() => import('./pages/DashboardIndex'))
-const Deals = React.lazy(() => import('./pages/Deals'))
-const History = React.lazy(() => import('./pages/History'))
-const Clients = React.lazy(() => import('./pages/Clients'))
-const Contacts = React.lazy(() => import('./pages/Contacts'))
-const Accounts = React.lazy(() => import('./pages/Accounts'))
-const WhiteSpace = React.lazy(() => import('./pages/WhiteSpace'))
-const AuditLog = React.lazy(() => import('./pages/AuditLog'))
-const Network = React.lazy(() => import('./pages/Network'))
-const Quotas = React.lazy(() => import('./pages/Quotas'))
-const Budget = React.lazy(() => import('./pages/Budget'))
-const Settings = React.lazy(() => import('./pages/Settings'))
-const MyAccount = React.lazy(() => import('./pages/MyAccount'))
-const Tasks = React.lazy(() => import('./pages/Tasks'))
-const Tenders = React.lazy(() => import('./pages/Tenders'))
-const SLAs = React.lazy(() => import('./pages/SLAs'))
-const Products = React.lazy(() => import('./pages/Products'))
-const AuthCallback = React.lazy(() => import('./pages/AuthCallback'))
-const SetPassword = React.lazy(() => import('./pages/SetPassword'))
-const Permissions = React.lazy(() => import('./pages/Permissions'))
+// Lazy import with auto-recovery from stale chunks after a deploy.
+// When a new version is deployed, old hashed chunk filenames 404 and the
+// SPA rewrite returns index.html (text/html) → dynamic import fails with
+// "not a valid JavaScript MIME type". We force ONE reload to fetch the
+// fresh index.html (and new chunk names). A sessionStorage flag prevents
+// reload loops if the failure is something else.
+function lazyWithRetry(factory) {
+  return React.lazy(() =>
+    factory().catch(err => {
+      const KEY = 'chunk_reload_at'
+      const last = Number(sessionStorage.getItem(KEY) || 0)
+      const now = Date.now()
+      // Only auto-reload if we haven't reloaded in the last 10s
+      if (now - last > 10000) {
+        sessionStorage.setItem(KEY, String(now))
+        window.location.reload()
+        // Return a never-resolving module while the page reloads
+        return new Promise(() => {})
+      }
+      throw err
+    })
+  )
+}
+
+const Login = lazyWithRetry(() => import('./pages/Login'))
+const DashboardIndex = lazyWithRetry(() => import('./pages/DashboardIndex'))
+const Deals = lazyWithRetry(() => import('./pages/Deals'))
+const History = lazyWithRetry(() => import('./pages/History'))
+const Clients = lazyWithRetry(() => import('./pages/Clients'))
+const Contacts = lazyWithRetry(() => import('./pages/Contacts'))
+const Accounts = lazyWithRetry(() => import('./pages/Accounts'))
+const WhiteSpace = lazyWithRetry(() => import('./pages/WhiteSpace'))
+const AuditLog = lazyWithRetry(() => import('./pages/AuditLog'))
+const Network = lazyWithRetry(() => import('./pages/Network'))
+const Quotas = lazyWithRetry(() => import('./pages/Quotas'))
+const Budget = lazyWithRetry(() => import('./pages/Budget'))
+const Settings = lazyWithRetry(() => import('./pages/Settings'))
+const MyAccount = lazyWithRetry(() => import('./pages/MyAccount'))
+const Tasks = lazyWithRetry(() => import('./pages/Tasks'))
+const Tenders = lazyWithRetry(() => import('./pages/Tenders'))
+const SLAs = lazyWithRetry(() => import('./pages/SLAs'))
+const Products = lazyWithRetry(() => import('./pages/Products'))
+const AuthCallback = lazyWithRetry(() => import('./pages/AuthCallback'))
+const SetPassword = lazyWithRetry(() => import('./pages/SetPassword'))
+const Permissions = lazyWithRetry(() => import('./pages/Permissions'))
 
 function Guard({ page, element }) {
   const { canAccessPage } = useAuth()
