@@ -10,8 +10,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 )
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(regs => {
-    regs.forEach(r => r.unregister())
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
   })
-  caches.keys().then(ks => ks.forEach(k => caches.delete(k)))
 }

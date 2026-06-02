@@ -15,6 +15,20 @@ self.addEventListener('activate', e => {
   self.clients.claim()
 })
 
+const OFFLINE_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BusinessBook - Offline</title>
+<style>
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+       background:#0f172a;color:#e2e8f0;font-family:system-ui,sans-serif;text-align:center}
+  .box{padding:2rem}
+  h1{font-size:1.5rem;margin-bottom:.5rem;color:#60a5fa}
+  p{color:#94a3b8}
+</style></head>
+<body><div class="box"><h1>You are offline</h1><p>Please check your internet connection and try again.</p></div></body>
+</html>`
+
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url)
   if (url.origin !== location.origin) return
@@ -31,6 +45,12 @@ self.addEventListener('fetch', e => {
         caches.open(CACHE).then(c => c.put(e.request, clone))
       }
       return res
+    }).catch(() => {
+      if (e.request.mode === 'navigate') {
+        return new Response(OFFLINE_HTML, {
+          headers: { 'Content-Type': 'text/html' }
+        })
+      }
     }))
   )
 })
