@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, memo, useMemo } from 'react'
 import { useTenders, createTender, updateTender, deleteTender } from '../hooks/useTasks'
 import { useAuth } from '../hooks/useAuth'
 import { useTranslation } from '../hooks/useTranslation'
+import { useDebounce } from '../hooks/useDebounce'
 import { supabase } from '../lib/supabase'
 import { validateTender } from '../lib/validation'
 import { Modal, Spinner, StageBadge, BUBadge } from '../components/ui'
@@ -356,7 +357,7 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
 }
 
 // ── Tender Card ────────────────────────────────────────────────────────────────
-function TenderCard({ tender, onEdit, onDelete, canEdit }) {
+const TenderCard = memo(function TenderCard({ tender, onEdit, onDelete, canEdit }) {
   const [expanded, setExpanded] = useState(false)
   const st = STATUS_CONFIG[tender.status] || STATUS_CONFIG.open
   const subDiff = tender.submission_deadline ? daysDiff(tender.submission_deadline) : null
@@ -457,7 +458,7 @@ function TenderCard({ tender, onEdit, onDelete, canEdit }) {
       )}
     </div>
   )
-}
+})
 
 // ── Main Tenders Page ──────────────────────────────────────────────────────────
 export default function Tenders() {
@@ -468,6 +469,8 @@ export default function Tenders() {
   const [modal, setModal]   = useState(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('active') // 'all'|'active'|'won'|'lost'
+
+  const debouncedSearch = useDebounce(search)
 
   const [deals, setDeals] = useState([])
   const [users, setUsers] = useState([])
@@ -506,15 +509,15 @@ export default function Tenders() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id, profile?.role, profile?.company_id])
 
-  const filtered = tenders.filter(t => {
-    const matchSearch = !search || t.title.toLowerCase().includes(search.toLowerCase()) ||
-      t.deal?.client?.toLowerCase().includes(search.toLowerCase()) ||
-      t.reference?.toLowerCase().includes(search.toLowerCase())
+  const filtered = useMemo(() => tenders.filter(t => {
+    const matchSearch = !debouncedSearch || t.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      t.deal?.client?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      t.reference?.toLowerCase().includes(debouncedSearch.toLowerCase())
     const matchStatus = statusFilter === 'all' ? true
       : statusFilter === 'active' ? ['open','submitted'].includes(t.status)
       : t.status === statusFilter
     return matchSearch && matchStatus
-  })
+  }), [tenders, debouncedSearch, statusFilter])
 
   async function handleDelete(id) {
     if (!confirm('Delete this tender?')) return

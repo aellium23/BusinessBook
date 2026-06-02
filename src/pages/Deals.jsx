@@ -583,6 +583,17 @@ export default function Deals() {
     return acc
   }, { pipeline: 0, backlog: 0, invoiced: 0, forecast: 0 }), [deals])
 
+  // Weighted forecast — uses deal-level win_probability if set, else stage default
+  const weightedTotal = useMemo(() => {
+    return deals.filter(d => !d.is_intercompany_mirror).reduce((s, d) => {
+      const fy = MONTHS_K.reduce((ms, m) => ms + (Number(d[m]) || 0), 0)
+      const baseRaw = ['BackLog', 'Invoiced'].includes(d.stage) ? fy : (Number(d.value_total) || 0)
+      const base = baseRaw * ((!d.currency || d.currency === 'EUR') ? 1 : (Number(d.exchange_rate) || 1))
+      const prob = d.win_probability != null ? d.win_probability / 100 : (WEIGHTS[d.stage] || 0)
+      return s + base * prob
+    }, 0)
+  }, [deals])
+
   // Forecast roll-up (Commit / Best case / Upside) — excludes IC mirrors + Lost/Omit
   const forecastTotals = useMemo(() => {
     const result = { commit: 0, best_case: 0, upside: 0, omit: 0 }
@@ -892,13 +903,7 @@ export default function Deals() {
           { l:t("deals_backlog"),  v:filteredTotals.backlog,  c:'text-blue-700'  },
           { l:t("deals_actuals"),  v:filteredTotals.invoiced, c:'text-green-700' },
           { l:t("deals_fc"),       v:filteredTotals.forecast, c:'text-vgt font-bold' },
-          { l:t("deals_weighted"), v:deals.filter(d=>!d.is_intercompany_mirror).reduce((s,d)=>{
-              const fy=MONTHS_K.reduce((ms,m)=>ms+(Number(d[m])||0),0)
-              const baseRaw=['BackLog','Invoiced'].includes(d.stage)?fy:(Number(d.value_total)||0)
-              const base=baseRaw*((!d.currency||d.currency==='EUR')?1:(Number(d.exchange_rate)||1))
-              const prob=d.win_probability!=null?d.win_probability/100:(WEIGHTS[d.stage]||0)
-              return s+base*prob
-            },0), c:'text-purple-700 font-bold' },
+          { l:t("deals_weighted"), v:weightedTotal, c:'text-purple-700 font-bold' },
         ].map(({ l, v, c }) => (
           <div key={l} className="text-center shrink-0">
             <p className="text-[10px] text-gray-400">{l}</p>

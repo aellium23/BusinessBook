@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useDebounce } from '../hooks/useDebounce'
 import { BUBadge, formatK, Spinner, EmptyState, Modal } from '../components/ui'
 import DealForm from '../components/DealForm'
 import { Building2, Search, MapPin, Globe, RefreshCw, Plus, Pencil } from 'lucide-react'
@@ -133,6 +134,7 @@ export default function Clients() {
   const [distributors, setDistributors] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search)
   const [regionF, setRegionF] = useState('')
   const [countryF, setCountryF] = useState('')
   const [typeF, setTypeF] = useState('')
@@ -181,12 +183,12 @@ export default function Clients() {
     if (countryF) list = list.filter(a => a.country === countryF)
     if (typeF) list = list.filter(a => a.client_type === typeF)
     if (buF) list = list.filter(a => a.bu === buF)
-    if (search) {
-      const s = search.toLowerCase()
+    if (debouncedSearch) {
+      const s = debouncedSearch.toLowerCase()
       list = list.filter(a => a.name.toLowerCase().includes(s) || (a.country || '').toLowerCase().includes(s))
     }
     return list.sort((a, b) => (b.invoiced + b.pipeline) - (a.invoiced + a.pipeline))
-  }, [enriched, regionF, countryF, typeF, buF, search])
+  }, [enriched, regionF, countryF, typeF, buF, debouncedSearch])
 
   const countries = useMemo(() =>
     [...new Set(enriched.map(a => a.country).filter(Boolean))].sort(),

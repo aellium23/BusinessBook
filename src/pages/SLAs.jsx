@@ -1,7 +1,8 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, memo } from 'react'
 import { useSlas, deleteSla } from '../hooks/useSlas'
 import { useAuth } from '../hooks/useAuth'
 import { useTranslation } from '../hooks/useTranslation'
+import { useDebounce } from '../hooks/useDebounce'
 import { Spinner, EmptyState, BUBadge, formatK } from '../components/ui'
 import { SLA_STATUSES, FY_RANGE, getFiscalYear } from '../constants'
 import SlaFormModal from '../components/SlaFormModal'
@@ -32,7 +33,7 @@ function RenewalBadge({ sla }) {
   return null
 }
 
-function SlaCard({ sla, onEdit, onDelete, canEdit, canDelete }) {
+const SlaCard = memo(function SlaCard({ sla, onEdit, onDelete, canEdit, canDelete }) {
   const [expanded, setExpanded] = useState(false)
   const { t } = useTranslation()
   const revenue = sla.revenue_by_fy || {}
@@ -114,7 +115,7 @@ function SlaCard({ sla, onEdit, onDelete, canEdit, canDelete }) {
       )}
     </div>
   )
-}
+})
 
 export default function SLAs() {
   const { canEdit, isAdmin, profile, perms } = useAuth()
@@ -137,17 +138,19 @@ export default function SLAs() {
   const [confirmDel, setConfirmDel] = useState(null)
   const [owners, setOwners]     = useState([])
 
+  const debouncedSearch = useDebounce(search)
+
   const { slas: rawSlas, loading, refetch } = useSlas({ bu: buF || undefined })
   const slas = useMemo(() => {
-    if (!search) return rawSlas
-    const s = search.toLowerCase()
+    if (!debouncedSearch) return rawSlas
+    const s = debouncedSearch.toLowerCase()
     return rawSlas.filter(sla =>
       (sla.client || '').toLowerCase().includes(s) ||
       (sla.sla_owner || '').toLowerCase().includes(s) ||
       (sla.description || '').toLowerCase().includes(s) ||
       (sla.product || '').toLowerCase().includes(s)
     )
-  }, [rawSlas, search])
+  }, [rawSlas, debouncedSearch])
 
   useEffect(() => {
     import('../lib/supabase').then(({ supabase }) => {

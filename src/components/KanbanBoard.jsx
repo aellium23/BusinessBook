@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { BUBadge, ForecastBadge, formatK } from './ui'
 import { STAGES, MONTHS_K, WEIGHTS } from '../constants'
 import { Pencil, Trash2, GripVertical } from 'lucide-react'
@@ -33,7 +33,7 @@ function columnTotal(deals, stage) {
     }, 0)
 }
 
-function KanbanCard({ deal, onEdit, onDelete, canEdit, dragHandlers }) {
+const KanbanCard = memo(function KanbanCard({ deal, onEdit, onDelete, canEdit, dragHandlers }) {
   const isIC   = deal.is_intercompany_mirror
   const weight = WEIGHTS[deal.stage] ?? 0
   const weighted = (Number(deal.value_total) || 0) * weight
@@ -89,7 +89,7 @@ function KanbanCard({ deal, onEdit, onDelete, canEdit, dragHandlers }) {
       )}
     </div>
   )
-}
+})
 
 /**
  * Props:
