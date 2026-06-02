@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { BUBadge, ForecastBadge, formatK } from './ui'
 import { STAGES, MONTHS_K, WEIGHTS } from '../constants'
 import { Pencil, Trash2, GripVertical } from 'lucide-react'
+import { canTransition, getAllowedTransitions } from '../lib/stateMachine'
 
 // Columns = pipeline stages (Lost hidden by default, configurable)
 const DEFAULT_COLUMNS = STAGES.filter(s => s !== 'Lost')
@@ -113,9 +114,22 @@ export default function KanbanBoard({ deals = [], onEdit, onDelete, onMove, canE
     if (!id) return
     const deal = deals.find(d => d.id === id)
     if (!deal || deal.stage === stage) { setDraggingId(null); return }
+    // Validate the transition using the state machine
+    if (!canTransition('deal', deal.stage, stage)) {
+      const allowed = getAllowedTransitions('deal', deal.stage).filter(s => s !== deal.stage)
+      alert(`Cannot move deal from "${deal.stage}" to "${stage}".\nAllowed transitions: ${allowed.join(', ') || 'none'}`)
+      setDraggingId(null)
+      return
+    }
     onMove?.(id, stage)
     setDraggingId(null)
   }
+
+  // Determine which stages are valid drop targets for the currently dragged deal
+  const draggingDeal = draggingId ? deals.find(d => d.id === draggingId) : null
+  const validDropStages = draggingDeal
+    ? getAllowedTransitions('deal', draggingDeal.stage)
+    : []
 
   const perStage = {}
   deals.forEach(d => {
@@ -129,13 +143,18 @@ export default function KanbanBoard({ deals = [], onEdit, onDelete, onMove, canE
           const list = perStage[stage] || []
           const total = columnTotal(deals, stage)
           const isHover = hoverStage === stage
+          const isValidDrop = draggingId ? validDropStages.includes(stage) : true
+          const isInvalidHover = isHover && !isValidDrop
           return (
             <div key={stage}
               onDragOver={e => { if (canEdit) { e.preventDefault(); setHoverStage(stage) } }}
               onDragLeave={() => setHoverStage(h => h === stage ? null : h)}
               onDrop={e => handleDrop(e, stage)}
               className={`w-64 shrink-0 rounded-xl border transition-colors ${
-                isHover ? 'border-navy bg-navy/5' : 'border-gray-200 bg-gray-50'
+                isInvalidHover ? 'border-red-300 bg-red-50/50 opacity-60' :
+                isHover && isValidDrop ? 'border-navy bg-navy/5' :
+                draggingId && !isValidDrop ? 'border-gray-200 bg-gray-50 opacity-40' :
+                'border-gray-200 bg-gray-50'
               }`}>
               {/* Column header */}
               <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between">

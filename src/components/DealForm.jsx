@@ -14,6 +14,8 @@ import ProductLineItems from './ProductLineItems'
 import { FORECAST_CATEGORIES, defaultForecastFromStage, DISTRIBUTION_PATHS, computeMargins, BUSINESS_MODELS } from '../constants'
 import { formatK } from './ui'
 import { saveDealProducts } from '../hooks/useDealProducts'
+import { getAllowedTransitions, canTransition } from '../lib/stateMachine'
+import { validateDeal } from '../lib/validation'
 
 // ── MarginsPanel — live calculation of margin per level ──────────────────
 function MarginsPanel({ form }) {
@@ -298,6 +300,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
   })
   const [saving, setSaving]   = useState(false)
   const [error, setError]     = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
   const [preview, setPreview] = useState(null)
   const [icPreview, setIcPreview] = useState(null)
   const [nextAction, setNextAction] = useState('')
@@ -480,7 +483,14 @@ export default function DealForm({ deal, onClose, onSaved }) {
   }, [hasIC, form.intercompany_value, preview])
 
   async function handleSave() {
-    if (!form.bu || !form.client || !form.stage) { setError('BU, Client and Stage are required'); return }
+    const { valid, errors: valErrors } = validateDeal(form)
+    setFieldErrors(valErrors)
+    if (!valid) { setError('Please fix the highlighted fields'); return }
+    // Validate stage transition for existing deals
+    if (deal?.id && deal.stage !== form.stage && !canTransition('deal', deal.stage, form.stage)) {
+      setError(`Invalid stage transition: "${deal.stage}" to "${form.stage}". Allowed transitions: ${getAllowedTransitions('deal', deal.stage).filter(s => s !== deal.stage).join(', ') || 'none'}`)
+      return
+    }
     setSaving(true); setError('')
 
     const monthly = isMaint && preview
@@ -579,11 +589,12 @@ export default function DealForm({ deal, onClose, onSaved }) {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div>
             <label className="label">{t("df_bu")} *</label>
-            <select className="select" value={form.bu} onChange={e => set('bu', e.target.value)} disabled={!isAdmin && !isDistributor}>
+            <select className={`select ${fieldErrors.bu ? 'border-red-400' : ''}`} value={form.bu} onChange={e => set('bu', e.target.value)} disabled={!isAdmin && !isDistributor}>
               <option value="">—</option>
               <option value="VGT">VGT</option>
               <option value="ECT">ECT</option>
             </select>
+            {fieldErrors.bu && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.bu}</p>}
           </div>
           <div>
             <label className="label">{t("df_sales_type")}</label>
@@ -594,9 +605,27 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </div>
           <div>
             <label className="label">{t("df_stage")} *</label>
-            <select className="select" value={form.stage} onChange={e => set('stage', e.target.value)}>
-              {(isDistributor ? DIST_STAGES : ['Lead','Pipeline','Offer Presented','BackLog','Invoiced','Lost']).map(s => <option key={s}>{s}</option>)}
+            <select className={`select ${fieldErrors.stage ? 'border-red-400' : ''}`} value={form.stage} onChange={e => {
+              const newStage = e.target.value
+              // For existing deals, validate the transition
+              if (deal?.id && !canTransition('deal', deal.stage, newStage)) {
+                setError(`Cannot move from "${deal.stage}" to "${newStage}". Allowed: ${getAllowedTransitions('deal', deal.stage).filter(s => s !== deal.stage).join(', ') || 'none'}`)
+                return
+              }
+              set('stage', newStage)
+            }}>
+              {(() => {
+                const allStages = isDistributor ? DIST_STAGES : ['Lead','Pipeline','Offer Presented','BackLog','Invoiced','Lost']
+                // For existing deals, restrict to allowed transitions
+                if (deal?.id) {
+                  const allowed = getAllowedTransitions('deal', deal.stage)
+                  return allStages.filter(s => allowed.includes(s)).map(s => <option key={s}>{s}</option>)
+                }
+                // New deals can pick any stage
+                return allStages.map(s => <option key={s}>{s}</option>)
+              })()}
             </select>
+            {fieldErrors.stage && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.stage}</p>}
           </div>
         </div>
 
@@ -631,20 +660,23 @@ export default function DealForm({ deal, onClose, onSaved }) {
         {/* Client / Account */}
         <div>
           <label className="label">{t("df_client")} *</label>
-          <SearchableSelect
-            value={form.account_id || ''}
-            onChange={v => {
-              set('account_id', v || null)
-              const acc = accounts.find(a => a.id === v)
-              if (acc) set('client', acc.name)
-            }}
-            options={accountsForBU.map(a => ({ value: a.id, label: a.name, hint: a.country || a.bu }))}
-            placeholder="Search accounts…"
-            emptyLabel="— Select account —"
-            onCreateNew={(query) => { if (query) set('client', query) }}
-            createLabel="New client"
-          />
-          {form.client && !form.account_id && (
+          <div className={fieldErrors.client ? 'ring-1 ring-red-400 rounded-lg' : ''}>
+            <SearchableSelect
+              value={form.account_id || ''}
+              onChange={v => {
+                set('account_id', v || null)
+                const acc = accounts.find(a => a.id === v)
+                if (acc) set('client', acc.name)
+              }}
+              options={accountsForBU.map(a => ({ value: a.id, label: a.name, hint: a.country || a.bu }))}
+              placeholder="Search accounts…"
+              emptyLabel="— Select account —"
+              onCreateNew={(query) => { if (query) set('client', query) }}
+              createLabel="New client"
+            />
+          </div>
+          {fieldErrors.client && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.client}</p>}
+          {form.client && !form.account_id && !fieldErrors.client && (
             <p className="text-[10px] text-amber-500 mt-1">Custom client: {form.client} (not linked to account)</p>
           )}
         </div>
@@ -686,14 +718,15 @@ export default function DealForm({ deal, onClose, onSaved }) {
         {/* Description */}
         <div>
           <label className="label">{t("df_description")}</label>
-          <input className="input" value={form.description} onChange={e => set('description', e.target.value)} placeholder="Project details" />
+          <input className={`input ${fieldErrors.description ? 'border-red-400' : ''}`} value={form.description} onChange={e => set('description', e.target.value)} placeholder="Project details" />
+          {fieldErrors.description && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.description}</p>}
         </div>
 
         {/* Lost reason */}
         {form.stage === 'Lost' && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-3">
             <label className="label text-red-600">Reason lost *</label>
-            <select className="select bg-white" value={form.lost_reason} onChange={e => set('lost_reason', e.target.value)}>
+            <select className={`select bg-white ${fieldErrors.lost_reason ? 'border-red-400' : ''}`} value={form.lost_reason} onChange={e => set('lost_reason', e.target.value)}>
               <option value="">— Select reason —</option>
               <option>Price too high</option>
               <option>Lost to competitor</option>
@@ -703,6 +736,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
               <option>Technical requirements not met</option>
               <option>Other</option>
             </select>
+            {fieldErrors.lost_reason && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.lost_reason}</p>}
             {form.lost_reason === 'Other' && (
               <input className="input mt-2" placeholder="Specify reason…"
                 value={form.lost_reason_detail || ''} onChange={e => set('lost_reason_detail', e.target.value)}/>
@@ -770,11 +804,13 @@ export default function DealForm({ deal, onClose, onSaved }) {
             <label className="label">
               {t("df_value")} {form.currency === 'EUR' ? '€' : form.currency === 'USD' ? '$' : '£'}
             </label>
-            <input className="input" type="number" value={form.value_total} onChange={e => set('value_total', e.target.value)} placeholder="0" />
+            <input className={`input ${fieldErrors.value_total ? 'border-red-400' : ''}`} type="number" value={form.value_total} onChange={e => set('value_total', e.target.value)} placeholder="0" />
+            {fieldErrors.value_total && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.value_total}</p>}
           </div>
           <div>
             <label className="label">{t("df_gm")}</label>
-            <input className="input" type="number" value={form.gm_pct} onChange={e => set('gm_pct', e.target.value)} placeholder="0.0" />
+            <input className={`input ${fieldErrors.gm_pct ? 'border-red-400' : ''}`} type="number" value={form.gm_pct} onChange={e => set('gm_pct', e.target.value)} placeholder="0.0" />
+            {fieldErrors.gm_pct && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.gm_pct}</p>}
           </div>
           <div>
             <label className="label">
@@ -784,7 +820,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
               )}
             </label>
             <input
-              className={`input ${!['Lead','Pipeline','Offer Presented'].includes(form.stage) ? 'bg-gray-50 text-gray-400' : ''}`}
+              className={`input ${fieldErrors.win_probability ? 'border-red-400' : ''} ${!['Lead','Pipeline','Offer Presented'].includes(form.stage) ? 'bg-gray-50 text-gray-400' : ''}`}
               type="number" min="0" max="100"
               value={form.win_probability ?? ''}
               onChange={e => set('win_probability', e.target.value)}
@@ -797,6 +833,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 form.stage === 'Invoiced' ? '100' : '0'
               }
             />
+            {fieldErrors.win_probability && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.win_probability}</p>}
           </div>
         </div>
 

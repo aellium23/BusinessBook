@@ -7,6 +7,7 @@ import KanbanBoard from '../components/KanbanBoard'
 import { Plus, Search, Trash2, Pencil, ChevronDown, ChevronUp, Link, AlertTriangle, Clock, Download, RefreshCw, LayoutGrid, List, Globe, MapPin } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 import { STAGES, WEIGHTS, REGIONS, BUS, MONTHS, MONTHS_K, FORECAST_CATEGORIES, resolveForecastCategory } from '../constants'
+import { canTransition, getAllowedTransitions } from '../lib/stateMachine'
 
 function agingDays(deal) {
   if (!['Lead','Pipeline','Offer Presented'].includes(deal.stage)) return null
@@ -638,6 +639,12 @@ export default function Deals() {
   async function handleStageChange(dealId, newStage) {
     const deal = rawDeals.find(d => d.id === dealId)
     if (!deal) return
+    // Validate state machine transition
+    if (!canTransition('deal', deal.stage, newStage)) {
+      const allowed = getAllowedTransitions('deal', deal.stage).filter(s => s !== deal.stage)
+      alert(`Cannot move deal from "${deal.stage}" to "${newStage}".\nAllowed transitions: ${allowed.join(', ') || 'none'}`)
+      return
+    }
     const { error } = await upsertDeal({
       id: dealId,
       stage: newStage,

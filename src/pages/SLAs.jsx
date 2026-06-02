@@ -6,6 +6,7 @@ import SearchableSelect from '../components/SearchableSelect'
 import { useTranslation } from '../hooks/useTranslation'
 import { Modal, Spinner, EmptyState, BUBadge, formatK, KpiCard } from '../components/ui'
 import { SLA_STATUSES, SLA_TYPES, FY_RANGE, BILLING_MODELS, BILLING_FREQUENCIES, getFiscalYear, projectSlaRevenue } from '../constants'
+import { getAllowedTransitions, canTransition } from '../lib/stateMachine'
 import {
   Plus, Search, Pencil, Trash2, RefreshCw, Calendar, User,
   TrendingUp, AlertCircle, Clock, ChevronDown, ChevronUp,
@@ -227,6 +228,11 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
 
   async function handleSave() {
     if (!form.client.trim() || !form.bu) { setError('Client and BU are required'); return }
+    // Validate status transition for existing SLAs
+    if (sla?.id && sla.status !== form.status && !canTransition('sla', sla.status, form.status)) {
+      setError(`Invalid status transition: "${SLA_STATUSES.find(s => s.id === sla.status)?.label || sla.status}" to "${SLA_STATUSES.find(s => s.id === form.status)?.label || form.status}". Allowed: ${getAllowedTransitions('sla', sla.status).filter(s => s !== sla.status).map(id => SLA_STATUSES.find(s => s.id === id)?.label || id).join(', ') || 'none'}`)
+      return
+    }
     setSaving(true); setError(null)
 
     const annualVal = parseFloat(form.annual_value) || 0
@@ -311,8 +317,21 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
           </div>
           <div>
             <label className="label">Status</label>
-            <select className="select" value={form.status} onChange={e => set('status', e.target.value)}>
-              {SLA_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+            <select className="select" value={form.status} onChange={e => {
+              const newStatus = e.target.value
+              if (sla?.id && !canTransition('sla', sla.status, newStatus)) {
+                setError(`Cannot move from "${SLA_STATUSES.find(s => s.id === sla.status)?.label || sla.status}" to "${SLA_STATUSES.find(s => s.id === newStatus)?.label || newStatus}". Allowed: ${getAllowedTransitions('sla', sla.status).filter(s => s !== sla.status).map(id => SLA_STATUSES.find(s => s.id === id)?.label || id).join(', ') || 'none'}`)
+                return
+              }
+              set('status', newStatus)
+            }}>
+              {(() => {
+                if (sla?.id) {
+                  const allowed = getAllowedTransitions('sla', sla.status)
+                  return SLA_STATUSES.filter(s => allowed.includes(s.id)).map(s => <option key={s.id} value={s.id}>{s.label}</option>)
+                }
+                return SLA_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)
+              })()}
             </select>
           </div>
         </div>
