@@ -19,7 +19,8 @@ const PL_LINES = [
   { key:'cogs',      label:'COGS',           input:false, group:'total'   },
   { key:'gm',        label:'Gross Margin',   input:false, group:'total'   },
   { key:'rd',        label:'R&D',            input:true,  group:'cost'    },
-  { key:'sgas',      label:'SG&As',          input:true,  group:'cost'    },
+  { key:'sgas',      label:'SG&As (excl R&D)', input:true,  group:'cost'  },
+  { key:'total_sga', label:'Total SGA',      input:false, group:'total'   },
   { key:'op1',       label:'OP1',            input:false, group:'total'   },
   { key:'bapa',      label:'BAPA Adjustment', input:true, group:'cost'    },
   { key:'op2',       label:'OP2',            input:false, group:'total'   },
@@ -65,9 +66,10 @@ function calcDerived(vals) {
   const ns = (vals.ns_int||0) + (vals.ns_ext||0)
   const cogs = (vals.cogs_var||0) + (vals.cogs_fix||0)
   const gm = ns - cogs
-  const op1 = gm - (vals.rd||0) - (vals.sgas||0)
+  const total_sga = (vals.rd||0) + (vals.sgas||0)
+  const op1 = gm - total_sga
   const op2 = op1 + (vals.bapa||0)
-  return { ns, cogs, gm, op1, op2 }
+  return { ns, cogs, gm, total_sga, op1, op2 }
 }
 
 function Trend({ value, reference }) {
