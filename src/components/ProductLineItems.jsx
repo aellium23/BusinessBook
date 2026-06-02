@@ -246,8 +246,8 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
                 )}
               </div>
 
-              {/* Price (read-only) + Discount request + Net */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {/* Price (read-only) + Net — discount is requested once at deal level */}
+              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-[10px] text-gray-400">{isVolume ? 'Price / study €' : 'Unit price €'}</label>
                   <div className="input text-xs py-1 bg-gray-100 text-gray-600 cursor-not-allowed">
@@ -255,13 +255,7 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
                   </div>
                 </div>
                 <div>
-                  <label className="text-[10px] text-amber-600">Discount req. %</label>
-                  <input className="input text-xs py-1 border-amber-200" type="number" min="0" max="100"
-                    value={line.discount_pct}
-                    onChange={e => updateLine(idx, 'discount_pct', e.target.value)}/>
-                </div>
-                <div>
-                  <label className="text-[10px] text-gray-700 font-semibold">Net €</label>
+                  <label className="text-[10px] text-gray-700 font-semibold">{isVolume ? 'Annual €' : 'Net €'}</label>
                   <div className="input text-xs py-1 font-semibold bg-white text-gray-900">
                     {(parseFloat(line.net_price) || 0).toLocaleString()}
                   </div>
