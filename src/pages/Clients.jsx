@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { BUBadge, formatK, Spinner, EmptyState, Modal } from '../components/ui'
+import DealForm from '../components/DealForm'
 import { Building2, Search, MapPin, Globe, RefreshCw, Plus, Pencil } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 import { REGIONS } from '../constants'
@@ -128,6 +129,7 @@ export default function Clients() {
   const { t } = useTranslation()
   const [accounts, setAccounts] = useState([])
   const [deals, setDeals] = useState([])
+  const [selectedDeal, setSelectedDeal] = useState(null)
   const [distributors, setDistributors] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -317,7 +319,8 @@ export default function Clients() {
                 </summary>
                 <div className="px-3 pb-2 space-y-1">
                   {clientDeals.map(d => (
-                    <div key={d.id} className="flex items-center justify-between bg-gray-50 rounded px-2 py-1.5">
+                    <button key={d.id} onClick={() => setSelectedDeal(d)}
+                      className="w-full flex items-center justify-between bg-gray-50 rounded px-2 py-1.5 hover:bg-blue-50 transition-colors cursor-pointer text-left">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${
                           d.stage === 'Invoiced' ? 'bg-green-100 text-green-700' :
@@ -328,7 +331,7 @@ export default function Clients() {
                         <span className="text-xs text-gray-700 truncate">{d.description || d.product || '—'}</span>
                       </div>
                       <span className="text-xs font-semibold text-gray-800 shrink-0 ml-2">{formatK(Number(d.value_total) || 0)}</span>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </details>
@@ -360,6 +363,14 @@ export default function Clients() {
           distributors={distributors}
           onClose={() => { setFormOpen(false); setEditClient(null) }}
           onSaved={() => { setFormOpen(false); setEditClient(null); refresh() }}
+        />
+      )}
+
+      {selectedDeal && (
+        <DealForm
+          deal={selectedDeal}
+          onClose={() => setSelectedDeal(null)}
+          onSaved={() => setSelectedDeal(null)}
         />
       )}
     </div>

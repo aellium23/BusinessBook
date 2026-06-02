@@ -99,13 +99,13 @@ function AccountRow({ account, depth, open, children, onToggle, onEdit, onDelete
           </div>
         </div>
         <div className="shrink-0 flex items-center gap-3 text-[10px]">
-          <span className="text-gray-500" title="Own / Roll-up deals">
+          <span className="w-12 text-right text-gray-500" title="Own / Roll-up deals">
             {own.count}{hasChildren ? ` · Σ ${roll.count}` : ''}
           </span>
-          <span className="text-amber-700 font-semibold" title="Pipeline (own / roll-up)">
+          <span className="w-16 text-right text-amber-700 font-semibold" title="Pipeline (own / roll-up)">
             {formatK(hasChildren ? roll.pipeline : own.pipeline)}
           </span>
-          <span className="text-green-700 font-semibold" title="Invoiced FY26 (own / roll-up)">
+          <span className="w-16 text-right text-green-700 font-semibold" title="Invoiced FY26 (own / roll-up)">
             {formatK(hasChildren ? roll.invoiced : own.invoiced)}
           </span>
           {canEdit && (
@@ -293,7 +293,7 @@ export default function Accounts() {
     setLoading(true)
     const [aRes, dRes] = await Promise.all([
       supabase.from('accounts').select('*').order('name'),
-      supabase.from('deals').select('id, account_id, stage, value_total, is_intercompany_mirror, ' + MONTHS_K.join(',')).eq('is_intercompany_mirror', false),
+      supabase.from('deals').select('id, client, account_id, stage, value_total, is_intercompany_mirror, ' + MONTHS_K.join(',')).eq('is_intercompany_mirror', false),
     ])
     if (aRes.error) setError(aRes.error.message)
     setAccounts(aRes.data ?? [])
@@ -438,9 +438,9 @@ export default function Accounts() {
         <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
           <div className="flex items-center gap-3 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400 bg-gray-50 border-b border-gray-100">
             <span className="flex-1">Account</span>
-            <span className="w-20 text-right">Deals</span>
-            <span className="w-20 text-right">Pipeline</span>
-            <span className="w-20 text-right">Invoiced</span>
+            <span className="w-12 text-right">Deals</span>
+            <span className="w-16 text-right">Pipeline</span>
+            <span className="w-16 text-right">Invoiced</span>
             {canEdit && <span className="w-12"/>}
           </div>
           {topLevel.map(a => renderNode(a, 0))}
