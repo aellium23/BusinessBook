@@ -4,7 +4,8 @@ import { useTranslation } from '../hooks/useTranslation'
 import { formatK } from '../components/ui'
 import DashboardClassic from './Dashboard'
 import DashboardSummary from './DashboardSummary'
-import { Gauge as GaugeIcon, BarChart3 } from 'lucide-react'
+import ProductFunnel from '../components/dashboard/ProductFunnel'
+import { Gauge as GaugeIcon, BarChart3, Package } from 'lucide-react'
 
 const STORAGE_KEY = 'bb_dashboard_view'
 
@@ -69,6 +70,14 @@ export default function DashboardIndex() {
             }`}>
             <BarChart3 size={13}/> <span className="hidden sm:inline">{t('dash_view_classic') || 'Classic'}</span>
           </button>
+          <button type="button"
+            onClick={() => setView('products')}
+            aria-pressed={view === 'products'}
+            className={`px-3 py-1.5 text-xs flex items-center gap-1 border-l border-gray-200 ${
+              view === 'products' ? 'bg-navy text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
+            }`}>
+            <Package size={13}/> <span className="hidden sm:inline">Products</span>
+          </button>
         </div>
         {isAdmin && (
           <div className="flex gap-0.5 bg-gray-100 p-0.5 rounded-lg">
@@ -84,7 +93,9 @@ export default function DashboardIndex() {
         )}
       </div>
 
-      {view === 'summary' ? <DashboardSummary selectedBU={selectedBU} /> : <DashboardClassic hideHeader selectedBU={selectedBU} />}
+      {view === 'summary' ? <DashboardSummary selectedBU={selectedBU} />
+        : view === 'products' ? <ProductFunnel selectedBU={selectedBU} />
+        : <DashboardClassic hideHeader selectedBU={selectedBU} />}
     </div>
   )
 }
