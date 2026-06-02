@@ -99,15 +99,19 @@ export default function DealForm({ deal, onClose, onSaved }) {
   }, [accounts, form.bu, isDistributor, company?.country])
   // Auto-calculate SLA monthly recognition
   useEffect(() => {
-    // Carregar sales owners da tabela quotas (nomes únicos por BU)
-    supabase.from('quotas')
-      .select('sales_owner, bu')
-      .order('bu').order('sales_owner')
-      .then(({ data }) => {
-        if (data) {
-          const unique = [...new Set(data.map(q => q.sales_owner).filter(Boolean))].sort()
-          setOwners(unique)
+    // Sales owners — for distributors, scope to their own company; otherwise all BUs
+    let oq = supabase.from('quotas').select('sales_owner, bu, company_id').order('bu').order('sales_owner')
+    if (profile?.role === 'distributor' && profile?.company_id) {
+      oq = oq.eq('company_id', profile.company_id)
+    }
+    oq.then(({ data }) => {
+        let names = [...new Set((data || []).map(q => q.sales_owner).filter(Boolean))].sort()
+        // Fallback: a distributor with no quota owners still needs to pick themselves
+        if (profile?.role === 'distributor' && names.length === 0) {
+          const self = profile?.full_name || profile?.email
+          if (self) names = [self]
         }
+        setOwners(names)
       })
       .catch(() => {})
     // Load accounts (for the optional "Account" link). Scoped by RLS to the
@@ -690,7 +694,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
         </div>
 
         {/* ── DISTRIBUTION & MARGINS ─────────────────────────────── */}
-        {(form.region !== 'Europe' || form.sales_type === 'External') && (
+        {/* Internal VGT view only — distributors are themselves the channel
+            and price via authorized products, so this is hidden for them. */}
+        {!isDistributor && (form.region !== 'Europe' || form.sales_type === 'External') && (
           <DistributionSection form={form} set={set} distributors={distributors} hubs={hubs} t={t}/>
         )}
 
@@ -756,8 +762,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </div>
         )}
 
-        {/* Monthly recognition */}
-        <DealMonthlyGrid form={form} set={set} t={t}/>
+        {/* Monthly recognition — internal VGT revenue-recognition view.
+            Hidden for distributors; their deal value comes from products. */}
+        {!isDistributor && <DealMonthlyGrid form={form} set={set} t={t}/>}
 
         {/* Unified activity timeline — replaces the old Change History + Activity Log */}
         {deal?.id && (
