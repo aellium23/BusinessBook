@@ -450,7 +450,7 @@ export default function Budget() {
                           {input && activeBu !== 'ALL' ? (
                             <input
                               type="number" step="0.1"
-                              value={isFocused ? (getVal(activeBu,activeCycle,key,mk)||'') : (cellVal||'')}
+                              value={isFocused ? (getVal(activeBu,activeCycle,key,mk)||'') : (cellVal ? Math.round(cellVal*10)/10 : '')}
                               onFocus={() => setFocusCell(`${key}-${mk}`)}
                               onBlur={() => setFocusCell(null)}
                               onChange={e => setVal(activeBu,activeCycle,key,mk,e.target.value)}
