@@ -674,59 +674,95 @@ function CompaniesSection({ companies, onRefresh }) {
       </div>
 
       {/* Product Authorization Modal */}
-      {editingAuth && (
+      {editingAuth && (() => {
+        const byProduct = {}
+        authProducts.forEach(ap => {
+          const pid = ap.product_id
+          if (!byProduct[pid]) byProduct[pid] = { name: ap.product?.name || '—', sku: ap.product?.sku, markets: [] }
+          byProduct[pid].markets.push(ap)
+        })
+        return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setEditingAuth(null)}/>
           <div className="relative bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-3xl shadow-2xl flex flex-col" style={{ maxHeight: '90dvh' }}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
               <div>
                 <h3 className="font-semibold text-sm text-gray-900">{editingAuth.name}</h3>
-                <p className="text-[10px] text-gray-400">Authorized Products & Markets</p>
+                <p className="text-[10px] text-gray-400">Authorized Products & Markets · {authProducts.length} authorizations</p>
               </div>
               <button onClick={() => setEditingAuth(null)} className="text-gray-400 hover:text-gray-600 p-1"><X size={16}/></button>
             </div>
             <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-              {authProducts.length > 0 ? (
-                <div className="space-y-1">
-                  {authProducts.map(ap => (
-                    <div key={ap.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-gray-800 truncate">{ap.product?.name || '—'}</p>
-                        <p className="text-[10px] text-gray-400">{ap.country}</p>
+              {/* Existing authorizations grouped by product */}
+              {Object.entries(byProduct).length > 0 ? Object.entries(byProduct).map(([pid, prod]) => (
+                <div key={pid} className="bg-gray-50 rounded-xl p-3 space-y-2">
+                  <p className="text-xs font-semibold text-gray-800">{prod.name}
+                    {prod.sku && <span className="text-[10px] text-gray-400 font-mono ml-1">{prod.sku}</span>}
+                  </p>
+                  {prod.markets.map(m => (
+                    <div key={m.id} className="flex items-center gap-2 bg-white rounded-lg px-2 py-1.5">
+                      <span className="text-xs text-gray-700 w-24">{m.country}</span>
+                      <div className="flex-1">
+                        <input className="input text-xs py-0.5 w-20" type="number" step="0.01"
+                          placeholder="Price €"
+                          defaultValue={m.price || ''}
+                          onBlur={async (e) => {
+                            const price = parseFloat(e.target.value) || null
+                            await supabase.from('company_product_authorizations').update({ price }).eq('id', m.id)
+                          }}/>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <button onClick={() => toggleAuth(ap.id, ap.active)}
-                          className={`w-6 h-3 rounded-full relative ${ap.active ? 'bg-green-400' : 'bg-gray-200'}`}>
-                          <span className={`absolute top-0.5 w-2 h-2 bg-white rounded-full shadow transition-transform ${ap.active ? 'translate-x-3' : 'translate-x-0.5'}`}/>
-                        </button>
-                        <button onClick={() => removeAuth(ap.id)} className="text-gray-300 hover:text-red-500 p-1">
-                          <Trash2 size={11}/>
-                        </button>
-                      </div>
+                      <button onClick={() => toggleAuth(m.id, m.active)}
+                        className={`w-6 h-3 rounded-full relative shrink-0 ${m.active ? 'bg-green-400' : 'bg-gray-200'}`}>
+                        <span className={`absolute top-0.5 w-2 h-2 bg-white rounded-full shadow transition-transform ${m.active ? 'translate-x-3' : 'translate-x-0.5'}`}/>
+                      </button>
+                      <button onClick={() => removeAuth(m.id)} className="text-gray-300 hover:text-red-500 p-0.5">
+                        <Trash2 size={10}/>
+                      </button>
                     </div>
                   ))}
                 </div>
-              ) : (
+              )) : (
                 <p className="text-xs text-gray-400 text-center py-4">No products authorized yet</p>
               )}
 
+              {/* Add new authorization */}
               <div className="border-t pt-3 space-y-2">
-                <p className="text-[10px] font-semibold text-gray-500 uppercase">Add Authorization</p>
+                <p className="text-[10px] font-semibold text-gray-500 uppercase">Add Product Authorization</p>
                 <select className="select text-xs" value={addProd} onChange={e => setAddProd(e.target.value)}>
                   <option value="">Select product…</option>
-                  {catalogProducts.map(p => <option key={p.id} value={p.id}>{p.name} ({p.category})</option>)}
+                  {Object.entries(
+                    catalogProducts.reduce((g, p) => { (g[p.category] = g[p.category] || []).push(p); return g }, {})
+                  ).map(([cat, prods]) => (
+                    <optgroup key={cat} label={cat}>
+                      {prods.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </optgroup>
+                  ))}
                 </select>
-                <input className="input text-xs" value={addCountry} onChange={e => setAddCountry(e.target.value)}
-                  placeholder="Country (e.g. Portugal, Spain)" style={{ fontSize: '16px' }}/>
-                <button onClick={addAuth} disabled={!addProd || !addCountry}
+                <div className="grid grid-cols-2 gap-2">
+                  <input className="input text-xs" value={addCountry} onChange={e => setAddCountry(e.target.value)}
+                    placeholder="Country" style={{ fontSize: '16px' }}/>
+                  <input className="input text-xs" id="addAuthPrice" type="number" step="0.01"
+                    placeholder="Price € (optional)" style={{ fontSize: '16px' }}/>
+                </div>
+                <button onClick={async () => {
+                  if (!addProd || !addCountry || !editingAuth) return
+                  const price = parseFloat(document.getElementById('addAuthPrice')?.value) || null
+                  await supabase.from('company_product_authorizations').insert({
+                    company_id: editingAuth.id, product_id: addProd, country: addCountry, price
+                  })
+                  setAddProd(''); setAddCountry('')
+                  if (document.getElementById('addAuthPrice')) document.getElementById('addAuthPrice').value = ''
+                  loadAuth(editingAuth)
+                }} disabled={!addProd || !addCountry}
                   className="btn-primary text-xs w-full disabled:opacity-30">
-                  <Plus size={12}/> Authorize Product
+                  <Plus size={12}/> Authorize
                 </button>
               </div>
             </div>
           </div>
         </div>
-      )}
+        )
+      })()}
     </div>
   )
 }

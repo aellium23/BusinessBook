@@ -5,6 +5,7 @@ create table if not exists public.company_product_authorizations (
   company_id  uuid not null references public.companies(id) on delete cascade,
   product_id  uuid not null references public.products(id) on delete cascade,
   country     text not null,
+  price       numeric(12,2),
   active      boolean default true,
   created_at  timestamptz default now(),
   unique(company_id, product_id, country)
