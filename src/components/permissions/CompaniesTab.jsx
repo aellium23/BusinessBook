@@ -196,12 +196,13 @@ function CompaniesSection({ companies, onRefresh }) {
                     <div key={m.id} className="flex items-center gap-2 bg-white rounded-lg px-2 py-1.5">
                       <span className="text-xs text-gray-700 flex-1">{m.country}</span>
                       <span className="text-xs font-semibold text-green-700 shrink-0">
-                        {m.price ? `€${Number(m.price).toLocaleString()}` : '—'}
+                        {m.price != null ? `€${Number(m.price)}` : 'catalog price'}
                       </span>
                       <button onClick={() => {
-                        const newPrice = prompt(`Price for ${prod.name} in ${m.country} (€):`, m.price || '')
+                        const newPrice = prompt(`Override price for ${prod.name} in ${m.country} (€).\nLeave empty to use the catalog price.`, m.price ?? '')
                         if (newPrice !== null) {
-                          const price = parseFloat(newPrice) || null
+                          const trimmed = newPrice.trim()
+                          const price = trimmed === '' ? null : (parseFloat(trimmed) || null)
                           supabase.from('company_product_authorizations').update({ price }).eq('id', m.id)
                             .then(() => loadAuth(editingAuth))
                         }

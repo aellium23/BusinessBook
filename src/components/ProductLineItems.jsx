@@ -268,8 +268,12 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
                 </div>
               </div>
 
-              {Number(line.annual_fee) > 0 && (
+              {/* Annual fee only relevant for CAPEX (flat/equipment), not volume subscription */}
+              {!isVolume && Number(line.annual_fee) > 0 && (
                 <p className="text-[10px] text-blue-600">Annual fee: €{Number(line.annual_fee).toLocaleString()}/yr</p>
+              )}
+              {isVolume && (parseFloat(line.net_price) || 0) > 0 && (
+                <p className="text-[10px] text-blue-600">Annual recurring value: €{(parseFloat(line.net_price) || 0).toLocaleString()}/yr</p>
               )}
               {unit === 0 && (
                 <p className="text-[10px] text-amber-600 bg-amber-50 rounded px-2 py-1">
