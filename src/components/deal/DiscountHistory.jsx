@@ -241,6 +241,25 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
                 </div>
               )}
 
+              {/* Distributor actions on a counter-offer */}
+              {req.status === 'counter' && isDistributor && req.requested_by === profile?.id && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      const { error } = await supabase.rpc('accept_counter_offer', { p_request_id: req.id })
+                      if (error) { showToast(error.message, 'error'); return }
+                      showToast(`Accepted ${req.approved_pct}% discount`, 'success')
+                      load()
+                    }}
+                    className="btn-primary text-xs flex-1">
+                    Accept {req.approved_pct}%
+                  </button>
+                  <button onClick={() => setShowForm(true)} className="btn-secondary text-xs flex-1">
+                    Counter back
+                  </button>
+                </div>
+              )}
+
               {/* Admin response form */}
               {req.status === 'pending' && (
                 isAdmin ||
