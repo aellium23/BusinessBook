@@ -3,6 +3,7 @@ import { useTenders, createTender, updateTender, deleteTender } from '../hooks/u
 import { useAuth } from '../hooks/useAuth'
 import { useTranslation } from '../hooks/useTranslation'
 import { supabase } from '../lib/supabase'
+import { validateTender } from '../lib/validation'
 import { Modal, Spinner, StageBadge, BUBadge } from '../components/ui'
 import AttachmentsList from '../components/AttachmentsList'
 import RequirementsMatrix from '../components/RequirementsMatrix'
@@ -70,6 +71,7 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState(null)
+  const [fieldErrors, setFieldErrors] = useState({})
   const [creatingDeal, setCreatingDeal] = useState(false)
   const [prefillClient, setPrefillClient] = useState('')
   const [tab, setTab]       = useState('details')
@@ -97,7 +99,9 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
   }
 
   async function handleSave() {
-    if (!form.title.trim()) { setError('Title is required'); return }
+    const { valid, errors: valErrors } = validateTender(form)
+    setFieldErrors(valErrors)
+    if (!valid) { setError('Please fix the highlighted fields'); return }
     setSaving(true)
     const payload = {
       title:               form.title.trim(),
@@ -184,13 +188,15 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
         <div className="grid grid-cols-3 gap-2">
           <div className="col-span-2">
             <label className="label">Title *</label>
-            <input className="input" value={form.title} onChange={e => set('title', e.target.value)}
+            <input className={`input ${fieldErrors.title ? 'border-red-400' : ''}`} value={form.title} onChange={e => set('title', e.target.value)}
               placeholder="Tender title…" autoFocus />
+            {fieldErrors.title && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.title}</p>}
           </div>
           <div>
             <label className="label">Reference</label>
-            <input className="input" value={form.reference} onChange={e => set('reference', e.target.value)}
+            <input className={`input ${fieldErrors.reference ? 'border-red-400' : ''}`} value={form.reference} onChange={e => set('reference', e.target.value)}
               placeholder="Ref. nº" />
+            {fieldErrors.reference && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.reference}</p>}
           </div>
         </div>
 
@@ -226,22 +232,25 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
         {/* Description */}
         <div>
           <label className="label">Description</label>
-          <textarea className="input min-h-[72px] resize-none" value={form.description}
+          <textarea className={`input min-h-[72px] resize-none ${fieldErrors.description ? 'border-red-400' : ''}`} value={form.description}
             onChange={e => set('description', e.target.value)}
             placeholder="Scope, requirements, notes…" />
+          {fieldErrors.description && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.description}</p>}
         </div>
 
         {/* Dates */}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="label">Submission deadline</label>
-            <input className="input" type="date" value={form.submission_deadline}
+            <input className={`input ${fieldErrors.submission_deadline ? 'border-red-400' : ''}`} type="date" value={form.submission_deadline}
               onChange={e => set('submission_deadline', e.target.value)} />
+            {fieldErrors.submission_deadline && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.submission_deadline}</p>}
           </div>
           <div>
             <label className="label">Decision date</label>
-            <input className="input" type="date" value={form.decision_date}
+            <input className={`input ${fieldErrors.decision_date ? 'border-red-400' : ''}`} type="date" value={form.decision_date}
               onChange={e => set('decision_date', e.target.value)} />
+            {fieldErrors.decision_date && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.decision_date}</p>}
           </div>
         </div>
 
@@ -249,14 +258,16 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
         <div className="grid grid-cols-3 gap-2">
           <div className="col-span-2">
             <label className="label">Estimated value</label>
-            <input className="input" type="number" value={form.estimated_value}
+            <input className={`input ${fieldErrors.estimated_value ? 'border-red-400' : ''}`} type="number" value={form.estimated_value}
               onChange={e => set('estimated_value', e.target.value)} placeholder="0" />
+            {fieldErrors.estimated_value && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.estimated_value}</p>}
           </div>
           <div>
             <label className="label">Currency</label>
-            <select className="select" value={form.currency} onChange={e => set('currency', e.target.value)}>
+            <select className={`select ${fieldErrors.currency ? 'border-red-400' : ''}`} value={form.currency} onChange={e => set('currency', e.target.value)}>
               <option>EUR</option><option>USD</option><option>GBP</option>
             </select>
+            {fieldErrors.currency && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.currency}</p>}
           </div>
         </div>
 

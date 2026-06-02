@@ -3,6 +3,7 @@ import { useTasks, createTask, updateTask, deleteTask, useNotifications } from '
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { Modal, Spinner } from '../components/ui'
+import { validateTask } from '../lib/validation'
 import SearchableSelect from '../components/SearchableSelect'
 import QuickDealForm from '../components/QuickDealForm'
 import { useTranslation } from '../hooks/useTranslation'
@@ -58,13 +59,16 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState(null)
+  const [fieldErrors, setFieldErrors] = useState({})
   const [creatingDeal, setCreatingDeal]     = useState(false)
   const [prefillClient, setPrefillClient]   = useState('')
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
   async function handleSave() {
-    if (!form.title.trim()) { setError('Title is required'); return }
+    const { valid, errors: valErrors } = validateTask(form)
+    setFieldErrors(valErrors)
+    if (!valid) { setError('Please fix the highlighted fields'); return }
     setSaving(true)
     const isSalesOwnerOnly = form.assigned_to && form.assigned_to.startsWith('so_')
     const salesOwnerName = isSalesOwnerOnly ? form.assigned_to.replace('so_', '') : null
@@ -121,22 +125,25 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
         {/* Title */}
         <div>
           <label className="label">Title *</label>
-          <input className="input" value={form.title} onChange={e => set('title', e.target.value)}
+          <input className={`input ${fieldErrors.title ? 'border-red-400' : ''}`} value={form.title} onChange={e => set('title', e.target.value)}
             placeholder="What needs to be done?" />
+          {fieldErrors.title && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.title}</p>}
         </div>
 
         {/* Notes */}
         <div>
           <label className="label">Notes</label>
-          <textarea className="input min-h-[80px] resize-none" value={form.notes}
+          <textarea className={`input min-h-[80px] resize-none ${fieldErrors.notes ? 'border-red-400' : ''}`} value={form.notes}
             onChange={e => set('notes', e.target.value)} placeholder="Additional context…" />
+          {fieldErrors.notes && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.notes}</p>}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* Deadline */}
           <div>
             <label className="label">Deadline</label>
-            <input className="input" type="date" value={form.deadline} onChange={e => set('deadline', e.target.value)} />
+            <input className={`input ${fieldErrors.deadline ? 'border-red-400' : ''}`} type="date" value={form.deadline} onChange={e => set('deadline', e.target.value)} />
+            {fieldErrors.deadline && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.deadline}</p>}
           </div>
           {/* Priority */}
           <div>

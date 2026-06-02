@@ -3,6 +3,7 @@ import { useSlas, createSla, updateSla, deleteSla } from '../hooks/useSlas'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import SearchableSelect from '../components/SearchableSelect'
+import { validateSLA } from '../lib/validation'
 import { useTranslation } from '../hooks/useTranslation'
 import { Modal, Spinner, EmptyState, BUBadge, formatK, KpiCard } from '../components/ui'
 import { SLA_STATUSES, SLA_TYPES, FY_RANGE, BILLING_MODELS, BILLING_FREQUENCIES, getFiscalYear, projectSlaRevenue } from '../constants'
@@ -154,6 +155,7 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState(null)
+  const [fieldErrors, setFieldErrors] = useState({})
   const [clients, setClients] = useState([])
   const [slaProducts, setSlaProducts] = useState([])
   const [catalogProducts, setCatalogProducts] = useState([])
@@ -227,7 +229,9 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
   }, [form.annual_value, form.start_date, form.end_date, form.invoice_date, form.contract_duration_years])
 
   async function handleSave() {
-    if (!form.client.trim() || !form.bu) { setError('Client and BU are required'); return }
+    const { valid, errors: valErrors } = validateSLA(form)
+    setFieldErrors(valErrors)
+    if (!valid) { setError('Please fix the highlighted fields'); return }
     // Validate status transition for existing SLAs
     if (sla?.id && sla.status !== form.status && !canTransition('sla', sla.status, form.status)) {
       setError(`Invalid status transition: "${SLA_STATUSES.find(s => s.id === sla.status)?.label || sla.status}" to "${SLA_STATUSES.find(s => s.id === form.status)?.label || form.status}". Allowed: ${getAllowedTransitions('sla', sla.status).filter(s => s !== sla.status).map(id => SLA_STATUSES.find(s => s.id === id)?.label || id).join(', ') || 'none'}`)
@@ -310,10 +314,11 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="label">BU *</label>
-            <select className="select" value={form.bu} onChange={e => set('bu', e.target.value)}>
+            <select className={`select ${fieldErrors.bu ? 'border-red-400' : ''}`} value={form.bu} onChange={e => set('bu', e.target.value)}>
               <option value="VGT">VGT</option>
               <option value="ECT">ECT</option>
             </select>
+            {fieldErrors.bu && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.bu}</p>}
           </div>
           <div>
             <label className="label">Status</label>
@@ -338,7 +343,7 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
 
         <div>
           <label className="label">Client *</label>
-          <div className="flex gap-2">
+          <div className={`flex gap-2 ${fieldErrors.client ? 'ring-1 ring-red-400 rounded-lg' : ''}`}>
             <input className="input flex-1" value={form.client}
               onChange={e => set('client', e.target.value)}
               placeholder="Client name"/>
@@ -351,7 +356,8 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
               size="sm"
             />
           </div>
-          {sla?.id && form.client !== sla.client && (
+          {fieldErrors.client && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.client}</p>}
+          {sla?.id && form.client !== sla.client && !fieldErrors.client && (
             <p className="text-[10px] text-amber-500 mt-0.5">Changed from "{sla.client}" → "{form.client}"</p>
           )}
         </div>
@@ -381,7 +387,8 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="label">Annual Value</label>
-            <input className="input" type="number" value={form.annual_value} onChange={e => set('annual_value', e.target.value)} placeholder="28000"/>
+            <input className={`input ${fieldErrors.annual_value ? 'border-red-400' : ''}`} type="number" value={form.annual_value} onChange={e => set('annual_value', e.target.value)} placeholder="28000"/>
+            {fieldErrors.annual_value && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.annual_value}</p>}
           </div>
           <div>
             <label className="label">Billing month</label>
@@ -395,13 +402,15 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="label">Start Date</label>
-            <input className="input" type="date" value={form.start_date} onChange={e => set('start_date', e.target.value)}/>
+            <input className={`input ${fieldErrors.start_date ? 'border-red-400' : ''}`} type="date" value={form.start_date} onChange={e => set('start_date', e.target.value)}/>
+            {fieldErrors.start_date && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.start_date}</p>}
           </div>
         </div>
 
         <div>
           <label className="label">Description</label>
-          <textarea className="input min-h-[60px] resize-none" value={form.description} onChange={e => set('description', e.target.value)}/>
+          <textarea className={`input min-h-[60px] resize-none ${fieldErrors.description ? 'border-red-400' : ''}`} value={form.description} onChange={e => set('description', e.target.value)}/>
+          {fieldErrors.description && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.description}</p>}
         </div>
 
         {/* Contract Products */}
@@ -527,13 +536,15 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
           </div>
           <div>
             <label className="label">Renewal Date</label>
-            <input className="input" type="date" value={form.renewal_date} onChange={e => set('renewal_date', e.target.value)}/>
+            <input className={`input ${fieldErrors.renewal_date ? 'border-red-400' : ''}`} type="date" value={form.renewal_date} onChange={e => set('renewal_date', e.target.value)}/>
+            {fieldErrors.renewal_date && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.renewal_date}</p>}
           </div>
         </div>
 
         <div>
           <label className="label">Invoice Date</label>
-          <input className="input" type="date" value={form.invoice_date} onChange={e => set('invoice_date', e.target.value)}/>
+          <input className={`input ${fieldErrors.invoice_date ? 'border-red-400' : ''}`} type="date" value={form.invoice_date} onChange={e => set('invoice_date', e.target.value)}/>
+          {fieldErrors.invoice_date && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.invoice_date}</p>}
           <p className="text-[10px] text-gray-400 mt-0.5">Date when PO received and invoice issued</p>
         </div>
 
@@ -632,7 +643,8 @@ function SlaFormModal({ sla, onClose, onSaved, owners }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">Price per Study €</label>
-              <input className="input" type="number" step="0.01" value={form.price_per_study} onChange={e => set('price_per_study', e.target.value)} placeholder="e.g. 2.50"/>
+              <input className={`input ${fieldErrors.price_per_study ? 'border-red-400' : ''}`} type="number" step="0.01" value={form.price_per_study} onChange={e => set('price_per_study', e.target.value)} placeholder="e.g. 2.50"/>
+              {fieldErrors.price_per_study && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.price_per_study}</p>}
             </div>
             <div>
               <label className="label">Est. Annual Studies</label>
