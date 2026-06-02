@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../lib/supabase'
-import { useAuth } from '../../hooks/useAuth'
 import { formatK, Spinner } from '../ui'
 import { Package, TrendingUp } from 'lucide-react'
 
@@ -10,7 +9,6 @@ const BACKLOG_STAGES   = ['BackLog']
 const INVOICED_STAGES  = ['Invoiced']
 
 export default function ProductFunnel({ selectedBU = '' }) {
-  const { isAdmin } = useAuth()
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [groupBy, setGroupBy] = useState('product') // 'product' | 'brand' | 'category'
@@ -23,7 +21,7 @@ export default function ProductFunnel({ selectedBU = '' }) {
       // Pull deal product lines joined with their deal (stage/bu) and product (brand/category)
       const { data } = await supabase
         .from('deal_products')
-        .select('net_price, cost_price, quantity, product_name, deal:deal_id(stage, bu, is_intercompany_mirror), product:product_id(brand, category, name)')
+        .select('net_price, product_name, deal:deal_id(stage, bu, is_intercompany_mirror), product:product_id(brand, category, name)')
       if (!active) return
       setRows(data || [])
       setLoading(false)
@@ -40,13 +38,10 @@ export default function ProductFunnel({ selectedBU = '' }) {
       const key = groupBy === 'brand'    ? (r.product?.brand || 'Fujifilm')
                 : groupBy === 'category' ? (r.product?.category || '—')
                 : (r.product?.name || r.product_name || '—')
-      if (!map[key]) map[key] = { name: key, pipeline: 0, backlog: 0, invoiced: 0, cost: 0, net: 0, count: 0 }
+      if (!map[key]) map[key] = { name: key, pipeline: 0, backlog: 0, invoiced: 0, count: 0 }
       const net = Number(r.net_price) || 0
-      const cost = (Number(r.cost_price) || 0) * (parseInt(r.quantity) || 1)
       const g = map[key]
       g.count += 1
-      g.net += net
-      g.cost += cost
       if (PIPELINE_STAGES.includes(deal.stage)) g.pipeline += net
       else if (BACKLOG_STAGES.includes(deal.stage)) g.backlog += net
       else if (INVOICED_STAGES.includes(deal.stage)) g.invoiced += net
@@ -54,10 +49,8 @@ export default function ProductFunnel({ selectedBU = '' }) {
     const arr = Object.values(map).map(g => ({
       ...g,
       total: g.pipeline + g.backlog + g.invoiced,
-      gm: g.net > 0 ? ((g.net - g.cost) / g.net * 100) : 0,
     }))
     arr.sort((a, b) => {
-      if (sortBy === 'gm') return b.gm - a.gm
       if (sortBy === 'pipeline') return b.pipeline - a.pipeline
       if (sortBy === 'invoiced') return b.invoiced - a.invoiced
       return b.total - a.total
@@ -96,7 +89,6 @@ export default function ProductFunnel({ selectedBU = '' }) {
           <option value="total">Sort: Total</option>
           <option value="pipeline">Sort: Pipeline</option>
           <option value="invoiced">Sort: Invoiced</option>
-          <option value="gm">Sort: GM %</option>
         </select>
       </div>
 
@@ -128,17 +120,7 @@ export default function ProductFunnel({ selectedBU = '' }) {
                 <p className="text-sm font-semibold text-gray-900 truncate">{g.name}</p>
                 <span className="text-[10px] text-gray-400">({g.count})</span>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-sm font-bold text-gray-900">{formatK(g.total)}</span>
-                {isAdmin && (
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                    g.gm >= 40 ? 'bg-green-100 text-green-700' :
-                    g.gm >= 20 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
-                  }`}>
-                    GM {g.gm.toFixed(0)}%
-                  </span>
-                )}
-              </div>
+              <span className="text-sm font-bold text-gray-900 shrink-0">{formatK(g.total)}</span>
             </div>
             {/* Stacked funnel bar */}
             <div className="flex h-3 rounded-full overflow-hidden bg-gray-100" style={{ width: `${Math.max(8, g.total / max * 100)}%` }}>
