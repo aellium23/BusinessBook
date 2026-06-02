@@ -95,7 +95,7 @@ export default function MemberDashboard() {
     return result
   }, [allDeals, overlays, overlayLines, myBU])
 
-  // Compute stats
+  // Compute stats — separated by own vs overlay, and overlay by source
   const stats = useMemo(() => {
     const compute = (deals) => {
       let pipeline = 0, backlog = 0, invoiced = 0
@@ -109,28 +109,37 @@ export default function MemberDashboard() {
       return { pipeline, backlog, invoiced, forecast: backlog + invoiced }
     }
     const own = compute(myDeals)
-    // Add overlay credits
+
+    // Overlay credits, grouped by source rep
+    const bySource = {}
     let ovPipeline = 0, ovBacklog = 0, ovInvoiced = 0
-    for (const { deal, sharePct } of overlayDeals) {
+    for (const { deal, sharePct, source } of overlayDeals) {
       const fy26 = MONTHS_K.reduce((s, m) => s + (Number(deal[m]) || 0), 0)
       const val = (fy26 || Number(deal.value_total) || 0) * (sharePct / 100)
-      if (['Lead', 'Pipeline', 'Offer Presented'].includes(deal.stage)) ovPipeline += val
-      else if (deal.stage === 'BackLog') ovBacklog += val
-      else if (deal.stage === 'Invoiced') ovInvoiced += val
+      if (!bySource[source]) bySource[source] = { pipeline: 0, backlog: 0, invoiced: 0, count: 0 }
+      bySource[source].count += 1
+      if (['Lead', 'Pipeline', 'Offer Presented'].includes(deal.stage)) { ovPipeline += val; bySource[source].pipeline += val }
+      else if (deal.stage === 'BackLog') { ovBacklog += val; bySource[source].backlog += val }
+      else if (deal.stage === 'Invoiced') { ovInvoiced += val; bySource[source].invoiced += val }
     }
     return {
-      pipeline: own.pipeline + ovPipeline,
-      backlog: own.backlog + ovBacklog,
-      invoiced: own.invoiced + ovInvoiced,
-      forecast: own.backlog + own.invoiced + ovBacklog + ovInvoiced,
+      own,
+      overlay: { pipeline: ovPipeline, backlog: ovBacklog, invoiced: ovInvoiced, forecast: ovBacklog + ovInvoiced },
+      bySource,
+      total: {
+        pipeline: own.pipeline + ovPipeline,
+        backlog: own.backlog + ovBacklog,
+        invoiced: own.invoiced + ovInvoiced,
+        forecast: own.forecast + ovBacklog + ovInvoiced,
+      },
       ownDeals: myDeals.length,
       overlayDeals: overlayDeals.length,
     }
   }, [myDeals, overlayDeals])
 
   const target = Number(quota?.target_eur) || 0
-  const actPct = target > 0 ? Math.round(stats.invoiced / target * 100) : 0
-  const fcPct  = target > 0 ? Math.round(stats.forecast / target * 100) : 0
+  const actPct = target > 0 ? Math.round(stats.total.invoiced / target * 100) : 0
+  const fcPct  = target > 0 ? Math.round(stats.total.forecast / target * 100) : 0
   const COLOR = myBU === 'ECT' ? '#D85A30' : '#1D9E75'
 
   if (dealsLoading || loading) return <Spinner/>
@@ -155,7 +164,7 @@ export default function MemberDashboard() {
             <div>
               <div className="flex justify-between text-xs mb-1">
                 <span className="font-medium text-gray-600">Invoiced</span>
-                <span className="font-bold" style={{color: COLOR}}>{formatK(stats.invoiced)} · {actPct}%</span>
+                <span className="font-bold" style={{color: COLOR}}>{formatK(stats.total.invoiced)} · {actPct}%</span>
               </div>
               <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
                 <div className="h-full rounded-full transition-all" style={{width: `${Math.min(actPct,100)}%`, background: COLOR}}/>
@@ -164,7 +173,7 @@ export default function MemberDashboard() {
             <div>
               <div className="flex justify-between text-xs mb-1">
                 <span className="font-medium text-gray-600">Forecast (BL + Inv)</span>
-                <span className="font-bold text-blue-600">{formatK(stats.forecast)} · {fcPct}%</span>
+                <span className="font-bold text-blue-600">{formatK(stats.total.forecast)} · {fcPct}%</span>
               </div>
               <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
                 <div className="h-full rounded-full bg-blue-400 transition-all" style={{width: `${Math.min(fcPct,100)}%`}}/>
@@ -172,39 +181,78 @@ export default function MemberDashboard() {
             </div>
             <div className="pt-1 border-t border-gray-100">
               <p className="text-xs text-gray-400">
-                Gap to target: <span className="font-semibold text-gray-600">{formatK(Math.max(0, target - stats.forecast))}</span>
+                Gap to target: <span className="font-semibold text-gray-600">{formatK(Math.max(0, target - stats.total.forecast))}</span>
               </p>
             </div>
           </div>
         )}
       </div>
 
-      {/* Pipeline breakdown */}
+      {/* Pipeline breakdown — total */}
       <div className="grid grid-cols-3 gap-2">
         <button onClick={() => navigate('/deals')} className="bg-amber-50 rounded-xl p-3 text-center hover:shadow-sm transition-shadow">
           <p className="text-[10px] text-amber-600 font-semibold uppercase">Pipeline</p>
-          <p className="text-lg font-bold text-amber-800">{formatK(stats.pipeline)}</p>
+          <p className="text-lg font-bold text-amber-800">{formatK(stats.total.pipeline)}</p>
         </button>
         <button onClick={() => navigate('/deals')} className="bg-purple-50 rounded-xl p-3 text-center hover:shadow-sm transition-shadow">
           <p className="text-[10px] text-purple-600 font-semibold uppercase">BackLog</p>
-          <p className="text-lg font-bold text-purple-800">{formatK(stats.backlog)}</p>
+          <p className="text-lg font-bold text-purple-800">{formatK(stats.total.backlog)}</p>
         </button>
         <button onClick={() => navigate('/deals')} className="bg-green-50 rounded-xl p-3 text-center hover:shadow-sm transition-shadow">
           <p className="text-[10px] text-green-600 font-semibold uppercase">Invoiced</p>
-          <p className="text-lg font-bold text-green-800">{formatK(stats.invoiced)}</p>
+          <p className="text-lg font-bold text-green-800">{formatK(stats.total.invoiced)}</p>
         </button>
       </div>
 
-      {/* Overlay credits */}
+      {/* Value breakdown: own vs overlay */}
       {overlayDeals.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-1">
-          <p className="text-xs font-semibold text-blue-700">
-            <TrendingUp size={12} className="inline mr-1"/> Overlay credits: {overlayDeals.length} deal{overlayDeals.length > 1 ? 's' : ''}
-          </p>
-          <p className="text-[10px] text-blue-600">
-            {[...new Set(overlayDeals.map(o => o.source))].join(', ')} deals
-            credited to your numbers (product overlay).
-          </p>
+        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+          <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Value Breakdown</p>
+
+          {/* Own sales */}
+          <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+            <div>
+              <p className="text-xs font-semibold text-gray-800">Your own sales</p>
+              <p className="text-[10px] text-gray-400">{stats.ownDeals} deal{stats.ownDeals !== 1 ? 's' : ''}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-bold text-gray-900">{formatK(stats.own.forecast)}</p>
+              <div className="flex gap-2 text-[10px] text-gray-400">
+                <span>Pipe {formatK(stats.own.pipeline)}</span>
+                <span>BL {formatK(stats.own.backlog)}</span>
+                <span>Inv {formatK(stats.own.invoiced)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Per-source overlay credits */}
+          {Object.entries(stats.bySource).map(([source, s]) => {
+            const total = s.pipeline + s.backlog + s.invoiced
+            return (
+              <div key={source} className="flex items-center justify-between bg-blue-50 rounded-lg px-3 py-2">
+                <div>
+                  <p className="text-xs font-semibold text-blue-800">
+                    <TrendingUp size={10} className="inline mr-1"/> {source}
+                  </p>
+                  <p className="text-[10px] text-blue-500">{s.count} deal{s.count !== 1 ? 's' : ''} · product overlay</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-blue-800">{formatK(total)}</p>
+                  <div className="flex gap-2 text-[10px] text-blue-400">
+                    <span>Pipe {formatK(s.pipeline)}</span>
+                    <span>BL {formatK(s.backlog)}</span>
+                    <span>Inv {formatK(s.invoiced)}</span>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+
+          {/* Total */}
+          <div className="flex items-center justify-between border-t border-gray-200 pt-2">
+            <p className="text-xs font-bold text-gray-800">Total (own + overlays)</p>
+            <p className="text-sm font-bold text-gray-900">{formatK(stats.total.forecast)}</p>
+          </div>
         </div>
       )}
 
