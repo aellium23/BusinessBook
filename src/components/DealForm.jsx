@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Modal } from '../components/ui'
 import { upsertDeal, upsertDealWithIntercompany } from '../hooks/useDeals'
 import { useAuth } from '../hooks/useAuth'
@@ -649,16 +649,16 @@ export default function DealForm({ deal, onClose, onSaved }) {
         {/* Description */}
         <div>
           <label className="label">{t("df_description")}</label>
-          <input className={`input ${fieldErrors.description ? 'border-red-400' : ''}`} value={form.description} onChange={e => set('description', e.target.value)} placeholder="Project details" />
+          <input className={`input ${fieldErrors.description ? 'border-red-400' : ''}`} value={form.description} onChange={e => set('description', e.target.value)} placeholder={t("df_placeholder_details")} />
           {fieldErrors.description && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.description}</p>}
         </div>
 
         {/* Lost reason */}
         {form.stage === 'Lost' && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-            <label className="label text-red-600">Reason lost *</label>
+            <label className="label text-red-600">{t("df_reason_lost")} *</label>
             <select className={`select bg-white ${fieldErrors.lost_reason ? 'border-red-400' : ''}`} value={form.lost_reason} onChange={e => set('lost_reason', e.target.value)}>
-              <option value="">— Select reason —</option>
+              <option value="">{t("df_select_reason")}</option>
               <option>Price too high</option>
               <option>Lost to competitor</option>
               <option>{t("df_budget_freeze")}</option>
@@ -669,7 +669,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
             </select>
             {fieldErrors.lost_reason && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.lost_reason}</p>}
             {form.lost_reason === 'Other' && (
-              <input className="input mt-2" placeholder="Specify reason…"
+              <input className="input mt-2" placeholder={t("df_specify_reason")}
                 value={form.lost_reason_detail || ''} onChange={e => set('lost_reason_detail', e.target.value)}/>
             )}
           </div>
@@ -722,7 +722,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
               )}
               {!deal?.id && form.currency !== 'EUR' && getRate(form.currency) && (
                 <p className="text-[10px] text-gray-400 mt-0.5 text-right">
-                  Global rate applied
+                  {t("df_global_rate")}
                 </p>
               )}
             </div>
@@ -774,25 +774,25 @@ export default function DealForm({ deal, onClose, onSaved }) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">Business Model</label>
+              <label className="label">{t("df_business_model")}</label>
               <select className="select" value={form.business_model} onChange={e => set('business_model', e.target.value)}>
-                <option value="">— Select —</option>
+                <option value="">{t("df_select_model")}</option>
                 {BUSINESS_MODELS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
               </select>
             </div>
             {['opex','saas','pay_per_study'].includes(form.business_model) && !deal?.id && (
               <div className="col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-2 flex items-center justify-between">
                 <p className="text-xs text-blue-700">
-                  Recurring revenue? You can create this directly as a <strong>Contract</strong>.
+                  {t("df_recurring_hint")} <strong>{t("df_contract_lbl")}</strong>.
                 </p>
                 <a href="/sla" className="text-xs font-semibold text-blue-700 hover:text-blue-900 whitespace-nowrap ml-2">
-                  Create Contract →
+                  {t("df_create_contract")}
                 </a>
               </div>
             )}
             {['capex','hybrid'].includes(form.business_model) && (
               <div>
-                <label className="label">Warranty (months)</label>
+                <label className="label">{t("df_warranty_months")}</label>
                 <input className="input" type="number" value={form.warranty_months}
                   onChange={e => set('warranty_months', e.target.value)} placeholder="36"/>
               </div>
@@ -803,14 +803,14 @@ export default function DealForm({ deal, onClose, onSaved }) {
             <>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="label">Go-Live Month {['BackLog','Invoiced'].includes(form.stage) ? '*' : ''}</label>
+                  <label className="label">{t("df_go_live_month")} {['BackLog','Invoiced'].includes(form.stage) ? '*' : ''}</label>
                   <select className="select" value={form.go_live_month} onChange={e => set('go_live_month', e.target.value)}>
                     <option value="">—</option>
                     {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map(m => <option key={m}>{m}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="label">Go-Live Year</label>
+                  <label className="label">{t("df_go_live_year")}</label>
                   <select className="select" value={form.go_live_year} onChange={e => set('go_live_year', e.target.value)}>
                     <option value="">—</option>
                     {[2025,2026,2027,2028].map(y => <option key={y}>{y}</option>)}
@@ -818,14 +818,14 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 </div>
               </div>
               <p className="text-[10px] text-blue-600 bg-blue-50 rounded px-2 py-1">
-                Warranty starts at Go-Live · SLA after {form.warranty_months || 36} months
+                {t("df_warranty_hint")} {form.warranty_months || 36} {t("df_warranty_months_suffix")}
               </p>
             </>
           )}
 
           {isDistributor && form.country && resolvedProducts.length === 0 && Object.keys(authMap).length > 0 && (
             <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
-              No products authorized for {form.country}. Contact your account manager.
+              {t("df_no_products_auth")} {form.country}. {t("df_contact_am")}
             </p>
           )}
 
@@ -853,7 +853,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
               <input className="input" type="number" min="0"
                 value={form.equipment_count}
                 onChange={e => set('equipment_count', e.target.value)}
-                placeholder="e.g. 12"/>
+                placeholder={t("df_placeholder_equipment")}/>
             </div>
             <div>
               <label className="label">
@@ -863,7 +863,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
               <input className="input" type="number" min="0"
                 value={form.annual_studies}
                 onChange={e => set('annual_studies', e.target.value)}
-                placeholder="e.g. 50000"/>
+                placeholder={t("df_placeholder_studies")}/>
             </div>
           </div>
         </div>
