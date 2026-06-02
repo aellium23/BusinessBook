@@ -1,35 +1,45 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { Plus, Trash2, TrendingUp, X } from 'lucide-react'
+import { Plus, Trash2, TrendingUp, X, Check } from 'lucide-react'
 
 export default function SalesOverlayConfig({ bu, salesOwners }) {
   const [rules, setRules] = useState([])
+  const [catalog, setCatalog] = useState([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
-  const [form, setForm] = useState({ source: '', target: '', products: '', pct: 100, notes: '' })
+  const [form, setForm] = useState({ source: '', target: '', products: [], pct: 100, notes: '' })
 
   async function load() {
-    const { data } = await supabase.from('sales_overlays')
-      .select('*').eq('bu', bu).eq('fiscal_year', 2026).order('created_at')
-    setRules(data || [])
+    const [rRes, pRes] = await Promise.all([
+      supabase.from('sales_overlays').select('*').eq('bu', bu).eq('fiscal_year', 2026).order('created_at'),
+      supabase.from('products').select('id, name, category').eq('active', true).order('category').order('name'),
+    ])
+    setRules(rRes.data || [])
+    setCatalog(pRes.data || [])
     setLoading(false)
   }
 
   useEffect(() => { load() }, [bu])
 
+  function toggleProduct(name) {
+    setForm(f => ({
+      ...f,
+      products: f.products.includes(name) ? f.products.filter(p => p !== name) : [...f.products, name],
+    }))
+  }
+
   async function add() {
     if (!form.source || !form.target) return
-    const products = form.products.split(',').map(p => p.trim()).filter(Boolean)
     await supabase.from('sales_overlays').insert({
       bu,
       fiscal_year: 2026,
       source_owner: form.source,
       target_owner: form.target,
-      products: products.length > 0 ? products : [],
+      products: form.products,  // exact catalog names (empty = all)
       share_pct: parseFloat(form.pct) || 100,
       notes: form.notes || null,
     })
-    setForm({ source: '', target: '', products: '', pct: 100, notes: '' })
+    setForm({ source: '', target: '', products: [], pct: 100, notes: '' })
     setAdding(false)
     load()
   }
@@ -81,10 +91,34 @@ export default function SalesOverlayConfig({ bu, salesOwners }) {
             </div>
           </div>
           <div>
-            <label className="text-[10px] text-gray-500 font-semibold">Products (comma-separated, empty = all)</label>
-            <input className="input text-xs" value={form.products}
-              onChange={e => setForm(f => ({...f, products: e.target.value}))}
-              placeholder="e.g. CWM-Dose, CWM-AI" style={{ fontSize: '16px' }}/>
+            <label className="text-[10px] text-gray-500 font-semibold">
+              Products ({form.products.length === 0 ? 'all products' : `${form.products.length} selected`})
+            </label>
+            <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg bg-white p-2 space-y-0.5">
+              {catalog.length === 0 ? (
+                <p className="text-[10px] text-gray-400 px-1 py-2">No products in catalog.</p>
+              ) : (() => {
+                const grouped = catalog.reduce((g, p) => { (g[p.category] = g[p.category] || []).push(p); return g }, {})
+                return Object.entries(grouped).map(([cat, prods]) => (
+                  <div key={cat}>
+                    <p className="text-[9px] text-gray-400 uppercase font-semibold px-1 pt-1">{cat}</p>
+                    {prods.map(p => {
+                      const on = form.products.includes(p.name)
+                      return (
+                        <button key={p.id} type="button" onClick={() => toggleProduct(p.name)}
+                          className={`w-full flex items-center gap-2 px-1.5 py-1 rounded text-left text-xs ${on ? 'bg-blue-50 text-blue-800' : 'hover:bg-gray-50 text-gray-700'}`}>
+                          <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${on ? 'bg-navy border-navy text-white' : 'border-gray-300'}`}>
+                            {on && <Check size={9}/>}
+                          </span>
+                          <span className="truncate">{p.name}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                ))
+              })()}
+            </div>
+            <p className="text-[10px] text-gray-400 mt-0.5">Leave none selected to credit all products.</p>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>

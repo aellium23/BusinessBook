@@ -79,11 +79,11 @@ export default function MemberDashboard() {
           const deal = allDeals.find(d => d.id === did)
           if (deal) result.push({ deal, sharePct: ov.share_pct, source: ov.source_owner })
         } else {
-          // Only deals containing matching products
+          // Only deals containing one of the selected catalog products (exact, case-insensitive)
           const dealProds = overlayLines.filter(l => l.deal_id === did)
           const hasMatch = dealProds.some(l => {
             const pName = (l.product?.name || l.product_name || '').toLowerCase()
-            return prods.some(p => pName.includes(p))
+            return prods.includes(pName)
           })
           if (hasMatch) {
             const deal = allDeals.find(d => d.id === did)
