@@ -331,9 +331,11 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
             </div>
           )}
         </div>
-        <button onClick={addCustomLine} className="btn-secondary text-xs px-3 shrink-0">
-          <Plus size={12}/>
-        </button>
+        {!isDistributor && (
+          <button onClick={addCustomLine} className="btn-secondary text-xs px-3 shrink-0">
+            <Plus size={12}/>
+          </button>
+        )}
       </div>
     </div>
   )
