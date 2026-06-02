@@ -298,6 +298,10 @@ export default function DealForm({ deal, onClose, onSaved }) {
     supabase.from('products').select('*').eq('active', true).order('sort_order').order('name')
       .then(({ data }) => { if (data) setCatalogProducts(data) })
       .catch(() => {})
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load product authorizations for distributors — separate effect with profile dependency
+  useEffect(() => {
     if (profile?.role === 'distributor' && profile?.company_id) {
       supabase.from('company_product_authorizations').select('product_id, country, price, active')
         .eq('company_id', profile.company_id)
@@ -309,6 +313,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
           }
         }).catch(() => {})
     }
+  }, [profile?.role, profile?.company_id])
+
+  useEffect(() => {
     supabase.from('deals').select('client').then(({ data }) => {
       if (data) setExistingClients([...new Set(data.map(d => d.client).filter(Boolean))].sort())
     }).catch(() => {})
@@ -317,7 +324,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
         .then(({ data }) => { if (data) setDealLines(data.map(d => ({ ...d, _key: d.id }))) })
         .catch(() => {})
     }
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!form.is_sla || !form.sla_annual_value || !form.cs_month || !form.cs_year ||
