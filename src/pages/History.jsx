@@ -158,7 +158,8 @@ export default function History() {
   const { isAdmin, profile } = useAuth()
   const [fy25, setFy25]   = useState([])
   const [loading, setLoading] = useState(true)
-  const [activeBU, setActiveBU] = useState('both')
+  // Non-admins are scoped to their own BU; admins can see Iberia (both)
+  const [activeBU, setActiveBU] = useState(isAdmin ? 'both' : (profile?.bu || 'both'))
 
   useEffect(() => {
     supabase.from('fy25_actuals').select('*')
@@ -169,6 +170,11 @@ export default function History() {
       })
       .catch(() => { setLoading(false) })
   }, [])
+
+  // Lock non-admins to their own BU once the profile is available
+  useEffect(() => {
+    if (!isAdmin && profile?.bu) setActiveBU(profile.bu)
+  }, [isAdmin, profile?.bu])
 
   const get = (bu, pl, month) => {
     const row = fy25.find(r => r.bu === bu && r.pl_key === pl)

@@ -32,6 +32,14 @@ export default function DashboardIndex() {
   })
   const [selectedBU, setSelectedBU] = useState('')
 
+  // Non-admins are locked to their own BU across every dashboard view
+  useEffect(() => {
+    if (!isAdmin && profile?.bu) setSelectedBU(profile.bu)
+  }, [isAdmin, profile?.bu])
+
+  // The effective BU passed to all views (forced for non-admins)
+  const effectiveBU = isAdmin ? selectedBU : (profile?.bu || '')
+
   useEffect(() => {
     if (!isDistributor) {
       try { localStorage.setItem(STORAGE_KEY, view) } catch {}
@@ -111,11 +119,11 @@ export default function DashboardIndex() {
         )}
       </div>
 
-      {view === 'summary' ? <DashboardSummary selectedBU={selectedBU} />
-        : view === 'products' ? <ProductFunnel selectedBU={selectedBU} />
-        : view === 'reps' ? <SalesRepFunnel selectedBU={selectedBU} />
-        : view === 'clients' ? <TopClients selectedBU={selectedBU} />
-        : <DashboardClassic hideHeader selectedBU={selectedBU} />}
+      {view === 'summary' ? <DashboardSummary selectedBU={effectiveBU} />
+        : view === 'products' ? <ProductFunnel selectedBU={effectiveBU} />
+        : view === 'reps' ? <SalesRepFunnel selectedBU={effectiveBU} />
+        : view === 'clients' ? <TopClients selectedBU={effectiveBU} />
+        : <DashboardClassic hideHeader selectedBU={effectiveBU} />}
     </div>
   )
 }

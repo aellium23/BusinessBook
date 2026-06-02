@@ -497,23 +497,38 @@ export default function Quotas() {
     return <DistributorQuota quotas={quotas} actuals={actuals} forecast={forecast} profile={profile}/>
   }
 
+  // Non-admins only see their own BU's targets
+  const visibleBUs = isAdmin ? ['VGT', 'ECT'] : (profile?.bu ? [profile.bu] : [])
+
+  // Managers see the whole team; plain members (sales reps) see only their own target
+  const isManagerLevel = isAdmin || profile?.role === 'manager'
+  const ownName = (profile?.sales_owner_name || '').toLowerCase()
+  const scopedQuotas = isManagerLevel
+    ? quotas
+    : quotas.filter(q => (q.sales_owner || '').toLowerCase() === ownName)
+
   return (
     <div className="p-4 space-y-8 max-w-4xl mx-auto">
       <div className="pt-1">
         <h1 className="text-xl font-bold text-gray-900">{t("quotas_title")}</h1>
-        <p className="text-sm text-gray-400">{t("quotas_team")}</p>
+        <p className="text-sm text-gray-400">{isManagerLevel ? t("quotas_team") : 'Your sales target'}</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        <div className="space-y-3">
-          <TeamSection bu="VGT" quotas={quotas} actuals={actuals} forecast={forecast}
-            onRefresh={load} isAdmin={isAdmin} profile={profile}/>
+      {!isManagerLevel && scopedQuotas.length === 0 ? (
+        <div className="bg-gray-50 rounded-xl p-8 text-center">
+          <p className="text-gray-400 text-sm">No sales target assigned to you yet.</p>
+          <p className="text-gray-300 text-xs mt-1">Contact your manager to set your target.</p>
         </div>
-        <div className="space-y-3 lg:border-l lg:border-gray-100 lg:pl-6">
-          <TeamSection bu="ECT" quotas={quotas} actuals={actuals} forecast={forecast}
-            onRefresh={load} isAdmin={isAdmin} profile={profile}/>
+      ) : (
+        <div className={`grid grid-cols-1 ${visibleBUs.length > 1 ? 'lg:grid-cols-2' : ''} gap-6 items-start`}>
+          {visibleBUs.map((bu, i) => (
+            <div key={bu} className={`space-y-3 ${i > 0 ? 'lg:border-l lg:border-gray-100 lg:pl-6' : ''}`}>
+              <TeamSection bu={bu} quotas={scopedQuotas} actuals={actuals} forecast={forecast}
+                onRefresh={load} isAdmin={isAdmin} profile={profile}/>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
     </div>
   )
 }
