@@ -226,8 +226,11 @@ export default function Deals() {
   return (
     <div className="p-4 space-y-4 max-w-4xl mx-auto">
 
-      {/* Discount approvals — banner + status filter, visible for admin/manager */}
-      {(isAdmin || profile?.role === 'manager') && (() => {
+      {/* Discount tracking — visible for admin/manager AND distributors */}
+      {(() => {
+        const isDistributor = profile?.role === 'distributor'
+        const canApprove = isAdmin || profile?.role === 'manager'
+        if (!canApprove && !isDistributor) return null
         const counts = {
           pending:  rawDeals.filter(d => d.discount_status === 'pending').length,
           approved: rawDeals.filter(d => d.discount_status === 'approved').length,
@@ -243,7 +246,9 @@ export default function Deals() {
                 {counts.pending}
               </span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-800">Discount Approvals</p>
+                <p className="text-sm font-semibold text-gray-800">
+                  {isDistributor ? 'My Discount Requests' : 'Discount Approvals'}
+                </p>
                 {counts.pending > 0 && (
                   <p className="text-[10px] text-purple-600 truncate">
                     {pending.map(d => d.client).filter(Boolean).slice(0, 3).join(', ')}{counts.pending > 3 ? ` +${counts.pending - 3} more` : ''}
