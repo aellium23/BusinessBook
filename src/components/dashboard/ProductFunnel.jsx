@@ -1,42 +1,59 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useDeals } from '../../hooks/useDeals'
 import { supabase } from '../../lib/supabase'
 import { formatK, Spinner } from '../ui'
 import { Package, ChevronRight } from 'lucide-react'
 
-// Stages grouped into funnel buckets
 const PIPELINE_STAGES = ['Lead', 'Pipeline', 'Offer Presented']
 const BACKLOG_STAGES   = ['BackLog']
 const INVOICED_STAGES  = ['Invoiced']
 
 export default function ProductFunnel({ selectedBU = '' }) {
   const navigate = useNavigate()
-  const [rows, setRows] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [groupBy, setGroupBy] = useState('product') // 'product' | 'brand' | 'category'
+  const { deals: allDeals, loading: dealsLoading } = useDeals()
+  const deals = useMemo(() => {
+    let d = allDeals.filter(x => !x.is_intercompany_mirror)
+    if (selectedBU) d = d.filter(x => x.bu === selectedBU)
+    return d
+  }, [allDeals, selectedBU])
+
+  const [lines, setLines] = useState([])
+  const [linesLoading, setLinesLoading] = useState(true)
+  const [groupBy, setGroupBy] = useState('product')
   const [sortBy, setSortBy] = useState('total')
 
+  // Build a deal stage lookup from the same deals the rest of the app uses
+  const dealStage = useMemo(() => {
+    const m = {}
+    for (const d of deals) m[d.id] = d.stage
+    return m
+  }, [deals])
+
+  const dealIds = useMemo(() => deals.map(d => d.id), [deals])
+
   useEffect(() => {
-    let active = true
-    ;(async () => {
-      setLoading(true)
-      // Pull deal product lines joined with their deal (stage/bu) and product (brand/category)
-      const { data } = await supabase
-        .from('deal_products')
-        .select('net_price, product_name, deal:deal_id(stage, bu, is_intercompany_mirror), product:product_id(brand, category, name)')
-      if (!active) return
-      setRows(data || [])
-      setLoading(false)
-    })()
-    return () => { active = false }
-  }, [])
+    if (!dealIds.length) { setLines([]); setLinesLoading(false); return }
+    setLinesLoading(true)
+    // Batch in chunks of 200 to avoid URL-length limits on .in()
+    const chunks = []
+    for (let i = 0; i < dealIds.length; i += 200) chunks.push(dealIds.slice(i, i + 200))
+    Promise.all(chunks.map(ids =>
+      supabase.from('deal_products')
+        .select('deal_id, net_price, product_name, product:product_id(brand, category, name)')
+        .in('deal_id', ids)
+    )).then(results => {
+      const all = results.flatMap(r => r.data || [])
+      setLines(all)
+      setLinesLoading(false)
+    }).catch(() => setLinesLoading(false))
+  }, [dealIds.join(',')])
 
   const grouped = useMemo(() => {
     const map = {}
-    for (const r of rows) {
-      const deal = r.deal
-      if (!deal || deal.is_intercompany_mirror) continue
-      if (selectedBU && deal.bu !== selectedBU) continue
+    for (const r of lines) {
+      const stage = dealStage[r.deal_id]
+      if (!stage) continue
       const key = groupBy === 'brand'    ? (r.product?.brand || 'Fujifilm')
                 : groupBy === 'category' ? (r.product?.category || '—')
                 : (r.product?.name || r.product_name || '—')
@@ -44,9 +61,9 @@ export default function ProductFunnel({ selectedBU = '' }) {
       const net = Number(r.net_price) || 0
       const g = map[key]
       g.count += 1
-      if (PIPELINE_STAGES.includes(deal.stage)) g.pipeline += net
-      else if (BACKLOG_STAGES.includes(deal.stage)) g.backlog += net
-      else if (INVOICED_STAGES.includes(deal.stage)) g.invoiced += net
+      if (PIPELINE_STAGES.includes(stage)) g.pipeline += net
+      else if (BACKLOG_STAGES.includes(stage)) g.backlog += net
+      else if (INVOICED_STAGES.includes(stage)) g.invoiced += net
     }
     const arr = Object.values(map).map(g => ({
       ...g,
@@ -58,7 +75,7 @@ export default function ProductFunnel({ selectedBU = '' }) {
       return b.total - a.total
     })
     return arr
-  }, [rows, groupBy, selectedBU, sortBy])
+  }, [lines, dealStage, groupBy, sortBy])
 
   const totals = useMemo(() => grouped.reduce((a, g) => ({
     pipeline: a.pipeline + g.pipeline,
@@ -68,12 +85,12 @@ export default function ProductFunnel({ selectedBU = '' }) {
   }), { pipeline: 0, backlog: 0, invoiced: 0, total: 0 }), [grouped])
 
   const max = Math.max(1, ...grouped.map(g => g.total))
+  const loading = dealsLoading || linesLoading
 
   if (loading) return <Spinner/>
 
   return (
     <div className="space-y-4">
-      {/* Controls */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex gap-1.5">
           {[
@@ -94,7 +111,6 @@ export default function ProductFunnel({ selectedBU = '' }) {
         </select>
       </div>
 
-      {/* Summary cards */}
       <div className="grid grid-cols-3 gap-2">
         <div className="bg-amber-50 rounded-xl p-3 text-center">
           <p className="text-[10px] text-amber-600 font-semibold uppercase">Pipeline</p>
@@ -110,7 +126,6 @@ export default function ProductFunnel({ selectedBU = '' }) {
         </div>
       </div>
 
-      {/* Per-product breakdown */}
       <div className="space-y-2">
         {grouped.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-8">No product data yet. Add products to deals to see the funnel.</p>
@@ -129,11 +144,10 @@ export default function ProductFunnel({ selectedBU = '' }) {
                 <ChevronRight size={14} className="text-gray-300"/>
               </div>
             </div>
-            {/* Stacked funnel bar */}
             <div className="flex h-3 rounded-full overflow-hidden bg-gray-100" style={{ width: `${Math.max(8, g.total / max * 100)}%` }}>
-              {g.pipeline > 0 && <div className="bg-amber-400" style={{ width: `${g.pipeline / g.total * 100}%` }} title={`Pipeline ${formatK(g.pipeline)}`}/>}
-              {g.backlog > 0 && <div className="bg-purple-400" style={{ width: `${g.backlog / g.total * 100}%` }} title={`BackLog ${formatK(g.backlog)}`}/>}
-              {g.invoiced > 0 && <div className="bg-green-500" style={{ width: `${g.invoiced / g.total * 100}%` }} title={`Invoiced ${formatK(g.invoiced)}`}/>}
+              {g.pipeline > 0 && <div className="bg-amber-400" style={{ width: `${g.pipeline / g.total * 100}%` }}/>}
+              {g.backlog > 0 && <div className="bg-purple-400" style={{ width: `${g.backlog / g.total * 100}%` }}/>}
+              {g.invoiced > 0 && <div className="bg-green-500" style={{ width: `${g.invoiced / g.total * 100}%` }}/>}
             </div>
             <div className="flex gap-3 text-[10px] text-gray-500">
               <span>🟡 Pipe {formatK(g.pipeline)}</span>
