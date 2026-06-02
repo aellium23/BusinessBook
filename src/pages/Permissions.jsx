@@ -701,23 +701,29 @@ function CompaniesSection({ companies, onRefresh }) {
                   </p>
                   {prod.markets.map(m => (
                     <div key={m.id} className="flex items-center gap-2 bg-white rounded-lg px-2 py-1.5">
-                      <span className="text-xs text-gray-700 w-24">{m.country}</span>
-                      <div className="flex-1">
-                        <input className="input text-xs py-0.5 w-20" type="number" step="0.01"
-                          placeholder="Price €"
-                          defaultValue={m.price || ''}
-                          onBlur={async (e) => {
-                            const price = parseFloat(e.target.value) || null
-                            await supabase.from('company_product_authorizations').update({ price }).eq('id', m.id)
-                          }}/>
+                      <span className="text-xs text-gray-700 w-20 shrink-0">{m.country}</span>
+                      <span className="text-xs font-semibold text-green-700 w-16 shrink-0">
+                        {m.price ? `€${Number(m.price).toLocaleString()}` : '—'}
+                      </span>
+                      <div className="flex items-center gap-1 shrink-0 ml-auto">
+                        <button onClick={() => {
+                          const newPrice = prompt(`Price for ${prod.name} in ${m.country} (€):`, m.price || '')
+                          if (newPrice !== null) {
+                            const price = parseFloat(newPrice) || null
+                            supabase.from('company_product_authorizations').update({ price }).eq('id', m.id)
+                              .then(() => loadAuth(editingAuth))
+                          }
+                        }} className="text-gray-400 hover:text-blue-600 p-1 min-h-tap" title="Edit price">
+                          <Edit3 size={11}/>
+                        </button>
+                        <button onClick={() => toggleAuth(m.id, m.active)}
+                          className={`w-6 h-3 rounded-full relative ${m.active ? 'bg-green-400' : 'bg-gray-200'}`}>
+                          <span className={`absolute top-0.5 w-2 h-2 bg-white rounded-full shadow transition-transform ${m.active ? 'translate-x-3' : 'translate-x-0.5'}`}/>
+                        </button>
+                        <button onClick={() => removeAuth(m.id)} className="text-gray-300 hover:text-red-500 p-1" title="Remove">
+                          <Trash2 size={10}/>
+                        </button>
                       </div>
-                      <button onClick={() => toggleAuth(m.id, m.active)}
-                        className={`w-6 h-3 rounded-full relative shrink-0 ${m.active ? 'bg-green-400' : 'bg-gray-200'}`}>
-                        <span className={`absolute top-0.5 w-2 h-2 bg-white rounded-full shadow transition-transform ${m.active ? 'translate-x-3' : 'translate-x-0.5'}`}/>
-                      </button>
-                      <button onClick={() => removeAuth(m.id)} className="text-gray-300 hover:text-red-500 p-0.5">
-                        <Trash2 size={10}/>
-                      </button>
                     </div>
                   ))}
                 </div>
@@ -739,8 +745,14 @@ function CompaniesSection({ companies, onRefresh }) {
                   ))}
                 </select>
                 <div className="grid grid-cols-2 gap-2">
-                  <input className="input text-xs" value={addCountry} onChange={e => setAddCountry(e.target.value)}
-                    placeholder="Country" style={{ fontSize: '16px' }}/>
+                  <select className="select text-xs" value={addCountry} onChange={e => setAddCountry(e.target.value)}>
+                    <option value="">Country…</option>
+                    {['Portugal','Spain','France','Germany','Italy','Netherlands','Belgium','UK','Switzerland','Sweden','Norway','Denmark','Finland','Austria','Poland','Czech Republic','Romania','Greece','Turkey',
+                      'UAE','Saudi Arabia','Qatar','Kuwait','Egypt','Morocco','South Africa','Israel',
+                      'Mexico','Brazil','Argentina','Chile','Colombia','Peru',
+                      'Japan','China','South Korea','Australia','India','Singapore',
+                      'USA','Canada'].map(c => <option key={c}>{c}</option>)}
+                  </select>
                   <input className="input text-xs" id="addAuthPrice" type="number" step="0.01"
                     placeholder="Price € (optional)" style={{ fontSize: '16px' }}/>
                 </div>
