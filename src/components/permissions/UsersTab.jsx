@@ -223,6 +223,20 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
             </button>
           </div>
 
+          {/* Business Unit (direct) */}
+          <div>
+            <label className="label">Business Unit</label>
+            <select className="select text-sm" value={profile.bu || ''}
+              onChange={async (e) => {
+                await supabase.from('profiles').update({ bu: e.target.value || null }).eq('id', profile.id)
+                onSaved()
+              }}>
+              <option value="">— None —</option>
+              <option value="VGT">VGT</option>
+              <option value="ECT">ECT</option>
+            </select>
+          </div>
+
           {/* Company */}
           <div>
             <label className="label">Company</label>
@@ -266,6 +280,7 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
   const [name, setName]       = useState('')
   const [psId, setPsId]       = useState('')
   const [companyId, setComp]  = useState('')
+  const [buSel, setBuSel]     = useState('')  // direct BU override (VGT/ECT)
   const [ownerId, setOwner]   = useState('')
   const [sending, setSending] = useState(false)
   const [result, setResult]   = useState(null)
@@ -275,7 +290,8 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
     setSending(true); setResult(null)
     const ps = permSets.find(p => p.id === psId)
     const co = companies.find(c => c.id === companyId)
-    const bu = co?.type === 'internal_vgt' ? 'VGT' : co?.type === 'internal_ect' ? 'ECT' : co?.bu || null
+    // Direct BU selection takes precedence; otherwise derive from company
+    const bu = buSel || (co?.type === 'internal_vgt' ? 'VGT' : co?.type === 'internal_ect' ? 'ECT' : co?.bu || null)
     // Derivar o role do permission_set para retrocompatibilidade
     const roleMap = {
       'Admin':'admin','Manager':'manager','Member':'member',
@@ -376,7 +392,7 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
         ok: true,
         msg: `Utilizador ${trimmedEmail} criado com sucesso! Foi enviado um email de confirmação.${resetNote}`,
       })
-      setEmail(''); setName(''); setPsId(''); setComp(''); setOwner('')
+      setEmail(''); setName(''); setPsId(''); setComp(''); setBuSel(''); setOwner('')
       onSaved()
     } catch (err) {
       setResult({ ok: false, msg: err.message })
@@ -416,6 +432,15 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
                 </button>
               ))}
             </div>
+          </div>
+          <div>
+            <label className="label">Business Unit</label>
+            <select className="select" value={buSel} onChange={e => setBuSel(e.target.value)}>
+              <option value="">— Derive from company —</option>
+              <option value="VGT">VGT</option>
+              <option value="ECT">ECT</option>
+            </select>
+            <p className="text-[10px] text-gray-400 mt-0.5">Set directly for internal sales (VGT/ECT). Distributors leave empty + pick company.</p>
           </div>
           <div>
             <label className="label">{t('perm_companies')}</label>
