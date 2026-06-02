@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useDeals, deleteDeal, upsertDeal } from '../hooks/useDeals'
+import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { Spinner, EmptyState, formatK } from '../components/ui'
 import DealForm from '../components/DealForm'
@@ -122,6 +123,28 @@ export default function Deals() {
     }
     return d
   }, [rawDeals, slaF, discountF, ownerF, forecastF, periodF, invoicedMonthF.join(','), profile])
+
+  // Map of deal_id → set of non-Fujifilm brands present (for badges)
+  const [dealBrands, setDealBrands] = useState({})
+  useEffect(() => {
+    if (!rawDeals.length) return
+    const ids = rawDeals.map(d => d.id)
+    supabase.from('deal_products').select('deal_id, product:product_id(brand)')
+      .in('deal_id', ids)
+      .then(({ data }) => {
+        if (!data) return
+        const map = {}
+        for (const row of data) {
+          const b = row.product?.brand
+          if (b && b !== 'Fujifilm') {
+            if (!map[row.deal_id]) map[row.deal_id] = new Set()
+            map[row.deal_id].add(b)
+          }
+        }
+        setDealBrands(Object.fromEntries(Object.entries(map).map(([k, v]) => [k, [...v]])))
+      })
+      .catch(() => {})
+  }, [rawDeals])
 
   // Totals computed from the client-side filtered deals (not the hook's raw totals)
   const filteredTotals = useMemo(() => deals.reduce((acc, d) => {
@@ -532,6 +555,7 @@ export default function Deals() {
             <div className="space-y-2">
               {paginated.map(d => (
                 <DealCard key={d.id} deal={d} canEdit={canEditDeal(d)} canDelete={canDelete}
+                  brands={dealBrands[d.id]}
                   onEdit={deal => { setEditDeal(deal); setFormOpen(true) }}
                   onDelete={setConfirmDel}
                 />

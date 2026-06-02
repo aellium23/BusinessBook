@@ -87,7 +87,7 @@ function DiscountChip({ deal }) {
 // Compact by default; taps expand "Details" (extra badges, description,
 // distribution chain, monthly breakdown). Keeps the Monthly toggle as a
 // subset of the full details — one chevron, one state.
-export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete }) {
+export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete, brands }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const fy26 = MONTHS_K.reduce((s, m) => s + (Number(deal[m]) || 0), 0)
@@ -130,6 +130,11 @@ export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete })
             <BUBadge bu={deal.bu} />
             <StageBadge stage={deal.stage} />
             <ForecastBadge deal={deal} />
+            {Array.isArray(brands) && brands.map(b => (
+              <span key={b} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-indigo-100 text-indigo-700">
+                {b}
+              </span>
+            ))}
             {aging !== null && (aging >= 45 || open) && <AgingBadge days={aging} />}
             {isIC && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-vgt/10 text-vgt">
