@@ -289,14 +289,14 @@ export default function DashboardSummary({ selectedBU = '' }) {
   useEffect(() => {
     supabase.from('budget').select('*')
       .then(({ data }) => setBudget(data || []))
-      .catch(e => console.warn('budget:', e?.message))
+      .catch(() => {})
     supabase.from('accounts').select('id, client_type')
       .then(({ data }) => {
         if (data) setAccountTypes(Object.fromEntries(data.map(a => [a.id, a.client_type])))
       }).catch(() => {})
     supabase.from('fy25_actuals').select('*')
       .then(({ data }) => setFy25(data || []))
-      .catch(e => console.warn('fy25:', e?.message))
+      .catch(() => {})
     supabase.from('slas').select('status, annual_value, revenue_by_fy, bu, product')
       .then(({ data }) => {
         if (!data || !Array.isArray(data)) return

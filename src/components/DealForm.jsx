@@ -329,19 +329,19 @@ export default function DealForm({ deal, onClose, onSaved }) {
           setOwners(unique)
         }
       })
-      .catch(e => console.warn('Failed to load quotas:', e?.message))
+      .catch(() => {})
     // Load accounts (for the optional "Account" link). Scoped by RLS to the
     // user's BU server-side, so we don't need to filter here.
     supabase.from('accounts').select('id, name, bu').order('name')
       .then(({ data }) => { if (data) setAccounts(data) })
-      .catch(e => console.warn('Failed to load accounts:', e?.message))
+      .catch(() => {})
     // Load distribution network (new in PR 5)
     supabase.from('distributors').select('id, name, country, region, hub_id').order('name')
       .then(({ data }) => { if (data) setDistributors(data) })
-      .catch(e => console.warn('Failed to load distributors:', e?.message))
+      .catch(() => {})
     supabase.from('regional_hubs').select('id, name, region').order('name')
       .then(({ data }) => { if (data) setHubs(data) })
-      .catch(e => console.warn('Failed to load regional hubs:', e?.message))
+      .catch(() => {})
     supabase.from('products').select('*').eq('active', true).order('sort_order').order('name')
       .then(({ data }) => { if (data) setCatalogProducts(data) })
       .catch(() => {})
@@ -433,7 +433,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
       next_action: nextAction || null,
       next_action_date: nextActionDate || null,
     })
-    if (error) console.warn('Failed to add note:', error.message)
+
     setActNote(''); setNextAction(''); setNextActionDate('')
     setAddingAct(false)
   }

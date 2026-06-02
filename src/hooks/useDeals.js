@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
+import { useToast } from '../components/Toast'
 import { MONTHS_K } from '../constants'
 
 export function useDeals(filters = {}) {
   const { profile, isAdmin } = useAuth()
+  const { showToast } = useToast()
   const [deals, setDeals]     = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(null)
@@ -51,7 +53,7 @@ export function useDeals(filters = {}) {
 
     const { data, error } = await q
     if (!mounted.current) return
-    if (error) setError(error.message)
+    if (error) { setError(error.message); showToast(`Failed to load deals: ${error.message}`, 'error') }
     else { setDeals((data ?? []).filter(d => !d.converted_to_sla)); setError(null) }
     setLoading(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps

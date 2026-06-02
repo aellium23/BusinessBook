@@ -467,7 +467,7 @@ export default function Tenders() {
       dealsQ = dealsQ.eq('company_id', profile.company_id)
     }
     return dealsQ.then(({ data }) => setDeals(data ?? []))
-      .catch(e => console.error('Failed to load deals:', e))
+      .catch(() => {})
   }
 
   useEffect(() => {
@@ -491,7 +491,7 @@ export default function Tenders() {
         return [{ id: match.id, full_name: q.sales_owner, email: match.email, bu: q.bu }]
       })
       setUsers(merged)
-    }).catch(e => console.error('Failed to load collaborators:', e))
+    }).catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id, profile?.role, profile?.company_id])
 

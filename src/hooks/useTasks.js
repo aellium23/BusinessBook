@@ -23,7 +23,7 @@ export function useTasks() {
         .order('deadline', { ascending: true, nullsFirst: false })
       if (!error) setTasks(data ?? [])
     } catch (e) {
-      console.warn('tasks table not ready yet:', e.message)
+      // tasks table not ready yet
     }
     setLoading(false)
   }, [user])
@@ -77,7 +77,7 @@ export function useNotifications() {
         setUnread((data ?? []).filter(n => !n.read).length)
       }
     } catch (e) {
-      console.warn('notifications table not ready yet:', e.message)
+      // notifications table not ready yet
     }
   }, [user])
 
@@ -88,7 +88,7 @@ export function useNotifications() {
       await supabase.from('notifications').update({ read: true }).eq('id', id)
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
       setUnread(u => Math.max(0, u - 1))
-    } catch (e) { console.warn('[notifications]', e?.message) }
+    } catch (e) {}
   }
 
   async function markAllRead() {
@@ -96,7 +96,7 @@ export function useNotifications() {
       await supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false)
       setNotifications(prev => prev.map(n => ({ ...n, read: true })))
       setUnread(0)
-    } catch (e) { console.warn('[notifications]', e?.message) }
+    } catch (e) {}
   }
 
   async function pushNotification({ userId, type, title, body, linkType, linkId }) {
@@ -107,7 +107,7 @@ export function useNotifications() {
         link_type: linkType,
         link_id:   linkId,
       })
-    } catch (e) { console.warn('[notifications]', e?.message) }
+    } catch (e) {}
   }
 
   return { notifications, unread, loading: false, markRead, markAllRead, pushNotification, refetch: fetch }
@@ -141,7 +141,7 @@ export function useTenders(dealId = null) {
       const { data, error } = await q
       if (!error) setTenders(data ?? [])
     } catch (e) {
-      console.warn('tenders table not ready yet:', e.message)
+      // tenders table not ready yet
     }
     setLoading(false)
   }, [user, dealId])

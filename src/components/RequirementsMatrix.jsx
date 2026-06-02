@@ -46,7 +46,7 @@ function ApplyTemplatesModal({ onClose, onApply, existingTitles }) {
       .eq('active', true)
       .order('sort_order')
       .then(({ data, error }) => {
-        if (error) console.warn('templates load failed:', error.message)
+
         const list = data ?? []
         setTemplates(list)
         // Pre-select all templates that aren't already present by title
@@ -54,7 +54,7 @@ function ApplyTemplatesModal({ onClose, onApply, existingTitles }) {
         setSelected(preset)
         setLoading(false)
       })
-      .catch(e => { console.warn('templates load failed:', e.message); setLoading(false) })
+      .catch(() => { setLoading(false) })
   }, [existingTitles])
 
   const filtered = useMemo(() => {

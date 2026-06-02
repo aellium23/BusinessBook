@@ -142,9 +142,6 @@ export default function DealTimeline({ dealId }) {
         .limit(50),
     ]).catch(e => { setError(e.message); return [{},{}, {}] })
 
-    if (act?.error)  console.warn('deal_activities:', act.error.message)
-    if (hist?.error) console.warn('deal_history:', hist.error.message)
-    if (att?.error)  console.warn('attachments:', att.error.message)
 
     setActivities(act?.data ?? [])
     setChanges(hist?.data ?? [])

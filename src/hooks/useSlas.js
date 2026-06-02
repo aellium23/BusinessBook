@@ -23,7 +23,7 @@ export function useSlas(filters = {}) {
       q = q.eq('bu', profile.bu)
     }
     const { data, error } = await q
-    if (error) console.warn('useSlas:', error.message)
+
     setSlas(data || [])
     setLoading(false)
   }, [profile?.id, profile?.role, profile?.bu, isAdmin,

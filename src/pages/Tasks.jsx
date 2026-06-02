@@ -438,7 +438,7 @@ export default function Tasks() {
         return (a.full_name || '').localeCompare(b.full_name || '')
       })
       setUsers(all)
-    }).catch(e => console.error('Failed to load assignees:', e))
+    }).catch(() => {})
 
     supabase.from('deals').select('id, client, bu').order('client')
       .then(({ data }) => setDeals(data ?? []))

@@ -1,31 +1,33 @@
+import React, { Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { SettingsProvider } from './hooks/useSettings'
+import { ToastProvider } from './components/Toast'
 import ErrorBoundary from './components/ErrorBoundary'
 import Layout from './components/Layout'
-import Login from './pages/Login'
-import DashboardIndex from './pages/DashboardIndex'
-import Deals from './pages/Deals'
-import History from './pages/History'
-import Clients from './pages/Clients'
-import Contacts from './pages/Contacts'
-import Accounts from './pages/Accounts'
-import WhiteSpace from './pages/WhiteSpace'
-import AuditLog from './pages/AuditLog'
-import Network from './pages/Network'
-import Quotas from './pages/Quotas'
-import Budget from './pages/Budget'
-import Settings from './pages/Settings'
-import MyAccount from './pages/MyAccount'
-import Tasks from './pages/Tasks'
-import Tenders from './pages/Tenders'
-import SLAs from './pages/SLAs'
-import Products from './pages/Products'
 import { Spinner } from './components/ui'
-import AuthCallback from './pages/AuthCallback'
-import SetPassword from './pages/SetPassword'
 
-import Permissions from './pages/Permissions'
+const Login = React.lazy(() => import('./pages/Login'))
+const DashboardIndex = React.lazy(() => import('./pages/DashboardIndex'))
+const Deals = React.lazy(() => import('./pages/Deals'))
+const History = React.lazy(() => import('./pages/History'))
+const Clients = React.lazy(() => import('./pages/Clients'))
+const Contacts = React.lazy(() => import('./pages/Contacts'))
+const Accounts = React.lazy(() => import('./pages/Accounts'))
+const WhiteSpace = React.lazy(() => import('./pages/WhiteSpace'))
+const AuditLog = React.lazy(() => import('./pages/AuditLog'))
+const Network = React.lazy(() => import('./pages/Network'))
+const Quotas = React.lazy(() => import('./pages/Quotas'))
+const Budget = React.lazy(() => import('./pages/Budget'))
+const Settings = React.lazy(() => import('./pages/Settings'))
+const MyAccount = React.lazy(() => import('./pages/MyAccount'))
+const Tasks = React.lazy(() => import('./pages/Tasks'))
+const Tenders = React.lazy(() => import('./pages/Tenders'))
+const SLAs = React.lazy(() => import('./pages/SLAs'))
+const Products = React.lazy(() => import('./pages/Products'))
+const AuthCallback = React.lazy(() => import('./pages/AuthCallback'))
+const SetPassword = React.lazy(() => import('./pages/SetPassword'))
+const Permissions = React.lazy(() => import('./pages/Permissions'))
 
 function Guard({ page, element }) {
   const { canAccessPage } = useAuth()
@@ -42,19 +44,22 @@ function AppRoutes() {
   )
 
   // Rotas de auth — acessíveis sem sessão
-  if (!user) return (
-    <Routes>
-      <Route path="/login"           element={<Login />} />
-      <Route path="/auth/callback"   element={<AuthCallback />} />
-      <Route path="/auth/set-password" element={<SetPassword />} />
-      <Route path="*"                element={<Navigate to="/login" replace />} />
-    </Routes>
-  )
+  const fallback = <div className="flex items-center justify-center h-screen"><Spinner /></div>
 
-  // Rotas auth acessíveis mesmo com sessão (ex: set-password após invite)
+  if (!user) return (
+    <Suspense fallback={fallback}>
+      <Routes>
+        <Route path="/login"           element={<Login />} />
+        <Route path="/auth/callback"   element={<AuthCallback />} />
+        <Route path="/auth/set-password" element={<SetPassword />} />
+        <Route path="*"                element={<Navigate to="/login" replace />} />
+      </Routes>
+    </Suspense>
+  )
 
   return (
     <Layout>
+      <Suspense fallback={fallback}>
         <Routes>
           <Route path="/"             element={<Guard page="dashboard"   element={<DashboardIndex />} />} />
           <Route path="/deals"        element={<Guard page="deals"       element={<Deals />} />} />
@@ -64,7 +69,7 @@ function AppRoutes() {
           <Route path="/whitespace"   element={<Guard page="whitespace"  element={<WhiteSpace />} />} />
           <Route path="/network"      element={<Guard page="network"     element={<Network />} />} />
           <Route path="/sla"          element={<Guard page="sla"         element={<SLAs />} />} />
-          <Route path="/products"    element={<Guard page="products"    element={<Products />} />} />
+          <Route path="/products"     element={<Guard page="products"    element={<Products />} />} />
           <Route path="/audit"        element={<Guard page="audit"       element={<AuditLog />} />} />
           <Route path="/history"      element={<Guard page="history"     element={<History />} />} />
           <Route path="/quotas"       element={<Guard page="quotas"      element={<Quotas />} />} />
@@ -79,7 +84,7 @@ function AppRoutes() {
           <Route path="/login"              element={<Navigate to="/" replace />} />
           <Route path="*"             element={<Navigate to="/" replace />} />
         </Routes>
-      
+      </Suspense>
     </Layout>
   )
 }
@@ -90,7 +95,9 @@ export default function App() {
       <BrowserRouter>
         <AuthProvider>
           <SettingsProvider>
-            <AppRoutes />
+            <ToastProvider>
+              <AppRoutes />
+            </ToastProvider>
           </SettingsProvider>
         </AuthProvider>
       </BrowserRouter>

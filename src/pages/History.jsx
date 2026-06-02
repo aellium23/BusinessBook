@@ -40,11 +40,11 @@ function DistributorHistory({ profile }) {
       .eq('company_id', profile.company_id)
       .eq('is_intercompany_mirror', false)
       .then(({ data, error }) => {
-        if (error) console.warn('Failed to load history deals:', error.message)
+
         setDeals(data || [])
         setLoading(false)
       })
-      .catch(e => { console.warn('Failed to load history deals:', e?.message); setLoading(false) })
+      .catch(() => { setLoading(false) })
   }, [profile])
 
   const { invoiced, byClient, monthly } = useMemo(() => {
@@ -163,11 +163,11 @@ export default function History() {
   useEffect(() => {
     supabase.from('fy25_actuals').select('*')
       .then(({ data, error }) => {
-        if (error) console.warn('Failed to load FY25 actuals:', error.message)
+
         setFy25(data || [])
         setLoading(false)
       })
-      .catch(e => { console.warn('Failed to load FY25 actuals:', e?.message); setLoading(false) })
+      .catch(() => { setLoading(false) })
   }, [])
 
   const get = (bu, pl, month) => {

@@ -78,7 +78,7 @@ export function AuthProvider({ children }) {
       .single()
 
     if (error) {
-      console.error('loadProfile: failed to fetch profile', error)
+
       // Fallback so loading never stays true forever
       setProfile({ id: userId, email: userEmail, role: 'viewer' })
       setCompany(null); setPermSet(null)

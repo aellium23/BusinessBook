@@ -110,12 +110,12 @@ export default function Budget() {
   useEffect(() => {
     supabase.from('budget').select("*")
       .then(({ data, error }) => {
-        if (error) console.warn('Failed to load budget:', error.message)
+
         setRows(data || [])
         setLoading(false)
       })
       .catch(e => {
-        console.warn('Failed to load budget:', e?.message)
+
         setLoading(false)
       })
     supabase.from('forecast_snapshots').select('*').order('created_at', { ascending: false })

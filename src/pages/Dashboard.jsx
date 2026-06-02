@@ -238,7 +238,7 @@ function DistributorDashboard({ deals, profile }) {
         .eq('company_id', profile.company_id)
         .single()
         .then(({ data }) => { if (data?.target_eur) setQuotaTarget(data.target_eur) })
-        .catch(e => console.warn('Failed to load distributor quota:', e?.message))
+        .catch(() => {})
     }
   }, [profile])
 
@@ -424,10 +424,10 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
   useEffect(() => {
     supabase.from('budget').select('*')
       .then(({ data }) => setBudget(data || []))
-      .catch(e => console.warn('Failed to load budget:', e?.message))
+      .catch(() => {})
     supabase.from('fy25_actuals').select('*')
       .then(({ data }) => setFy25(data || []))
-      .catch(e => console.warn('Failed to load FY25 actuals:', e?.message))
+      .catch(() => {})
     supabase.from('forecast_snapshots').select('*').order('created_at', { ascending: false })
       .then(({ data }) => { if (data) setFctSnapshots(data) })
       .catch(() => {})

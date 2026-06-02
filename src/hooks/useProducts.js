@@ -18,7 +18,7 @@ export function useProducts(filters = {}) {
       q = q.or(`name.ilike.%${safe}%,sku.ilike.%${safe}%,description.ilike.%${safe}%,category.ilike.%${safe}%`)
     }
     const { data, error } = await q
-    if (error) console.warn('useProducts:', error.message)
+
     setProducts(data || [])
     setLoading(false)
   }, [filters.category, filters.bu, filters.active, filters.search])

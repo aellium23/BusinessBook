@@ -1115,7 +1115,7 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
       if (resetError) {
         // Non-fatal: profile was created, user just won't get the reset email now.
         // They can use "Forgot password" on the login page later.
-        console.warn('Password reset email failed (likely rate-limited):', resetError.message)
+
       }
 
       const resetNote = resetError
