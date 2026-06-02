@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useTranslation } from '../../hooks/useTranslation'
+import { Modal } from '../ui'
 import {
   Building2, Plus, Edit3, Trash2, X, Target, Check
 } from 'lucide-react'
@@ -8,9 +9,9 @@ import {
 const COMPANY_TYPES = {
   internal_vgt: { label:'VGT (Portugal)', icon:'🇵🇹' },
   internal_ect: { label:'ECT (Spain)',    icon:'🇪🇸' },
-  distributor:  { label:'Distribuidor',   icon:'🤝' },
-  partner:      { label:'Parceiro',       icon:'🏢' },
-  client:       { label:'Cliente',        icon:'🏥' },
+  distributor:  { label:'Distributor',    icon:'🤝' },
+  partner:      { label:'Partner',        icon:'🏢' },
+  client:       { label:'Client',         icon:'🏥' },
 }
 
 // ── Empresas ──────────────────────────────────────────────────────────────────
@@ -80,10 +81,10 @@ function CompaniesSection({ companies, onRefresh }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-bold text-gray-700 flex items-center gap-2">
-          <Building2 size={15} className="text-navy"/>Empresas
+          <Building2 size={15} className="text-navy"/>{t('perm_companies')}
         </h2>
         <button onClick={() => setAdding(o => !o)} className="btn-primary text-xs gap-1">
-          <Plus size={12}/> Nova empresa
+          <Plus size={12}/> {t('perm_new_company') || 'New company'}
         </button>
       </div>
 
@@ -106,13 +107,13 @@ function CompaniesSection({ companies, onRefresh }) {
               </select>
             </div>
             <div>
-              <label className="label">País</label>
+              <label className="label">{t('perm_country') || 'Country'}</label>
               <input className="input" value={form.country}
                 onChange={e => setForm(f => ({...f, country: e.target.value}))}
                 placeholder={t('perm_country_ph')} style={{fontSize:'16px'}}/>
             </div>
             <div>
-              <label className="label">Default Currency</label>
+              <label className="label">{t('perm_currency') || 'Default Currency'}</label>
               <select className="select" value={form.default_currency}
                 onChange={e => setForm(f => ({...f, default_currency: e.target.value}))}>
                 <option value="EUR">EUR</option>
@@ -122,10 +123,10 @@ function CompaniesSection({ companies, onRefresh }) {
             </div>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setAdding(false)} className="btn-secondary flex-1 text-xs">Cancelar</button>
+            <button onClick={() => setAdding(false)} className="btn-secondary flex-1 text-xs">{t('cancel') || 'Cancel'}</button>
             <button onClick={handleAdd} disabled={!form.name.trim() || saving}
               className="btn-primary flex-1 text-xs">
-              {saving ? 'A guardar…' : 'Adicionar'}
+              {saving ? '…' : t('save') || 'Save'}
             </button>
           </div>
         </div>
@@ -139,7 +140,7 @@ function CompaniesSection({ companies, onRefresh }) {
               <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
                 <span>{cfg.icon}</span>
                 <p className="text-xs font-bold text-gray-700">{cfg.label}</p>
-                <span className="ml-auto text-xs text-gray-400">{list.filter(c=>c.active).length} activas</span>
+                <span className="ml-auto text-xs text-gray-400">{list.filter(c=>c.active).length}</span>
               </div>
               {list.map(co => (
                 <div key={co.id} className={`px-3 py-2.5 flex items-center gap-2 border-b border-gray-50 last:border-0 ${!co.active ? 'opacity-40' : ''}`}>
@@ -175,26 +176,17 @@ function CompaniesSection({ companies, onRefresh }) {
       </div>
 
       {/* Product Authorization Modal */}
-      {editingAuth && (() => {
-        const byProduct = {}
-        authProducts.forEach(ap => {
-          const pid = ap.product_id
-          if (!byProduct[pid]) byProduct[pid] = { name: ap.product?.name || '—', sku: ap.product?.sku, markets: [] }
-          byProduct[pid].markets.push(ap)
-        })
-        return (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setEditingAuth(null)}/>
-          <div className="relative bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-3xl shadow-2xl flex flex-col" style={{ maxHeight: '90dvh' }}>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <div>
-                <h3 className="font-semibold text-sm text-gray-900">{editingAuth.name}</h3>
-                <p className="text-[10px] text-gray-400">Authorized Products & Markets · {authProducts.length} authorizations</p>
-              </div>
-              <button onClick={() => setEditingAuth(null)} className="text-gray-400 hover:text-gray-600 p-1"><X size={16}/></button>
-            </div>
-            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-              {/* Existing authorizations grouped by product */}
+      {editingAuth && <Modal open onClose={() => setEditingAuth(null)}
+        title={`${editingAuth.name} — ${t('perm_auth_products') || 'Authorized Products'}`}>
+        {(() => {
+          const byProduct = {}
+          authProducts.forEach(ap => {
+            const pid = ap.product_id
+            if (!byProduct[pid]) byProduct[pid] = { name: ap.product?.name || '—', sku: ap.product?.sku, markets: [] }
+            byProduct[pid].markets.push(ap)
+          })
+          return (
+            <div className="space-y-3">
               {Object.entries(byProduct).length > 0 ? Object.entries(byProduct).map(([pid, prod]) => (
                 <div key={pid} className="bg-gray-50 rounded-xl p-3 space-y-2">
                   <p className="text-xs font-semibold text-gray-800">{prod.name}
@@ -202,41 +194,38 @@ function CompaniesSection({ companies, onRefresh }) {
                   </p>
                   {prod.markets.map(m => (
                     <div key={m.id} className="flex items-center gap-2 bg-white rounded-lg px-2 py-1.5">
-                      <span className="text-xs text-gray-700 w-20 shrink-0">{m.country}</span>
-                      <span className="text-xs font-semibold text-green-700 w-16 shrink-0">
+                      <span className="text-xs text-gray-700 flex-1">{m.country}</span>
+                      <span className="text-xs font-semibold text-green-700 shrink-0">
                         {m.price ? `€${Number(m.price).toLocaleString()}` : '—'}
                       </span>
-                      <div className="flex items-center gap-1 shrink-0 ml-auto">
-                        <button onClick={() => {
-                          const newPrice = prompt(`Price for ${prod.name} in ${m.country} (€):`, m.price || '')
-                          if (newPrice !== null) {
-                            const price = parseFloat(newPrice) || null
-                            supabase.from('company_product_authorizations').update({ price }).eq('id', m.id)
-                              .then(() => loadAuth(editingAuth))
-                          }
-                        }} className="text-gray-400 hover:text-blue-600 p-1 min-h-tap" title="Edit price">
-                          <Edit3 size={11}/>
-                        </button>
-                        <button onClick={() => toggleAuth(m.id, m.active)}
-                          className={`w-6 h-3 rounded-full relative ${m.active ? 'bg-green-400' : 'bg-gray-200'}`}>
-                          <span className={`absolute top-0.5 w-2 h-2 bg-white rounded-full shadow transition-transform ${m.active ? 'translate-x-3' : 'translate-x-0.5'}`}/>
-                        </button>
-                        <button onClick={() => removeAuth(m.id)} className="text-gray-300 hover:text-red-500 p-1" title="Remove">
-                          <Trash2 size={10}/>
-                        </button>
-                      </div>
+                      <button onClick={() => {
+                        const newPrice = prompt(`Price for ${prod.name} in ${m.country} (€):`, m.price || '')
+                        if (newPrice !== null) {
+                          const price = parseFloat(newPrice) || null
+                          supabase.from('company_product_authorizations').update({ price }).eq('id', m.id)
+                            .then(() => loadAuth(editingAuth))
+                        }
+                      }} className="text-gray-400 hover:text-blue-600 p-1.5 min-h-tap min-w-tap">
+                        <Edit3 size={12}/>
+                      </button>
+                      <button onClick={() => toggleAuth(m.id, m.active)}
+                        className={`w-7 h-4 rounded-full relative shrink-0 ${m.active !== false ? 'bg-green-400' : 'bg-gray-200'}`}>
+                        <span className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${m.active !== false ? 'translate-x-3' : 'translate-x-0.5'}`}/>
+                      </button>
+                      <button onClick={() => removeAuth(m.id)} className="text-gray-300 hover:text-red-500 p-1.5 min-h-tap min-w-tap">
+                        <Trash2 size={12}/>
+                      </button>
                     </div>
                   ))}
                 </div>
               )) : (
-                <p className="text-xs text-gray-400 text-center py-4">No products authorized yet</p>
+                <p className="text-xs text-gray-400 text-center py-4">{t('perm_no_auth') || 'No products authorized yet'}</p>
               )}
 
-              {/* Add new authorization */}
               <div className="border-t pt-3 space-y-2">
-                <p className="text-[10px] font-semibold text-gray-500 uppercase">Add Product Authorization</p>
-                <select className="select text-xs" value={addProd} onChange={e => setAddProd(e.target.value)}>
-                  <option value="">Select product…</option>
+                <p className="text-[10px] font-semibold text-gray-500 uppercase">{t('perm_add_auth') || 'Add Product Authorization'}</p>
+                <select className="select text-xs" value={addProd} onChange={e => setAddProd(e.target.value)} style={{fontSize:'16px'}}>
+                  <option value="">{t('perm_select_product') || 'Select product…'}</option>
                   {Object.entries(
                     catalogProducts.reduce((g, p) => { (g[p.category] = g[p.category] || []).push(p); return g }, {})
                   ).map(([cat, prods]) => (
@@ -245,9 +234,9 @@ function CompaniesSection({ companies, onRefresh }) {
                     </optgroup>
                   ))}
                 </select>
-                <div className="grid grid-cols-2 gap-2">
-                  <select className="select text-xs" value={addCountry} onChange={e => setAddCountry(e.target.value)}>
-                    <option value="">Country…</option>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <select className="select text-xs" value={addCountry} onChange={e => setAddCountry(e.target.value)} style={{fontSize:'16px'}}>
+                    <option value="">{t('perm_country') || 'Country'}…</option>
                     {['Portugal','Spain','France','Germany','Italy','Netherlands','Belgium','UK','Switzerland','Sweden','Norway','Denmark','Finland','Austria','Poland','Czech Republic','Romania','Greece','Turkey',
                       'UAE','Saudi Arabia','Qatar','Kuwait','Egypt','Morocco','South Africa','Israel',
                       'Mexico','Brazil','Argentina','Chile','Colombia','Peru',
@@ -255,7 +244,7 @@ function CompaniesSection({ companies, onRefresh }) {
                       'USA','Canada'].map(c => <option key={c}>{c}</option>)}
                   </select>
                   <input className="input text-xs" id="addAuthPrice" type="number" step="0.01"
-                    placeholder="Price € (optional)" style={{ fontSize: '16px' }}/>
+                    placeholder={`${t('perm_price') || 'Price'} € (${t('optional') || 'optional'})`} style={{ fontSize: '16px' }}/>
                 </div>
                 <button onClick={async () => {
                   if (!addProd || !addCountry || !editingAuth) return
@@ -268,14 +257,13 @@ function CompaniesSection({ companies, onRefresh }) {
                   loadAuth(editingAuth)
                 }} disabled={!addProd || !addCountry}
                   className="btn-primary text-xs w-full disabled:opacity-30">
-                  <Plus size={12}/> Authorize
+                  <Plus size={12}/> {t('perm_authorize') || 'Authorize'}
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-        )
-      })()}
+          )
+        })()}
+      </Modal>}
     </div>
   )
 }
@@ -331,14 +319,14 @@ function SalesTargetsSection({ companies, onRefresh }) {
     <div className="space-y-4">
       <div>
         <h2 className="text-sm font-bold text-gray-700 flex items-center gap-2">
-          <Target size={15} className="text-navy"/>Sales Targets por empresa
+          <Target size={15} className="text-navy"/>{t('perm_sales_targets') || 'Sales Targets'}
         </h2>
-        <p className="text-xs text-gray-400 mt-0.5">Objetivo anual FY26 para distribuidores e parceiros.</p>
+        <p className="text-xs text-gray-400 mt-0.5">{t('perm_targets_desc') || 'Annual targets for distributors and partners'}</p>
       </div>
 
       {distCompanies.length === 0 ? (
         <div className="bg-gray-50 rounded-xl p-8 text-center">
-          <p className="text-gray-400 text-sm">Sem distribuidores activos.</p>
+          <p className="text-gray-400 text-sm">{t('perm_no_distributors') || 'No active distributors'}</p>
         </div>
       ) : (
         <div className="space-y-2">
