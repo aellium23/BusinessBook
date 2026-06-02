@@ -145,7 +145,7 @@ export default function Clients() {
   useEffect(() => {
     Promise.all([
       supabase.from('accounts').select('*').order('name'),
-      supabase.from('deals').select('id, client, account_id, bu, stage, value_total, is_sla, region, country').eq('is_intercompany_mirror', false),
+      supabase.from('deals').select('*').eq('is_intercompany_mirror', false),
       supabase.from('distributors').select('id, name, country, region').order('name'),
     ]).then(([aRes, dRes, distRes]) => {
       setAccounts(aRes.data || [])
@@ -328,7 +328,7 @@ export default function Clients() {
                           d.stage === 'Lost' ? 'bg-red-100 text-red-600' :
                           'bg-amber-100 text-amber-700'
                         }`}>{d.stage}</span>
-                        <span className="text-xs text-gray-700 truncate">{d.description || d.product || '—'}</span>
+                        <span className="text-xs text-gray-700 truncate">{d.description || d.product || d.sales_owner || '—'}</span>
                       </div>
                       <span className="text-xs font-semibold text-gray-800 shrink-0 ml-2">{formatK(Number(d.value_total) || 0)}</span>
                     </button>
