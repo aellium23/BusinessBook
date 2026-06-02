@@ -40,13 +40,28 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
     // Determine which brands are in this deal (from its products)
     const { data: dps } = await supabase.from('deal_products')
       .select('product_id').eq('deal_id', dealId)
+    let brands = []
     if (dps?.length) {
       const ids = dps.map(d => d.product_id).filter(Boolean)
       if (ids.length) {
         const { data: prods } = await supabase.from('products').select('brand').in('id', ids)
-        const brands = [...new Set((prods || []).map(p => p.brand || 'Fujifilm'))]
+        brands = [...new Set((prods || []).map(p => p.brand || 'Fujifilm'))]
         setDealBrands(brands)
         if (brands.length === 1) setBrand(brands[0])
+      }
+    }
+    // Self-heal: if the deal has a single brand and a pending request was
+    // created with a wrong/missing brand (e.g. product brand set later),
+    // correct it so it routes to the right approver.
+    if (brands.length === 1) {
+      const stale = (data || []).filter(r => r.status === 'pending' && r.brand !== brands[0])
+      if (stale.length) {
+        await Promise.all(stale.map(r =>
+          supabase.from('deal_discount_requests').update({ brand: brands[0] }).eq('id', r.id)
+        ))
+        const { data: refreshed } = await supabase.from('deal_discount_requests')
+          .select('*').eq('deal_id', dealId).order('created_at', { ascending: false })
+        setRequests(refreshed || [])
       }
     }
     setLoading(false)
