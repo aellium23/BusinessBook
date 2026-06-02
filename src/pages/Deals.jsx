@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useDeals, deleteDeal, upsertDeal } from '../hooks/useDeals'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
@@ -72,6 +73,7 @@ export default function Deals() {
   const [discountF, setDiscountF] = useState('') // '' | 'pending' | 'approved' | 'rejected' | 'any'
   const [brandF, setBrandF]       = useState('')  // '' | 'Fujifilm' | 'Medsky' | etc.
   const [productF, setProductF]   = useState('')  // '' | product name
+  const [categoryF, setCategoryF] = useState('')  // '' | category name
   const [periodF, setPeriodF]   = useState(0)   // dias; 0 = todos
   const [pageSize, setPageSize]             = useState(5)
   const [page, setPage]                     = useState(1)
@@ -98,6 +100,22 @@ export default function Deals() {
   const [confirmDel, setConfirmDel] = useState(null)
   const [showFilters, setShowFilters] = useState(false)
 
+  // Apply filters coming from the Product Funnel (deep-link), e.g. /deals?product=SYNAPSE VNA
+  const [searchParams, setSearchParams] = useSearchParams()
+  useEffect(() => {
+    const product = searchParams.get('product')
+    const brand = searchParams.get('brand')
+    const category = searchParams.get('category')
+    if (product || brand || category) {
+      if (product) setProductF(product)
+      if (brand) setBrandF(brand)
+      if (category) setCategoryF(category)
+      setShowFilters(true)
+      setSearchParams({}, { replace: true })  // clear params after applying
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const { deals: rawDeals, loading, refetch } = useDeals({
     stage:  stageF  || undefined,
     region: regionF || undefined,
@@ -105,9 +123,10 @@ export default function Deals() {
     search: debouncedSearch || undefined,
   })
 
-  // Map of deal_id → brands[] and deal_id → product names[] (for filtering)
+  // Map of deal_id → brands[] / product names[] / categories[] (for filtering)
   const [dealBrands, setDealBrands] = useState({})
   const [dealProducts, setDealProducts] = useState({})
+  const [dealCategories, setDealCategories] = useState({})
 
   // Filtros client-side adicionais
   const deals = useMemo(() => {
@@ -129,27 +148,31 @@ export default function Deals() {
     }
     if (brandF) d = d.filter(x => (dealBrands[x.id] || ['Fujifilm']).includes(brandF))
     if (productF) d = d.filter(x => (dealProducts[x.id] || []).some(p => p === productF))
+    if (categoryF) d = d.filter(x => (dealCategories[x.id] || []).includes(categoryF))
     return d
-  }, [rawDeals, slaF, discountF, ownerF, forecastF, periodF, invoicedMonthF.join(','), brandF, productF, dealBrands, dealProducts, profile])
+  }, [rawDeals, slaF, discountF, ownerF, forecastF, periodF, invoicedMonthF.join(','), brandF, productF, categoryF, dealBrands, dealProducts, dealCategories, profile])
 
   useEffect(() => {
     if (!rawDeals.length) return
     const ids = rawDeals.map(d => d.id)
-    supabase.from('deal_products').select('deal_id, product_name, product:product_id(brand, name)')
+    supabase.from('deal_products').select('deal_id, product_name, product:product_id(brand, name, category)')
       .in('deal_id', ids)
       .then(({ data }) => {
         if (!data) return
-        const bMap = {}, pMap = {}
+        const bMap = {}, pMap = {}, cMap = {}
         for (const row of data) {
           const b = row.product?.brand || 'Fujifilm'
           const pName = row.product?.name || row.product_name || ''
+          const cat = row.product?.category
           if (!bMap[row.deal_id]) bMap[row.deal_id] = new Set()
           bMap[row.deal_id].add(b)
           if (!pMap[row.deal_id]) pMap[row.deal_id] = new Set()
           if (pName) pMap[row.deal_id].add(pName)
+          if (cat) { if (!cMap[row.deal_id]) cMap[row.deal_id] = new Set(); cMap[row.deal_id].add(cat) }
         }
         setDealBrands(Object.fromEntries(Object.entries(bMap).map(([k, v]) => [k, [...v]])))
         setDealProducts(Object.fromEntries(Object.entries(pMap).map(([k, v]) => [k, [...v]])))
+        setDealCategories(Object.fromEntries(Object.entries(cMap).map(([k, v]) => [k, [...v]])))
       })
       .catch(() => {})
   }, [rawDeals])
@@ -226,7 +249,7 @@ export default function Deals() {
   }, [rawDeals])
 
   // Contagem de filtros activos
-  const activeFilters = [search, stageF, regionF, buF, ownerF, forecastF, slaF, discountF, brandF, productF, periodF > 0, invoicedMonthF.length > 0].filter(Boolean).length
+  const activeFilters = [search, stageF, regionF, buF, ownerF, forecastF, slaF, discountF, brandF, productF, categoryF, periodF > 0, invoicedMonthF.length > 0].filter(Boolean).length
 
   // Drag-drop on the Kanban: moving a card across stages
   async function handleStageChange(dealId, newStage) {
@@ -532,7 +555,7 @@ export default function Deals() {
             {activeFilters > 0 && (
               <button onClick={() => {
                 setSearch(''); setStageF(''); setRegionF(''); setBuF('')
-                setOwnerF(''); setForecastF(''); setSlaF(false); setDiscountF(''); setBrandF(''); setProductF(''); setPeriodF(0); setInvoicedMonthF([]); resetPage()
+                setOwnerF(''); setForecastF(''); setSlaF(false); setDiscountF(''); setBrandF(''); setProductF(''); setCategoryF(''); setPeriodF(0); setInvoicedMonthF([]); resetPage()
               }} className="text-xs text-red-500 hover:text-red-700 font-medium">
                 {t("deals_clear_filters")}
               </button>

@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { formatK, Spinner } from '../ui'
-import { Package, TrendingUp } from 'lucide-react'
+import { Package, ChevronRight } from 'lucide-react'
 
 // Stages grouped into funnel buckets
 const PIPELINE_STAGES = ['Lead', 'Pipeline', 'Offer Presented']
@@ -9,6 +10,7 @@ const BACKLOG_STAGES   = ['BackLog']
 const INVOICED_STAGES  = ['Invoiced']
 
 export default function ProductFunnel({ selectedBU = '' }) {
+  const navigate = useNavigate()
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [groupBy, setGroupBy] = useState('product') // 'product' | 'brand' | 'category'
@@ -113,14 +115,19 @@ export default function ProductFunnel({ selectedBU = '' }) {
         {grouped.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-8">No product data yet. Add products to deals to see the funnel.</p>
         ) : grouped.map(g => (
-          <div key={g.name} className="bg-white border border-gray-200 rounded-xl p-3 space-y-2">
+          <button key={g.name} type="button"
+            onClick={() => navigate(`/deals?${groupBy}=${encodeURIComponent(g.name)}`)}
+            className="w-full text-left bg-white border border-gray-200 rounded-xl p-3 space-y-2 hover:border-navy hover:shadow-sm transition-all">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <Package size={13} className="text-gray-400 shrink-0"/>
                 <p className="text-sm font-semibold text-gray-900 truncate">{g.name}</p>
                 <span className="text-[10px] text-gray-400">({g.count})</span>
               </div>
-              <span className="text-sm font-bold text-gray-900 shrink-0">{formatK(g.total)}</span>
+              <div className="flex items-center gap-1 shrink-0">
+                <span className="text-sm font-bold text-gray-900">{formatK(g.total)}</span>
+                <ChevronRight size={14} className="text-gray-300"/>
+              </div>
             </div>
             {/* Stacked funnel bar */}
             <div className="flex h-3 rounded-full overflow-hidden bg-gray-100" style={{ width: `${Math.max(8, g.total / max * 100)}%` }}>
@@ -133,7 +140,7 @@ export default function ProductFunnel({ selectedBU = '' }) {
               <span>🟣 BL {formatK(g.backlog)}</span>
               <span>🟢 Inv {formatK(g.invoiced)}</span>
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>
