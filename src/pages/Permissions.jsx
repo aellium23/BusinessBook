@@ -397,6 +397,20 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
   const [ownerId, setOwner] = useState(profile.sales_owner_id || '')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved]   = useState(false)
+  const [pwdMsg, setPwdMsg] = useState(null)
+
+  async function handleResetPwd() {
+    if (!confirm(`Send password reset email to ${profile.email}?`)) return
+    setPwdMsg('Sending...')
+    try {
+      const { error } = await anonClient.auth.resetPasswordForEmail(profile.email, {
+        redirectTo: `${window.location.origin}/auth/set-password`,
+      })
+      if (error) setPwdMsg(`Error: ${error.message}`)
+      else setPwdMsg('Reset email sent! User will receive a link to set their password.')
+    } catch (e) { setPwdMsg(`Error: ${e.message}`) }
+    setTimeout(() => setPwdMsg(null), 5000)
+  }
 
   const company = companies.find(c => c.id === profile.company_id)
   const ps = permSets.find(p => p.id === (profile.permission_set_id || psId))
@@ -522,6 +536,28 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
               className={`w-10 h-5 rounded-full transition-colors relative ${active ? 'bg-green-400' : 'bg-gray-200'} disabled:opacity-40`}>
               <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${active ? 'translate-x-5' : 'translate-x-0.5'}`}/>
             </button>
+          </div>
+
+          {/* Company */}
+          <div>
+            <label className="label">Company</label>
+            <select className="select text-sm" value={profile.company_id || ''}
+              onChange={async (e) => {
+                await supabase.from('profiles').update({ company_id: e.target.value || null }).eq('id', profile.id)
+                onSaved()
+              }}>
+              <option value="">— No company —</option>
+              {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+
+          {/* Reset Password */}
+          <div>
+            <button onClick={handleResetPwd} disabled={isSelf}
+              className="text-xs text-blue-600 hover:text-blue-800 underline disabled:opacity-40">
+              Send password reset email
+            </button>
+            {pwdMsg && <p className="text-[10px] text-green-600 mt-0.5">{pwdMsg}</p>}
           </div>
 
           <div className="flex gap-2">
