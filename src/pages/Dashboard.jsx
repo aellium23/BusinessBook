@@ -237,8 +237,10 @@ function DistributorDashboard({ deals, profile }) {
       supabase.from('quotas')
         .select('target_eur')
         .eq('company_id', profile.company_id)
-        .single()
-        .then(({ data }) => { if (data?.target_eur) setQuotaTarget(data.target_eur) })
+        .limit(1)
+        .then(({ data }) => {
+          if (data && data.length > 0 && data[0].target_eur) setQuotaTarget(Number(data[0].target_eur))
+        })
         .catch(() => {})
     }
   }, [profile])
