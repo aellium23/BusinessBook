@@ -1215,6 +1215,45 @@ CREATE POLICY "deal_products write" ON public.deal_products FOR ALL USING (
   ))
 );
 
+-- ── 5.14b deal_products_v (column-level security VIEW) ───
+-- PostgreSQL RLS filters rows, not columns. This view hides
+-- cost_price and margin_pct from non-admin/non-manager roles.
+-- The app should query deal_products_v for SELECT operations
+-- by distributors, members, viewers, and partners.
+-- INSERT/UPDATE/DELETE should still target deal_products.
+DROP VIEW IF EXISTS public.deal_products_v;
+
+CREATE OR REPLACE VIEW public.deal_products_v AS
+SELECT
+  dp.id,
+  dp.deal_id,
+  dp.product_id,
+  dp.product_name,
+  dp.license_type,
+  dp.quantity,
+  dp.volume,
+  dp.package_size,
+  dp.unit_price,
+  dp.net_price,
+  dp.discount_pct,
+  dp.annual_fee,
+  dp.notes,
+  dp.created_at,
+  CASE WHEN EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND role IN ('admin', 'manager')
+  ) THEN dp.cost_price ELSE NULL END AS cost_price,
+  CASE WHEN EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND role IN ('admin', 'manager')
+  ) THEN dp.margin_pct ELSE NULL END AS margin_pct
+FROM public.deal_products dp;
+
+GRANT SELECT ON public.deal_products_v TO authenticated;
+
+COMMENT ON VIEW public.deal_products_v IS
+  'Security view over deal_products. Hides cost_price and margin_pct for non-admin/non-manager roles.';
+
 -- ── 5.15  tender_products (SECURITY FIX v2) ──────────────
 DROP POLICY IF EXISTS "tender_products read" ON public.tender_products;
 CREATE POLICY "tender_products read" ON public.tender_products FOR SELECT USING (
