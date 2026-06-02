@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useFxRates, updateFxRate } from '../hooks/useFxRates'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { TrendingUp, Save, RefreshCw, AlertCircle, CheckCircle2, Info, Users, Plus, Trash2, Edit3, Check, X } from 'lucide-react'
+import { useSettings } from '../hooks/useSettings'
+import { TrendingUp, Save, RefreshCw, AlertCircle, CheckCircle2, Info, Users, Plus, Trash2, Edit3, Check, X, Palette, Building2, Calendar, DollarSign } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 
 const CURRENCIES = [
@@ -185,10 +186,114 @@ function SalesOwnersSection() {
   )
 }
 
+function AppSettingsSection() {
+  const { settings, updateSettings } = useSettings()
+  const [form, setForm] = useState({})
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    setForm({
+      company_name: settings.company_name || '',
+      company_subtitle: settings.company_subtitle || '',
+      primary_color: settings.primary_color || '#0D2137',
+      fy_start_month: settings.fy_start_month || 4,
+      default_currency: settings.default_currency || 'EUR',
+      budget_cycles: (settings.budget_cycles || ['BUD','EST1','EST2']).join(', '),
+      bus: JSON.stringify(settings.business_units || [], null, 0),
+    })
+  }, [settings])
+
+  async function handleSave() {
+    setSaving(true)
+    await updateSettings({
+      company_name: form.company_name,
+      company_subtitle: form.company_subtitle,
+      primary_color: form.primary_color,
+      fy_start_month: parseInt(form.fy_start_month) || 4,
+      default_currency: form.default_currency,
+      budget_cycles: form.budget_cycles.split(',').map(s => s.trim()).filter(Boolean),
+    })
+    setSaving(false); setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
+
+  return (
+    <div className="space-y-4">
+      <div className="card p-4 space-y-3">
+        <p className="text-xs font-bold text-gray-700 uppercase flex items-center gap-1.5">
+          <Palette size={13}/> Company Branding
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="label">Company Name</label>
+            <input className="input" value={form.company_name || ''}
+              onChange={e => setForm(f => ({ ...f, company_name: e.target.value }))}/>
+          </div>
+          <div>
+            <label className="label">Subtitle</label>
+            <input className="input" value={form.company_subtitle || ''}
+              onChange={e => setForm(f => ({ ...f, company_subtitle: e.target.value }))}/>
+          </div>
+        </div>
+        <div>
+          <label className="label">Primary Color</label>
+          <div className="flex items-center gap-2">
+            <input type="color" value={form.primary_color || '#0D2137'}
+              onChange={e => setForm(f => ({ ...f, primary_color: e.target.value }))}
+              className="w-10 h-10 rounded border cursor-pointer"/>
+            <input className="input w-28" value={form.primary_color || ''}
+              onChange={e => setForm(f => ({ ...f, primary_color: e.target.value }))}/>
+          </div>
+        </div>
+      </div>
+
+      <div className="card p-4 space-y-3">
+        <p className="text-xs font-bold text-gray-700 uppercase flex items-center gap-1.5">
+          <Calendar size={13}/> Financial Configuration
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="label">Fiscal Year Start</label>
+            <select className="select" value={form.fy_start_month || 4}
+              onChange={e => setForm(f => ({ ...f, fy_start_month: e.target.value }))}>
+              {MONTH_NAMES.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="label">Default Currency</label>
+            <select className="select" value={form.default_currency || 'EUR'}
+              onChange={e => setForm(f => ({ ...f, default_currency: e.target.value }))}>
+              <option value="EUR">EUR €</option>
+              <option value="USD">USD $</option>
+              <option value="GBP">GBP £</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label className="label">Budget Cycles (comma-separated)</label>
+          <input className="input" value={form.budget_cycles || ''}
+            onChange={e => setForm(f => ({ ...f, budget_cycles: e.target.value }))}
+            placeholder="BUD, EST1, EST2"/>
+          <p className="text-[10px] text-gray-400 mt-0.5">e.g. BUD, EST1, EST2, ACT</p>
+        </div>
+      </div>
+
+      <button onClick={handleSave} disabled={saving}
+        className="btn-primary flex items-center gap-2">
+        {saved ? <><CheckCircle2 size={14}/> Saved</> : saving ? 'Saving…' : <><Save size={14}/> Save Settings</>}
+      </button>
+    </div>
+  )
+}
+
 export default function Settings() {
   const { isAdmin } = useAuth()
   const { t } = useTranslation()
   const { rates, loading, refetch } = useFxRates()
+  const [settingsTab, setSettingsTab] = useState('app')
 
   const [localRates, setLocalRates] = useState({})
   const [saving, setSaving]         = useState({})
@@ -230,12 +335,28 @@ export default function Settings() {
   return (
     <div className="max-w-2xl mx-auto p-4 sm:p-6 space-y-6">
 
-      {/* Header */}
+      <h1 className="text-xl font-bold text-gray-900">Settings</h1>
+
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
+        <button onClick={() => setSettingsTab('app')}
+          className={`px-3 py-1.5 rounded text-xs font-semibold ${settingsTab === 'app' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>
+          App Settings
+        </button>
+        <button onClick={() => setSettingsTab('fx')}
+          className={`px-3 py-1.5 rounded text-xs font-semibold ${settingsTab === 'fx' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>
+          FX Rates
+        </button>
+      </div>
+
+      {settingsTab === 'app' && <AppSettingsSection />}
+
+      {settingsTab === 'fx' && <>
+      {/* FX Header */}
       <div>
-        <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+        <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
           <TrendingUp size={20} className="text-blue-600" />
           FX Rates
-        </h1>
+        </h2>
         <p className="text-sm text-gray-500 mt-1">
           Global exchange rates used when creating new deals.
         </p>
@@ -355,6 +476,7 @@ export default function Settings() {
 
       {/* ── SALES OWNERS ────────────────────────────────────────────── */}
       {isAdmin && <SalesOwnersSection />}
+      </>}
 
     </div>
   )

@@ -6,6 +6,7 @@ import { useNotifications } from '../hooks/useTasks'
 import { useTasks } from '../hooks/useTasks'
 import { LayoutDashboard, List, DollarSign, Users, User, LogOut, ChevronRight, History, Building2, Target, Settings, CheckSquare, FileText, MoreHorizontal, Shield, Contact, GitBranch, LayoutGrid, Network as NetIcon, RefreshCw, Package } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
+import { useSettings } from '../hooks/useSettings'
 import { LANGUAGES, setLang } from '../lib/i18n'
 
 function NavItem({ to, icon: Icon, label, badge }) {
@@ -30,6 +31,7 @@ function NavItem({ to, icon: Icon, label, badge }) {
 
 export default function Layout({ children }) {
   const { profile, isAdmin } = useAuth()
+  const { settings } = useSettings()
   const navigate = useNavigate()
   const { unread } = useNotifications()
   const { overdueCount } = useTasks()
@@ -88,8 +90,8 @@ export default function Layout({ children }) {
             style={{ width:38, height:38, objectFit:'cover', objectPosition:'center 15%' }}
           />
           <div className="flex flex-col leading-tight min-w-0">
-            <span className="text-white text-sm font-semibold truncate tracking-wide">Business Book · FY26</span>
-            <span className="text-white/50 text-[10px] font-medium hidden sm:block tracking-wide">by Elio Santos · Powered by AI</span>
+            <span className="text-white text-sm font-semibold truncate tracking-wide">{settings?.company_name || 'Business Book'} · FY26</span>
+            <span className="text-white/50 text-[10px] font-medium hidden sm:block tracking-wide">{settings?.company_subtitle || 'Powered by AI'}</span>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
