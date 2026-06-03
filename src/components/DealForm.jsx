@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Modal } from './ui'
+import { Modal, CollapsibleSection } from './ui'
 import { upsertDeal, upsertDealWithIntercompany } from '../hooks/useDeals'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
@@ -480,9 +480,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
             <p className="text-micro text-amber-500 mt-1">{t("df_custom_client")} {form.client} {t("df_not_linked")}</p>
           )}
         </div>
-        {/* Region + Country — auto-filled for distributors from company */}
+        {/* Region + Country + Owner — auto-filled for distributors from company */}
         {!isDistributor && (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div>
               <label className="label">{t("df_region")}</label>
               <select className="select" value={form.region} onChange={e => { set('region', e.target.value); set('country','') }}>
@@ -500,12 +500,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 emptyLabel="—"
               />
             </div>
-          </div>
-        )}
-        {/* Owner */}
-        {!isDistributor && (
-          <div className="grid grid-cols-2 gap-3">
-            <div>
+            <div className="col-span-2 sm:col-span-1">
               <label className="label">{t("df_owner")}</label>
               <SearchableSelect
                 value={form.sales_owner}
@@ -604,96 +599,51 @@ export default function DealForm({ deal, onClose, onSaved }) {
             )}
           </div>
         )}
-        {/* Currency selector — hidden for distributors (auto from company) */}
-        {!isDistributor && <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
-          <div className="flex-1">
-            <label className="label">{t("df_currency")}</label>
-            <div className="flex gap-2 mt-1">
-              {['EUR','USD','GBP'].map(c => (
-                <button key={c} type="button"
-                  onClick={() => {
-                    set('currency', c)
-                    if (c === 'EUR') {
-                      set('exchange_rate', '1')
-                    } else if (!deal?.id) {
-                      // New deal: pre-fill global rate (locked at creation time)
-                      const globalRate = getRate(c)
-                      if (globalRate) set('exchange_rate', String(globalRate))
-                    }
-                  }}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${
-                    form.currency === c
-                      ? c === 'EUR' ? 'bg-blue-600 text-white'
-                      : c === 'USD' ? 'bg-green-600 text-white'
-                      : 'bg-purple-600 text-white'
-                      : 'bg-white border border-gray-200 text-gray-500 hover:border-gray-300'
-                  }`}>
-                  {c === 'EUR' ? '€ EUR' : c === 'USD' ? '$ USD' : '£ GBP'}
-                </button>
-              ))}
+        {/* Value + GM + Currency — compact financial row (currency collapses to € by default).
+            Win probability is auto-inferred from the stage. Hidden for distributors. */}
+        {!isDistributor && <div className="space-y-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="label">
+                {t("df_value")} {form.currency === 'EUR' ? '€' : form.currency === 'USD' ? '$' : '£'}
+              </label>
+              <input className={`input ${fieldErrors.value_total ? 'border-red-400' : ''}`} type="number" value={form.value_total} onChange={e => set('value_total', e.target.value)} placeholder="0" />
+              {fieldErrors.value_total && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.value_total}</p>}
+            </div>
+            <div>
+              <label className="label">{t("df_gm")}</label>
+              <input className={`input ${fieldErrors.gm_pct ? 'border-red-400' : ''}`} type="number" value={form.gm_pct} onChange={e => set('gm_pct', e.target.value)} placeholder="0.0" />
+              {fieldErrors.gm_pct && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.gm_pct}</p>}
+            </div>
+            <div>
+              <label className="label">{t("df_currency")}</label>
+              <select className="select" value={form.currency}
+                onChange={e => {
+                  const c = e.target.value
+                  set('currency', c)
+                  if (c === 'EUR') set('exchange_rate', '1')
+                  else if (!deal?.id) { const r = getRate(c); if (r) set('exchange_rate', String(r)) }
+                }}>
+                <option value="EUR">€ EUR</option>
+                <option value="USD">$ USD</option>
+                <option value="GBP">£ GBP</option>
+              </select>
             </div>
           </div>
+          {/* Exchange rate — only when non-EUR */}
           {form.currency !== 'EUR' && (
-            <div className="shrink-0">
-              <label className="label">{t("df_rate")}</label>
-              <div className="flex items-center gap-1.5 mt-1">
-                <span className="text-xs text-gray-400">1 {form.currency} =</span>
-                <input className="input w-20 text-center" type="number" step="0.0001"
-                  value={form.exchange_rate}
-                  onChange={e => set('exchange_rate', e.target.value)}
-                  placeholder="0.0000"/>
-                <span className="text-xs text-gray-400">EUR</span>
-              </div>
+            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+              <span className="text-xs text-gray-400">1 {form.currency} =</span>
+              <input className="input w-24 text-center" type="number" step="0.0001"
+                value={form.exchange_rate} onChange={e => set('exchange_rate', e.target.value)} placeholder="0.0000"/>
+              <span className="text-xs text-gray-400">EUR</span>
               {form.exchange_rate && form.value_total && (
-                <p className="text-micro text-blue-600 mt-1 text-right">
+                <span className="text-micro text-blue-600 ml-auto">
                   ≈ €{(parseFloat(form.value_total) * parseFloat(form.exchange_rate)).toLocaleString('pt-PT', {maximumFractionDigits:0})}
-                </p>
-              )}
-              {!deal?.id && form.currency !== 'EUR' && getRate(form.currency) && (
-                <p className="text-micro text-gray-400 mt-0.5 text-right">
-                  {t("df_global_rate")}
-                </p>
+                </span>
               )}
             </div>
           )}
-        </div>}
-        {/* Value + GM + Win Probability — hidden for distributors (auto from products) */}
-        {!isDistributor && <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <div>
-            <label className="label">
-              {t("df_value")} {form.currency === 'EUR' ? '€' : form.currency === 'USD' ? '$' : '£'}
-            </label>
-            <input className={`input ${fieldErrors.value_total ? 'border-red-400' : ''}`} type="number" value={form.value_total} onChange={e => set('value_total', e.target.value)} placeholder="0" />
-            {fieldErrors.value_total && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.value_total}</p>}
-          </div>
-          <div>
-            <label className="label">{t("df_gm")}</label>
-            <input className={`input ${fieldErrors.gm_pct ? 'border-red-400' : ''}`} type="number" value={form.gm_pct} onChange={e => set('gm_pct', e.target.value)} placeholder="0.0" />
-            {fieldErrors.gm_pct && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.gm_pct}</p>}
-          </div>
-          <div>
-            <label className="label">
-              {t("df_win_prob")}
-              {['Lead','Pipeline','Offer Presented'].includes(form.stage) && (
-                <span className="ml-1 text-purple-500 font-normal">{t("df_editable")}</span>
-              )}
-            </label>
-            <input
-              className={`input ${fieldErrors.win_probability ? 'border-red-400' : ''} ${!['Lead','Pipeline','Offer Presented'].includes(form.stage) ? 'bg-gray-50 text-gray-400' : ''}`}
-              type="number" min="0" max="100"
-              value={form.win_probability ?? ''}
-              onChange={e => set('win_probability', e.target.value)}
-              disabled={!['Lead','Pipeline','Offer Presented'].includes(form.stage)}
-              placeholder={
-                form.stage === 'Lead' ? '10' :
-                form.stage === 'Pipeline' ? '30' :
-                form.stage === 'Offer Presented' ? '60' :
-                form.stage === 'BackLog' ? '100' :
-                form.stage === 'Invoiced' ? '100' : '0'
-              }
-            />
-            {fieldErrors.win_probability && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.win_probability}</p>}
-          </div>
         </div>}
         {/* ── BUSINESS MODEL & PRODUCTS ─────────────────────── */}
         <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
@@ -863,7 +813,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
         {/* Internal VGT view only — distributors are themselves the channel
             and price via authorized products, so this is hidden for them. */}
         {!isDistributor && (form.region !== 'Europe' || form.sales_type === 'External') && (
-          <DistributionSection form={form} set={set} distributors={distributors} hubs={hubs} t={t}/>
+          <CollapsibleSection title={t("df_distribution_margins")} subtitle={t("df_optional")}>
+            <DistributionSection form={form} set={set} distributors={distributors} hubs={hubs} t={t} embedded/>
+          </CollapsibleSection>
         )}
 
         {/* ── DISCOUNT REQUESTS + PROJECT TCO ──────────────────────
@@ -872,7 +824,11 @@ export default function DealForm({ deal, onClose, onSaved }) {
         {deal?.id ? (
           <>
             <DiscountHistory dealId={deal.id} dealClient={form.client} isDistributor={isDistributor}/>
-            <ProjectTCO dealId={deal.id} dealLines={dealLines} isDistributor={isDistributor}/>
+            {!isDistributor && (
+              <CollapsibleSection title={t("df_project_tco")} subtitle={t("df_optional")}>
+                <ProjectTCO dealId={deal.id} dealLines={dealLines} isDistributor={isDistributor} embedded/>
+              </CollapsibleSection>
+            )}
           </>
         ) : (
           <p className="text-tiny text-gray-400 bg-gray-50 rounded-lg px-3 py-2 text-center">
@@ -947,7 +903,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
             (CAPEX warranty/go-live, Financed multi-year). Hidden for one-shot,
             pay-per-study, subscription (SLA-managed) and distributors. */}
         {!isDistributor && ['capex','financed_project'].includes(form.business_model) && (
-          <DealMonthlyGrid form={form} set={set} t={t}/>
+          <CollapsibleSection title={t("df_monthly_recognition")} subtitle={t("df_optional")}>
+            <DealMonthlyGrid form={form} set={set} t={t} embedded/>
+          </CollapsibleSection>
         )}
 
         {/* Unified activity timeline — replaces the old Change History + Activity Log */}

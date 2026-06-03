@@ -37,17 +37,19 @@ function MarginsPanel({ form, t }) {
   )
 }
 
-export default function DistributionSection({ form, set, distributors, hubs, t }) {
+export default function DistributionSection({ form, set, distributors, hubs, t, embedded }) {
   return (
-    <div className="bg-gray-50 border border-gray-200 rounded-card p-4 space-y-3">
-      <div>
-        <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
-          {t("df_distribution_margins")}
-        </p>
-        <p className="text-micro text-gray-400 mt-0.5">
-          {t("df_distribution_hint")}
-        </p>
-      </div>
+    <div className={embedded ? 'space-y-3' : 'bg-gray-50 border border-gray-200 rounded-card p-4 space-y-3'}>
+      {!embedded && (
+        <div>
+          <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+            {t("df_distribution_margins")}
+          </p>
+          <p className="text-micro text-gray-400 mt-0.5">
+            {t("df_distribution_hint")}
+          </p>
+        </div>
+      )}
 
       {/* Path selector */}
       <div className="flex gap-2">

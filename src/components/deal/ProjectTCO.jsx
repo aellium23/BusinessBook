@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase'
 import { formatK } from '../ui'
 import { Plus, Trash2, BarChart3 } from 'lucide-react'
 
-export default function ProjectTCO({ dealId, dealLines, isDistributor }) {
+export default function ProjectTCO({ dealId, dealLines, isDistributor, embedded }) {
   const [costs, setCosts] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -82,13 +82,13 @@ export default function ProjectTCO({ dealId, dealLines, isDistributor }) {
   if (loading) return null
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+    <div className={embedded ? 'space-y-3' : 'bg-white border border-gray-200 rounded-xl p-4 space-y-3'}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <BarChart3 size={14} className="text-navy"/>
-          <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+          {!embedded && <BarChart3 size={14} className="text-navy"/>}
+          {!embedded && <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
             Project TCO
-          </p>
+          </p>}
         </div>
         <button onClick={addLine} className="btn-secondary text-xs gap-1">
           <Plus size={12}/> Third-party cost

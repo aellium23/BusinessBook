@@ -1,4 +1,30 @@
+import { useState } from 'react'
 import { FORECAST_CATEGORIES, resolveForecastCategory } from '../constants'
+
+// Collapsible disclosure for advanced/optional form sections — keeps long
+// forms short by hiding non-essential blocks behind a tap.
+export function CollapsibleSection({ title, subtitle, defaultOpen = false, badge, children }) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className="border border-gray-200 rounded-xl overflow-hidden">
+      <button type="button" onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide truncate">{title}</span>
+          {badge}
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {subtitle && <span className="text-micro text-gray-400">{subtitle}</span>}
+          <svg className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </div>
+      </button>
+      {open && <div className="p-4 space-y-3">{children}</div>}
+    </div>
+  )
+}
 
 export function BUBadge({ bu }) {
   if (!bu) return null

@@ -1,10 +1,10 @@
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
 
-export default function DealMonthlyGrid({ form, set, t }) {
+export default function DealMonthlyGrid({ form, set, t, embedded }) {
   return (
     <div>
-      <p className="label mb-2">{t("df_monthly_recognition")}</p>
+      {!embedded && <p className="label mb-2">{t("df_monthly_recognition")}</p>}
       {form.go_live_month && (() => {
         const glIdx = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(form.go_live_month)
         const fyIdx = (glIdx - 3 + 12) % 12
