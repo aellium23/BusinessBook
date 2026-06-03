@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import SearchableSelect from './SearchableSelect'
 import { validateSLA } from '../lib/validation'
 import { useTranslation } from '../hooks/useTranslation'
-import { Modal } from './ui'
+import { Modal, CollapsibleSection } from './ui'
 import { formatK } from './ui'
 import { SLA_STATUSES, SLA_TYPES, BILLING_MODELS, BILLING_FREQUENCIES } from '../constants'
 import { getAllowedTransitions, canTransition } from '../lib/stateMachine'
@@ -450,9 +450,8 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
           <p className="text-micro text-gray-400 mt-0.5">Date when PO received and invoice issued</p>
         </div>
 
-        {/* Contract coverage — what the SLA actually includes (Scenario 4) */}
-        <div className="border-t pt-3 space-y-2">
-          <p className="text-xs font-semibold text-gray-500 uppercase">{t('sla_coverage')}</p>
+        {/* Contract coverage — what the SLA actually includes (Scenario 4) — collapsed */}
+        <CollapsibleSection title={t('sla_coverage')} subtitle={t('df_optional')}>
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" className="w-4 h-4 accent-navy"
               checked={!!form.includes_updates}
@@ -474,11 +473,10 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
                 placeholder={t('sla_support_hours_note_ph')}/>
             </div>
           </div>
-        </div>
+        </CollapsibleSection>
 
         {monthlyRecognition && (
-          <div className="border-t pt-3">
-            <p className="text-micro font-semibold text-gray-500 uppercase mb-2">Revenue Recognition · FY26</p>
+          <CollapsibleSection title="Revenue Recognition · FY26" subtitle={t('df_optional')}>
             <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
               {monthlyRecognition.months.map((m, i) => {
                 const key = monthlyRecognition.keys[i]
@@ -511,7 +509,7 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
               </div>
               <p className="text-micro text-gray-500">Total: {formatK(monthlyRecognition.total)}</p>
             </div>
-          </div>
+          </CollapsibleSection>
         )}
 
         {/* Renewal section */}
