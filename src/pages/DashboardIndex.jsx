@@ -91,9 +91,9 @@ export default function DashboardIndex() {
         )}
       </div>
 
-      {/* Primary view: Summary / Details */}
-      <div className="flex items-center gap-3 overflow-x-auto no-scrollbar">
-        <div className="inline-flex rounded-control border border-gray-200 overflow-hidden">
+      {/* Primary view: Summary / Details — full-width row, always visible in portrait */}
+      <div className="space-y-2">
+        <div className="grid grid-cols-2 rounded-control border border-gray-200 overflow-hidden">
           {[
             { id: 'summary', label: t('dash_view_summary') || 'Summary', icon: GaugeIcon },
             { id: 'classic', label: t('dash_view_details') || 'Details', icon: BarChart3 },
@@ -113,9 +113,9 @@ export default function DashboardIndex() {
           })}
         </div>
 
-        {/* Secondary: breakdowns (lighter, set apart) */}
-        <div className="flex items-center gap-1.5 text-micro text-gray-400">
-          <span className="uppercase tracking-wide">{t('dash_breakdowns') || 'By'}:</span>
+        {/* Secondary: breakdowns — own scrollable row */}
+        <div className="flex items-center gap-1.5 text-micro text-gray-400 overflow-x-auto no-scrollbar">
+          <span className="uppercase tracking-wide shrink-0">{t('dash_breakdowns') || 'By'}:</span>
           {[
             { id: 'products', label: t('dash_view_products') || 'Products', icon: Package },
             { id: 'reps',     label: t('dash_view_reps') || 'Reps',         icon: Users },
@@ -125,7 +125,7 @@ export default function DashboardIndex() {
             const active = view === v.id
             return (
               <button key={v.id} type="button" onClick={() => setView(v.id)} aria-pressed={active}
-                className={`px-2.5 py-1 rounded-full text-xs flex items-center gap-1 transition-colors ${
+                className={`px-2.5 py-1 rounded-full text-xs flex items-center gap-1 transition-colors shrink-0 ${
                   active ? 'bg-navy text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                 }`}>
                 <Icon size={12}/> <span>{v.label}</span>
