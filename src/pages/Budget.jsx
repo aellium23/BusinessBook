@@ -242,17 +242,17 @@ export default function Budget() {
             return (
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-x-auto">
                 <table className="w-full text-xs">
-                  <thead>
+                  <thead className="sticky top-0 z-20">
                     <tr className="bg-gray-50">
-                      <th className="text-left px-2 sm:px-4 py-2 font-bold w-24 sm:w-32 sticky left-0 bg-gray-50 text-micro sm:text-xs">{tr("budget_pl_line")}</th>
+                      <th className="text-left px-2 sm:px-4 py-2 font-bold w-24 sm:w-32 sticky left-0 z-30 bg-gray-50 text-micro sm:text-xs">{tr("budget_pl_line")}</th>
                       {MONTHS.map(m => (
-                        <th key={m} className="px-0.5 sm:px-1 py-2 text-center w-12 sm:w-20 font-semibold text-gray-500 text-micro sm:text-xs">
+                        <th key={m} className="px-0.5 sm:px-1 py-2 text-center w-12 sm:w-20 font-semibold text-gray-500 text-micro sm:text-xs bg-gray-50">
                           <span className="hidden sm:inline">{m}</span>
                           <span className="sm:hidden">{MONTHS_SHORT[MONTHS.indexOf(m)]}</span>
                         </th>
                       ))}
-                      <th className="px-1 sm:px-2 py-2 text-center w-12 sm:w-20 font-bold text-gray-800 text-micro sm:text-xs">YTD</th>
-                      <th className="px-1 sm:px-2 py-2 text-center w-12 sm:w-20 font-bold text-gray-800 text-micro sm:text-xs">FY</th>
+                      <th className="px-1 sm:px-2 py-2 text-center w-12 sm:w-20 font-bold text-gray-800 text-micro sm:text-xs bg-gray-50">YTD</th>
+                      <th className="px-1 sm:px-2 py-2 text-center w-12 sm:w-20 font-bold text-gray-800 text-micro sm:text-xs bg-gray-50">FY</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -292,8 +292,8 @@ export default function Budget() {
                       }
 
                       return (
-                        <tr key={plKey} className={`border-b ${isTotal ? 'bg-gray-50 font-bold' : ''}`}>
-                          <td className={`px-2 sm:px-4 py-1.5 sticky left-0 text-micro sm:text-xs ${isTotal ? 'bg-gray-50 text-gray-900' : 'bg-white text-gray-600'}`}>{label}</td>
+                        <tr key={plKey} className={`border-b ${isTotal ? 'bg-navy/[0.06] border-t-2 border-navy/20 font-bold' : ''}`}>
+                          <td className={`px-2 sm:px-4 py-1.5 sticky left-0 text-micro sm:text-xs ${isTotal ? 'bg-[#eef1f5] text-navy' : 'bg-white text-gray-600'}`}>{label}</td>
                           {MONTHS_K.map((m, mi) => {
                             const left = cellVal(cmp.left, m)
                             const right = cellVal(cmp.right, m)
@@ -323,6 +323,12 @@ export default function Budget() {
                           <td className="px-1 sm:px-2 py-1 text-center">
                             <p className="text-micro sm:text-xs font-bold text-gray-800">{leftFY.toFixed(1)}</p>
                             <p className="text-micro text-gray-400">{rightFY.toFixed(1)}</p>
+                            {(leftFY || rightFY) ? (
+                              <p className={`text-micro font-bold ${varColor(leftFY - rightFY, isCost)}`}>
+                                {(leftFY - rightFY) > 0 ? '+' : ''}{(leftFY - rightFY).toFixed(1)}
+                                {rightFY !== 0 ? ` (${((leftFY - rightFY)/Math.abs(rightFY)*100) > 0 ? '+' : ''}${((leftFY - rightFY)/Math.abs(rightFY)*100).toFixed(0)}%)` : ''}
+                              </p>
+                            ) : null}
                           </td>
                         </tr>
                       )
@@ -382,21 +388,21 @@ export default function Budget() {
         {/* Table header */}
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
-            <thead>
+            <thead className="sticky top-0 z-20">
               <tr style={{ background: buCfg.bg }}>
-                <th className="text-left px-2 sm:px-4 py-3 font-bold w-24 sm:w-28 sticky left-0 text-micro sm:text-xs" style={{ background:buCfg.bg, color:buCfg.color }}>
+                <th className="text-left px-2 sm:px-4 py-3 font-bold w-24 sm:w-28 sticky left-0 z-30 text-micro sm:text-xs" style={{ background:buCfg.bg, color:buCfg.color }}>
                   {buCfg.label}
                 </th>
                 {PERIODS[activePeriod].display.map((m, mi) => (
-                  <th key={m} className="px-0.5 sm:px-1.5 py-3 font-semibold text-gray-500 text-center w-12 sm:w-14 text-micro sm:text-xs">
+                  <th key={m} className="px-0.5 sm:px-1.5 py-3 font-semibold text-gray-500 text-center w-12 sm:w-14 text-micro sm:text-xs" style={{ background: buCfg.bg }}>
                     <span className="hidden sm:inline">{m}</span>
                     <span className="sm:hidden">{MONTHS_SHORT[MONTHS.indexOf(m)]}</span>
                   </th>
                 ))}
-                <th className="px-1 sm:px-3 py-3 font-bold text-gray-800 text-center w-12 sm:w-16 text-micro sm:text-xs">
+                <th className="px-1 sm:px-3 py-3 font-bold text-gray-800 text-center w-12 sm:w-16 text-micro sm:text-xs" style={{ background: buCfg.bg }}>
                   {activePeriod === 'FY' ? 'FY26' : PERIODS[activePeriod].label.split(" ")[0]}
                 </th>
-                {refCycle && <th className="px-1 sm:px-3 py-3 font-medium text-gray-400 text-center w-12 sm:w-16 text-micro sm:text-xs">vs {CYCLE_CONFIG[refCycle].label}</th>}
+                {refCycle && <th className="px-1 sm:px-3 py-3 font-medium text-gray-400 text-center w-12 sm:w-16 text-micro sm:text-xs" style={{ background: buCfg.bg }}>vs {CYCLE_CONFIG[refCycle].label}</th>}
               </tr>
             </thead>
             <tbody>
@@ -424,13 +430,13 @@ export default function Budget() {
                   <tr key={key}
                     className={`border-b transition-colors ${
                       isTotal
-                        ? 'bg-gray-50 border-gray-300'
+                        ? 'bg-navy/[0.06] border-t-2 border-navy/20'
                         : lineIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'
                     }`}>
 
                     {/* Line label */}
-                    <td className={`px-2 sm:px-4 py-2 sticky left-0 text-micro sm:text-xs ${isTotal ? 'bg-gray-50' : lineIdx%2===0?'bg-white':'bg-gray-50/40'}`}>
-                      <span className={`${isTotal ? 'font-bold text-gray-900' : 'text-gray-600'}`}>
+                    <td className={`px-2 sm:px-4 py-2 sticky left-0 text-micro sm:text-xs ${isTotal ? 'bg-[#eef1f5]' : lineIdx%2===0?'bg-white':'bg-gray-50/40'}`}>
+                      <span className={`${isTotal ? 'font-bold text-navy' : 'text-gray-600'}`}>
                         {label}
                       </span>
                     </td>
