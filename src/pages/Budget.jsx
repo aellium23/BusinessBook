@@ -192,16 +192,29 @@ export default function Budget() {
         </button>}
       </div>
 
-      {/* Edit / Compare tab */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
-        <button onClick={() => setBudgetTab('edit')}
-          className={`px-3 py-1.5 rounded text-xs font-semibold ${budgetTab === 'edit' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>
-          {tr("budget_edit")}
-        </button>
-        <button onClick={() => setBudgetTab('compare')}
-          className={`px-3 py-1.5 rounded text-xs font-semibold ${budgetTab === 'compare' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>
-          {tr("budget_compare")}
-        </button>
+      {/* Edit / Compare tab + BU selector — scope controls first */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
+          <button onClick={() => setBudgetTab('edit')}
+            className={`px-3 py-1.5 rounded text-xs font-semibold ${budgetTab === 'edit' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>
+            {tr("budget_edit")}
+          </button>
+          <button onClick={() => setBudgetTab('compare')}
+            className={`px-3 py-1.5 rounded text-xs font-semibold ${budgetTab === 'compare' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>
+            {tr("budget_compare")}
+          </button>
+        </div>
+        <div className="flex rounded-xl overflow-hidden border border-gray-200">
+          {BUS.map(bu => (
+            <button key={bu} onClick={() => setActiveBu(bu)}
+              className="px-3 sm:px-4 py-1.5 text-sm font-semibold transition-all"
+              style={activeBu === bu
+                ? { background: BU_CONFIG[bu].color, color:'white' }
+                : { background:'white', color:'#6B7280' }}>
+              {BU_CONFIG[bu].label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {budgetTab === 'compare' && (
@@ -326,9 +339,13 @@ export default function Budget() {
       )}
 
       {budgetTab === 'edit' && (<>
-      {/* Summary cards — all cycles at a glance */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-        {CYCLES.map(cycle => {
+      {/* Summary cards — pick a cycle to edit */}
+      <div>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+          {tr("budget_select_cycle") || 'Select a cycle to edit'}
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {CYCLES.map(cycle => {
           const t = annualTotals[activeBu][cycle]
           const cfg = CYCLE_CONFIG[cycle]
           const isActive = cycle === activeCycleDefault
@@ -353,35 +370,9 @@ export default function Budget() {
               <p className={`text-xs mt-0.5 font-medium ${(t.op2 || t.op1) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
                 OP2: {formatK((t.op2 || t.op1) * 1000)}
               </p>
-            </button>
-          )
-        })}
-      </div>
-
-      {/* BU + Cycle selectors */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex rounded-xl overflow-hidden border border-gray-200 w-full sm:w-auto">
-          {BUS.map(bu => (
-            <button key={bu} onClick={() => setActiveBu(bu)}
-              className="flex-1 sm:flex-none px-3 sm:px-4 py-2 text-sm font-semibold transition-all"
-              style={activeBu === bu
-                ? { background: BU_CONFIG[bu].color, color:'white' }
-                : { background:'white', color:'#6B7280' }}>
-              {BU_CONFIG[bu].label}
-            </button>
-          ))}
-        </div>
-        <div className="flex rounded-xl overflow-hidden border border-gray-200 w-full sm:w-auto">
-          {CYCLES.map(c => (
-            <button key={c} onClick={() => setActiveCycle(c)}
-              className="px-4 py-2 text-sm font-medium transition-all flex items-center gap-1.5"
-              style={activeCycle === c
-                ? { background: CYCLE_CONFIG[c].color, color:'white' }
-                : { background:'white', color:'#6B7280' }}>
-              {CYCLE_CONFIG[c].label}
-              {c === activeCycleDefault && <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70"/>}
-            </button>
-          ))}
+              </button>
+            )
+          })}
         </div>
       </div>
 
