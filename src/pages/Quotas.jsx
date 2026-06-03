@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { formatK, Spinner, CollapsibleSection } from '../components/ui'
-import { Target, Plus, Save, Trash2, ChevronDown, ChevronUp, Crown, Package } from 'lucide-react'
+import { Target, Plus, Save, Trash2, Crown, Package } from 'lucide-react'
 import SalesOverlayConfig from '../components/SalesOverlayConfig'
 import { useTranslation } from '../hooks/useTranslation'
 import { MONTHS_K, PRODUCTS, safeJsonParse } from '../constants'
@@ -349,7 +349,6 @@ function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, profil
     </div>
   )
 }
-
 
 // ── Sales Target do Distribuidor ─────────────────────────────────────────────
 function DistributorQuota({ quotas, actuals, forecast, profile }) {

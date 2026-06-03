@@ -2,10 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { Spinner, EmptyState } from '../components/ui'
-import {
-  Shield, Search, ArrowRight, ChevronDown, ChevronRight,
-  Plus, Pencil, Trash2, User, Filter, AlertCircle, Download,
-} from 'lucide-react'
+import { Shield, Search, ChevronDown, ChevronRight, Plus, Pencil, Trash2, User, AlertCircle, Download } from 'lucide-react'
 
 const TABLE_OPTIONS = [
   { id: '', label: 'All tables' },

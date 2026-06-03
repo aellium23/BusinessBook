@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { Spinner, formatK, CollapsibleSection } from '../components/ui'
-import { Save, CheckCircle, TrendingUp, TrendingDown, Minus, Camera, Lock, Clock, Plus, ChevronDown } from 'lucide-react'
+import { Save, CheckCircle, TrendingUp, TrendingDown, Minus, Lock, Plus, ChevronDown } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 
 const MONTHS       = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']

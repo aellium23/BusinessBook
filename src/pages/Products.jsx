@@ -3,7 +3,7 @@ import { useProducts, createProduct, updateProduct, deleteProduct } from '../hoo
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useTranslation } from '../hooks/useTranslation'
-import { Modal, Spinner, EmptyState, BUBadge, formatK, CollapsibleSection } from '../components/ui'
+import { Modal, Spinner, EmptyState, formatK, CollapsibleSection } from '../components/ui'
 import SearchableSelect from '../components/SearchableSelect'
 import { Plus, Search, Pencil, Trash2, Package, ChevronDown, ChevronUp, X, Layers } from 'lucide-react'
 

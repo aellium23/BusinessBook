@@ -4,10 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { formatK } from '../components/ui'
 import { logger } from '../lib/logger'
-import {
-  ComposedChart, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip,
-  ResponsiveContainer, Legend, ReferenceLine, Cell
-} from 'recharts'
+import { ComposedChart, BarChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Cell } from 'recharts'
 import { useTranslation } from '../hooks/useTranslation'
 import DistributorDashboard from '../components/dashboard/DistributorDashboard'
 import PerformanceSection from '../components/dashboard/PerformanceSection'

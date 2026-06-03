@@ -2,11 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { Spinner, EmptyState, formatK } from '../components/ui'
-import { PRODUCTS, MONTHS_K } from '../constants'
-import {
-  LayoutGrid, Search, AlertCircle, CheckCircle2, Circle,
-  Clock, TrendingUp, Download,
-} from 'lucide-react'
+import { PRODUCTS } from '../constants'
+import { LayoutGrid, Search, AlertCircle, Download } from 'lucide-react'
 
 // Cell status priority (higher wins if an account has multiple deals for the product)
 const PRIORITY = ['Invoiced','BackLog','Offer Presented','Pipeline','Lead','Lost']

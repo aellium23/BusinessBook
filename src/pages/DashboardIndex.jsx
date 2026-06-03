@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useTranslation } from '../hooks/useTranslation'
-import { formatK } from '../components/ui'
+
 import DashboardClassic from './Dashboard'
 import DashboardSummary from './DashboardSummary'
 import ProductFunnel from '../components/dashboard/ProductFunnel'

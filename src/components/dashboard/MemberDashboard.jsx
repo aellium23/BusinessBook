@@ -4,7 +4,7 @@ import { useDeals } from '../../hooks/useDeals'
 import { useAuth } from '../../hooks/useAuth'
 import { supabase } from '../../lib/supabase'
 import { formatK, Spinner } from '../ui'
-import { MONTHS_K, WEIGHTS } from '../../constants'
+import { MONTHS_K } from '../../constants'
 import { Target, TrendingUp, ChevronRight } from 'lucide-react'
 
 function ProgressRing({ pct, color, size = 72 }) {

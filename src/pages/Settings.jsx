@@ -3,14 +3,13 @@ import { useFxRates, updateFxRate } from '../hooks/useFxRates'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useSettings } from '../hooks/useSettings'
-import { TrendingUp, Save, RefreshCw, AlertCircle, CheckCircle2, Info, Users, Plus, Trash2, Edit3, Check, X, Palette, Building2, Calendar, DollarSign } from 'lucide-react'
+import { TrendingUp, Save, RefreshCw, AlertCircle, CheckCircle2, Info, Users, Plus, Trash2, Edit3, Check, X, Palette, Calendar } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 
 const CURRENCIES = [
   { code: 'USD', label: 'US Dollar', symbol: '$', flag: '🇺🇸', regions: 'MEA, LATAM' },
   { code: 'GBP', label: 'British Pound', symbol: '£', flag: '🇬🇧', regions: 'UK' },
 ]
-
 
 // ── Sales Owners management ──────────────────────────────────────────────────
 function SalesOwnersSection() {

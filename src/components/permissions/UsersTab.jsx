@@ -3,10 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { supabase, anonClient } from '../../lib/supabase'
 import { useTranslation } from '../../hooks/useTranslation'
 import { safeJsonParse } from '../../constants'
-import {
-  Shield, Plus, Edit3, Check, X,
-  Mail, RefreshCw, AlertCircle, CheckCircle2, Search
-} from 'lucide-react'
+import { Shield, Edit3, Check, X, Mail, RefreshCw, AlertCircle, CheckCircle2, Search } from 'lucide-react'
 
 // ── Configuração das páginas disponíveis ──────────────────────────────────────
 const ALL_PAGES = [

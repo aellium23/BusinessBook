@@ -5,10 +5,7 @@ import { useTranslation } from '../hooks/useTranslation'
 import { Spinner, EmptyState } from '../components/ui'
 import { ContactEditor } from '../components/ContactsList'
 import { CONTACT_ROLES, contactRole } from '../constants'
-import {
-  Users, Plus, Search, Edit3, Trash2, Mail, Phone, Star,
-  AlertCircle, Download, X,
-} from 'lucide-react'
+import { Users, Plus, Search, Edit3, Trash2, Mail, Phone, Star, AlertCircle, Download } from 'lucide-react'
 
 function exportToCSV(rows) {
   const headers = ['BU','Client','Full name','Role','Job title','Email','Phone','Country','Primary','Notes','Created']

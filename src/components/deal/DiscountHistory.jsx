@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { useToast } from '../Toast'
-import { AlertCircle, CheckCircle, XCircle, RefreshCw, Plus, Send, Clock } from 'lucide-react'
+import { CheckCircle, XCircle, RefreshCw, Plus, Send, Clock } from 'lucide-react'
 
 const STATUS_STYLE = {
   pending:  { icon: Clock,       cls: 'bg-purple-100 text-purple-800', label: 'Pending' },

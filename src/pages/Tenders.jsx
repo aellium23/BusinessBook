@@ -1,22 +1,17 @@
-import { useState, useEffect, useRef, memo, useMemo } from 'react'
+import { useState, useEffect, memo, useMemo } from 'react'
 import { useTenders, createTender, updateTender, deleteTender } from '../hooks/useTasks'
 import { useAuth } from '../hooks/useAuth'
 import { useTranslation } from '../hooks/useTranslation'
 import { useDebounce } from '../hooks/useDebounce'
 import { supabase } from '../lib/supabase'
 import { validateTender } from '../lib/validation'
-import { Modal, Spinner, StageBadge, BUBadge } from '../components/ui'
+import { Modal, Spinner } from '../components/ui'
 import AttachmentsList from '../components/AttachmentsList'
 import RequirementsMatrix from '../components/RequirementsMatrix'
 import SearchableSelect from '../components/SearchableSelect'
 import QuickDealForm from '../components/QuickDealForm'
 import ProductLineItems from '../components/ProductLineItems'
-import {
-  Plus, Edit3, Trash2, AlertCircle, Calendar, Link2,
-  Users, TrendingUp, CheckCircle2, XCircle, Clock,
-  ChevronDown, ChevronUp, Search, FileText, X,
-  ListChecks, Paperclip, Info,
-} from 'lucide-react'
+import { Plus, Edit3, Trash2, AlertCircle, Calendar, Link2, Users, ChevronDown, ChevronUp, Search, FileText, ListChecks, Paperclip, Info } from 'lucide-react'
 
 const STATUS_CONFIG = {
   open:       { labelKey: 'tender_open',       color: 'text-blue-700',  bg: 'bg-blue-50',  border: 'border-blue-200' },

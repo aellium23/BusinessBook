@@ -2,11 +2,8 @@ import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useTranslation } from '../hooks/useTranslation'
-import { formatK, Spinner } from '../components/ui'
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  LineChart, Line, Legend, Cell
-} from 'recharts'
+import { formatK } from '../components/ui'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
@@ -22,7 +19,6 @@ function KpiBox({ label, value, sub, color }) {
     </div>
   )
 }
-
 
 // ── History do Distribuidor ───────────────────────────────────────────────────
 function DistributorHistory({ profile }) {

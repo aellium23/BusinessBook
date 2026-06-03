@@ -6,7 +6,7 @@ import { useDebounce } from '../hooks/useDebounce'
 import { BUBadge, formatK, Spinner, EmptyState, Modal } from '../components/ui'
 import DealForm from '../components/DealForm'
 import MergeClientsModal from '../components/MergeClientsModal'
-import { Building2, Search, MapPin, Globe, RefreshCw, Plus, Pencil, GitMerge, Check } from 'lucide-react'
+import { Search, MapPin, RefreshCw, Plus, Pencil, GitMerge, Check } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 import { REGIONS } from '../constants'
 

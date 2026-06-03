@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from '../hooks/useTranslation'
 import { signInWithPassword, signInWithMagicLink, resetPassword } from '../lib/supabase'
-import { Mail, ArrowRight, Lock, Eye, EyeOff, KeyRound, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, KeyRound, CheckCircle2, AlertCircle } from 'lucide-react'
 
 // ── Sub-componente: Password login ────────────────────────────────────────────
 function PasswordForm() {

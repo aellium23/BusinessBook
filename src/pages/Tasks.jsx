@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useTasks, createTask, updateTask, deleteTask, useNotifications } from '../hooks/useTasks'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
@@ -7,11 +7,7 @@ import { validateTask } from '../lib/validation'
 import SearchableSelect from '../components/SearchableSelect'
 import QuickDealForm from '../components/QuickDealForm'
 import { useTranslation } from '../hooks/useTranslation'
-import {
-  Plus, CheckCircle2, Circle, Clock, Flag, User, Link2,
-  Trash2, Edit3, Bell, BellOff, ChevronDown, ChevronUp,
-  AlertCircle, Calendar, Filter, X, FileText
-} from 'lucide-react'
+import { Plus, CheckCircle2, Circle, Clock, User, Link2, Trash2, Edit3, Bell, ChevronDown, ChevronUp, AlertCircle, X, FileText } from 'lucide-react'
 
 const PRIORITY_CONFIG = {
   high:   { labelKey: 'tasks_priority_high',   color: 'text-red-600',    bg: 'bg-red-50',    border: 'border-red-200',   dot: 'bg-red-500' },
