@@ -3,9 +3,17 @@
 @tailwind utilities;
 
 @layer base {
-  body { @apply bg-gray-50 text-gray-900 antialiased; }
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+    /* Tabular figures so numbers align in columns across tables, cards,
+       and dashboards — a cleaner, more professional financial look. */
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
   html { -webkit-text-size-adjust: 100%; }
   * { @apply box-border; }
+  /* Smooth, subtle transitions on interactive surfaces by default */
+  button, a, .card-link { @apply transition-colors duration-150; }
 }
 
 @layer components {
