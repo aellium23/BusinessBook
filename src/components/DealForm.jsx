@@ -494,7 +494,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
             <p className="text-micro text-amber-500 mt-1">{t("df_custom_client")} {form.client} {t("df_not_linked")}</p>
           )}
         </div>
-        {/* Region + Country + Owner — auto-filled for distributors from company */}
+        {/* Location, owner & billing — collapsed by default (set when needed) */}
+        {!isDistributor && (
+        <CollapsibleSection title={t("df_section_location")} subtitle={t("df_optional")}>
         {!isDistributor && (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div>
@@ -585,6 +587,8 @@ export default function DealForm({ deal, onClose, onSaved }) {
             )}
           </div>
         )}
+        </CollapsibleSection>
+        )}
 
         {/* Description */}
         <div>
@@ -659,11 +663,10 @@ export default function DealForm({ deal, onClose, onSaved }) {
             </div>
           )}
         </div>}
-        {/* ── BUSINESS MODEL & PRODUCTS ─────────────────────── */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-          <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{t("df_product_lbl")}</p>
-          {/* Business model selector — hidden for distributors, auto-inferred from products */}
-          {!isDistributor && <div className="space-y-3">
+        {/* ── PRODUCTS (core) + business model/contract (collapsed) ───── */}
+        <div className="space-y-3">
+          {/* Business model & contract — collapsed by default; products stay visible below */}
+          {!isDistributor && <CollapsibleSection title={t("df_business_model")} subtitle={t("df_optional")} defaultOpen={form.business_model === 'financed_project'}>
             <div>
               <label className="label">{t("df_business_model")}</label>
               <select className="select" value={form.business_model} onChange={e => set('business_model', e.target.value)}>
@@ -768,7 +771,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 </p>
               </>
             )}
-          </div>}
+          </CollapsibleSection>}
           {isDistributor && form.country && resolvedProducts.length === 0 && (
             <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
               {Object.keys(authMap).length === 0
@@ -777,6 +780,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
             </p>
           )}
 
+          <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{t("df_product_lbl")}</p>
           <ProductLineItems
             lines={dealLines}
             onChange={setDealLines}
