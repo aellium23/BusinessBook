@@ -75,7 +75,7 @@ export async function convertQuotationToDeal(quotation) {
     country:       quotation.country || null,
     region:        quotation.region || null,
     company_id:    quotation.company_id || null,
-    sales_type:    quotation.company_id ? 'External' : 'Internal',
+    sales_type:    'External',
     created_by:    quotation.created_by || null,
   }
 

@@ -59,6 +59,7 @@ export function StageBadge({ stage }) {
 }
 
 export function SalesTypeBadge({ type }) {
+  if (!type) return null
   return type === 'Internal'
     ? <span className="badge-int">Int</span>
     : <span className="badge-ext">Ext</span>

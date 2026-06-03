@@ -90,7 +90,7 @@ export default function RevenueSchedule({ contractStart, contractEnd, valueTotal
           <span className={diff === 0 ? 'text-green-600' : 'text-amber-600'}>
             {diff === 0
               ? (t ? t('df_rev_matches') : 'matches deal value')
-              : `${diff > 0 ? '+' : ''}${sym}${(-diff).toLocaleString('pt-PT')} ${t ? t('df_rev_vs_value') : 'vs deal value'}`}
+              : `${diff > 0 ? '+' : ''}${sym}${Math.abs(diff).toLocaleString('pt-PT')} ${t ? t('df_rev_vs_value') : 'vs deal value'}`}
           </span>
         )}
       </div>

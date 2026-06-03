@@ -23,6 +23,7 @@ export default function AcceptancePage() {
         if (data.acceptance?.accepted_at) setConfirmed(true)
         setLoading(false)
       })
+      .catch(() => { setError('Network error. Please try again.'); setLoading(false) })
   }, [token])
 
   async function handleConfirm() {

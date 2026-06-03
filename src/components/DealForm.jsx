@@ -64,6 +64,13 @@ export default function DealForm({ deal, onClose, onSaved }) {
     // Billing party — drives Internal/External (see deriveSalesType)
     billing_party_type:    deal.billing_party_type || '',
     billing_subsidiary_id: deal.billing_subsidiary_id || null,
+    // Detect if sales_type was manually overridden on a previous save
+    _sales_type_overridden: (() => {
+      if (!deal.billing_party_type) return false
+      const auto = deal.bu === 'ECT' ? 'External'
+        : (deal.bu === 'VGT' && deal.billing_party_type === 'fuji_subsidiary') ? 'Internal' : 'External'
+      return deal.sales_type !== auto
+    })(),
     equipment_count: deal.equipment_count || '',
     annual_studies: deal.annual_studies || '',
     annual_exams: deal.annual_exams || '',
@@ -781,7 +788,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
           {/* Deal-level equipment/studies metadata — contextual by business model */}
           {!isDistributor && form.business_model && (
             <div className="grid grid-cols-2 gap-3">
-              {['financed_project','pay_per_study','capex','one_shot',''].includes(form.business_model) && (
+              {['financed_project','pay_per_study','capex','one_shot'].includes(form.business_model) && (
               <div>
                 <label className="label">
                   {t("df_equipment")}

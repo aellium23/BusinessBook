@@ -353,7 +353,7 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
               <div className="bg-gray-50/70 rounded-xl p-3 border border-gray-100">
                 {(() => {
                   const models = form.allowed_pricing_models || []
-                  const isSubscription = models.some(m => ['pay_per_study','subscription','saas'].includes(m))
+                  const isSubscription = models.some(m => ['pay_per_study','subscription'].includes(m))
                   const isCapex = models.some(m => m === 'license_plus_annual')
                   return (
                     <div className={`grid ${isSubscription && !isCapex ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>

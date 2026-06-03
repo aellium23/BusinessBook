@@ -230,7 +230,6 @@ export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete, b
         <div className="pt-2 border-t border-gray-100 space-y-2">
           {/* Extra badges */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            <SalesTypeBadge type={deal.sales_type} />
             {deal.product && (
               <span className="inline-flex px-2 py-0.5 rounded text-xs font-bold bg-navy/10 text-navy">
                 {deal.product}

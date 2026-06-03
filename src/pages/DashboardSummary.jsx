@@ -258,33 +258,6 @@ export default function DashboardSummary({ selectedBU = '' }) {
   const [fy25, setFy25]      = useState([])
   const [slaStats, setSlaStats] = useState({ active: 0, activeValue: 0, pipelineValue: 0, revenueByFY: {}, byBU: {} })
   const [manualFct, setManualFct] = useState(null)
-  const [customizing, setCustomizing] = useState(false)
-  const DEFAULT_SECTIONS = ['gauges','public_private','pipeline','fct','recurring','fy_projection']
-  const [sectionOrder, setSectionOrder] = useState(() => {
-    try { const v = localStorage.getItem('bb_dash_sections'); return v ? JSON.parse(v) : DEFAULT_SECTIONS } catch { return DEFAULT_SECTIONS }
-  })
-  const [hiddenSections, setHiddenSections] = useState(() => {
-    try { const v = localStorage.getItem('bb_dash_hidden'); return v ? JSON.parse(v) : [] } catch { return [] }
-  })
-  function moveSection(id, dir) {
-    setSectionOrder(prev => {
-      const idx = prev.indexOf(id)
-      if (idx < 0) return prev
-      const newIdx = idx + dir
-      if (newIdx < 0 || newIdx >= prev.length) return prev
-      const arr = [...prev]; [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]]
-      try { localStorage.setItem('bb_dash_sections', JSON.stringify(arr)) } catch {}
-      return arr
-    })
-  }
-  function toggleSection(id) {
-    setHiddenSections(prev => {
-      const next = prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
-      try { localStorage.setItem('bb_dash_hidden', JSON.stringify(next)) } catch {}
-      return next
-    })
-  }
-  const SECTION_LABELS = { gauges:'Sales vs Budget', public_private:'Public vs Private', pipeline:'Pipeline', fct:'Manual FCT', recurring:'Recurring Business', fy_projection:'FY Projection' }
 
   useEffect(() => {
     supabase.from('budget').select('*')
@@ -489,7 +462,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
   return (
     <div className="space-y-6">
       {/* Sales vs Budget */}
-      {!hiddenSections.includes('gauges') && (
+      {(
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Target size={14} className="text-gray-400"/>
@@ -540,7 +513,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
       )}
 
       {/* Public vs Private */}
-      {!hiddenSections.includes('public_private') && (publicPrivate.total_pipe > 0 || publicPrivate.total_inv > 0) && (
+      {(publicPrivate.total_pipe > 0 || publicPrivate.total_inv > 0) && (
         <CollapsibleSection id="pub_priv" title="Public vs Private" icon={<Target size={12}/>}>
         <div className="card p-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -575,7 +548,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
       )}
 
       {/* Pipeline snapshot */}
-      {!hiddenSections.includes('pipeline') && (
+      {(
         <div className={`grid gap-3 ${showVGT && showECT ? 'grid-cols-2' : 'grid-cols-1'}`}>
           {showVGT && (
           <div className="card p-4">
@@ -599,7 +572,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
       )}
 
       {/* Manual FCT vs Auto */}
-      {!hiddenSections.includes('fct') && manualFct && (
+      {manualFct && (
         <div className="card p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1 mb-2">
             Manual FCT vs Auto Forecast
@@ -622,7 +595,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
       )}
 
       {/* Recurring Revenue */}
-      {!hiddenSections.includes('recurring') && (
+      {(
         <div className="card p-4 space-y-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1">
             <RefreshCw size={12}/> Recurring Business (SLA)
