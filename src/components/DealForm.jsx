@@ -11,7 +11,7 @@ import AttachmentsList from './AttachmentsList'
 import ContactsList from './ContactsList'
 import SearchableSelect from './SearchableSelect'
 import ProductLineItems from './ProductLineItems'
-import { FORECAST_CATEGORIES, defaultForecastFromStage, BUSINESS_MODELS, RECURRING_MODELS, normalizeBusinessModel, REGIONS, COUNTRY_MAP, MONTHS, MONTHS_K, DIST_STAGES, regionForCountry } from '../constants'
+import { BUSINESS_MODELS, RECURRING_MODELS, normalizeBusinessModel, REGIONS, COUNTRY_MAP, MONTHS, MONTHS_K, DIST_STAGES, regionForCountry } from '../constants'
 import { saveDealProducts } from '../hooks/useDealProducts'
 import { getAllowedTransitions, canTransition } from '../lib/stateMachine'
 import { validateDeal } from '../lib/validation'
@@ -432,33 +432,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </div>
         </div>
 
-        {/* Forecast category — Commit / Best case / Upside / Omit */}
-        {!isDistributor && (
-          <div>
-            <label className="label flex items-center gap-1">
-              {t("df_forecast_cat")}
-              <span className="text-micro text-gray-400 font-normal">
-                ({t("df_auto_from_stage")} <strong>{FORECAST_CATEGORIES.find(c => c.id === defaultForecastFromStage(form.stage))?.label}</strong>)
-              </span>
-            </label>
-            <div className="flex gap-2 flex-wrap">
-              {[{ id: '', label: t("df_auto") }, ...FORECAST_CATEGORIES].map(opt => {
-                const active = (form.forecast_category || '') === opt.id
-                return (
-                  <button key={opt.id || 'auto'} type="button"
-                    onClick={() => set('forecast_category', opt.id || null)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                      active
-                        ? 'bg-navy text-white border-navy'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
-                    }`}>
-                    {opt.label}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
+        {/* Forecast category is auto-inferred from the stage (no manual field) */}
 
         {/* Client / Account */}
         <div>
