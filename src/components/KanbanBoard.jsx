@@ -1,6 +1,6 @@
 import { useState, memo } from 'react'
 import { BUBadge, ForecastBadge, formatK } from './ui'
-import { STAGES, MONTHS_K, WEIGHTS } from '../constants'
+import { STAGES, MONTHS_K, WEIGHTS, STAGE_CLASS } from '../constants'
 import { Pencil, Trash2, GripVertical } from 'lucide-react'
 import { canTransition, getAllowedTransitions } from '../lib/stateMachine'
 
@@ -8,15 +8,7 @@ import { canTransition, getAllowedTransitions } from '../lib/stateMachine'
 const DEFAULT_COLUMNS = STAGES.filter(s => s !== 'Lost')
 
 function stageColor(stage) {
-  switch (stage) {
-    case 'Lead':             return 'bg-gray-100 text-gray-600'
-    case 'Pipeline':         return 'bg-amber-100 text-amber-700'
-    case 'Offer Presented':  return 'bg-purple-100 text-purple-700'
-    case 'BackLog':          return 'bg-blue-100 text-blue-700'
-    case 'Invoiced':         return 'bg-green-100 text-green-700'
-    case 'Lost':             return 'bg-red-100 text-red-700'
-    default:                 return 'bg-gray-100 text-gray-600'
-  }
+  return STAGE_CLASS[stage] || 'bg-gray-100 text-gray-600'
 }
 
 function dealValue(deal) {

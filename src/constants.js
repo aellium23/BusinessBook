@@ -4,6 +4,34 @@
 export const STAGES = ['Lead', 'Pipeline', 'Offer Presented', 'BackLog', 'Invoiced', 'Lost']
 export const DIST_STAGES = ['Lead', 'Offer Presented', 'BackLog', 'Lost']
 
+// ── Canonical stage colors — SINGLE source of truth ────────────────────
+// Used everywhere (badges, Kanban, map, charts) so a stage looks the same
+// across the whole app.  Mapping: Lead=gray, Pipeline=blue, Offer=purple,
+// BackLog=amber, Invoiced=green, Lost=red.
+export const STAGE_CLASS = {
+  'Lead':             'bg-gray-100 text-gray-600',
+  'Pipeline':         'bg-blue-100 text-blue-700',
+  'Offer Presented':  'bg-purple-100 text-purple-700',
+  'BackLog':          'bg-amber-100 text-amber-800',
+  'Invoiced':         'bg-green-100 text-green-700',
+  'Lost':             'bg-red-100 text-red-700',
+}
+export const STAGE_HEX = {
+  'Lead':             '#9CA3AF',
+  'Pipeline':         '#3B82F6',
+  'Offer Presented':  '#8B5CF6',
+  'BackLog':          '#F59E0B',
+  'Invoiced':         '#10B981',
+  'Lost':             '#EF4444',
+}
+// Funnel bucket colors (aggregate pipeline/backlog/invoiced) — a separate
+// concept from individual stages, kept consistent across all funnel views.
+export const FUNNEL_BUCKET = {
+  pipeline: { bg: 'bg-amber-400',  light: 'bg-amber-50',  text: 'text-amber-700' },
+  backlog:  { bg: 'bg-purple-400', light: 'bg-purple-50', text: 'text-purple-700' },
+  invoiced: { bg: 'bg-green-500',  light: 'bg-green-50',  text: 'text-green-700' },
+}
+
 // Default weights used for weighted forecast when a deal has no explicit win_probability
 export const WEIGHTS = {
   Lead:              0.10,

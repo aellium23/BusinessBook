@@ -11,6 +11,7 @@ import {
 import { useTranslation } from '../hooks/useTranslation'
 import DistributorDashboard from '../components/dashboard/DistributorDashboard'
 import PerformanceSection from '../components/dashboard/PerformanceSection'
+import { STAGE_HEX } from '../constants'
 
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
@@ -544,11 +545,11 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
               { from: 'BackLog', to: 'Invoiced', rate: (stageCounts.BackLog + stageCounts.Invoiced) > 0 ? Math.round(stageCounts.Invoiced / (stageCounts.BackLog + stageCounts.Invoiced) * 100) : null },
             ]
             const funnelBars = [
-              { label:'Lead',            value: active.filter(d=>d.stage==='Lead').reduce((s,d)=>s+(Number(d.value_total)||0)/1000,0), color:'#F4C0D1', text:'#4B1528' },
-              { label:'Pipeline',        value: agg.vgt_pipe+agg.ect_pipe, color:'#FAC775', text:'#412402' },
-              { label:'Offer Presented', value: active.filter(d=>d.stage==='Offer Presented').reduce((s,d)=>s+(Number(d.value_total)||0)/1000,0), color:'#C4B5FD', text:'#3B1278' },
-              { label:'BackLog',         value: agg.vgt_bl+agg.ect_bl,     color:'#B5D4F4', text:'#042C53' },
-              { label:'Invoiced',        value: total_act,                  color:'#C0DD97', text:'#173404' },
+              { label:'Lead',            value: active.filter(d=>d.stage==='Lead').reduce((s,d)=>s+(Number(d.value_total)||0)/1000,0), color: STAGE_HEX['Lead'],            text:'#fff' },
+              { label:'Pipeline',        value: agg.vgt_pipe+agg.ect_pipe, color: STAGE_HEX['Pipeline'],        text:'#fff' },
+              { label:'Offer Presented', value: active.filter(d=>d.stage==='Offer Presented').reduce((s,d)=>s+(Number(d.value_total)||0)/1000,0), color: STAGE_HEX['Offer Presented'], text:'#fff' },
+              { label:'BackLog',         value: agg.vgt_bl+agg.ect_bl,     color: STAGE_HEX['BackLog'],         text:'#fff' },
+              { label:'Invoiced',        value: total_act,                  color: STAGE_HEX['Invoiced'],        text:'#fff' },
             ]
             const maxVal = funnelBars[0].value || total_act || 1
             return (

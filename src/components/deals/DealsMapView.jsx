@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { formatK } from '../ui'
 import { Globe, MapPin } from 'lucide-react'
-import { REGIONS } from '../../constants'
+import { REGIONS, STAGE_HEX } from '../../constants'
 
 const REGION_COLORS = {
   Europe: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', bar: '#3B82F6' },
@@ -11,10 +11,7 @@ const REGION_COLORS = {
   NA:     { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', bar: '#EF4444' },
 }
 
-const STAGE_COLORS = {
-  Lead: '#9CA3AF', Pipeline: '#F59E0B', 'Offer Presented': '#3B82F6',
-  BackLog: '#8B5CF6', Invoiced: '#10B981', Lost: '#EF4444',
-}
+const STAGE_COLORS = STAGE_HEX
 
 export default function DealsMapView({ deals }) {
   const [selectedRegion, setSelectedRegion] = useState(null)
