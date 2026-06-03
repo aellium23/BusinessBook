@@ -969,8 +969,10 @@ export default function DealForm({ deal, onClose, onSaved }) {
           <AcceptanceSection dealId={deal.id} client={form.client} t={t}/>
         )}
 
-        {/* Monthly recognition — hidden for distributors and for models managed via SLA */}
-        {!isDistributor && !['pay_per_study','subscription'].includes(form.business_model) && (
+        {/* Monthly recognition — only for models with month-by-month deferral
+            (CAPEX warranty/go-live, Financed multi-year). Hidden for one-shot,
+            pay-per-study, subscription (SLA-managed) and distributors. */}
+        {!isDistributor && ['capex','financed_project'].includes(form.business_model) && (
           <DealMonthlyGrid form={form} set={set} t={t}/>
         )}
 
