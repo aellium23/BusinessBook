@@ -6,22 +6,22 @@ import { FORECAST_CATEGORIES, resolveForecastCategory } from '../constants'
 export function CollapsibleSection({ title, subtitle, defaultOpen = false, badge, children }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden">
+    <div className="border border-gray-200 rounded-lg overflow-hidden">
       <button type="button" onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide truncate">{title}</span>
+        className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 hover:bg-gray-100 transition-colors text-left min-h-tap">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-micro font-semibold text-gray-600 uppercase tracking-wide truncate">{title}</span>
           {badge}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           {subtitle && <span className="text-micro text-gray-400">{subtitle}</span>}
-          <svg className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+          <svg className={`w-3.5 h-3.5 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
             fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/>
           </svg>
         </div>
       </button>
-      {open && <div className="p-4 space-y-3">{children}</div>}
+      {open && <div className="p-3 space-y-2">{children}</div>}
     </div>
   )
 }

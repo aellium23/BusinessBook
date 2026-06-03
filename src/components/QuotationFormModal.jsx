@@ -158,7 +158,7 @@ export default function QuotationFormModal({ quotation, onClose, onSaved, prefil
           </button>
         </div>
       }>
-      <div className="space-y-3">
+      <div className="space-y-2">
         {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 
         <div className="grid grid-cols-2 gap-3">

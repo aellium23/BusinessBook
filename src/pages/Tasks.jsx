@@ -248,7 +248,7 @@ function TaskRow({ task, onEdit, onDelete, currentUserId, canAssign, tenders = [
     }`}>
       {/* Checkbox */}
       <button onClick={toggleDone} disabled={toggling}
-        className="mt-0.5 shrink-0 text-gray-400 hover:text-green-500 transition-colors">
+        className="mt-0.5 shrink-0 text-gray-400 hover:text-green-500 transition-colors min-h-tap min-w-tap flex items-center justify-center">
         {isDone ? <CheckCircle2 size={18} className="text-green-500" /> : <Circle size={18} />}
       </button>
 
@@ -296,10 +296,10 @@ function TaskRow({ task, onEdit, onDelete, currentUserId, canAssign, tenders = [
 
       {/* Actions */}
       <div className="flex gap-1 shrink-0">
-        <button onClick={() => onEdit(task)} className="p-1.5 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100">
+        <button onClick={() => onEdit(task)} className="p-1.5 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100 min-h-tap min-w-tap flex items-center justify-center">
           <Edit3 size={13} />
         </button>
-        <button onClick={() => onDelete(task.id)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50">
+        <button onClick={() => onDelete(task.id)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 min-h-tap min-w-tap flex items-center justify-center">
           <Trash2 size={13} />
         </button>
       </div>

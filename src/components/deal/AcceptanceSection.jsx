@@ -87,7 +87,7 @@ export default function AcceptanceSection({ dealId, client, t }) {
   const isPending = acceptance && !acceptance.accepted_at
 
   return (
-    <div className={`rounded-xl p-3 space-y-2 ${
+    <div className={`rounded-lg p-2.5 space-y-1.5 ${
       isAccepted ? 'bg-green-50 border border-green-200'
         : isPending ? 'bg-amber-50 border border-amber-200'
         : 'bg-gray-50 border border-gray-200'

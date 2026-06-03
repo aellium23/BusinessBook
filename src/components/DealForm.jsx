@@ -378,11 +378,11 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </button>
         </div>
       }>
-      <div className="space-y-4">
+      <div className="space-y-2">
         {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 
         {/* BU + Sales Type + Stage */}
-        <div className={`grid ${isDistributor ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3'} gap-3`}>
+        <div className={`grid ${isDistributor ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3'} gap-2`}>
           {!isDistributor && (
           <div>
             <label className="label">{t("df_bu")} *</label>
@@ -620,7 +620,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
         {/* Value + GM + Currency — compact financial row (currency collapses to € by default).
             Win probability is auto-inferred from the stage. Hidden for distributors. */}
         {!isDistributor && <div className="space-y-2">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2">
             <div>
               <label className="label">
                 {t("df_value")} {form.currency === 'EUR' ? '€' : form.currency === 'USD' ? '$' : '£'}
@@ -799,7 +799,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
           {/* Deal-level equipment/studies metadata — contextual by business model */}
           {!isDistributor && form.business_model && (
             <div className="grid grid-cols-2 gap-3">
-              {['financed_project','pay_per_study','capex','one_shot'].includes(form.business_model) && (
+              {['capex','financed_project'].includes(form.business_model) && (
               <div>
                 <label className="label">
                   {t("df_equipment")}
@@ -848,11 +848,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
               </CollapsibleSection>
             )}
           </>
-        ) : (
-          <p className="text-tiny text-gray-400 bg-gray-50 rounded-lg px-3 py-2 text-center">
-            Save the deal first to request discounts and add project (TCO) costs.
-          </p>
-        )}
+        ) : null}
 
         {/* ── CONTRACT LINK — hidden for one_shot & financed_project (no SLA needed) */}
         {deal?.id && (isAdmin || profile?.role === 'manager') && !deal.converted_to_sla
@@ -908,7 +904,6 @@ export default function DealForm({ deal, onClose, onSaved }) {
           <div>
             <label className="label">{t("df_invoice_date")}</label>
             <input className="input" type="date" value={form.invoice_date} onChange={e => set('invoice_date', e.target.value)}/>
-            <p className="text-micro text-gray-400 mt-0.5">{t("df_invoice_hint")}</p>
           </div>
         )}
 

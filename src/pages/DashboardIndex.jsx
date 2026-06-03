@@ -92,7 +92,7 @@ export default function DashboardIndex() {
       </div>
 
       {/* Primary view: Summary / Details */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex items-center gap-3 overflow-x-auto no-scrollbar">
         <div className="inline-flex rounded-control border border-gray-200 overflow-hidden">
           {[
             { id: 'summary', label: t('dash_view_summary') || 'Summary', icon: GaugeIcon },

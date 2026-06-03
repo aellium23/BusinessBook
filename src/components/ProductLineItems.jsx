@@ -13,6 +13,7 @@ const LICENSE_TYPES = [
 export default function ProductLineItems({ lines, onChange, products, businessModel, t, onTotalChange, onBusinessModelInfer, userRole }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [expandedIdx, setExpandedIdx] = useState(null)
+  const [showSearch, setShowSearch] = useState(false)
 
   const isCapex = ['capex', 'financed_project', 'one_shot'].includes(businessModel)
   const isDistributor = userRole === 'distributor'
@@ -200,7 +201,7 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
   const gmPct = totalNet > 0 ? ((totalNet - totalCost) / totalNet * 100) : 0
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div className="flex items-center justify-between flex-wrap">
         <p className="text-xs font-semibold text-gray-500 uppercase flex items-center gap-1">
           <Package size={12}/> {t?.('products_title') || 'Products'} ({lines.length})
@@ -383,43 +384,52 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
         )
       })}
 
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <input className="input text-xs pl-7" value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            placeholder={t?.('products_search') || 'Search catalog…'}
-            style={{ fontSize: '16px' }}/>
-          <Package size={12} className="absolute left-2.5 top-3 text-gray-400"/>
-
-          {searchTerm && (
-            <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-              {Object.entries(grouped).map(([cat, prods]) => (
-                <div key={cat}>
-                  <p className="text-micro text-gray-400 uppercase font-semibold px-3 pt-2 pb-1">{cat}</p>
-                  {prods.map(p => (
-                    <button key={p.id} onClick={() => addLine(p)}
-                      className="w-full text-left px-3 py-2 hover:bg-gray-50 text-xs flex justify-between items-center">
-                      <span className="truncate">{p.name}</span>
-                      <span className="text-gray-400 shrink-0 ml-2">
-                        {p.license_fee > 0 ? formatK(p.license_fee) : ''}
-                        {p.annual_fee > 0 ? ' +' + formatK(p.annual_fee) + '/yr' : ''}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              ))}
-              {Object.keys(grouped).length === 0 && (
-                <p className="text-xs text-gray-400 px-3 py-2">{t?.('no_results') || 'No results'}</p>
-              )}
-            </div>
+      {/* Product search — collapsed to "+" button when products already exist */}
+      {showSearch || lines.length === 0 ? (
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <input className="input text-xs pl-7" value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder={t?.('products_search') || 'Search catalog…'}
+              autoFocus={showSearch}
+              onBlur={() => { if (!searchTerm) setShowSearch(false) }}
+              style={{ fontSize: '16px' }}/>
+            <Package size={12} className="absolute left-2.5 top-3 text-gray-400"/>
+            {searchTerm && (
+              <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                {Object.entries(grouped).map(([cat, prods]) => (
+                  <div key={cat}>
+                    <p className="text-micro text-gray-400 uppercase font-semibold px-3 pt-2 pb-1">{cat}</p>
+                    {prods.map(p => (
+                      <button key={p.id} onClick={() => addLine(p)}
+                        className="w-full text-left px-3 py-2 hover:bg-gray-50 text-xs flex justify-between items-center">
+                        <span className="truncate">{p.name}</span>
+                        <span className="text-gray-400 shrink-0 ml-2">
+                          {p.license_fee > 0 ? formatK(p.license_fee) : ''}
+                          {p.annual_fee > 0 ? ' +' + formatK(p.annual_fee) + '/yr' : ''}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ))}
+                {Object.keys(grouped).length === 0 && (
+                  <p className="text-xs text-gray-400 px-3 py-2">{t?.('no_results') || 'No results'}</p>
+                )}
+              </div>
+            )}
+          </div>
+          {!isDistributor && (
+            <button onClick={addCustomLine} className="btn-secondary text-xs px-3 shrink-0 min-w-tap">
+              <Plus size={12}/>
+            </button>
           )}
         </div>
-        {!isDistributor && (
-          <button onClick={addCustomLine} className="btn-secondary text-xs px-3 shrink-0">
-            <Plus size={12}/>
-          </button>
-        )}
-      </div>
+      ) : (
+        <button onClick={() => setShowSearch(true)}
+          className="w-full flex items-center justify-center gap-1 text-xs text-gray-500 hover:text-navy py-1.5 rounded-lg border border-dashed border-gray-300 hover:border-navy transition-colors min-h-tap">
+          <Plus size={12}/> {t?.('products_add') || 'Add product'}
+        </button>
+      )}
     </div>
   )
 }

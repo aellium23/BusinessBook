@@ -479,7 +479,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
           <span className="flex items-center gap-1">🟡 70–95%</span>
           <span className="flex items-center gap-1">🔴 &lt;70%</span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
           {gauges.map(g => (
             <div key={g.key} className="card p-4">
               <Gauge

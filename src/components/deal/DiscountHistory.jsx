@@ -138,9 +138,10 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
   }
 
   if (loading) return null
+  if (requests.length === 0 && !isDistributor) return null
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+    <div className="bg-white border border-gray-200 rounded-xl p-3 space-y-2">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
           Discount Requests ({requests.length})
