@@ -80,6 +80,7 @@ export default function Deals() {
   const [page, setPage]                     = useState(1)
   const [sortBy, setSortBy]               = useState('date_desc')
   const [invoicedMonthF, setInvoicedMonthF] = useState([])  // array of month keys
+  const [deliveryF, setDeliveryF] = useState('')  // '' | 'not_sent' | 'pending' | 'accepted'
   const [viewMode, setViewMode] = useState(() => {
     if (typeof window === 'undefined') return 'list'
     return localStorage.getItem('bb_deals_view') || 'list'
@@ -157,8 +158,9 @@ export default function Deals() {
     if (productF) d = d.filter(x => (dealProducts[x.id] || []).some(p => p === productF))
     if (categoryF) d = d.filter(x => (dealCategories[x.id] || []).includes(categoryF))
     if (noProductF) d = d.filter(x => !(dealProducts[x.id] || []).length)
+    if (deliveryF) d = d.filter(x => x.stage === 'BackLog' && (x.delivery_status || 'not_sent') === deliveryF)
     return d
-  }, [rawDeals, slaF, discountF, ownerF, forecastF, periodF, invoicedMonthF.join(','), brandF, productF, categoryF, noProductF, dealBrands, dealProducts, dealCategories, profile])
+  }, [rawDeals, slaF, discountF, ownerF, forecastF, periodF, invoicedMonthF.join(','), brandF, productF, categoryF, noProductF, deliveryF, dealBrands, dealProducts, dealCategories, profile])
 
   useEffect(() => {
     if (!rawDeals.length) return
@@ -258,7 +260,7 @@ export default function Deals() {
   }, [rawDeals])
 
   // Contagem de filtros activos
-  const activeFilters = [search, stageF, regionF, buF, ownerF, forecastF, slaF, discountF, brandF, productF, categoryF, noProductF, periodF > 0, invoicedMonthF.length > 0].filter(Boolean).length
+  const activeFilters = [search, stageF, regionF, buF, ownerF, forecastF, slaF, discountF, brandF, productF, categoryF, noProductF, deliveryF, periodF > 0, invoicedMonthF.length > 0].filter(Boolean).length
 
   // Drag-drop on the Kanban: moving a card across stages
   async function handleStageChange(dealId, newStage) {
@@ -555,16 +557,26 @@ export default function Deals() {
             </div>
           </div>
 
-          {/* Toggle SLA + Reset */}
+          {/* Toggle SLA + Delivery filter + Reset */}
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <button onClick={handleSla}
-              className={`btn text-xs gap-1 ${slaF ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'btn-secondary'}`}>
-              <RefreshCw size={11}/> {t("deals_sla_only")}
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button onClick={handleSla}
+                className={`btn text-xs gap-1 ${slaF ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'btn-secondary'}`}>
+                <RefreshCw size={11}/> {t("deals_sla_only")}
+              </button>
+              {/* Delivery / acceptance status filter (BackLog management) */}
+              <select className={`select text-xs py-1.5 w-auto ${deliveryF ? 'bg-amber-50 border-amber-200 text-amber-700' : ''}`}
+                value={deliveryF} onChange={e => { setDeliveryF(e.target.value); resetPage() }}>
+                <option value="">{t("deals_delivery_all")}</option>
+                <option value="not_sent">{t("deals_delivery_not_sent")}</option>
+                <option value="pending">{t("deals_delivery_pending")}</option>
+                <option value="accepted">{t("deals_delivery_accepted")}</option>
+              </select>
+            </div>
             {activeFilters > 0 && (
               <button onClick={() => {
                 setSearch(''); setStageF(''); setRegionF(''); setBuF('')
-                setOwnerF(''); setForecastF(''); setSlaF(false); setDiscountF(''); setBrandF(''); setProductF(''); setCategoryF(''); setNoProductF(false); setPeriodF(0); setInvoicedMonthF([]); resetPage()
+                setOwnerF(''); setForecastF(''); setSlaF(false); setDiscountF(''); setBrandF(''); setProductF(''); setCategoryF(''); setNoProductF(false); setDeliveryF(''); setPeriodF(0); setInvoicedMonthF([]); resetPage()
               }} className="text-xs text-red-500 hover:text-red-700 font-medium">
                 {t("deals_clear_filters")}
               </button>

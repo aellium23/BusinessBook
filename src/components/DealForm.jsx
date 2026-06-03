@@ -23,6 +23,7 @@ import DistributionSection from './deal/DistributionSection'
 import DiscountHistory from './deal/DiscountHistory'
 import ProjectTCO from './deal/ProjectTCO'
 import RevenueSchedule from './deal/RevenueSchedule'
+import AcceptanceSection from './deal/AcceptanceSection'
 import { EMPTY_DEAL as EMPTY } from './deal/dealDefaults'
 
 export default function DealForm({ deal, onClose, onSaved }) {
@@ -753,10 +754,10 @@ export default function DealForm({ deal, onClose, onSaved }) {
             }}
           />
 
-          {/* Deal-level equipment/studies metadata — internal only; for
-              distributors the volume lives per-product in the line items. */}
-          {!isDistributor && (
+          {/* Deal-level equipment/studies metadata — contextual by business model */}
+          {!isDistributor && form.business_model && (
             <div className="grid grid-cols-2 gap-3">
+              {['financed_project','pay_per_study','capex','one_shot',''].includes(form.business_model) && (
               <div>
                 <label className="label">
                   {t("df_equipment")}
@@ -767,6 +768,8 @@ export default function DealForm({ deal, onClose, onSaved }) {
                   onChange={e => set('equipment_count', e.target.value)}
                   placeholder={t("df_placeholder_equipment")}/>
               </div>
+              )}
+              {['pay_per_study','subscription'].includes(form.business_model) && (
               <div>
                 <label className="label">
                   {t("df_annual_studies")}
@@ -777,6 +780,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                   onChange={e => set('annual_studies', e.target.value)}
                   placeholder={t("df_placeholder_studies")}/>
               </div>
+              )}
             </div>
           )}
         </div>
@@ -802,8 +806,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </p>
         )}
 
-        {/* ── CONTRACT LINK ──────────────────────────────────── */}
-        {deal?.id && (isAdmin || profile?.role === 'manager') && !deal.converted_to_sla && (() => {
+        {/* ── CONTRACT LINK — hidden for one_shot & financed_project (no SLA needed) */}
+        {deal?.id && (isAdmin || profile?.role === 'manager') && !deal.converted_to_sla
+          && !['one_shot','financed_project'].includes(form.business_model) && (() => {
           const isInvoiced = form.stage === 'Invoiced'
           const isRecurring = RECURRING_MODELS.includes(form.business_model)
           const shouldPrompt = isInvoiced || isRecurring
@@ -859,9 +864,15 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </div>
         )}
 
-        {/* Monthly recognition — internal VGT revenue-recognition view.
-            Hidden for distributors; their deal value comes from products. */}
-        {!isDistributor && <DealMonthlyGrid form={form} set={set} t={t}/>}
+        {/* Acceptance certificate — only for existing BackLog/Invoiced deals */}
+        {deal?.id && ['BackLog','Invoiced'].includes(form.stage) && (
+          <AcceptanceSection dealId={deal.id} client={form.client} t={t}/>
+        )}
+
+        {/* Monthly recognition — hidden for distributors and for models managed via SLA */}
+        {!isDistributor && !['pay_per_study','subscription'].includes(form.business_model) && (
+          <DealMonthlyGrid form={form} set={set} t={t}/>
+        )}
 
         {/* Unified activity timeline — replaces the old Change History + Activity Log */}
         {deal?.id && (

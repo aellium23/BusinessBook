@@ -148,6 +148,7 @@ const HELP = {
         'Request discounts: distributors can request a discount (% + justification) that routes to the right brand-based approver, with multiple negotiation rounds (counter-offers). An approved discount is applied to the deal value.',
         'A discount-approvals banner at the top shows pending / approved / rejected requests with filter chips, for admins, managers, and distributors.',
         'Project TCO: on a saved deal, add third-party (other vendor) costs to see the global project margin alongside Fujifilm products.',
+        'Delivery acceptance (Auto de Receção): on BackLog deals, send an acceptance certificate email to the client. The client clicks a link to confirm delivery — no login required. Track acceptance status (not sent / pending / accepted) with the delivery filter. Send reminder emails for deals without confirmation.',
       ],
       steps: [
         '1. Click "+ Deal" (top right) to open the quick-create form.',
@@ -202,6 +203,7 @@ const HELP = {
         'Solicita descuentos: los distribuidores pueden pedir un descuento (% + justificacion) que se enruta al aprobador correcto segun la marca, con varias rondas de negociacion (contraofertas). Un descuento aprobado se aplica al valor del deal.',
         'Un banner de aprobaciones de descuento en la parte superior muestra solicitudes pendientes / aprobadas / rechazadas con chips de filtro, para admins, managers y distribuidores.',
         'TCO del proyecto: en un deal guardado, anade costes de terceros (otros proveedores) para ver el margen global del proyecto junto a los productos Fujifilm.',
+        'Aceptacion de entrega (Auto de Recepcion): en deals BackLog, envia un email de certificado de aceptacion al cliente. El cliente hace clic en un enlace para confirmar la entrega — sin login. Filtra por estado de entrega (no enviado / pendiente / aceptado). Envia recordatorios para deals sin confirmacion.',
       ],
       steps: [
         '1. Haz clic en "+ Deal" (arriba a la derecha) para abrir el formulario rapido.',
@@ -255,6 +257,7 @@ const HELP = {
         'Pede descontos: os distribuidores podem pedir um desconto (% + justificacao) que e encaminhado para o aprovador correto com base na marca, com varias rondas de negociacao (contrapropostas). Um desconto aprovado e aplicado ao valor do deal.',
         'Um banner de aprovacoes de desconto no topo mostra pedidos pendentes / aprovados / rejeitados com chips de filtro, para admins, gestores e distribuidores.',
         'TCO do projeto: num deal guardado, adiciona custos de terceiros (outros fornecedores) para ver a margem global do projeto a par dos produtos Fujifilm.',
+        'Aceitacao de entrega (Auto de Rececao): em deals BackLog, envia um email de certificado de aceitacao ao cliente. O cliente clica num link para confirmar a entrega — sem login. Filtra por estado de entrega (nao enviado / pendente / aceite). Envia lembretes para deals sem confirmacao.',
       ],
       steps: [
         '1. Clica em "+ Deal" (canto superior direito) para abrir o formulario rapido.',

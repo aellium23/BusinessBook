@@ -53,6 +53,7 @@ const AuthCallback = lazyWithRetry(() => import('./pages/AuthCallback'))
 const SetPassword = lazyWithRetry(() => import('./pages/SetPassword'))
 const Permissions = lazyWithRetry(() => import('./pages/Permissions'))
 const Approvals = lazyWithRetry(() => import('./pages/Approvals'))
+const AcceptancePage = lazyWithRetry(() => import('./pages/AcceptancePage'))
 
 // The user's landing route — dashboard for most, /approvals for
 // approval-only users (brand approvers with no dashboard access).
@@ -96,6 +97,7 @@ function AppRoutes() {
         <Route path="/login"           element={<Login />} />
         <Route path="/auth/callback"   element={<AuthCallback />} />
         <Route path="/auth/set-password" element={<SetPassword />} />
+        <Route path="/accept/:token"   element={<AcceptancePage />} />
         <Route path="*"                element={<Navigate to="/login" replace />} />
       </Routes>
     </Suspense>
@@ -126,6 +128,7 @@ function AppRoutes() {
           <Route path="/account"       element={<MyAccount />} />
           <Route path="/auth/callback"     element={<AuthCallback />} />
           <Route path="/auth/set-password" element={<SetPassword />} />
+          <Route path="/accept/:token"       element={<AcceptancePage />} />
           <Route path="/login"              element={<Navigate to="/" replace />} />
           <Route path="*"             element={<Navigate to="/" replace />} />
         </Routes>
