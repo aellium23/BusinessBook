@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
 import { logger } from '../lib/logger'
+import { regionForCountry } from '../constants'
 
 export function useQuotations(filters = {}) {
   const { profile, isAdmin } = useAuth()
@@ -73,7 +74,7 @@ export async function convertQuotationToDeal(quotation) {
     business_model: quotation.context_type === 'license_compliance' ? 'subscription' : null,
     sales_owner:   quotation.created_by_name || null,
     country:       quotation.country || null,
-    region:        quotation.region || null,
+    region:        quotation.region || (quotation.country ? regionForCountry(quotation.country) : null) || null,
     company_id:    quotation.company_id || null,
     sales_type:    'External',
     created_by:    quotation.created_by || null,
@@ -87,10 +88,14 @@ export async function convertQuotationToDeal(quotation) {
       deal_id:      dealData.id,
       product_id:   it.product_id || null,
       product_name: it.product_name,
-      quantity:     it.quantity || 1,
-      license_fee:  it.unit_price || 0,
+      license_type: 'flat',
+      quantity:     Number(it.quantity) || 1,
+      cost_price:   Number(it.unit_price) || 0,
+      unit_price:   Number(it.unit_price) || 0,
+      net_price:    Number(it.total_price) || 0,
     }))
-    await supabase.from('deal_products').insert(dealProducts)
+    const { error: prodErr } = await supabase.from('deal_products').insert(dealProducts)
+    if (prodErr) logger.error('convertQuotationToDeal: products insert failed', { error: prodErr.message, dealId: dealData.id })
   }
 
   await supabase.from('quotations').update({

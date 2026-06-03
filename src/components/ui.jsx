@@ -65,22 +65,6 @@ export function SalesTypeBadge({ type }) {
     : <span className="badge-ext">Ext</span>
 }
 
-export function KpiCard({ label, value, sub, color = 'gray' }) {
-  const colors = {
-    teal:  'border-t-2 border-vgt',
-    coral: 'border-t-2 border-ect',
-    blue:  'border-t-2 border-blue-500',
-    green: 'border-t-2 border-green-500',
-    gray:  '',
-  }
-  return (
-    <div className={`card p-4 ${colors[color]}`}>
-      <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{label}</p>
-      <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
-      {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
-    </div>
-  )
-}
 
 export function Spinner({ label }) {
   return (

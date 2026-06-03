@@ -226,7 +226,6 @@ function PSEditor({ ps, onSave, onCancel, existingNames }) {
 export default function RolesTab({ permSets, profiles, onRefresh }) {
   const { t } = useTranslation()
   const [editing, setEditing]   = useState(null) // null = fechado, 'new' = novo, {id,...} = editar
-  const [deleting, setDeleting] = useState(null)
 
   async function handleDelete(id) {
     // Verificar se há profiles associados

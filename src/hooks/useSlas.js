@@ -101,13 +101,13 @@ export async function createSlaFromDeal(deal, overrides = {}) {
       .eq('deal_id', deal.id)
     if (dealProducts?.length) {
       const slaLines = dealProducts
-        .filter(dp => dp.annual_fee > 0)
+        .filter(dp => (Number(dp.annual_fee) || 0) > 0)
         .map(dp => ({
           sla_id:       result.data.id,
           product_id:   dp.product_id,
           product_name: dp.product_name,
-          quantity:     dp.quantity,
-          annual_value: dp.annual_fee,
+          quantity:     Number(dp.quantity) || 1,
+          annual_value: Number(dp.annual_fee) || 0,
         }))
       if (slaLines.length) {
         await supabase.from('sla_products').insert(slaLines)

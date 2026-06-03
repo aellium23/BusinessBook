@@ -24,14 +24,6 @@ export const STAGE_HEX = {
   'Invoiced':         '#10B981',
   'Lost':             '#EF4444',
 }
-// Funnel bucket colors (aggregate pipeline/backlog/invoiced) — a separate
-// concept from individual stages, kept consistent across all funnel views.
-export const FUNNEL_BUCKET = {
-  pipeline: { bg: 'bg-amber-400',  light: 'bg-amber-50',  text: 'text-amber-700' },
-  backlog:  { bg: 'bg-purple-400', light: 'bg-purple-50', text: 'text-purple-700' },
-  invoiced: { bg: 'bg-green-500',  light: 'bg-green-50',  text: 'text-green-700' },
-}
-
 // Default weights used for weighted forecast when a deal has no explicit win_probability
 export const WEIGHTS = {
   Lead:              0.10,
@@ -212,13 +204,6 @@ export function normalizeBusinessModel(id) {
   return LEGACY_BUSINESS_MODELS[id] || id
 }
 
-// Human label for any business_model id (tolerant of legacy/unknown values).
-export function businessModelLabel(id) {
-  if (!id) return ''
-  const canonical = normalizeBusinessModel(id)
-  return BUSINESS_MODELS.find(m => m.id === canonical)?.label || id
-}
-
 // Models that imply recurring revenue (→ prompt to create a Contract/SLA).
 export const RECURRING_MODELS = ['pay_per_study', 'subscription']
 
@@ -245,6 +230,7 @@ export const FY_RANGE = ['FY26','FY27','FY28','FY29','FY30','FY31']
 
 export function getFiscalYear(date) {
   const d = date instanceof Date ? date : new Date(date)
+  if (isNaN(d.getTime())) return null   // guard invalid/empty dates (avoid 'FYNaN')
   const month = d.getMonth()
   const fy = month >= 3 ? d.getFullYear() : d.getFullYear() - 1
   return `FY${(fy % 100).toString().padStart(2, '0')}`
@@ -253,6 +239,7 @@ export function getFiscalYear(date) {
 export function projectSlaRevenue(annualValue, startDate, endDate) {
   if (!startDate || !annualValue) return {}
   const start = new Date(startDate)
+  if (isNaN(start.getTime())) return {}
   const end = endDate ? new Date(endDate) : new Date(start.getFullYear() + 5, start.getMonth(), start.getDate())
   const daily = annualValue / 365
   const result = {}

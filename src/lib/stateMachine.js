@@ -56,9 +56,11 @@ const TRANSITION_MAPS = {
  * @returns {boolean}
  */
 export function canTransition(type, fromState, toState) {
-  if (fromState === toState) return true // staying in the same state is always valid
   const map = TRANSITION_MAPS[type]
   if (!map) return false
+  // A no-op is valid only if the state is a known state in this machine
+  // (prevents corrupted/legacy values passing the guard as "same state").
+  if (fromState === toState) return Object.prototype.hasOwnProperty.call(map, fromState)
   const allowed = map[fromState]
   if (!allowed) return false
   return allowed.includes(toState)

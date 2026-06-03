@@ -21,11 +21,6 @@ function isStrictlyPositiveNumber(value) {
   return !isNaN(n) && n > 0
 }
 
-function isValidEmail(email) {
-  if (!email) return true
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
-}
-
 function isValidDate(dateStr) {
   if (!dateStr) return true
   const d = new Date(dateStr)

@@ -16,35 +16,6 @@ import { STAGE_HEX } from '../constants'
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 
-// ── KPI card with vs Plan + vs PY ─────────────────────────────────────────
-function KpiCard({ label, value, plan, py, color = 'gray' }) {
-  const vsPlan = plan  > 0 ? (value / plan  - 1) * 100 : null
-  const vsPY   = py    > 0 ? (value / py    - 1) * 100 : null
-  const border = { teal:'border-t-2 border-vgt', coral:'border-t-2 border-ect',
-                   blue:'border-t-2 border-blue-400', green:'border-t-2 border-green-400', gray:'' }
-
-  return (
-    <div className={`bg-white rounded-xl border border-gray-200 shadow-sm p-3 ${border[color]}`}>
-      <p className="text-micro font-semibold text-gray-400 uppercase tracking-wide">{label}</p>
-      <p className="text-xl font-bold text-gray-900 mt-0.5">{formatK(value)}</p>
-      <div className="flex gap-2 mt-1.5 flex-wrap">
-        {vsPlan !== null && (
-          <span className={`text-micro font-bold px-1.5 py-0.5 rounded ${
-            vsPlan >= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
-            {vsPlan >= 0 ? '+' : ''}{vsPlan.toFixed(1)}% vs Plan
-          </span>
-        )}
-        {vsPY !== null && (
-          <span className={`text-micro font-bold px-1.5 py-0.5 rounded ${
-            vsPY >= 0 ? 'bg-blue-50 text-blue-700' : 'bg-orange-50 text-orange-600'}`}>
-            {vsPY >= 0 ? '+' : ''}{vsPY.toFixed(1)}% vs PY
-          </span>
-        )}
-      </div>
-    </div>
-  )
-}
-
 const TOOLTIP_STYLE = { fontSize: 11, borderRadius: 8 }
 const WEIGHTS = { Lead: 0.10, Pipeline: 0.30, 'Offer Presented': 0.60, BackLog: 1.0, Invoiced: 1.0, Lost: 0 }
 const AGING_DAYS = 90
