@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { formatK, Spinner } from '../components/ui'
+import { formatK, Spinner, CollapsibleSection } from '../components/ui'
 import { Target, Plus, Save, Trash2, ChevronDown, ChevronUp, Crown, Package } from 'lucide-react'
 import SalesOverlayConfig from '../components/SalesOverlayConfig'
 import { useTranslation } from '../hooks/useTranslation'
@@ -152,14 +152,13 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
           </div>
         </div>
 
-        {/* Sub-targets summary (always visible when present) */}
+        {/* Sub-targets — compact count only; full breakdown on expand */}
         {hasSubTargets && !showSubTargets && (
-          <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap gap-1.5">
-            {PRODUCTS.filter(p => subTargets[p] > 0).map(p => (
-              <span key={p} className="text-micro bg-gray-50 text-gray-600 px-1.5 py-0.5 rounded-full">
-                <strong>{p}</strong>: {formatK(subTargets[p])}
-              </span>
-            ))}
+          <div className="mt-3 pt-3 border-t border-gray-100">
+            <button onClick={() => setShowSubTargets(true)}
+              className="text-micro text-gray-500 hover:text-gray-700 flex items-center gap-1">
+              <Package size={11}/> {PRODUCTS.filter(p => subTargets[p] > 0).length} {t('quotas_sub_targets')} · {formatK(subTotal)}
+            </button>
           </div>
         )}
 
@@ -531,14 +530,14 @@ export default function Quotas() {
         </div>
       )}
 
-      {/* Sales Overlay Rules — admin/manager only */}
+      {/* Sales Overlay Rules — admin/manager only, collapsed by default */}
       {isManagerLevel && (
-        <div className="border-t border-gray-200 pt-6 space-y-4">
+        <CollapsibleSection title={t('quotas_overlay_section')} subtitle={t('df_optional')}>
           {visibleBUs.map(bu => (
             <SalesOverlayConfig key={bu} bu={bu}
               salesOwners={quotas.map(q => ({ name: q.sales_owner, bu: q.bu }))}/>
           ))}
-        </div>
+        </CollapsibleSection>
       )}
     </div>
   )

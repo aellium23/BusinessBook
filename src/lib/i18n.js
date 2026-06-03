@@ -36,6 +36,7 @@ const translations = {
     nav_tenders:      'Tenders & RFPs',
     nav_sla:          'Contracts',
     nav_quotations:   'Quotations',
+    settings_tab_people: 'People',
     nav_products:     'Products',
     products_title:   'Product Catalog',
     products_new:     'New Product',
@@ -822,6 +823,7 @@ const translations = {
     // Quotas extras
     quotas_edit_target:     'Edit target',
     quotas_sub_targets:     'Sub-targets by product',
+    quotas_overlay_section: 'Sales overlay rules',
     quotas_sub_diff:        "Sub-targets don't add up to the total target. Difference:",
     quotas_add_member:      'Add member',
     quotas_add_team_member: 'Add team member',
@@ -952,6 +954,7 @@ const translations = {
     nav_tenders:      'Licitaciones',
     nav_sla:          'Contratos',
     nav_quotations:   'Cotizaciones',
+    settings_tab_people: 'Personas',
     nav_products:     'Productos',
     products_title:   'Catálogo de Productos',
     products_new:     'Nuevo Producto',
@@ -1696,6 +1699,7 @@ const translations = {
     // Quotas extras
     quotas_edit_target:     'Editar objetivo',
     quotas_sub_targets:     'Sub-objetivos por producto',
+    quotas_overlay_section: 'Reglas de overlay de ventas',
     quotas_sub_diff:        'Los sub-objetivos no suman el total. Diferencia:',
     quotas_add_member:      'Añadir miembro',
     quotas_add_team_member: 'Añadir miembro al equipo',
@@ -1822,6 +1826,7 @@ const translations = {
     nav_tenders:      'Concursos',
     nav_sla:          'Contratos',
     nav_quotations:   'Cotacoes',
+    settings_tab_people: 'Pessoas',
     nav_products:     'Produtos',
     products_title:   'Catálogo de Produtos',
     products_new:     'Novo Produto',
@@ -2566,6 +2571,7 @@ const translations = {
     // Quotas extras
     quotas_edit_target:     'Editar objetivo',
     quotas_sub_targets:     'Sub-objetivos por produto',
+    quotas_overlay_section: 'Regras de overlay de vendas',
     quotas_sub_diff:        'Os sub-objetivos não somam o total. Diferença:',
     quotas_add_member:      'Adicionar membro',
     quotas_add_team_member: 'Adicionar membro à equipa',

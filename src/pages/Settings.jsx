@@ -346,7 +346,15 @@ export default function Settings() {
           className={`px-3 py-1.5 rounded text-xs font-semibold ${settingsTab === 'fx' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>
           FX Rates
         </button>
+        {isAdmin && (
+          <button onClick={() => setSettingsTab('people')}
+            className={`px-3 py-1.5 rounded text-xs font-semibold ${settingsTab === 'people' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>
+            {t('settings_tab_people')}
+          </button>
+        )}
       </div>
+
+      {settingsTab === 'people' && isAdmin && <SalesOwnersSection />}
 
       {settingsTab === 'app' && <AppSettingsSection />}
 
@@ -473,9 +481,6 @@ export default function Settings() {
           Contact your admin to update FX rates.
         </p>
       )}
-
-      {/* ── SALES OWNERS ────────────────────────────────────────────── */}
-      {isAdmin && <SalesOwnersSection />}
       </>}
 
     </div>

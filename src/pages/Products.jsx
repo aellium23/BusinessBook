@@ -504,7 +504,8 @@ export default function Products() {
   }), [products, categories])
 
   function toggleCat(cat) {
-    setExpandedCats(prev => ({ ...prev, [cat]: !prev[cat] }))
+    // Categories are expanded by default (undefined = open); store explicit false to collapse
+    setExpandedCats(prev => ({ ...prev, [cat]: prev[cat] === false }))
   }
 
   async function handleDelete() {
@@ -563,10 +564,10 @@ export default function Products() {
                 <span className="font-semibold text-sm text-gray-800">{cat}</span>
                 <span className="text-micro text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded">{prods.length}</span>
               </div>
-              {expandedCats[cat] ? <ChevronUp size={14} className="text-gray-400"/> : <ChevronDown size={14} className="text-gray-400"/>}
+              {expandedCats[cat] !== false ? <ChevronUp size={14} className="text-gray-400"/> : <ChevronDown size={14} className="text-gray-400"/>}
             </button>
 
-            {expandedCats[cat] && (
+            {expandedCats[cat] !== false && (
               <div className="divide-y divide-gray-50">
                 {prods.map(p => (
                   <div key={p.id} className="px-4 py-2.5 flex items-center gap-3 hover:bg-gray-50/50">
