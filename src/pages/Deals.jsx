@@ -81,6 +81,7 @@ export default function Deals() {
   const [sortBy, setSortBy]               = useState('date_desc')
   const [invoicedMonthF, setInvoicedMonthF] = useState([])  // array of month keys
   const [deliveryF, setDeliveryF] = useState('')  // '' | 'not_sent' | 'pending' | 'accepted'
+  const [salesTypeF, setSalesTypeF] = useState('')  // '' | 'Internal' | 'External'
   const [viewMode, setViewMode] = useState(() => {
     if (typeof window === 'undefined') return 'list'
     return localStorage.getItem('bb_deals_view') || 'list'
@@ -159,8 +160,9 @@ export default function Deals() {
     if (categoryF) d = d.filter(x => (dealCategories[x.id] || []).includes(categoryF))
     if (noProductF) d = d.filter(x => !(dealProducts[x.id] || []).length)
     if (deliveryF) d = d.filter(x => x.stage === 'BackLog' && (x.delivery_status || 'not_sent') === deliveryF)
+    if (salesTypeF) d = d.filter(x => x.sales_type === salesTypeF)
     return d
-  }, [rawDeals, slaF, discountF, ownerF, forecastF, periodF, invoicedMonthF.join(','), brandF, productF, categoryF, noProductF, deliveryF, dealBrands, dealProducts, dealCategories, profile])
+  }, [rawDeals, slaF, discountF, ownerF, forecastF, periodF, invoicedMonthF.join(','), brandF, productF, categoryF, noProductF, deliveryF, salesTypeF, dealBrands, dealProducts, dealCategories, profile])
 
   useEffect(() => {
     if (!rawDeals.length) return
@@ -260,7 +262,7 @@ export default function Deals() {
   }, [rawDeals])
 
   // Contagem de filtros activos
-  const activeFilters = [search, stageF, regionF, buF, ownerF, forecastF, slaF, discountF, brandF, productF, categoryF, noProductF, deliveryF, periodF > 0, invoicedMonthF.length > 0].filter(Boolean).length
+  const activeFilters = [search, stageF, regionF, buF, ownerF, forecastF, slaF, discountF, brandF, productF, categoryF, noProductF, deliveryF, salesTypeF, periodF > 0, invoicedMonthF.length > 0].filter(Boolean).length
 
   // Drag-drop on the Kanban: moving a card across stages
   async function handleStageChange(dealId, newStage) {
@@ -572,11 +574,18 @@ export default function Deals() {
                 <option value="pending">{t("deals_delivery_pending")}</option>
                 <option value="accepted">{t("deals_delivery_accepted")}</option>
               </select>
+              {/* Internal / External filter */}
+              <select className={`select text-xs py-1.5 w-auto ${salesTypeF ? (salesTypeF === 'Internal' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-blue-50 border-blue-200 text-blue-700') : ''}`}
+                value={salesTypeF} onChange={e => { setSalesTypeF(e.target.value); resetPage() }}>
+                <option value="">{t("deals_sales_type_all")}</option>
+                <option value="Internal">{t("df_internal")}</option>
+                <option value="External">{t("df_external")}</option>
+              </select>
             </div>
             {activeFilters > 0 && (
               <button onClick={() => {
                 setSearch(''); setStageF(''); setRegionF(''); setBuF('')
-                setOwnerF(''); setForecastF(''); setSlaF(false); setDiscountF(''); setBrandF(''); setProductF(''); setCategoryF(''); setNoProductF(false); setDeliveryF(''); setPeriodF(0); setInvoicedMonthF([]); resetPage()
+                setOwnerF(''); setForecastF(''); setSlaF(false); setDiscountF(''); setBrandF(''); setProductF(''); setCategoryF(''); setNoProductF(false); setDeliveryF(''); setSalesTypeF(''); setPeriodF(0); setInvoicedMonthF([]); resetPage()
               }} className="text-xs text-red-500 hover:text-red-700 font-medium">
                 {t("deals_clear_filters")}
               </button>

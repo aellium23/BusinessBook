@@ -129,6 +129,7 @@ export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete, b
           <div className="flex items-center gap-1.5 flex-wrap mb-1">
             <BUBadge bu={deal.bu} />
             <StageBadge stage={deal.stage} />
+            <SalesTypeBadge type={deal.sales_type} />
             <ForecastBadge deal={deal} />
             {Array.isArray(brands) && brands.map(b => (
               <span key={b} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-indigo-100 text-indigo-700">
