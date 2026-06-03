@@ -353,43 +353,45 @@ export default function RequirementsMatrix({ tenderId, canEdit = true, assignees
             {isOpen && (
               <ul className="divide-y divide-gray-100">
                 {list.map(req => (
-                  <li key={req.id} className="p-2 bg-white">
-                    <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-start">
+                  <li key={req.id} className="p-3 bg-white">
+                    <div className="space-y-2">
+                      {/* Requirement title + description — full width */}
                       <div className="min-w-0">
                         <input
-                          className="input py-1 text-xs font-medium"
+                          className="input py-1.5 text-sm font-medium w-full"
                           value={req.title}
                           disabled={!canEdit}
                           onChange={e => updateRequirement(req.id, { title: e.target.value })}
                         />
                         {(req.description || canEdit) && (
                           <textarea
-                            className="input py-1 text-tiny text-gray-600 mt-1 min-h-[28px] resize-none"
+                            className="input py-1.5 text-xs text-gray-600 mt-1.5 min-h-[40px] resize-y w-full"
                             value={req.description || ''}
                             placeholder="Notes / description…"
                             disabled={!canEdit}
-                            rows={1}
+                            rows={2}
                             onChange={e => updateRequirement(req.id, { description: e.target.value })}
                           />
                         )}
                       </div>
-                      <StatusCell
-                        value={req.status}
-                        onChange={v => updateRequirement(req.id, { status: v })}
-                      />
-                      <select
-                        className="select py-1 text-xs"
-                        value={req.assignee_id || ''}
-                        disabled={!canEdit}
-                        onChange={e => updateRequirement(req.id, { assignee_id: e.target.value || null })}
-                        aria-label="Assignee">
-                        <option value="">Unassigned</option>
-                        {assignees.map(a => (
-                          <option key={a.id} value={a.id}>{a.full_name}</option>
-                        ))}
-                      </select>
-                      <div className="flex items-center gap-1">
-                        <input type="date" className="input py-1 text-xs w-32"
+                      {/* Controls row — status, assignee, date, delete */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <StatusCell
+                          value={req.status}
+                          onChange={v => updateRequirement(req.id, { status: v })}
+                        />
+                        <select
+                          className="select py-1.5 text-xs flex-1 min-w-[120px]"
+                          value={req.assignee_id || ''}
+                          disabled={!canEdit}
+                          onChange={e => updateRequirement(req.id, { assignee_id: e.target.value || null })}
+                          aria-label="Assignee">
+                          <option value="">Unassigned</option>
+                          {assignees.map(a => (
+                            <option key={a.id} value={a.id}>{a.full_name}</option>
+                          ))}
+                        </select>
+                        <input type="date" className="input py-1.5 text-xs w-36"
                           value={req.due_date || ''}
                           disabled={!canEdit}
                           onChange={e => updateRequirement(req.id, { due_date: e.target.value || null })}
@@ -397,9 +399,9 @@ export default function RequirementsMatrix({ tenderId, canEdit = true, assignees
                         {canEdit && (
                           <button type="button"
                             onClick={() => removeRequirement(req.id)}
-                            className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50"
+                            className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 min-h-tap min-w-tap flex items-center justify-center"
                             aria-label="Delete requirement">
-                            <Trash2 size={12}/>
+                            <Trash2 size={13}/>
                           </button>
                         )}
                       </div>
