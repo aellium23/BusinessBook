@@ -382,6 +382,22 @@ export default function Budget() {
         </div>
       </div>
 
+      {/* Period selector — above the table so mobile users narrow columns first */}
+      <div className="flex items-center gap-1 flex-wrap">
+        <span className="text-xs text-gray-400 mr-1">{tr("budget_period")}</span>
+        {Object.entries(PERIODS).map(([key, p]) => (
+          <button key={key} onClick={() => setActivePeriod(key)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+              activePeriod === key
+                ? 'text-white border-transparent shadow-sm'
+                : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+            }`}
+            style={activePeriod === key ? { background: buCfg.color } : {}}>
+            {key === 'FY' ? 'Full Year' : key}
+          </button>
+        ))}
+      </div>
+
       {/* Main P&L table */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
 
@@ -502,22 +518,6 @@ export default function Budget() {
             </tbody>
           </table>
         </div>
-      </div>
-
-      {/* Period selector */}
-      <div className="flex items-center gap-1 flex-wrap">
-        <span className="text-xs text-gray-400 mr-1">{tr("budget_period")}</span>
-        {Object.entries(PERIODS).map(([key, p]) => (
-          <button key={key} onClick={() => setActivePeriod(key)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
-              activePeriod === key
-                ? 'text-white border-transparent shadow-sm'
-                : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
-            }`}
-            style={activePeriod === key ? { background: buCfg.color } : {}}>
-            {key === 'FY' ? 'Full Year' : key}
-          </button>
-        ))}
       </div>
 
       {/* Bottom hint */}

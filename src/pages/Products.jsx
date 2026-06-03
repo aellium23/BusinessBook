@@ -3,7 +3,7 @@ import { useProducts, createProduct, updateProduct, deleteProduct } from '../hoo
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useTranslation } from '../hooks/useTranslation'
-import { Modal, Spinner, EmptyState, BUBadge, formatK } from '../components/ui'
+import { Modal, Spinner, EmptyState, BUBadge, formatK, CollapsibleSection } from '../components/ui'
 import SearchableSelect from '../components/SearchableSelect'
 import { Plus, Search, Pencil, Trash2, Package, ChevronDown, ChevronUp, X, Layers } from 'lucide-react'
 
@@ -380,10 +380,10 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
               </div>
             </div>
 
-            {/* ---- SECTION 3: Allowed Pricing Models (multi-select) ---- */}
-            <div className="space-y-3">
-              <SectionHeader icon={<span className="text-sm font-bold">$</span>} title={t('products_model')} subtitle={t('products_models_sub')}/>
-              <div className="bg-gray-50/70 rounded-xl p-3 border border-gray-100 space-y-2">
+            {/* ---- Models & license types — collapsed by default ---- */}
+            <CollapsibleSection title={`${t('products_model')} · ${t('products_license_types')}`} subtitle={t('df_optional')}>
+              <div className="space-y-2">
+                <p className="text-micro font-semibold text-gray-500 uppercase">{t('products_model')}</p>
                 <div className="flex flex-wrap gap-2">
                   {PRICING_MODELS.map(m => (
                     <ToggleChip
@@ -396,12 +396,8 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
                 </div>
                 <SelectedBadges items={form.allowed_pricing_models} allOptions={PRICING_MODELS}/>
               </div>
-            </div>
-
-            {/* ---- SECTION 4: Allowed License Types (multi-select) ---- */}
-            <div className="space-y-3">
-              <SectionHeader icon={<span className="text-sm font-bold">#</span>} title={t('products_license_types')} subtitle={t('products_license_sub')}/>
-              <div className="bg-gray-50/70 rounded-xl p-3 border border-gray-100 space-y-2">
+              <div className="space-y-2 pt-2 border-t border-gray-100">
+                <p className="text-micro font-semibold text-gray-500 uppercase">{t('products_license_types')}</p>
                 <div className="flex flex-wrap gap-2">
                   {LICENSE_TYPES.map(lt => (
                     <ToggleChip
@@ -414,41 +410,38 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
                 </div>
                 <SelectedBadges items={form.allowed_license_types} allOptions={LICENSE_TYPES}/>
               </div>
-            </div>
+            </CollapsibleSection>
 
-            {/* ---- SECTION 5: Configuration ---- */}
-            <div className="space-y-3">
-              <SectionHeader icon={<span className="text-sm">&#9881;</span>} title={t('products_config')} subtitle={t('products_config_sub')}/>
-              <div className="bg-gray-50/70 rounded-xl p-3 border border-gray-100 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="label">{t('products_bu')}</label>
-                    <select className="select" value={form.bu} onChange={e => set('bu', e.target.value)}>
-                      <option value="VGT">VGT</option>
-                      <option value="ECT">ECT</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="label">{t('products_sort_order')}</label>
-                    <input className="input" type="number" min="0" value={form.sort_order} onChange={e => set('sort_order', e.target.value)}/>
-                  </div>
+            {/* ---- Configuration — collapsed by default (set-once) ---- */}
+            <CollapsibleSection title={t('products_config')} subtitle={t('df_optional')}>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">{t('products_bu')}</label>
+                  <select className="select" value={form.bu} onChange={e => set('bu', e.target.value)}>
+                    <option value="VGT">VGT</option>
+                    <option value="ECT">ECT</option>
+                  </select>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <ToggleSwitch
-                    checked={form.active}
-                    onChange={v => set('active', v)}
-                    label={t('products_active')}
-                    activeColor="green"
-                  />
-                  <ToggleSwitch
-                    checked={form.distributor_visible}
-                    onChange={v => set('distributor_visible', v)}
-                    label={t('products_dist_vis')}
-                    activeColor="blue"
-                  />
+                <div>
+                  <label className="label">{t('products_sort_order')}</label>
+                  <input className="input" type="number" min="0" value={form.sort_order} onChange={e => set('sort_order', e.target.value)}/>
                 </div>
               </div>
-            </div>
+              <div className="grid grid-cols-2 gap-3">
+                <ToggleSwitch
+                  checked={form.active}
+                  onChange={v => set('active', v)}
+                  label={t('products_active')}
+                  activeColor="green"
+                />
+                <ToggleSwitch
+                  checked={form.distributor_visible}
+                  onChange={v => set('distributor_visible', v)}
+                  label={t('products_dist_vis')}
+                  activeColor="blue"
+                />
+              </div>
+            </CollapsibleSection>
 
           </div>
         )}
