@@ -114,15 +114,21 @@ export default function Gauge({
       </svg>
 
       <div className="flex items-center justify-center gap-2 text-center -mt-1">
-        <span className="text-sm font-bold text-gray-900">{formatK(value)}</span>
+        <div className="text-center">
+          <span className="text-sm font-bold text-gray-900">{formatK(value)}</span>
+          <p className="text-[9px] text-gray-400 leading-tight">Actuals</p>
+        </div>
         <span className="text-gray-300">/</span>
-        <span className="text-xs text-gray-500">{formatK(target)}</span>
+        <div className="text-center">
+          <span className="text-xs text-gray-500">{formatK(target)}</span>
+          <p className="text-[9px] text-gray-400 leading-tight">Budget</p>
+        </div>
       </div>
 
       {pctFC != null && (
         <div className="flex items-center justify-center gap-1 mt-1 text-micro">
-          <span className="inline-block w-2 h-2 border-2 border-blue-700 bg-white rounded-full"/>
-          <span className="text-gray-500">FC: <strong className="text-blue-700">{formatK(forecast)}</strong></span>
+          <span className="text-blue-700 font-bold">◆</span>
+          <span className="text-gray-500">Forecast: <strong className="text-blue-700">{formatK(forecast)}</strong></span>
           <span className="text-gray-400">· {Math.round(pctFC)}%</span>
         </div>
       )}

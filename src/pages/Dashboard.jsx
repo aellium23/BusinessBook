@@ -484,149 +484,198 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
       )}
 
       {/* ── FUNNEL ANALYTICS ─────────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 space-y-4">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 space-y-6">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t("dash_funnel_ana")}</p>
 
-        {/* KPI row */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-purple-50 rounded-lg p-3">
-            <p className="text-[10px] text-purple-500 font-semibold uppercase tracking-wide">{t("dash_weighted")}</p>
-            <p className="text-lg font-bold text-purple-700 mt-0.5">{formatK(funnelAnalytics.weighted)}</p>
-            <p className="text-[10px] text-purple-400">{t("dash_funnel_note")}</p>
-          </div>
-          <div className={`rounded-lg p-3 ${funnelAnalytics.winRate !== null ? (funnelAnalytics.winRate >= 50 ? 'bg-green-50' : 'bg-amber-50') : 'bg-gray-50'}`}>
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{t("dash_win_rate")}</p>
-            <p className={`text-lg font-bold mt-0.5 ${funnelAnalytics.winRate !== null ? (funnelAnalytics.winRate >= 50 ? 'text-green-700' : 'text-amber-700') : 'text-gray-400'}`}>
-              {funnelAnalytics.winRate !== null ? `${funnelAnalytics.winRate}%` : '—'}
-            </p>
-            <p className="text-[10px] text-gray-400">{funnelAnalytics.wonCount} won / {funnelAnalytics.closedCount} closed</p>
-          </div>
-          <div className={`rounded-lg p-3 ${funnelAnalytics.aged.length > 0 ? 'bg-red-50' : 'bg-gray-50'}`}>
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{t("dash_aging")}</p>
-            <p className={`text-lg font-bold mt-0.5 ${funnelAnalytics.aged.length > 0 ? 'text-red-700' : 'text-gray-400'}`}>
-              {funnelAnalytics.aged.length} deal{funnelAnalytics.aged.length !== 1 ? 's' : ''}
-            </p>
-            <p className="text-[10px] text-gray-400">Lead/Pipeline &gt;{AGING_DAYS}d</p>
-          </div>
-          <div className="bg-blue-50 rounded-lg p-3">
-            <p className="text-[10px] text-blue-500 font-semibold uppercase tracking-wide">{t("dash_avg_vel")}</p>
-            <p className="text-lg font-bold text-blue-700 mt-0.5">
-              {funnelAnalytics.avgVelocity !== null ? `${funnelAnalytics.avgVelocity}d` : '—'}
-            </p>
-            <p className="text-[10px] text-blue-400">{t("dash_created")}</p>
+        {/* ── Sub-section: KPI Cards ──────────────────────────────────────── */}
+        <div>
+          <p className="text-xs font-semibold uppercase text-gray-500 mb-2">Key Metrics</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-purple-50 rounded-lg p-3">
+              <p className="text-[10px] text-purple-500 font-semibold uppercase tracking-wide">{t("dash_weighted")}</p>
+              <p className="text-lg font-bold text-purple-700 mt-0.5">{formatK(funnelAnalytics.weighted)}</p>
+              <p className="text-[10px] text-purple-400">{t("dash_funnel_note")}</p>
+            </div>
+            <div className={`rounded-lg p-3 ${funnelAnalytics.winRate !== null ? (funnelAnalytics.winRate >= 50 ? 'bg-green-50' : 'bg-amber-50') : 'bg-gray-50'}`}>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{t("dash_win_rate")}</p>
+              <p className={`text-lg font-bold mt-0.5 ${funnelAnalytics.winRate !== null ? (funnelAnalytics.winRate >= 50 ? 'text-green-700' : 'text-amber-700') : 'text-gray-400'}`}>
+                {funnelAnalytics.winRate !== null ? `${funnelAnalytics.winRate}%` : '—'}
+              </p>
+              <p className="text-[10px] text-gray-400">{funnelAnalytics.wonCount} won / {funnelAnalytics.closedCount} closed</p>
+            </div>
+            <div className="bg-blue-50 rounded-lg p-3">
+              <p className="text-[10px] text-blue-500 font-semibold uppercase tracking-wide">{t("dash_avg_vel")}</p>
+              <p className="text-lg font-bold text-blue-700 mt-0.5">
+                {funnelAnalytics.avgVelocity !== null ? `${funnelAnalytics.avgVelocity}d` : '—'}
+              </p>
+              <p className="text-[10px] text-blue-400">{t("dash_created")}</p>
+            </div>
+            <div className={`rounded-lg p-3 ${funnelAnalytics.aged.length > 0 ? 'bg-red-50' : 'bg-gray-50'}`}>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{t("dash_aging")}</p>
+              <p className={`text-lg font-bold mt-0.5 ${funnelAnalytics.aged.length > 0 ? 'text-red-700' : 'text-gray-400'}`}>
+                {funnelAnalytics.aged.length} deal{funnelAnalytics.aged.length !== 1 ? 's' : ''}
+              </p>
+              <p className="text-[10px] text-gray-400">Lead/Pipeline &gt;{AGING_DAYS}d</p>
+            </div>
           </div>
         </div>
 
-        {/* Aging deals list */}
-        {funnelAnalytics.aged.length > 0 && (
-          <div className="border border-red-200 rounded-lg overflow-hidden">
-            <div className="bg-red-50 px-3 py-2 flex items-center gap-2">
-              <span className="text-xs font-semibold text-red-700">⚠ Deals stalled &gt;{AGING_DAYS} days</span>
-            </div>
-            {funnelAnalytics.aged.slice(0,5).map(d => {
-              const ref = d.stage_changed_at || d.updated_at || d.created_at
-              const days = ref ? Math.floor((Date.now() - new Date(ref).getTime()) / 86400000) : 0
-              return (
-                <div key={d.id} className="flex items-center justify-between px-3 py-2 border-t border-red-100">
-                  <div>
-                    <p className="text-xs font-medium text-gray-900">{d.client}</p>
-                    <p className="text-[10px] text-gray-400">{d.stage} · {d.sales_owner || '—'}</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded">{days}d</span>
-                    <p className="text-[10px] text-gray-400 mt-0.5">{formatK(d.value_total)}</p>
-                  </div>
-                </div>
-              )
-            })}
-            {funnelAnalytics.aged.length > 5 && (
-              <div className="px-3 py-2 text-xs text-gray-400 border-t border-red-100 text-center">
-                +{funnelAnalytics.aged.length - 5} more stalled deals
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Product breakdown */}
-        {Object.keys(funnelAnalytics.productBreakdown).length > 0 && (
-          <div>
-            <p className="text-xs text-gray-400 font-medium mb-2">{t("dash_pipeline_lbl")}</p>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(funnelAnalytics.productBreakdown).sort((a,b)=>b[1].value-a[1].value).map(([product, { count, value }]) => (
-                <span key={product} className="text-xs bg-navy/10 text-navy px-2 py-1 rounded-lg font-medium">
-                  {product} · {count} deal{count!==1?'s':''} · {formatK(value)}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Distributor pending discounts */}
-        {funnelAnalytics.distPending.length > 0 && (
-          <div className="border border-purple-200 rounded-lg overflow-hidden">
-            <div className="bg-purple-50 px-3 py-2">
-              <span className="text-xs font-semibold text-purple-700">
-                ⏳ {funnelAnalytics.distPending.length} discount request{funnelAnalytics.distPending.length!==1?'s':''} pending approval
-              </span>
-            </div>
-            {funnelAnalytics.distPending.slice(0,3).map(d => (
-              <div key={d.id} className="flex items-center justify-between px-3 py-2 border-t border-purple-100">
-                <div>
-                  <p className="text-xs font-medium text-gray-900">{d.end_customer || d.client}</p>
-                  <p className="text-[10px] text-gray-400">{d.distributor} · {d.product}</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded">
-                    -{d.discount_requested}% req.
-                  </span>
-                  <p className="text-[10px] text-gray-400 mt-0.5">{formatK(d.end_customer_value||d.value_total)}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Lost reasons */}
-        {Object.keys(funnelAnalytics.lostReasons).length > 0 && (
-          <div>
-            <p className="text-xs text-gray-400 font-medium mb-2">{t("dash_lost")}</p>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(funnelAnalytics.lostReasons).sort((a,b)=>b[1]-a[1]).map(([reason, count]) => (
-                <span key={reason} className="text-xs bg-red-50 text-red-700 px-2 py-1 rounded-lg">
-                  {reason} ({count})
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── SALES FUNNEL ──────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">{t("dash_sales_funnel")}</p>
-        <div className="space-y-2">
-          {[
-            { label:'Lead',            value: deals.filter(d=>d.stage==='Lead'&&!d.is_intercompany_mirror).reduce((s,d)=>s+(Number(d.value_total)||0)/1000,0), color:'#F4C0D1', text:'#4B1528' },
-            { label:'Pipeline',        value: agg.vgt_pipe+agg.ect_pipe, color:'#FAC775', text:'#412402' },
-            { label:'Offer Presented', value: deals.filter(d=>d.stage==='Offer Presented'&&!d.is_intercompany_mirror).reduce((s,d)=>s+(Number(d.value_total)||0)/1000,0), color:'#C4B5FD', text:'#3B1278' },
-            { label:'BackLog',         value: agg.vgt_bl+agg.ect_bl,     color:'#B5D4F4', text:'#042C53' },
-            { label:'Invoiced',        value: total_act,                  color:'#C0DD97', text:'#173404' },
-          ].map(({ label, value, color, text }) => {
-            const maxVal = deals.filter(d=>d.stage==='Lead'&&!d.is_intercompany_mirror).reduce((s,d)=>s+(Number(d.value_total)||0)/1000,0) || total_act || 1
-            const pct = Math.max(8, (value / maxVal) * 100)
+        {/* ── Sub-section: Sales Funnel with Conversion Rates ─────────────── */}
+        <div className="border-t border-gray-100 pt-4">
+          <p className="text-xs font-semibold uppercase text-gray-500 mb-3">{t("dash_sales_funnel") || 'Sales Funnel'}</p>
+          {(() => {
+            const active = deals.filter(d => !d.is_intercompany_mirror)
+            const stageCounts = {
+              Lead: active.filter(d => d.stage === 'Lead').length,
+              Pipeline: active.filter(d => d.stage === 'Pipeline').length,
+              'Offer Presented': active.filter(d => d.stage === 'Offer Presented').length,
+              BackLog: active.filter(d => d.stage === 'BackLog').length,
+              Invoiced: active.filter(d => d.stage === 'Invoiced').length,
+            }
+            const laterThan = (stage) => {
+              const order = ['Lead','Pipeline','Offer Presented','BackLog','Invoiced']
+              const idx = order.indexOf(stage)
+              return order.slice(idx).reduce((s, st) => s + stageCounts[st], 0)
+            }
+            const convRates = [
+              { from: 'Lead', to: 'Pipeline', rate: laterThan('Lead') > 0 ? Math.round(laterThan('Pipeline') / laterThan('Lead') * 100) : null },
+              { from: 'Pipeline', to: 'Offer', rate: laterThan('Pipeline') > 0 ? Math.round(laterThan('Offer Presented') / laterThan('Pipeline') * 100) : null },
+              { from: 'Offer', to: 'BackLog', rate: laterThan('Offer Presented') > 0 ? Math.round(laterThan('BackLog') / laterThan('Offer Presented') * 100) : null },
+              { from: 'BackLog', to: 'Invoiced', rate: (stageCounts.BackLog + stageCounts.Invoiced) > 0 ? Math.round(stageCounts.Invoiced / (stageCounts.BackLog + stageCounts.Invoiced) * 100) : null },
+            ]
+            const funnelBars = [
+              { label:'Lead',            value: active.filter(d=>d.stage==='Lead').reduce((s,d)=>s+(Number(d.value_total)||0)/1000,0), color:'#F4C0D1', text:'#4B1528' },
+              { label:'Pipeline',        value: agg.vgt_pipe+agg.ect_pipe, color:'#FAC775', text:'#412402' },
+              { label:'Offer Presented', value: active.filter(d=>d.stage==='Offer Presented').reduce((s,d)=>s+(Number(d.value_total)||0)/1000,0), color:'#C4B5FD', text:'#3B1278' },
+              { label:'BackLog',         value: agg.vgt_bl+agg.ect_bl,     color:'#B5D4F4', text:'#042C53' },
+              { label:'Invoiced',        value: total_act,                  color:'#C0DD97', text:'#173404' },
+            ]
+            const maxVal = funnelBars[0].value || total_act || 1
             return (
-              <div key={label} className="flex items-center gap-3">
-                <span className="text-xs text-gray-500 w-14 text-right">{label}</span>
-                <div className="flex-1 h-6 bg-gray-50 rounded-lg overflow-hidden">
-                  <div className="h-full rounded-lg flex items-center px-2 transition-all"
-                    style={{ width: `${pct}%`, background: color, minWidth: 60 }}>
-                    <span className="text-xs font-bold" style={{ color: text }}>{formatK(value)}</span>
-                  </div>
-                </div>
+              <div className="space-y-1">
+                {funnelBars.map(({ label, value, color, text }, idx) => {
+                  const pct = Math.max(8, (value / maxVal) * 100)
+                  return (
+                    <div key={label}>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-gray-500 w-14 text-right">{label}</span>
+                        <div className="flex-1 h-6 bg-gray-50 rounded-lg overflow-hidden">
+                          <div className="h-full rounded-lg flex items-center px-2 transition-all"
+                            style={{ width: `${pct}%`, background: color, minWidth: 60 }}>
+                            <span className="text-xs font-bold" style={{ color: text }}>{formatK(value)}</span>
+                          </div>
+                        </div>
+                      </div>
+                      {idx < convRates.length && convRates[idx].rate !== null && (
+                        <div className="flex items-center gap-3 my-0.5">
+                          <span className="w-14" />
+                          <span className="text-[10px] text-gray-400 pl-2">→ {convRates[idx].rate}%</span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )
-          })}
+          })()}
         </div>
+
+        {/* ── Sub-section: Attention Required ─────────────────────────────── */}
+        {(funnelAnalytics.aged.length > 0 || funnelAnalytics.distPending.length > 0) && (
+        <div className="border-t border-gray-100 pt-4">
+          <p className="text-xs font-semibold uppercase text-gray-500 mb-3">Attention Required</p>
+
+          {/* Aging deals list */}
+          {funnelAnalytics.aged.length > 0 && (
+            <div className="border border-red-200 rounded-lg overflow-hidden mb-3">
+              <div className="bg-red-50 px-3 py-2 flex items-center gap-2">
+                <span className="text-xs font-semibold text-red-700">⚠ Deals stalled &gt;{AGING_DAYS} days</span>
+              </div>
+              {funnelAnalytics.aged.slice(0,5).map(d => {
+                const ref = d.stage_changed_at || d.updated_at || d.created_at
+                const days = ref ? Math.floor((Date.now() - new Date(ref).getTime()) / 86400000) : 0
+                return (
+                  <div key={d.id} className="flex items-center justify-between px-3 py-2 border-t border-red-100">
+                    <div>
+                      <p className="text-xs font-medium text-gray-900">{d.client}</p>
+                      <p className="text-[10px] text-gray-400">{d.stage} · {d.sales_owner || '—'}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded">{days}d</span>
+                      <p className="text-[10px] text-gray-400 mt-0.5">{formatK(d.value_total)}</p>
+                    </div>
+                  </div>
+                )
+              })}
+              {funnelAnalytics.aged.length > 5 && (
+                <div className="px-3 py-2 text-xs text-gray-400 border-t border-red-100 text-center">
+                  +{funnelAnalytics.aged.length - 5} more stalled deals
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Distributor pending discounts */}
+          {funnelAnalytics.distPending.length > 0 && (
+            <div className="border border-purple-200 rounded-lg overflow-hidden">
+              <div className="bg-purple-50 px-3 py-2">
+                <span className="text-xs font-semibold text-purple-700">
+                  ⏳ {funnelAnalytics.distPending.length} discount request{funnelAnalytics.distPending.length!==1?'s':''} pending approval
+                </span>
+              </div>
+              {funnelAnalytics.distPending.slice(0,3).map(d => (
+                <div key={d.id} className="flex items-center justify-between px-3 py-2 border-t border-purple-100">
+                  <div>
+                    <p className="text-xs font-medium text-gray-900">{d.end_customer || d.client}</p>
+                    <p className="text-[10px] text-gray-400">{d.distributor} · {d.product}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded">
+                      -{d.discount_requested}% req.
+                    </span>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{formatK(d.end_customer_value||d.value_total)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        )}
+
+        {/* ── Sub-section: Analysis ───────────────────────────────────────── */}
+        {(Object.keys(funnelAnalytics.productBreakdown).length > 0 || Object.keys(funnelAnalytics.lostReasons).length > 0) && (
+        <div className="border-t border-gray-100 pt-4">
+          <p className="text-xs font-semibold uppercase text-gray-500 mb-3">Analysis</p>
+
+          {/* Product breakdown */}
+          {Object.keys(funnelAnalytics.productBreakdown).length > 0 && (
+            <div className="mb-3">
+              <p className="text-xs text-gray-400 font-medium mb-2">{t("dash_pipeline_lbl")}</p>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(funnelAnalytics.productBreakdown).sort((a,b)=>b[1].value-a[1].value).map(([product, { count, value }]) => (
+                  <span key={product} className="text-xs bg-navy/10 text-navy px-2 py-1 rounded-lg font-medium">
+                    {product} · {count} deal{count!==1?'s':''} · {formatK(value)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Lost reasons */}
+          {Object.keys(funnelAnalytics.lostReasons).length > 0 && (
+            <div>
+              <p className="text-xs text-gray-400 font-medium mb-2">{t("dash_lost")}</p>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(funnelAnalytics.lostReasons).sort((a,b)=>b[1]-a[1]).map(([reason, count]) => (
+                  <span key={reason} className="text-xs bg-red-50 text-red-700 px-2 py-1 rounded-lg">
+                    {reason} ({count})
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        )}
       </div>
 
     </div>

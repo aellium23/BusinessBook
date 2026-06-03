@@ -529,6 +529,12 @@ export default function DashboardSummary({ selectedBU = '' }) {
             FY26 YTD · cycle {cycle}
           </span>
         </div>
+        {/* Color legend */}
+        <div className="flex flex-wrap gap-3 text-[10px] text-gray-500 mb-3">
+          <span className="flex items-center gap-1">🟢 ≥95% of target</span>
+          <span className="flex items-center gap-1">🟡 70–95%</span>
+          <span className="flex items-center gap-1">🔴 &lt;70%</span>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {gauges.map(g => (
             <div key={g.key} className="card p-4">
@@ -550,6 +556,15 @@ export default function DashboardSummary({ selectedBU = '' }) {
             <AlertCircle size={10}/> Gauges with no target shown as 0% — add the budget cycle to fill them in.
           </p>
         )}
+        {/* Explainer — right below the gauge grid */}
+        <div className="card p-4 bg-gray-50 border-dashed mt-3">
+          <p className="text-xs text-gray-500 leading-relaxed">
+            <strong className="text-gray-700">How to read this:</strong> the gauges compare Invoiced actuals to the Budget for the same months (FY26 year-to-date).
+            Colour reflects performance against target — red &lt; 70%, amber 70–95%, green ≥ 95%.
+            The pill below each gauge is the delta versus the same period last year.
+            Switch to the Classic view any time using the toggle in the header.
+          </p>
+        </div>
       </div>
       )}
 
@@ -691,15 +706,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
         </div>
       )}
 
-      {/* Simple explainer */}
-      <div className="card p-4 bg-gray-50 border-dashed">
-        <p className="text-xs text-gray-500 leading-relaxed">
-          <strong className="text-gray-700">How to read this:</strong> the gauges compare Invoiced actuals to the Budget for the same months (FY26 year-to-date).
-          Colour reflects performance against target — red &lt; 70%, amber 70–95%, green ≥ 95%.
-          The pill below each gauge is the delta versus the same period last year.
-          Switch to the Classic view any time using the toggle in the header.
-        </p>
-      </div>
+      {/* Explainer moved to right below gauges section */}
     </div>
   )
 }
