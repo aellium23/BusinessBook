@@ -411,14 +411,13 @@ const TenderCard = memo(function TenderCard({ tender, onEdit, onDelete, canEdit 
         )}
       </div>
 
-      {/* Deadlines */}
+      {/* Deadline — submission only (decision date lives in the modal) */}
       <div className="flex flex-wrap gap-2 px-4 pb-3">
         <DeadlineChip date={tender.submission_deadline} label={t('tender_submit_lbl')} />
-        <DeadlineChip date={tender.decision_date}       label={t('tender_decision_lbl')} />
       </div>
 
-      {/* Collaborators row */}
-      {tender.collaborators?.length > 0 && (
+      {/* Collaborators row — only for active tenders */}
+      {['open','submitted'].includes(tender.status) && tender.collaborators?.length > 0 && (
         <div className="flex items-center gap-2 px-4 pb-3">
           <Users size={11} className="text-gray-400" />
           <div className="flex gap-1 flex-wrap">
@@ -575,11 +574,9 @@ export default function Tenders() {
         </div>
         {[
           { id: 'active', label: t('tender_active') },
-          { id: 'all', label: t('tender_all') },
-          { id: 'open', label: t('tender_open') },
-          { id: 'submitted', label: t('tender_submitted') },
           { id: 'won', label: t('tender_won') },
           { id: 'lost', label: t('tender_lost') },
+          { id: 'all', label: t('tender_all') },
         ].map(s => (
           <button key={s.id}
             onClick={() => setStatusFilter(s.id)}

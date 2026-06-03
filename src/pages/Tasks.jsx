@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useTasks, createTask, updateTask, deleteTask, useNotifications } from '../hooks/useTasks'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
-import { Modal, Spinner } from '../components/ui'
+import { Modal, Spinner, CollapsibleSection } from '../components/ui'
 import { validateTask } from '../lib/validation'
 import SearchableSelect from '../components/SearchableSelect'
 import QuickDealForm from '../components/QuickDealForm'
@@ -177,43 +177,45 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
           </div>
         )}
 
-        {/* Link to deal or tender — mutually exclusive */}
-        <div className="space-y-2">
-          <label className="label">{t('task_link_deal')} <span className="text-gray-400">{t('task_optional')}</span></label>
-          {creatingDeal ? (
-            <QuickDealForm
-              initialClient={prefillClient}
-              onCancel={() => { setCreatingDeal(false); setPrefillClient('') }}
-              onCreated={newDeal => {
-                setCreatingDeal(false); setPrefillClient('')
-                set('deal_id', newDeal.id)
-                if (newDeal.id) set('tender_id', '')
-                onDealsChanged && onDealsChanged(newDeal)
-              }}
-            />
-          ) : (
+        {/* Link to deal or tender — collapsed by default (most tasks have no link) */}
+        <CollapsibleSection title={t('task_link_section')} subtitle={t('task_optional')}
+          defaultOpen={!!(form.deal_id || form.tender_id)}>
+          <div className="space-y-2">
+            <label className="label">{t('task_link_deal')}</label>
+            {creatingDeal ? (
+              <QuickDealForm
+                initialClient={prefillClient}
+                onCancel={() => { setCreatingDeal(false); setPrefillClient('') }}
+                onCreated={newDeal => {
+                  setCreatingDeal(false); setPrefillClient('')
+                  set('deal_id', newDeal.id)
+                  if (newDeal.id) set('tender_id', '')
+                  onDealsChanged && onDealsChanged(newDeal)
+                }}
+              />
+            ) : (
+              <SearchableSelect
+                value={form.deal_id}
+                onChange={val => { set('deal_id', val); if (val) set('tender_id', '') }}
+                options={deals.map(d => ({ value: d.id, label: `[${d.bu}] ${d.client}` }))}
+                placeholder={t('search_deals')}
+                emptyLabel={t('task_no_deal')}
+                createLabel={t('tender_create_deal')}
+                onCreateNew={query => { setPrefillClient(query || ''); setCreatingDeal(true) }}
+              />
+            )}
+          </div>
+          <div className="space-y-2">
+            <label className="label">{t('task_link_tender')}</label>
             <SearchableSelect
-              value={form.deal_id}
-              onChange={val => { set('deal_id', val); if (val) set('tender_id', '') }}
-              options={deals.map(d => ({ value: d.id, label: `[${d.bu}] ${d.client}` }))}
-              placeholder={t('search_deals')}
-              emptyLabel={t('task_no_deal')}
-              createLabel={t('tender_create_deal')}
-              onCreateNew={query => { setPrefillClient(query || ''); setCreatingDeal(true) }}
+              value={form.tender_id}
+              onChange={val => { set('tender_id', val); if (val) set('deal_id', '') }}
+              options={tenders.map(t => ({ value: t.id, label: t.title }))}
+              placeholder={t('tender_search_ph')}
+              emptyLabel={t('task_no_tender')}
             />
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <label className="label">{t('task_link_tender')} <span className="text-gray-400">{t('task_optional')}</span></label>
-          <SearchableSelect
-            value={form.tender_id}
-            onChange={val => { set('tender_id', val); if (val) set('deal_id', '') }}
-            options={tenders.map(t => ({ value: t.id, label: t.title }))}
-            placeholder={t('tender_search_ph')}
-            emptyLabel={t('task_no_tender')}
-          />
-        </div>
+          </div>
+        </CollapsibleSection>
 
         {error && (
           <p className="text-sm text-red-600 flex items-center gap-1">
@@ -269,33 +271,31 @@ function TaskRow({ task, onEdit, onDelete, currentUserId, canAssign, tenders = [
           <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{task.notes}</p>
         )}
 
-        <div className="flex flex-wrap gap-2 mt-1.5 items-center">
-          {/* Assignee */}
-          {task.assignee && (
-            <span className="flex items-center gap-1 text-micro text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded-full font-medium">
-              <User size={9} />
-              {task.assignee.full_name || task.assignee.email}
-            </span>
-          )}
-          {/* Owner (when viewing assigned tasks) */}
-          {task.assigned_to === currentUserId && task.owner && (
-            <span className="flex items-center gap-1 text-micro text-gray-400">
-              {t('task_from')} {task.owner.full_name || task.owner.email}
-            </span>
-          )}
-          {/* Deal link */}
-          {task.deal && (
-            <span className="flex items-center gap-1 text-micro text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">
-              <Link2 size={9} /> {task.deal.client}
-            </span>
-          )}
-          {/* Tender link — resolve name from tender_id */}
-          {task.tender_id && tenderName && (
-            <span className="flex items-center gap-1 text-micro text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded-full">
-              <FileText size={9} /> {tenderName}
-            </span>
-          )}
-        </div>
+        {(() => {
+          const assigneeName = task.assignee?.full_name || task.assignee?.email
+          const ownerName = (task.assigned_to === currentUserId && task.owner) ? (task.owner.full_name || task.owner.email) : null
+          const showPeople = assigneeName || ownerName
+          // One link only: deal takes priority over tender
+          const link = task.deal
+            ? { icon: <Link2 size={9} />, label: task.deal.client }
+            : (task.tender_id && tenderName) ? { icon: <FileText size={9} />, label: tenderName } : null
+          if (!showPeople && !link) return null
+          return (
+            <div className="flex flex-wrap gap-2 mt-1.5 items-center">
+              {showPeople && (
+                <span className="flex items-center gap-1 text-micro text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded-full font-medium">
+                  <User size={9} />
+                  {assigneeName || ''}{ownerName ? `${assigneeName ? ' · ' : ''}${t('task_from')} ${ownerName}` : ''}
+                </span>
+              )}
+              {link && (
+                <span className="flex items-center gap-1 text-micro text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">
+                  {link.icon} {link.label}
+                </span>
+              )}
+            </div>
+          )
+        })()}
       </div>
 
       {/* Actions */}
@@ -499,13 +499,18 @@ export default function Tasks() {
             {showNotif && <NotificationsPanel onClose={() => setShowNotif(false)} notifications={notifications} markRead={markRead} markAllRead={markAllRead} t={t} />}
           </div>
         </div>
-        {/* Filter + New task — linha separada em mobile */}
+        {/* Status tabs + New task */}
         <div className="flex items-center gap-2">
-          <select className="select text-sm flex-1" value={filter} onChange={e => setFilter(e.target.value)}>
-            <option value="all">{t('tasks_filter_all')}</option>
-            <option value="open">{t('tasks_filter_open')}</option>
-            <option value="done">{t('tasks_filter_done')}</option>
-          </select>
+          <div className="flex gap-1 flex-1">
+            {[['all', t('tasks_filter_all')], ['open', t('tasks_filter_open')], ['done', t('tasks_filter_done')]].map(([id, label]) => (
+              <button key={id} onClick={() => setFilter(id)}
+                className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  filter === id ? 'bg-navy text-white' : 'bg-white text-gray-500 border border-gray-200 hover:border-gray-400'
+                }`}>
+                {label}
+              </button>
+            ))}
+          </div>
           <button className="btn-primary flex items-center gap-1.5 py-2 px-3 text-sm shrink-0"
             onClick={() => setModal('new')}>
             <Plus size={15} /> <span>{t('tasks_new')}</span>
@@ -526,10 +531,6 @@ export default function Tasks() {
             onEdit={(t, refetchOnly) => refetchOnly ? refetch() : setModal(t)}
             onDelete={handleDelete} />
         ))}
-        <button onClick={() => setModal('new')}
-          className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 mt-1 py-1">
-          <Plus size={13} /> {t('tasks_add_inline')}
-        </button>
       </Section>
 
       {/* Tasks assigned to me */}

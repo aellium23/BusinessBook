@@ -488,35 +488,6 @@ export default function DashboardSummary({ selectedBU = '' }) {
 
   return (
     <div className="space-y-6">
-      {/* Customize button */}
-      <div className="flex justify-end">
-        <button onClick={() => setCustomizing(c => !c)}
-          className={`text-xs px-2.5 py-1 rounded-lg border ${customizing ? 'bg-navy text-white border-navy' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
-          {customizing ? 'Done' : 'Customize'}
-        </button>
-      </div>
-
-      {customizing && (
-        <div className="card p-3 space-y-1">
-          <p className="text-xs font-semibold text-gray-500 mb-2">Reorder & toggle sections</p>
-          {sectionOrder.map((id, idx) => (
-            <div key={id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1.5">
-              <div className="flex flex-col gap-0.5">
-                <button onClick={() => moveSection(id, -1)} disabled={idx === 0}
-                  className="text-gray-400 hover:text-gray-700 disabled:opacity-20"><ChevronUp size={12}/></button>
-                <button onClick={() => moveSection(id, 1)} disabled={idx === sectionOrder.length - 1}
-                  className="text-gray-400 hover:text-gray-700 disabled:opacity-20"><ChevronDown size={12}/></button>
-              </div>
-              <span className="text-xs text-gray-700 flex-1">{SECTION_LABELS[id] || id}</span>
-              <button onClick={() => toggleSection(id)}
-                className={`text-xs px-2 py-0.5 rounded ${hiddenSections.includes(id) ? 'bg-gray-200 text-gray-500' : 'bg-green-100 text-green-700'}`}>
-                {hiddenSections.includes(id) ? 'Hidden' : 'Visible'}
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Sales vs Budget */}
       {!hiddenSections.includes('gauges') && (
       <div>
