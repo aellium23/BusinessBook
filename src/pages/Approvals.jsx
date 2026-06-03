@@ -129,19 +129,19 @@ function ApprovalCard({ req, onRespond }) {
   return (
     <div className={`rounded-xl border p-3 space-y-2 ${req.status === 'pending' ? 'border-purple-200 bg-purple-50/40' : 'border-gray-200 bg-white'}`}>
       <div className="flex items-center gap-2 flex-wrap">
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${st.cls}`}>
+        <span className={`text-micro font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${st.cls}`}>
           <Icon size={10}/> {st.label}
         </span>
-        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{req.brand}</span>
+        <span className="text-micro font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{req.brand}</span>
         <span className="text-sm font-bold text-gray-900">{req.requested_pct}%</span>
-        <span className="text-[10px] text-gray-400 ml-auto">
+        <span className="text-micro text-gray-400 ml-auto">
           {new Date(req.created_at).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}
         </span>
       </div>
 
       <div>
         <p className="text-sm font-semibold text-gray-900">{req.deal?.client || 'Unknown client'}</p>
-        <p className="text-[10px] text-gray-400">
+        <p className="text-micro text-gray-400">
           {req.deal?.country} · {formatK(req.deal?.value_total || 0)}
         </p>
       </div>
@@ -169,7 +169,7 @@ function ApprovalCard({ req, onRespond }) {
           <div className="border-t pt-2 space-y-2">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-gray-500">Decision</label>
+                <label className="text-micro text-gray-500">Decision</label>
                 <select className="select text-xs" value={status} onChange={e => setStatus(e.target.value)}>
                   <option value="approved">Approve</option>
                   <option value="counter">Counter-offer</option>
@@ -178,7 +178,7 @@ function ApprovalCard({ req, onRespond }) {
               </div>
               {(status === 'approved' || status === 'counter') && (
                 <div>
-                  <label className="text-[10px] text-gray-500">{status === 'counter' ? 'Counter %' : 'Approved %'}</label>
+                  <label className="text-micro text-gray-500">{status === 'counter' ? 'Counter %' : 'Approved %'}</label>
                   <input className="input text-xs" type="number" min="0" max="100"
                     value={pct} onChange={e => setPct(e.target.value)}/>
                 </div>

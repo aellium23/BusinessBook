@@ -10,7 +10,7 @@ export default function DealMonthlyGrid({ form, set, t }) {
         const fyIdx = (glIdx - 3 + 12) % 12
         const hasRevenueBeforeGL = MONTHS_K.slice(0, fyIdx).some(m => form[m] > 0)
         return hasRevenueBeforeGL ? (
-          <p className="text-[10px] text-amber-600 bg-amber-50 rounded px-2 py-1 mb-2">
+          <p className="text-micro text-amber-600 bg-amber-50 rounded px-2 py-1 mb-2">
             ⚠ Revenue recognized before Go-Live ({form.go_live_month} {form.go_live_year}) — verify with finance
           </p>
         ) : null
@@ -18,7 +18,7 @@ export default function DealMonthlyGrid({ form, set, t }) {
       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
         {MONTHS.map((m, i) => (
           <div key={m}>
-            <label className="text-[10px] text-gray-400">{m}</label>
+            <label className="text-micro text-gray-400">{m}</label>
             <input className="input py-1 text-xs" type="number"
               value={form[MONTHS_K[i]] || ''} onChange={e => set(MONTHS_K[i], e.target.value)} placeholder="0" />
           </div>

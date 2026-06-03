@@ -81,20 +81,20 @@ export default function MyAccount() {
 
         <div className="grid grid-cols-2 gap-3 pt-1">
           <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-1 flex items-center gap-1">
+            <p className="text-micro text-gray-400 uppercase tracking-wide font-semibold mb-1 flex items-center gap-1">
               <Shield size={9}/> Role
             </p>
             <p className="text-sm font-semibold text-gray-800">{roleCfg}</p>
           </div>
           {profile?.bu && (
             <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-1">BU</p>
+              <p className="text-micro text-gray-400 uppercase tracking-wide font-semibold mb-1">BU</p>
               <p className="text-sm font-semibold text-gray-800">{profile.bu}</p>
             </div>
           )}
           {company && (
             <div className="bg-gray-50 rounded-lg p-3 col-span-2">
-              <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-1 flex items-center gap-1">
+              <p className="text-micro text-gray-400 uppercase tracking-wide font-semibold mb-1 flex items-center gap-1">
                 <Building2 size={9}/> Company
               </p>
               <p className="text-sm font-semibold text-gray-800">{company.name}</p>

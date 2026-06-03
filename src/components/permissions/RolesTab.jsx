@@ -150,7 +150,7 @@ function PSEditor({ ps, onSave, onCancel, existingNames }) {
               <div key={groupId} className="mb-3">
                 <div className="flex items-center gap-2 mb-1.5">
                   <button onClick={() => selectGroup(groupId)}
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full transition-all ${
+                    className={`text-micro font-bold px-2 py-0.5 rounded-full transition-all ${
                       allSelected ? 'text-white' : 'text-gray-500 bg-gray-100 hover:bg-gray-200'
                     }`}
                     style={allSelected ? { background: group.color } : {}}>
@@ -298,9 +298,9 @@ export default function RolesTab({ permSets, profiles, onRefresh }) {
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-bold text-gray-900">{ps.name}</p>
                       {ps.is_system && (
-                        <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-medium">{t('perm_system')}</span>
+                        <span className="text-micro bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-medium">{t('perm_system')}</span>
                       )}
-                      <span className="text-[10px] text-gray-400">{userCount} utilizador{userCount !== 1 ? 'es' : ''}</span>
+                      <span className="text-micro text-gray-400">{userCount} utilizador{userCount !== 1 ? 'es' : ''}</span>
                     </div>
 
                     {ps.description && (
@@ -314,7 +314,7 @@ export default function RolesTab({ permSets, profiles, onRefresh }) {
                         const grp = PAGE_GROUPS[page.group]
                         return (
                           <span key={page.id}
-                            className="text-[9px] px-1.5 py-0.5 rounded font-medium"
+                            className="text-micro px-1.5 py-0.5 rounded font-medium"
                             style={has
                               ? { background: grp.color + '20', color: grp.color }
                               : { background: '#F3F4F6', color: '#D1D5DB' }
@@ -326,7 +326,7 @@ export default function RolesTab({ permSets, profiles, onRefresh }) {
                     </div>
 
                     {/* Acções rápidas */}
-                    <div className="flex gap-3 mt-2 text-[10px] text-gray-400">
+                    <div className="flex gap-3 mt-2 text-micro text-gray-400">
                       {ps.can_edit   && <span className="text-green-600">✓ Editar</span>}
                       {ps.edit_own   && <span className="text-blue-600">✓ Só próprios</span>}
                       {ps.can_delete && <span className="text-amber-600">✓ Apagar</span>}

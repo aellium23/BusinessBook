@@ -46,7 +46,7 @@ function DeadlineChip({ date, label }) {
     : diff <= 7 ? 'bg-orange-100 text-orange-700 border-orange-200'
     : 'bg-gray-100 text-gray-500 border-gray-200'
   return (
-    <div className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg border ${cls}`}>
+    <div className={`flex items-center gap-1 text-micro font-semibold px-2 py-1 rounded-lg border ${cls}`}>
       <Calendar size={9} />
       <span>{label}: {new Date(date).toLocaleDateString('pt-PT', { day:'numeric', month:'short' })}</span>
       <span className="opacity-60">({text})</span>
@@ -192,13 +192,13 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
             <label className="label">{t('tender_title_lbl')} *</label>
             <input className={`input ${fieldErrors.title ? 'border-red-400' : ''}`} value={form.title} onChange={e => set('title', e.target.value)}
               placeholder={t('tender_title_ph')} autoFocus />
-            {fieldErrors.title && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.title}</p>}
+            {fieldErrors.title && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.title}</p>}
           </div>
           <div>
             <label className="label">{t('tender_ref')}</label>
             <input className={`input ${fieldErrors.reference ? 'border-red-400' : ''}`} value={form.reference} onChange={e => set('reference', e.target.value)}
               placeholder={t('tender_ref_ph')} />
-            {fieldErrors.reference && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.reference}</p>}
+            {fieldErrors.reference && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.reference}</p>}
           </div>
         </div>
 
@@ -237,7 +237,7 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
           <textarea className={`input min-h-[72px] resize-none ${fieldErrors.description ? 'border-red-400' : ''}`} value={form.description}
             onChange={e => set('description', e.target.value)}
             placeholder={t('tender_desc_ph')} />
-          {fieldErrors.description && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.description}</p>}
+          {fieldErrors.description && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.description}</p>}
         </div>
 
         {/* Dates */}
@@ -246,13 +246,13 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
             <label className="label">{t('tender_sub_deadline')}</label>
             <input className={`input ${fieldErrors.submission_deadline ? 'border-red-400' : ''}`} type="date" value={form.submission_deadline}
               onChange={e => set('submission_deadline', e.target.value)} />
-            {fieldErrors.submission_deadline && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.submission_deadline}</p>}
+            {fieldErrors.submission_deadline && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.submission_deadline}</p>}
           </div>
           <div>
             <label className="label">{t('tender_decision')}</label>
             <input className={`input ${fieldErrors.decision_date ? 'border-red-400' : ''}`} type="date" value={form.decision_date}
               onChange={e => set('decision_date', e.target.value)} />
-            {fieldErrors.decision_date && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.decision_date}</p>}
+            {fieldErrors.decision_date && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.decision_date}</p>}
           </div>
         </div>
 
@@ -262,14 +262,14 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
             <label className="label">{t('tender_est_value')}</label>
             <input className={`input ${fieldErrors.estimated_value ? 'border-red-400' : ''}`} type="number" value={form.estimated_value}
               onChange={e => set('estimated_value', e.target.value)} placeholder="0" />
-            {fieldErrors.estimated_value && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.estimated_value}</p>}
+            {fieldErrors.estimated_value && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.estimated_value}</p>}
           </div>
           <div>
             <label className="label">{t('tender_currency')}</label>
             <select className={`select ${fieldErrors.currency ? 'border-red-400' : ''}`} value={form.currency} onChange={e => set('currency', e.target.value)}>
               <option>EUR</option><option>USD</option><option>GBP</option>
             </select>
-            {fieldErrors.currency && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.currency}</p>}
+            {fieldErrors.currency && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.currency}</p>}
           </div>
         </div>
 
@@ -287,7 +287,7 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
         <div>
           <label className="label">{t('tender_collab')} <span className="text-gray-400">({t('tender_collab_owners')})</span></label>
           {users.length === 0 ? (
-            <p className="text-[11px] text-gray-400 mt-1">
+            <p className="text-tiny text-gray-400 mt-1">
               {t('tenders_no_owners')}
             </p>
           ) : (
@@ -376,14 +376,14 @@ const TenderCard = memo(function TenderCard({ tender, onEdit, onDelete, canEdit 
       <div className="flex items-start gap-3 p-4">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${st.bg} ${st.color} ${st.border}`}>
+            <span className={`text-micro font-bold px-2 py-0.5 rounded-full border ${st.bg} ${st.color} ${st.border}`}>
               {t(st.labelKey)}
             </span>
             {tender.reference && (
-              <span className="text-[10px] text-gray-400 font-mono">#{tender.reference}</span>
+              <span className="text-micro text-gray-400 font-mono">#{tender.reference}</span>
             )}
             {isUrgent && (
-              <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-full">
+              <span className="text-micro font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-full">
                 ⚡ {t('tender_urgent')}
               </span>
             )}
@@ -406,7 +406,7 @@ const TenderCard = memo(function TenderCard({ tender, onEdit, onDelete, canEdit 
             <p className="text-sm font-bold text-gray-900">
               {tender.estimated_value.toLocaleString('pt-PT', { minimumFractionDigits: 0 })}
             </p>
-            <p className="text-[10px] text-gray-400">{tender.currency}</p>
+            <p className="text-micro text-gray-400">{tender.currency}</p>
           </div>
         )}
       </div>
@@ -423,7 +423,7 @@ const TenderCard = memo(function TenderCard({ tender, onEdit, onDelete, canEdit 
           <Users size={11} className="text-gray-400" />
           <div className="flex gap-1 flex-wrap">
             {tender.collaborators.map(c => (
-              <span key={c.user_id} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
+              <span key={c.user_id} className="text-micro bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
                 {c.profile?.full_name || c.profile?.email?.split("@")[0] || '—'}
               </span>
             ))}
@@ -561,7 +561,7 @@ export default function Tenders() {
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-white rounded-xl border border-gray-200 p-3 text-center">
             <p className={`text-2xl font-bold ${color}`}>{value}</p>
-            <p className="text-[10px] text-gray-400 mt-0.5 uppercase tracking-wide">{label}</p>
+            <p className="text-micro text-gray-400 mt-0.5 uppercase tracking-wide">{label}</p>
           </div>
         ))}
       </div>

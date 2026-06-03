@@ -139,14 +139,14 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-semibold text-gray-900 truncate">
               {profile.full_name || profile.email?.split('@')[0]}
-              {isSelf && <span className="ml-1 text-[10px] text-amber-600">(you)</span>}
+              {isSelf && <span className="ml-1 text-micro text-amber-600">(you)</span>}
             </p>
             {ps && <PSBadge ps={ps}/>}
-            {!active && <span className="text-[10px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded">{t('perm_inactive')}</span>}
+            {!active && <span className="text-micro bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded">{t('perm_inactive')}</span>}
           </div>
           <p className="text-xs text-gray-400 truncate">{profile.email}</p>
           {company && (
-            <p className="text-[10px] text-gray-400 mt-0.5">
+            <p className="text-micro text-gray-400 mt-0.5">
               {COMPANY_TYPES[company.type]?.icon} {company.name}
               {profile.bu && <span className="ml-1.5 font-medium">{profile.bu}</span>}
             </p>
@@ -158,7 +158,7 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
               const grp = PAGE_GROUPS[page.group]
               return (
                 <span key={page.id}
-                  className="text-[9px] px-1 py-0.5 rounded"
+                  className="text-micro px-1 py-0.5 rounded"
                   style={has
                     ? { background: grp.color + '20', color: grp.color }
                     : { color: '#D1D5DB' }
@@ -200,7 +200,7 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
               </select>
             </div>
           </div>
-          <p className="text-[10px] text-gray-400">{profile.email}</p>
+          <p className="text-micro text-gray-400">{profile.email}</p>
 
           {/* Permission Set */}
           <div>
@@ -220,7 +220,7 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-gray-800">{p.name}</p>
-                      {p.description && <p className="text-[10px] text-gray-400 truncate">{p.description}</p>}
+                      {p.description && <p className="text-micro text-gray-400 truncate">{p.description}</p>}
                     </div>
                     {active && <Check size={12} style={{ color: p.color }} className="shrink-0"/>}
                   </button>
@@ -291,7 +291,7 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
                       await supabase.from('profiles').update({ approves_brands: next }).eq('id', profile.id)
                       onSaved()
                     }}
-                    className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-all ${
+                    className={`text-tiny font-semibold px-2.5 py-1 rounded-full border transition-all ${
                       on ? 'bg-navy text-white border-navy' : 'bg-white text-gray-500 border-gray-200'
                     }`}>
                     {on ? '✓ ' : ''}{b}
@@ -299,7 +299,7 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
                 )
               })}
             </div>
-            <p className="text-[10px] text-gray-400 mt-0.5">User can approve discount requests for the selected brands only.</p>
+            <p className="text-micro text-gray-400 mt-0.5">User can approve discount requests for the selected brands only.</p>
           </div>
 
           {/* Reset Password */}
@@ -308,7 +308,7 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
               className="text-xs text-blue-600 hover:text-blue-800 underline disabled:opacity-40">
               Set / Reset Password
             </button>
-            {pwdMsg && <p className="text-[10px] text-green-600 mt-0.5">{pwdMsg}</p>}
+            {pwdMsg && <p className="text-micro text-green-600 mt-0.5">{pwdMsg}</p>}
           </div>
 
           <div className="flex gap-2">
@@ -318,7 +318,7 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
               {saving ? <RefreshCw size={12} className="animate-spin mx-auto"/> : saved ? '✓ Guardado' : 'Guardar'}
             </button>
           </div>
-          {isSelf && <p className="text-[10px] text-amber-600 text-center">Não podes editar o teu próprio perfil.</p>}
+          {isSelf && <p className="text-micro text-amber-600 text-center">Não podes editar o teu próprio perfil.</p>}
         </div>
       )}
     </div>
@@ -493,7 +493,7 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
               <option value="VGT">VGT</option>
               <option value="ECT">ECT</option>
             </select>
-            <p className="text-[10px] text-gray-400 mt-0.5">Set directly for internal sales (VGT/ECT). Distributors leave empty + pick company.</p>
+            <p className="text-micro text-gray-400 mt-0.5">Set directly for internal sales (VGT/ECT). Distributors leave empty + pick company.</p>
           </div>
           <div>
             <label className="label">{t('perm_companies')}</label>

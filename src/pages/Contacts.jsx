@@ -138,23 +138,23 @@ export default function Contacts() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
           <p className="text-2xl font-bold text-gray-900">{items.length}</p>
-          <p className="text-[10px] text-gray-400 uppercase tracking-wide">{t('contacts_total')}</p>
+          <p className="text-micro text-gray-400 uppercase tracking-wide">{t('contacts_total')}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
           <p className="text-2xl font-bold text-purple-700">
             {items.filter(c => c.role_type === 'decision_maker').length}
           </p>
-          <p className="text-[10px] text-gray-400 uppercase tracking-wide">{t('contacts_decision_makers')}</p>
+          <p className="text-micro text-gray-400 uppercase tracking-wide">{t('contacts_decision_makers')}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
           <p className="text-2xl font-bold text-green-700">
             {items.filter(c => c.role_type === 'champion').length}
           </p>
-          <p className="text-[10px] text-gray-400 uppercase tracking-wide">{t('contacts_champions')}</p>
+          <p className="text-micro text-gray-400 uppercase tracking-wide">{t('contacts_champions')}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
           <p className="text-2xl font-bold text-gray-900">{clients.length}</p>
-          <p className="text-[10px] text-gray-400 uppercase tracking-wide">{t('contacts_clients')}</p>
+          <p className="text-micro text-gray-400 uppercase tracking-wide">{t('contacts_clients')}</p>
         </div>
       </div>
 
@@ -219,7 +219,7 @@ export default function Contacts() {
             <div key={clientName} className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
               <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
                 <p className="text-sm font-bold text-gray-800 truncate">{clientName}</p>
-                <span className="text-[10px] text-gray-400 shrink-0">{list.length} {list.length !== 1 ? t('contacts_contacts_word') : t('contacts_contact_word')}</span>
+                <span className="text-micro text-gray-400 shrink-0">{list.length} {list.length !== 1 ? t('contacts_contacts_word') : t('contacts_contact_word')}</span>
               </div>
               <ul className="divide-y divide-gray-50">
                 {list.map(c => {
@@ -231,10 +231,10 @@ export default function Contacts() {
                         <div className="flex flex-wrap items-center gap-1.5">
                           <p className="text-sm font-semibold text-gray-900">{c.full_name}</p>
                           {c.is_primary && <Star size={11} className="text-amber-500 fill-amber-400"/>}
-                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${role.color}`}>
+                          <span className={`text-micro font-bold px-1.5 py-0.5 rounded border ${role.color}`}>
                             {role.label}
                           </span>
-                          <span className="text-[10px] text-gray-400">· {c.bu}</span>
+                          <span className="text-micro text-gray-400">· {c.bu}</span>
                         </div>
                         {c.job_title && (
                           <p className="text-xs text-gray-500 mt-0.5">{c.job_title}{c.country ? ` · ${c.country}` : ''}</p>
@@ -242,13 +242,13 @@ export default function Contacts() {
                         <div className="flex flex-wrap gap-3 mt-1">
                           {c.email && (
                             <a href={`mailto:${c.email}`}
-                              className="text-[11px] text-blue-600 hover:underline flex items-center gap-1">
+                              className="text-tiny text-blue-600 hover:underline flex items-center gap-1">
                               <Mail size={10}/> {c.email}
                             </a>
                           )}
                           {c.phone && (
                             <a href={`tel:${c.phone}`}
-                              className="text-[11px] text-blue-600 hover:underline flex items-center gap-1">
+                              className="text-tiny text-blue-600 hover:underline flex items-center gap-1">
                               <Phone size={10}/> {c.phone}
                             </a>
                           )}

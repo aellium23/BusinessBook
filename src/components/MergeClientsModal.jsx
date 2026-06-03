@@ -91,14 +91,14 @@ export default function MergeClientsModal({ clients, deals, onClose, onMerged })
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">{c.name}</p>
-                    <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                    <div className="flex items-center gap-2 text-micro text-gray-400">
                       {c.country && <span>{c.country}</span>}
                       {c.region && <span>{c.region}</span>}
                       <span>{cDeals.length} deals</span>
                     </div>
                   </div>
                   {isPrimary && (
-                    <span className="text-[10px] font-bold text-navy bg-blue-100 px-2 py-0.5 rounded-full shrink-0">PRIMARY</span>
+                    <span className="text-micro font-bold text-navy bg-blue-100 px-2 py-0.5 rounded-full shrink-0">PRIMARY</span>
                   )}
                 </div>
               </button>

@@ -335,7 +335,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
               <option value="VGT">VGT</option>
               <option value="ECT">ECT</option>
             </select>
-            {fieldErrors.bu && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.bu}</p>}
+            {fieldErrors.bu && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.bu}</p>}
           </div>
           )}
           {!isDistributor && (
@@ -369,7 +369,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 return allStages.map(s => <option key={s}>{s}</option>)
               })()}
             </select>
-            {fieldErrors.stage && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.stage}</p>}
+            {fieldErrors.stage && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.stage}</p>}
           </div>
         </div>
 
@@ -378,7 +378,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
           <div>
             <label className="label flex items-center gap-1">
               {t("df_forecast_cat")}
-              <span className="text-[10px] text-gray-400 font-normal">
+              <span className="text-micro text-gray-400 font-normal">
                 ({t("df_auto_from_stage")} <strong>{FORECAST_CATEGORIES.find(c => c.id === defaultForecastFromStage(form.stage))?.label}</strong>)
               </span>
             </label>
@@ -442,9 +442,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
               createRequiresQuery
             />
           </div>
-          {fieldErrors.client && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.client}</p>}
+          {fieldErrors.client && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.client}</p>}
           {form.client && !form.account_id && !fieldErrors.client && (
-            <p className="text-[10px] text-amber-500 mt-1">{t("df_custom_client")} {form.client} {t("df_not_linked")}</p>
+            <p className="text-micro text-amber-500 mt-1">{t("df_custom_client")} {form.client} {t("df_not_linked")}</p>
           )}
         </div>
         {/* Region + Country — auto-filled for distributors from company */}
@@ -488,7 +488,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
         <div>
           <label className="label">{t("df_description")}</label>
           <input className={`input ${fieldErrors.description ? 'border-red-400' : ''}`} value={form.description} onChange={e => set('description', e.target.value)} placeholder={t("df_placeholder_details")} />
-          {fieldErrors.description && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.description}</p>}
+          {fieldErrors.description && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.description}</p>}
         </div>
         {/* Lost reason */}
         {form.stage === 'Lost' && (
@@ -504,7 +504,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
               <option>Technical requirements not met</option>
               <option>Other</option>
             </select>
-            {fieldErrors.lost_reason && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.lost_reason}</p>}
+            {fieldErrors.lost_reason && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.lost_reason}</p>}
             {form.lost_reason === 'Other' && (
               <input className="input mt-2" placeholder={t("df_specify_reason")}
                 value={form.lost_reason_detail || ''} onChange={e => set('lost_reason_detail', e.target.value)}/>
@@ -552,12 +552,12 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 <span className="text-xs text-gray-400">EUR</span>
               </div>
               {form.exchange_rate && form.value_total && (
-                <p className="text-[10px] text-blue-600 mt-1 text-right">
+                <p className="text-micro text-blue-600 mt-1 text-right">
                   ≈ €{(parseFloat(form.value_total) * parseFloat(form.exchange_rate)).toLocaleString('pt-PT', {maximumFractionDigits:0})}
                 </p>
               )}
               {!deal?.id && form.currency !== 'EUR' && getRate(form.currency) && (
-                <p className="text-[10px] text-gray-400 mt-0.5 text-right">
+                <p className="text-micro text-gray-400 mt-0.5 text-right">
                   {t("df_global_rate")}
                 </p>
               )}
@@ -571,12 +571,12 @@ export default function DealForm({ deal, onClose, onSaved }) {
               {t("df_value")} {form.currency === 'EUR' ? '€' : form.currency === 'USD' ? '$' : '£'}
             </label>
             <input className={`input ${fieldErrors.value_total ? 'border-red-400' : ''}`} type="number" value={form.value_total} onChange={e => set('value_total', e.target.value)} placeholder="0" />
-            {fieldErrors.value_total && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.value_total}</p>}
+            {fieldErrors.value_total && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.value_total}</p>}
           </div>
           <div>
             <label className="label">{t("df_gm")}</label>
             <input className={`input ${fieldErrors.gm_pct ? 'border-red-400' : ''}`} type="number" value={form.gm_pct} onChange={e => set('gm_pct', e.target.value)} placeholder="0.0" />
-            {fieldErrors.gm_pct && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.gm_pct}</p>}
+            {fieldErrors.gm_pct && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.gm_pct}</p>}
           </div>
           <div>
             <label className="label">
@@ -599,7 +599,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 form.stage === 'Invoiced' ? '100' : '0'
               }
             />
-            {fieldErrors.win_probability && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.win_probability}</p>}
+            {fieldErrors.win_probability && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.win_probability}</p>}
           </div>
         </div>}
         {/* ── BUSINESS MODEL & PRODUCTS ─────────────────────── */}
@@ -651,7 +651,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                   </select>
                 </div>
               </div>
-              <p className="text-[10px] text-blue-600 bg-blue-50 rounded px-2 py-1">
+              <p className="text-micro text-blue-600 bg-blue-50 rounded px-2 py-1">
                 {t("df_warranty_hint")} {form.warranty_months || 36} {t("df_warranty_months_suffix")}
               </p>
             </>
@@ -723,7 +723,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
             <ProjectTCO dealId={deal.id} dealLines={dealLines} isDistributor={isDistributor}/>
           </>
         ) : (
-          <p className="text-[11px] text-gray-400 bg-gray-50 rounded-lg px-3 py-2 text-center">
+          <p className="text-tiny text-gray-400 bg-gray-50 rounded-lg px-3 py-2 text-center">
             Save the deal first to request discounts and add project (TCO) costs.
           </p>
         )}
@@ -745,7 +745,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
               <div className="flex items-center justify-between">
                 <div>
                   <p className={`text-xs font-semibold ${urgent ? 'text-amber-700' : 'text-blue-700'}`}>{t("df_contracts_recurring")}</p>
-                  <p className="text-[10px] text-gray-500">
+                  <p className="text-micro text-gray-500">
                     {deal.converted_to_sla ? t("df_already_converted") : shouldPrompt ? t("df_recommended_convert") : t("df_create_view_contracts")}
                   </p>
                 </div>
@@ -781,7 +781,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
           <div>
             <label className="label">{t("df_invoice_date")}</label>
             <input className="input" type="date" value={form.invoice_date} onChange={e => set('invoice_date', e.target.value)}/>
-            <p className="text-[10px] text-gray-400 mt-0.5">{t("df_invoice_hint")}</p>
+            <p className="text-micro text-gray-400 mt-0.5">{t("df_invoice_hint")}</p>
           </div>
         )}
 

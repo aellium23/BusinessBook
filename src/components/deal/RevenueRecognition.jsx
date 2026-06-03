@@ -114,16 +114,16 @@ export default function RevenueRecognitionPanel({ form }) {
               tp==='deferred' ? 'bg-gray-50 text-gray-400 border border-gray-100' :
                                  'bg-white text-gray-200 border border-gray-100'
             }`}>
-              <div className="text-[10px] font-semibold">{m}</div>
-              <div className={`text-[11px] font-bold mt-0.5 ${tp==='billing'?'text-white':''}`}>
+              <div className="text-micro font-semibold">{m}</div>
+              <div className={`text-tiny font-bold mt-0.5 ${tp==='billing'?'text-white':''}`}>
                 {v>0 ? `€${v>=1000?Math.round(v/100)/10+'K':v}` : '—'}
               </div>
-              {tp==='billing' && <div className="text-[8px] opacity-75 mt-0.5">BILL</div>}
+              {tp==='billing' && <div className="text-micro opacity-75 mt-0.5">BILL</div>}
             </div>
           )
         })}
       </div>
-      <div className="flex gap-3 text-[10px] text-gray-400">
+      <div className="flex gap-3 text-micro text-gray-400">
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-blue-600 inline-block"/> Billing (catchup {catchupMonths}m)</span>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-blue-50 border border-blue-100 inline-block"/>{t("df_linear")}</span>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-gray-50 border border-gray-100 inline-block"/>{t("df_deferred")}</span>

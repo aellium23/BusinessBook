@@ -59,11 +59,11 @@ export default function DealsMapView({ deals }) {
                   <p className={`text-sm font-bold ${rc.text} flex items-center gap-1.5`}>
                     <Globe size={14}/> {region}
                   </p>
-                  <p className="text-[10px] text-gray-400">{data.deals.length} deals · {Object.keys(data.countries).length} countries</p>
+                  <p className="text-micro text-gray-400">{data.deals.length} deals · {Object.keys(data.countries).length} countries</p>
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold text-gray-900">{formatK(data.total)}</p>
-                  {data.pipeline > 0 && <p className="text-[10px] text-amber-600">+{formatK(data.pipeline)} pipe</p>}
+                  {data.pipeline > 0 && <p className="text-micro text-amber-600">+{formatK(data.pipeline)} pipe</p>}
                 </div>
               </div>
 
@@ -98,11 +98,11 @@ export default function DealsMapView({ deals }) {
                 <div key={country} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
                   <div>
                     <p className="text-sm font-medium text-gray-800">{country}</p>
-                    <p className="text-[10px] text-gray-400">{data.deals} deal{data.deals !== 1 ? 's' : ''}</p>
+                    <p className="text-micro text-gray-400">{data.deals} deal{data.deals !== 1 ? 's' : ''}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-bold text-gray-900">{formatK(data.value)}</p>
-                    {data.pipeline > 0 && <p className="text-[10px] text-amber-600">+{formatK(data.pipeline)} pipe</p>}
+                    {data.pipeline > 0 && <p className="text-micro text-amber-600">+{formatK(data.pipeline)} pipe</p>}
                   </div>
                 </div>
               ))}
@@ -125,16 +125,16 @@ export default function DealsMapView({ deals }) {
                 <div className="bg-green-50 rounded-lg p-3">
                   <p className="text-xs font-semibold text-green-700">Portugal</p>
                   <p className="text-lg font-bold text-gray-900">{formatK(pt.value)}</p>
-                  <p className="text-[10px] text-gray-400">{pt.deals} deals</p>
-                  {pt.pipeline > 0 && <p className="text-[10px] text-amber-600">+{formatK(pt.pipeline)} pipeline</p>}
+                  <p className="text-micro text-gray-400">{pt.deals} deals</p>
+                  {pt.pipeline > 0 && <p className="text-micro text-amber-600">+{formatK(pt.pipeline)} pipeline</p>}
                 </div>
               )}
               {es && (
                 <div className="bg-orange-50 rounded-lg p-3">
                   <p className="text-xs font-semibold text-orange-700">Spain</p>
                   <p className="text-lg font-bold text-gray-900">{formatK(es.value)}</p>
-                  <p className="text-[10px] text-gray-400">{es.deals} deals</p>
-                  {es.pipeline > 0 && <p className="text-[10px] text-amber-600">+{formatK(es.pipeline)} pipeline</p>}
+                  <p className="text-micro text-gray-400">{es.deals} deals</p>
+                  {es.pipeline > 0 && <p className="text-micro text-amber-600">+{formatK(es.pipeline)} pipeline</p>}
                 </div>
               )}
             </div>

@@ -19,7 +19,7 @@ function PctBadge({ value, reference, label }) {
   if (p === null) return null
   const positive = p >= 0
   return (
-    <span className={`inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded ${
+    <span className={`inline-flex items-center gap-0.5 text-micro font-bold px-1.5 py-0.5 rounded ${
       positive ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'
     }`}>
       {positive ? '▲' : '▼'} {Math.abs(p).toFixed(1)}% vs {label}
@@ -42,19 +42,19 @@ function BUPerformanceCard({ bu, color, label, actMTD, actYTD, actExtMTD=0, actI
       <div className="px-4 pt-3 pb-2 flex items-center justify-between" style={{ background: `${color}12` }}>
         <div>
           <p className="text-xs font-bold" style={{ color }}>{label}</p>
-          <p className="text-[10px] text-gray-400">{cycle} · {new Date().toLocaleString('en',{month:'short',year:'2-digit'})}</p>
+          <p className="text-micro text-gray-400">{cycle} · {new Date().toLocaleString('en',{month:'short',year:'2-digit'})}</p>
         </div>
-        <span className="text-[10px] text-gray-400">K€</span>
+        <span className="text-micro text-gray-400">K€</span>
       </div>
       {/* MTD */}
       <div className="px-4 py-3 border-b border-gray-50">
         <div className="flex items-start justify-between mb-1.5">
           <div>
-            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">Actuals · {mtdLabel}</p>
+            <p className="text-micro text-gray-400 font-semibold uppercase tracking-wide">Actuals · {mtdLabel}</p>
             <p className="text-2xl font-bold text-gray-900">{formatK(actMTD*1000)}</p>
             <div className="flex gap-2 mt-1">
-              <span className="text-[9px] bg-green-50 text-green-700 px-1.5 py-0.5 rounded font-semibold">Ext {formatK(actExtMTD*1000)}</span>
-              <span className="text-[9px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-semibold">Int {formatK(actIntMTD*1000)}</span>
+              <span className="text-micro bg-green-50 text-green-700 px-1.5 py-0.5 rounded font-semibold">Ext {formatK(actExtMTD*1000)}</span>
+              <span className="text-micro bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-semibold">Int {formatK(actIntMTD*1000)}</span>
             </div>
           </div>
           <div className="text-right space-y-0.5 mt-1">
@@ -63,13 +63,13 @@ function BUPerformanceCard({ bu, color, label, actMTD, actYTD, actExtMTD=0, actI
           </div>
         </div>
         <BarChart value={actMTD} max={planMTD} c={color}/>
-        <div className="flex justify-between text-[9px] text-gray-400 mt-0.5">
+        <div className="flex justify-between text-micro text-gray-400 mt-0.5">
           <span>Plan: {formatK(planMTD*1000)}</span><span>PY: {formatK(pyMTD*1000)}</span>
         </div>
       </div>
       {/* YTD */}
       <div className="px-4 py-3">
-        <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1.5">Actuals YTD · {ytdLabel}</p>
+        <p className="text-micro text-gray-400 font-semibold uppercase tracking-wide mb-1.5">Actuals YTD · {ytdLabel}</p>
         <div className="flex items-start justify-between mb-1.5">
           <p className="text-2xl font-bold text-gray-900">{formatK(actYTD*1000)}</p>
           <div className="text-right space-y-0.5">
@@ -79,18 +79,18 @@ function BUPerformanceCard({ bu, color, label, actMTD, actYTD, actExtMTD=0, actI
         </div>
         <div className="grid grid-cols-2 gap-1.5 mb-2">
           <div className="bg-green-50 rounded-lg p-2">
-            <p className="text-[9px] text-green-600 font-bold uppercase mb-0.5">External</p>
+            <p className="text-micro text-green-600 font-bold uppercase mb-0.5">External</p>
             <p className="text-sm font-bold text-gray-800">{formatK(actExtYTD*1000)}</p>
-            <p className="text-[9px] text-gray-400">FC {formatK(fcExtYTD*1000)}{planExtYTD > 0 ? ` · Plan ${formatK(planExtYTD*1000)}` : ''}</p>
+            <p className="text-micro text-gray-400">FC {formatK(fcExtYTD*1000)}{planExtYTD > 0 ? ` · Plan ${formatK(planExtYTD*1000)}` : ''}</p>
           </div>
           <div className="bg-blue-50 rounded-lg p-2">
-            <p className="text-[9px] text-blue-600 font-bold uppercase mb-0.5">Internal</p>
+            <p className="text-micro text-blue-600 font-bold uppercase mb-0.5">Internal</p>
             <p className="text-sm font-bold text-gray-800">{formatK(actIntYTD*1000)}</p>
-            <p className="text-[9px] text-gray-400">FC {formatK(fcIntYTD*1000)}{planIntYTD > 0 ? ` · Plan ${formatK(planIntYTD*1000)}` : ''}</p>
+            <p className="text-micro text-gray-400">FC {formatK(fcIntYTD*1000)}{planIntYTD > 0 ? ` · Plan ${formatK(planIntYTD*1000)}` : ''}</p>
           </div>
         </div>
         <BarChart value={actYTD} max={planYTD} c={color}/>
-        <div className="flex justify-between text-[9px] text-gray-400 mt-0.5">
+        <div className="flex justify-between text-micro text-gray-400 mt-0.5">
           <span>Plan: {formatK(planYTD*1000)}</span><span>PY: {formatK(pyYTD*1000)}</span>
         </div>
       </div>
@@ -170,7 +170,7 @@ export default function PerformanceSection({ deals, budget, fy25, activeCycle, i
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Sales performance · {activeCycle} · MTD & YTD</p>
-        <span className="text-[10px] text-gray-400">MTD: <strong>{mtdLabel}</strong> · YTD: <strong>{ytdLabel}</strong></span>
+        <span className="text-micro text-gray-400">MTD: <strong>{mtdLabel}</strong> · YTD: <strong>{ytdLabel}</strong></span>
       </div>
       <div className="grid grid-cols-1 gap-3">
         {cards.map(c=><BUPerformanceCard key={c.bu} {...c} cycle={activeCycle} mtdLabel={mtdLabel} ytdLabel={ytdLabel}/>)}

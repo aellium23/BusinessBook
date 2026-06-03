@@ -530,7 +530,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
           </span>
         </div>
         {/* Color legend */}
-        <div className="flex flex-wrap gap-3 text-[10px] text-gray-500 mb-3">
+        <div className="flex flex-wrap gap-3 text-micro text-gray-500 mb-3">
           <span className="flex items-center gap-1">🟢 ≥95% of target</span>
           <span className="flex items-center gap-1">🟡 70–95%</span>
           <span className="flex items-center gap-1">🔴 &lt;70%</span>
@@ -696,7 +696,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-1">
                 {['FY26','FY27','FY28','FY29','FY30','FY31'].map(fy => (
                   <div key={fy} className={`text-center rounded p-1.5 ${slaStats.revenueByFY[fy] ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                    <p className="text-[9px] text-gray-400 font-medium">{fy}</p>
+                    <p className="text-micro text-gray-400 font-medium">{fy}</p>
                     <p className="text-xs font-bold text-gray-700">{slaStats.revenueByFY[fy] ? formatK(slaStats.revenueByFY[fy]) : '—'}</p>
                   </div>
                 ))}

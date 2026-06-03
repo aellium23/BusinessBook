@@ -38,7 +38,7 @@ function DeadlineBadge({ deadline, t }) {
     : diff <= 2 ? 'bg-amber-100 text-amber-700'
     : 'bg-gray-100 text-gray-500'
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${cls}`}>
+    <span className={`inline-flex items-center gap-1 text-micro font-semibold px-1.5 py-0.5 rounded-full ${cls}`}>
       <Clock size={9} /> {label}
     </span>
   )
@@ -128,7 +128,7 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
           <label className="label">{t('task_title')} *</label>
           <input className={`input ${fieldErrors.title ? 'border-red-400' : ''}`} value={form.title} onChange={e => set('title', e.target.value)}
             placeholder={t('task_title_ph')} />
-          {fieldErrors.title && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.title}</p>}
+          {fieldErrors.title && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.title}</p>}
         </div>
 
         {/* Notes */}
@@ -136,7 +136,7 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
           <label className="label">{t('task_notes')}</label>
           <textarea className={`input min-h-[80px] resize-none ${fieldErrors.notes ? 'border-red-400' : ''}`} value={form.notes}
             onChange={e => set('notes', e.target.value)} placeholder={t('task_notes_ph')} />
-          {fieldErrors.notes && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.notes}</p>}
+          {fieldErrors.notes && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.notes}</p>}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -144,7 +144,7 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
           <div>
             <label className="label">{t('task_deadline')}</label>
             <input className={`input ${fieldErrors.deadline ? 'border-red-400' : ''}`} type="date" value={form.deadline} onChange={e => set('deadline', e.target.value)} />
-            {fieldErrors.deadline && <p className="text-[11px] text-red-500 mt-0.5">{fieldErrors.deadline}</p>}
+            {fieldErrors.deadline && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.deadline}</p>}
           </div>
           {/* Priority */}
           <div>
@@ -170,7 +170,7 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
               ))}
             </select>
             {users.length === 0 && (
-              <p className="text-[11px] text-gray-400 mt-1">
+              <p className="text-tiny text-gray-400 mt-1">
                 {t('tasks_no_users')}
               </p>
             )}
@@ -272,26 +272,26 @@ function TaskRow({ task, onEdit, onDelete, currentUserId, canAssign, tenders = [
         <div className="flex flex-wrap gap-2 mt-1.5 items-center">
           {/* Assignee */}
           {task.assignee && (
-            <span className="flex items-center gap-1 text-[10px] text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded-full font-medium">
+            <span className="flex items-center gap-1 text-micro text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded-full font-medium">
               <User size={9} />
               {task.assignee.full_name || task.assignee.email}
             </span>
           )}
           {/* Owner (when viewing assigned tasks) */}
           {task.assigned_to === currentUserId && task.owner && (
-            <span className="flex items-center gap-1 text-[10px] text-gray-400">
+            <span className="flex items-center gap-1 text-micro text-gray-400">
               {t('task_from')} {task.owner.full_name || task.owner.email}
             </span>
           )}
           {/* Deal link */}
           {task.deal && (
-            <span className="flex items-center gap-1 text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">
+            <span className="flex items-center gap-1 text-micro text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">
               <Link2 size={9} /> {task.deal.client}
             </span>
           )}
           {/* Tender link — resolve name from tender_id */}
           {task.tender_id && tenderName && (
-            <span className="flex items-center gap-1 text-[10px] text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded-full">
+            <span className="flex items-center gap-1 text-micro text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded-full">
               <FileText size={9} /> {tenderName}
             </span>
           )}
@@ -348,7 +348,7 @@ function NotificationsPanel({ onClose, notifications, markRead, markAllRead, t }
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <span className="font-semibold text-sm text-gray-800">{t('notif_title')}</span>
         <div className="flex gap-2 items-center">
-          <button onClick={markAllRead} className="text-[10px] text-blue-600 hover:underline">{t('notif_mark_all')}</button>
+          <button onClick={markAllRead} className="text-micro text-blue-600 hover:underline">{t('notif_mark_all')}</button>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
         </div>
       </div>
@@ -363,8 +363,8 @@ function NotificationsPanel({ onClose, notifications, markRead, markAllRead, t }
               <span className="text-base shrink-0">{typeIcon[n.type] || '🔔'}</span>
               <div className="flex-1 min-w-0">
                 <p className={`text-xs font-medium ${!n.read ? 'text-gray-900' : 'text-gray-500'}`}>{n.title}</p>
-                {n.body && <p className="text-[11px] text-gray-400 mt-0.5 truncate">{n.body}</p>}
-                <p className="text-[10px] text-gray-300 mt-1">
+                {n.body && <p className="text-tiny text-gray-400 mt-0.5 truncate">{n.body}</p>}
+                <p className="text-micro text-gray-300 mt-1">
                   {new Date(n.created_at).toLocaleDateString('pt-PT', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}
                 </p>
               </div>
@@ -491,7 +491,7 @@ export default function Tasks() {
               className="relative p-2 rounded-xl border border-gray-200 text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors">
               <Bell size={16} />
               {unread > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-micro font-bold rounded-full flex items-center justify-center">
                   {unread > 9 ? '9+' : unread}
                 </span>
               )}

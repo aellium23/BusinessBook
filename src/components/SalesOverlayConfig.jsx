@@ -76,14 +76,14 @@ export default function SalesOverlayConfig({ bu, salesOwners }) {
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
-              <label className="text-[10px] text-gray-500 font-semibold">Source Rep (whose deals are shared)</label>
+              <label className="text-micro text-gray-500 font-semibold">Source Rep (whose deals are shared)</label>
               <select className="select text-xs" value={form.source} onChange={e => setForm(f => ({...f, source: e.target.value}))}>
                 <option value="">Select…</option>
                 {owners.map(o => <option key={o} value={o}>{o}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-[10px] text-gray-500 font-semibold">Target Rep (who gets the credit)</label>
+              <label className="text-micro text-gray-500 font-semibold">Target Rep (who gets the credit)</label>
               <select className="select text-xs" value={form.target} onChange={e => setForm(f => ({...f, target: e.target.value}))}>
                 <option value="">Select…</option>
                 {owners.map(o => <option key={o} value={o}>{o}</option>)}
@@ -91,17 +91,17 @@ export default function SalesOverlayConfig({ bu, salesOwners }) {
             </div>
           </div>
           <div>
-            <label className="text-[10px] text-gray-500 font-semibold">
+            <label className="text-micro text-gray-500 font-semibold">
               Products ({form.products.length === 0 ? 'all products' : `${form.products.length} selected`})
             </label>
             <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg bg-white p-2 space-y-0.5">
               {catalog.length === 0 ? (
-                <p className="text-[10px] text-gray-400 px-1 py-2">No products in catalog.</p>
+                <p className="text-micro text-gray-400 px-1 py-2">No products in catalog.</p>
               ) : (() => {
                 const grouped = catalog.reduce((g, p) => { (g[p.category] = g[p.category] || []).push(p); return g }, {})
                 return Object.entries(grouped).map(([cat, prods]) => (
                   <div key={cat}>
-                    <p className="text-[9px] text-gray-400 uppercase font-semibold px-1 pt-1">{cat}</p>
+                    <p className="text-micro text-gray-400 uppercase font-semibold px-1 pt-1">{cat}</p>
                     {prods.map(p => {
                       const on = form.products.includes(p.name)
                       return (
@@ -118,16 +118,16 @@ export default function SalesOverlayConfig({ bu, salesOwners }) {
                 ))
               })()}
             </div>
-            <p className="text-[10px] text-gray-400 mt-0.5">Leave none selected to credit all products.</p>
+            <p className="text-micro text-gray-400 mt-0.5">Leave none selected to credit all products.</p>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[10px] text-gray-500 font-semibold">Credit % (100 = full)</label>
+              <label className="text-micro text-gray-500 font-semibold">Credit % (100 = full)</label>
               <input className="input text-xs" type="number" min="1" max="100"
                 value={form.pct} onChange={e => setForm(f => ({...f, pct: e.target.value}))}/>
             </div>
             <div>
-              <label className="text-[10px] text-gray-500 font-semibold">Notes</label>
+              <label className="text-micro text-gray-500 font-semibold">Notes</label>
               <input className="input text-xs" value={form.notes}
                 onChange={e => setForm(f => ({...f, notes: e.target.value}))}
                 placeholder="Optional" style={{ fontSize: '16px' }}/>
@@ -151,7 +151,7 @@ export default function SalesOverlayConfig({ bu, salesOwners }) {
               {r.source_owner} → {r.target_owner}
               <span className="text-gray-400 ml-1">({r.share_pct}%)</span>
             </p>
-            <p className="text-[10px] text-gray-400">
+            <p className="text-micro text-gray-400">
               {Array.isArray(r.products) && r.products.length > 0
                 ? r.products.join(', ')
                 : 'All products'}

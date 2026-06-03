@@ -43,7 +43,7 @@ function NavItem({ to, icon: Icon, label, badge }) {
       {label}
       <ChevronRight size={14} className="ml-auto opacity-30" />
       {badge > 0 && (
-        <span className="ml-auto bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+        <span className="ml-auto bg-red-500 text-white text-micro font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
           {badge > 9 ? '9+' : badge}
         </span>
       )}
@@ -115,7 +115,7 @@ export default function Layout({ children }) {
           />
           <div className="flex flex-col leading-tight min-w-0">
             <span className="text-white text-sm font-semibold truncate tracking-wide">{settings?.company_name || 'Business Book'} · FY26</span>
-            <span className="text-white/50 text-[10px] font-medium hidden sm:block tracking-wide">{settings?.company_subtitle || 'Powered by AI'}</span>
+            <span className="text-white/50 text-micro font-medium hidden sm:block tracking-wide">{settings?.company_subtitle || 'Powered by AI'}</span>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -179,7 +179,7 @@ export default function Layout({ children }) {
           {/* Supabase health indicator */}
           <div className="hidden sm:flex items-center justify-center gap-1.5 px-3 pb-3" title={supabaseOnline ? 'Connected' : 'Offline'}>
             <span className={`inline-block w-1.5 h-1.5 rounded-full ${supabaseOnline ? 'bg-green-400' : 'bg-red-400 animate-pulse'}`}/>
-            <span className="text-[9px] text-gray-400">{supabaseOnline ? 'Online' : 'Offline'}</span>
+            <span className="text-micro text-gray-400">{supabaseOnline ? 'Online' : 'Offline'}</span>
           </div>
         </aside>
 
@@ -226,12 +226,12 @@ export default function Layout({ children }) {
                   <div className="relative">
                     <Icon size={20} />
                     {badge > 0 && (
-                      <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
+                      <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 bg-red-500 text-white text-micro font-bold rounded-full flex items-center justify-center">
                         {badge > 9 ? '9+' : badge}
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px]">{label}</span>
+                  <span className="text-micro">{label}</span>
                 </NavLink>
               ))}
 
@@ -247,12 +247,12 @@ export default function Layout({ children }) {
                     <div className="relative">
                       <MoreHorizontal size={20} />
                       {secondary.some(n => (n.badge || 0) > 0) && (
-                        <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
+                        <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 bg-red-500 text-white text-micro font-bold rounded-full flex items-center justify-center">
                           {secondary.reduce((s, n) => s + (n.badge || 0), 0)}
                         </span>
                       )}
                     </div>
-                    <span className="text-[10px]">More</span>
+                    <span className="text-micro">More</span>
                   </button>
 
                   {/* More popup menu */}
@@ -268,7 +268,7 @@ export default function Layout({ children }) {
                           <Icon size={18} className="shrink-0" />
                           <span className="text-sm">{label}</span>
                           {badge > 0 && (
-                            <span className="ml-auto bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                            <span className="ml-auto bg-red-500 text-white text-micro font-bold px-1.5 py-0.5 rounded-full">
                               {badge}
                             </span>
                           )}

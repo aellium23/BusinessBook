@@ -114,7 +114,7 @@ export default function DistributorDashboard({ deals, profile }) {
           </div>
           {/* Progress bar */}
           <div className="space-y-1.5">
-            <div className="flex justify-between text-[10px] text-gray-400">
+            <div className="flex justify-between text-micro text-gray-400">
               <span>Actuals ({quotaPct}%)</span>
               <span>Forecast ({fcPct}%)</span>
             </div>
@@ -154,7 +154,7 @@ export default function DistributorDashboard({ deals, profile }) {
           ].map(({ label, count, color, bg }) => (
             <div key={label} className="text-center rounded-lg p-2.5" style={{ background: bg }}>
               <p className="text-lg font-bold" style={{ color }}>{count}</p>
-              <p className="text-[10px] font-medium" style={{ color }}>{label}</p>
+              <p className="text-micro font-medium" style={{ color }}>{label}</p>
             </div>
           ))}
         </div>

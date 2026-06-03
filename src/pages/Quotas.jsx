@@ -112,7 +112,7 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
                 {isManager && <span className="ml-1 text-gray-400">({t("quotas_team_rollup")})</span>}
               </p>
             )}
-            {saveError && <p className="text-[10px] text-red-500 mt-1">{saveError}</p>}
+            {saveError && <p className="text-micro text-red-500 mt-1">{saveError}</p>}
           </div>
 
           {/* Progress ring */}
@@ -123,7 +123,7 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
                 style={{ color }}>
                 {Math.round(pctFC)}%
               </span>
-              <span className="text-[9px] text-gray-400">FC</span>
+              <span className="text-micro text-gray-400">FC</span>
             </div>
           </div>
         </div>
@@ -131,7 +131,7 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
         {/* Bars */}
         <div className="mt-3 space-y-2">
           <div>
-            <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+            <div className="flex justify-between text-micro text-gray-400 mb-1">
               <span>{t("quotas_actuals")}</span>
               <span className="font-medium text-gray-600">{formatK(act)} · {Math.round(pctAct)}%</span>
             </div>
@@ -141,7 +141,7 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
             </div>
           </div>
           <div>
-            <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+            <div className="flex justify-between text-micro text-gray-400 mb-1">
               <span>{t("quotas_forecast")}</span>
               <span className="font-medium text-gray-600">{formatK(fc)} · {Math.round(pctFC)}%</span>
             </div>
@@ -156,7 +156,7 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
         {hasSubTargets && !showSubTargets && (
           <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap gap-1.5">
             {PRODUCTS.filter(p => subTargets[p] > 0).map(p => (
-              <span key={p} className="text-[10px] bg-gray-50 text-gray-600 px-1.5 py-0.5 rounded-full">
+              <span key={p} className="text-micro bg-gray-50 text-gray-600 px-1.5 py-0.5 rounded-full">
                 <strong>{p}</strong>: {formatK(subTargets[p])}
               </span>
             ))}
@@ -170,7 +170,7 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
               <p className="text-xs font-semibold text-gray-700 flex items-center gap-1">
                 <Package size={12}/> {t('quotas_sub_targets')}
               </p>
-              <span className={`text-[10px] font-medium ${
+              <span className={`text-micro font-medium ${
                 Math.abs(subTotal - (Number(editVal) || target)) < 1 ? 'text-green-600' : 'text-amber-600'
               }`}>
                 Σ {formatK(subTotal)} / {formatK(Number(editVal) || target)}
@@ -179,7 +179,7 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
             <div className="grid grid-cols-1 gap-1.5">
               {PRODUCTS.map(p => (
                 <div key={p} className="flex items-center gap-2">
-                  <label className="text-[11px] text-gray-500 flex-1 truncate" htmlFor={`sub-${quota.id}-${p}`}>
+                  <label className="text-tiny text-gray-500 flex-1 truncate" htmlFor={`sub-${quota.id}-${p}`}>
                     {p}
                   </label>
                   <input
@@ -194,7 +194,7 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
               ))}
             </div>
             {Math.abs(subTotal - (Number(editVal) || target)) > 1 && (
-              <p className="text-[10px] text-amber-600">
+              <p className="text-micro text-amber-600">
                 {t('quotas_sub_diff')} {formatK(Math.abs(subTotal - (Number(editVal) || target)))}.
               </p>
             )}
@@ -302,7 +302,7 @@ function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, profil
       {reportsQ.length > 0 && (
         <div className="flex items-center gap-2 px-2">
           <div className="w-4 border-l-2 border-b-2 border-gray-200 h-3 rounded-bl"/>
-          <span className="text-[10px] text-gray-400">{t("quotas_reports")}</span>
+          <span className="text-micro text-gray-400">{t("quotas_reports")}</span>
           <div className="flex-1 border-t border-gray-100"/>
         </div>
       )}

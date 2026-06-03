@@ -191,15 +191,15 @@ export default function MemberDashboard() {
       {/* Pipeline breakdown — total */}
       <div className="grid grid-cols-3 gap-2">
         <button onClick={() => navigate('/deals')} className="bg-amber-50 rounded-xl p-3 text-center hover:shadow-sm transition-shadow">
-          <p className="text-[10px] text-amber-600 font-semibold uppercase">Pipeline</p>
+          <p className="text-micro text-amber-600 font-semibold uppercase">Pipeline</p>
           <p className="text-lg font-bold text-amber-800">{formatK(stats.total.pipeline)}</p>
         </button>
         <button onClick={() => navigate('/deals')} className="bg-purple-50 rounded-xl p-3 text-center hover:shadow-sm transition-shadow">
-          <p className="text-[10px] text-purple-600 font-semibold uppercase">BackLog</p>
+          <p className="text-micro text-purple-600 font-semibold uppercase">BackLog</p>
           <p className="text-lg font-bold text-purple-800">{formatK(stats.total.backlog)}</p>
         </button>
         <button onClick={() => navigate('/deals')} className="bg-green-50 rounded-xl p-3 text-center hover:shadow-sm transition-shadow">
-          <p className="text-[10px] text-green-600 font-semibold uppercase">Invoiced</p>
+          <p className="text-micro text-green-600 font-semibold uppercase">Invoiced</p>
           <p className="text-lg font-bold text-green-800">{formatK(stats.total.invoiced)}</p>
         </button>
       </div>
@@ -213,11 +213,11 @@ export default function MemberDashboard() {
           <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
             <div>
               <p className="text-xs font-semibold text-gray-800">Your own sales</p>
-              <p className="text-[10px] text-gray-400">{stats.ownDeals} deal{stats.ownDeals !== 1 ? 's' : ''}</p>
+              <p className="text-micro text-gray-400">{stats.ownDeals} deal{stats.ownDeals !== 1 ? 's' : ''}</p>
             </div>
             <div className="text-right">
               <p className="text-sm font-bold text-gray-900">{formatK(stats.own.forecast)}</p>
-              <div className="flex gap-2 text-[10px] text-gray-400">
+              <div className="flex gap-2 text-micro text-gray-400">
                 <span>Pipe {formatK(stats.own.pipeline)}</span>
                 <span>BL {formatK(stats.own.backlog)}</span>
                 <span>Inv {formatK(stats.own.invoiced)}</span>
@@ -234,11 +234,11 @@ export default function MemberDashboard() {
                   <p className="text-xs font-semibold text-blue-800">
                     <TrendingUp size={10} className="inline mr-1"/> {source}
                   </p>
-                  <p className="text-[10px] text-blue-500">{s.count} deal{s.count !== 1 ? 's' : ''} · product overlay</p>
+                  <p className="text-micro text-blue-500">{s.count} deal{s.count !== 1 ? 's' : ''} · product overlay</p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-bold text-blue-800">{formatK(total)}</p>
-                  <div className="flex gap-2 text-[10px] text-blue-400">
+                  <div className="flex gap-2 text-micro text-blue-400">
                     <span>Pipe {formatK(s.pipeline)}</span>
                     <span>BL {formatK(s.backlog)}</span>
                     <span>Inv {formatK(s.invoiced)}</span>
@@ -269,7 +269,7 @@ export default function MemberDashboard() {
               className="w-full text-left flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-2 hover:border-navy transition-colors">
               <div className="min-w-0">
                 <p className="text-xs font-medium text-gray-900 truncate">{d.client}</p>
-                <p className="text-[10px] text-gray-400">{d.stage} · {d.country}</p>
+                <p className="text-micro text-gray-400">{d.stage} · {d.country}</p>
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <span className="text-xs font-bold text-gray-800">{formatK(val)}</span>

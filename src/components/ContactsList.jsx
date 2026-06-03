@@ -50,7 +50,7 @@ export default function ContactsList({ bu, clientName, canEdit = true, compact =
 
   if (!bu || !clientName) {
     return (
-      <p className="text-[11px] text-gray-400 italic">
+      <p className="text-tiny text-gray-400 italic">
         Set the client first to manage its contacts.
       </p>
     )
@@ -62,7 +62,7 @@ export default function ContactsList({ bu, clientName, canEdit = true, compact =
         <div className="flex items-center justify-between">
           <p className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
             <User size={12}/> Stakeholders
-            <span className="text-[10px] text-gray-400 font-normal">
+            <span className="text-micro text-gray-400 font-normal">
               ({items.length})
             </span>
           </p>
@@ -106,31 +106,31 @@ export default function ContactsList({ bu, clientName, canEdit = true, compact =
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <p className="text-xs font-semibold text-gray-900 truncate">{c.full_name}</p>
                     {c.is_primary && <Star size={10} className="text-amber-500 fill-amber-400"/>}
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${role.color}`}>
+                    <span className={`text-micro font-bold px-1.5 py-0.5 rounded border ${role.color}`}>
                       {role.label}
                     </span>
                   </div>
                   {c.job_title && (
-                    <p className="text-[11px] text-gray-500 truncate">{c.job_title}</p>
+                    <p className="text-tiny text-gray-500 truncate">{c.job_title}</p>
                   )}
                   <div className="flex flex-wrap gap-2 mt-0.5">
                     {c.email && (
                       <a href={`mailto:${c.email}`}
-                        className="text-[10px] text-blue-600 hover:underline flex items-center gap-1"
+                        className="text-micro text-blue-600 hover:underline flex items-center gap-1"
                         onClick={e => e.stopPropagation()}>
                         <Mail size={9}/> {c.email}
                       </a>
                     )}
                     {c.phone && (
                       <a href={`tel:${c.phone}`}
-                        className="text-[10px] text-blue-600 hover:underline flex items-center gap-1"
+                        className="text-micro text-blue-600 hover:underline flex items-center gap-1"
                         onClick={e => e.stopPropagation()}>
                         <Phone size={9}/> {c.phone}
                       </a>
                     )}
                   </div>
                   {c.notes && (
-                    <p className="text-[11px] text-gray-600 mt-1 whitespace-pre-wrap">{c.notes}</p>
+                    <p className="text-tiny text-gray-600 mt-1 whitespace-pre-wrap">{c.notes}</p>
                   )}
                 </div>
                 {canEdit && (

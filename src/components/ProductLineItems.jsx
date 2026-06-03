@@ -223,7 +223,7 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
               <div className="flex items-start gap-2">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-800 truncate">{line.product_name}</p>
-                  <p className="text-[10px] text-gray-400">
+                  <p className="text-micro text-gray-400">
                     {(getAllowedTypes(line).find(t => t.id === line.license_type) || {}).label || line.license_type}
                   </p>
                 </div>
@@ -234,7 +234,7 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
 
               {/* Single contextual quantity driver */}
               <div>
-                <label className="text-[10px] text-purple-500">
+                <label className="text-micro text-purple-500">
                   {isVolume ? 'Annual Studies (volume)' : qtyLabel}
                 </label>
                 <input className="input text-xs py-1 border-purple-200" type="number" min={isVolume ? 0 : 1}
@@ -242,7 +242,7 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
                   onChange={e => updateLine(idx, isVolume ? 'volume' : 'quantity', e.target.value)}
                   placeholder={isVolume ? 'e.g. 50000' : '1'}/>
                 {line.license_type === 'per_package' && line.package_size > 0 && (
-                  <p className="text-[10px] text-gray-400 mt-0.5">
+                  <p className="text-micro text-gray-400 mt-0.5">
                     Billed in packages of {Number(line.package_size).toLocaleString()} — {line.quantity || 0} package(s)
                   </p>
                 )}
@@ -251,13 +251,13 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
               {/* Price (read-only) + Net — discount is requested once at deal level */}
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[10px] text-gray-400">{isVolume ? 'Price / study €' : 'Unit price €'}</label>
+                  <label className="text-micro text-gray-400">{isVolume ? 'Price / study €' : 'Unit price €'}</label>
                   <div className="input text-xs py-1 bg-gray-100 text-gray-600 cursor-not-allowed">
                     {unit > 0 ? `€${unit}` : '—'}
                   </div>
                 </div>
                 <div>
-                  <label className="text-[10px] text-gray-700 font-semibold">{isVolume ? 'Annual €' : 'Net €'}</label>
+                  <label className="text-micro text-gray-700 font-semibold">{isVolume ? 'Annual €' : 'Net €'}</label>
                   <div className="input text-xs py-1 font-semibold bg-white text-gray-900">
                     {(parseFloat(line.net_price) || 0).toLocaleString()}
                   </div>
@@ -266,13 +266,13 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
 
               {/* Annual fee only relevant for CAPEX (flat/equipment), not volume subscription */}
               {!isVolume && Number(line.annual_fee) > 0 && (
-                <p className="text-[10px] text-blue-600">Annual fee: €{Number(line.annual_fee).toLocaleString()}/yr</p>
+                <p className="text-micro text-blue-600">Annual fee: €{Number(line.annual_fee).toLocaleString()}/yr</p>
               )}
               {isVolume && (parseFloat(line.net_price) || 0) > 0 && (
-                <p className="text-[10px] text-blue-600">Annual recurring value: €{(parseFloat(line.net_price) || 0).toLocaleString()}/yr</p>
+                <p className="text-micro text-blue-600">Annual recurring value: €{(parseFloat(line.net_price) || 0).toLocaleString()}/yr</p>
               )}
               {unit === 0 && (
-                <p className="text-[10px] text-amber-600 bg-amber-50 rounded px-2 py-1">
+                <p className="text-micro text-amber-600 bg-amber-50 rounded px-2 py-1">
                   No authorized price set for this product. Contact your account manager.
                 </p>
               )}
@@ -300,7 +300,7 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
-              <label className="text-[10px] text-gray-400">Licensing</label>
+              <label className="text-micro text-gray-400">Licensing</label>
               <select className="select text-xs py-1" value={line.license_type || 'flat'}
                 onChange={e => updateLine(idx, 'license_type', e.target.value)}>
                 {getAllowedTypes(line).map(lt => <option key={lt.id} value={lt.id}>{lt.label}</option>)}
@@ -308,7 +308,7 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
             </div>
             {!isVolume && (
               <div>
-                <label className="text-[10px] text-gray-400">{qtyLabel}</label>
+                <label className="text-micro text-gray-400">{qtyLabel}</label>
                 <input className="input text-xs py-1" type="number" min="1" value={line.quantity}
                   onChange={e => updateLine(idx, 'quantity', e.target.value)}/>
               </div>
@@ -318,14 +318,14 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
           {isVolume && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-purple-500">Annual Studies</label>
+                <label className="text-micro text-purple-500">Annual Studies</label>
                 <input className="input text-xs py-1 border-purple-200" type="number" value={line.volume || ''}
                   onChange={e => updateLine(idx, 'volume', e.target.value)}
                   placeholder="e.g. 50000"/>
               </div>
               {line.license_type === 'per_package' && (
                 <div>
-                  <label className="text-[10px] text-purple-500">Package Size</label>
+                  <label className="text-micro text-purple-500">Package Size</label>
                   <input className="input text-xs py-1 border-purple-200" type="number" value={line.package_size || ''}
                     onChange={e => updateLine(idx, 'package_size', e.target.value)}
                     placeholder="e.g. 10000"/>
@@ -336,22 +336,22 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
 
           <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <label className="text-[10px] text-gray-400">Cost €</label>
+              <label className="text-micro text-gray-400">Cost €</label>
               <input className="input text-xs py-1" type="number" value={line.cost_price || line.unit_price}
                 onChange={e => updateLine(idx, 'cost_price', e.target.value)}/>
             </div>
             <div>
-              <label className="text-[10px] text-green-500">Margin %</label>
+              <label className="text-micro text-green-500">Margin %</label>
               <input className="input text-xs py-1 border-green-200" type="number" min="0" value={line.margin_pct || 0}
                 onChange={e => updateLine(idx, 'margin_pct', e.target.value)}/>
             </div>
             <div>
-              <label className="text-[10px] text-gray-400">Sell €</label>
+              <label className="text-micro text-gray-400">Sell €</label>
               <input className="input text-xs py-1" type="number" value={line.unit_price}
                 onChange={e => updateLine(idx, 'unit_price', e.target.value)}/>
             </div>
             <div>
-              <label className="text-[10px] text-gray-400">Disc %</label>
+              <label className="text-micro text-gray-400">Disc %</label>
               <input className="input text-xs py-1" type="number" min="0" max="100" value={line.discount_pct}
                 onChange={e => updateLine(idx, 'discount_pct', e.target.value)}/>
             </div>
@@ -359,14 +359,14 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
 
           <div className="flex gap-2">
             <div className="flex-1">
-              <label className="text-[10px] text-gray-700 font-semibold">Net Price €</label>
+              <label className="text-micro text-gray-700 font-semibold">Net Price €</label>
               <input className="input text-xs py-1 font-semibold bg-white" type="number" value={line.net_price}
                 onChange={e => updateLine(idx, 'net_price', e.target.value)}/>
             </div>
           </div>
 
           <div>
-            <label className="text-[10px] text-blue-500">Annual Fee €</label>
+            <label className="text-micro text-blue-500">Annual Fee €</label>
             <input className="input text-xs py-1 border-blue-200" type="number" value={line.annual_fee}
               onChange={e => updateLine(idx, 'annual_fee', e.target.value)}/>
           </div>
@@ -386,7 +386,7 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
             <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
               {Object.entries(grouped).map(([cat, prods]) => (
                 <div key={cat}>
-                  <p className="text-[10px] text-gray-400 uppercase font-semibold px-3 pt-2 pb-1">{cat}</p>
+                  <p className="text-micro text-gray-400 uppercase font-semibold px-3 pt-2 pb-1">{cat}</p>
                   {prods.map(p => (
                     <button key={p.id} onClick={() => addLine(p)}
                       className="w-full text-left px-3 py-2 hover:bg-gray-50 text-xs flex justify-between items-center">

@@ -175,7 +175,7 @@ export default function WhiteSpace() {
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-2 text-[10px]">
+      <div className="flex flex-wrap items-center gap-2 text-micro">
         <span className="text-gray-400 mr-1">Legend:</span>
         {[
           { s: 'Invoiced',          cls: 'bg-green-100 text-green-800 border-green-200' },
@@ -208,7 +208,7 @@ export default function WhiteSpace() {
                   {PRODUCTS.map(p => (
                     <th key={p} className="text-center font-semibold text-gray-600 px-2 py-2 min-w-20 sm:min-w-28">
                       {p}
-                      <div className="text-[10px] text-gray-400 font-normal">{colTotals[p]} accounts</div>
+                      <div className="text-micro text-gray-400 font-normal">{colTotals[p]} accounts</div>
                     </th>
                   ))}
                   <th className="text-center font-semibold text-gray-600 px-2 py-2">Coverage</th>
@@ -219,27 +219,27 @@ export default function WhiteSpace() {
                   <tr key={r.account.id} className="border-b border-gray-50 hover:bg-gray-50/40">
                     <td className="px-3 py-2 align-top">
                       <p className="font-semibold text-gray-900 truncate">{r.account.name}</p>
-                      <p className="text-[10px] text-gray-400">
+                      <p className="text-micro text-gray-400">
                         {r.account.bu}{r.account.country ? ` · ${r.account.country}` : ''}
                       </p>
                     </td>
                     {r.cells.map(c => (
                       <td key={c.product} className="px-2 py-2 text-center align-top">
                         <div className={`inline-flex flex-col items-center justify-center rounded-lg px-2 py-1 min-w-20 ${c.cls}`}>
-                          <span className="text-[10px] font-bold leading-tight">
+                          <span className="text-micro font-bold leading-tight">
                             {c.label}
                           </span>
                           {c.total > 0 && (
-                            <span className="text-[9px] opacity-70">{formatK(c.total)}</span>
+                            <span className="text-micro opacity-70">{formatK(c.total)}</span>
                           )}
                           {c.hasSla && (
-                            <span className="text-[9px] font-bold">SLA</span>
+                            <span className="text-micro font-bold">SLA</span>
                           )}
                         </div>
                       </td>
                     ))}
                     <td className="px-2 py-2 text-center align-top">
-                      <span className={`text-[11px] font-semibold ${
+                      <span className={`text-tiny font-semibold ${
                         r.coverage === PRODUCTS.length ? 'text-green-700' :
                         r.coverage > 0                 ? 'text-amber-700' :
                                                          'text-gray-400'

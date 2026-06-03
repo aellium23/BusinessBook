@@ -98,23 +98,23 @@ export default function ProjectTCO({ dealId, dealLines, isDistributor }) {
       {/* Summary gauges */}
       <div className="grid grid-cols-3 gap-2">
         <div className="bg-blue-50 rounded-lg p-2 text-center">
-          <p className="text-[10px] text-blue-600 font-semibold">Fujifilm</p>
+          <p className="text-micro text-blue-600 font-semibold">Fujifilm</p>
           <p className="text-sm font-bold text-blue-800">{formatK(tco.fjSell)}</p>
-          <p className={`text-[10px] font-bold ${tco.fjGM >= 20 ? 'text-green-600' : tco.fjGM >= 10 ? 'text-amber-600' : 'text-red-600'}`}>
+          <p className={`text-micro font-bold ${tco.fjGM >= 20 ? 'text-green-600' : tco.fjGM >= 10 ? 'text-amber-600' : 'text-red-600'}`}>
             GM {tco.fjGM.toFixed(1)}%
           </p>
         </div>
         <div className="bg-gray-50 rounded-lg p-2 text-center">
-          <p className="text-[10px] text-gray-600 font-semibold">Third-party</p>
+          <p className="text-micro text-gray-600 font-semibold">Third-party</p>
           <p className="text-sm font-bold text-gray-800">{formatK(tco.tpSell)}</p>
-          <p className={`text-[10px] font-bold ${tco.tpGM >= 20 ? 'text-green-600' : tco.tpGM >= 10 ? 'text-amber-600' : 'text-red-600'}`}>
+          <p className={`text-micro font-bold ${tco.tpGM >= 20 ? 'text-green-600' : tco.tpGM >= 10 ? 'text-amber-600' : 'text-red-600'}`}>
             GM {tco.tpGM.toFixed(1)}%
           </p>
         </div>
         <div className={`rounded-lg p-2 text-center ${tco.totalGM >= 20 ? 'bg-green-50' : tco.totalGM >= 10 ? 'bg-amber-50' : 'bg-red-50'}`}>
-          <p className="text-[10px] text-gray-600 font-semibold">Total Project</p>
+          <p className="text-micro text-gray-600 font-semibold">Total Project</p>
           <p className="text-sm font-bold text-gray-900">{formatK(tco.totalSell)}</p>
-          <p className={`text-[10px] font-bold ${tco.totalGM >= 20 ? 'text-green-600' : tco.totalGM >= 10 ? 'text-amber-600' : 'text-red-600'}`}>
+          <p className={`text-micro font-bold ${tco.totalGM >= 20 ? 'text-green-600' : tco.totalGM >= 10 ? 'text-amber-600' : 'text-red-600'}`}>
             GM {tco.totalGM.toFixed(1)}%
           </p>
         </div>
@@ -123,17 +123,17 @@ export default function ProjectTCO({ dealId, dealLines, isDistributor }) {
       {/* Margin balance indicator */}
       {tco.tpSell > 0 && tco.fjSell > 0 && (
         <div className="rounded-lg border border-gray-200 p-2">
-          <p className="text-[10px] text-gray-500 font-semibold mb-1">Margin Balance</p>
+          <p className="text-micro text-gray-500 font-semibold mb-1">Margin Balance</p>
           <div className="flex h-3 rounded-full overflow-hidden bg-gray-100">
             <div className="bg-blue-500 transition-all" style={{ width: `${Math.round(tco.fjSell / (tco.fjSell + tco.tpSell) * 100)}%` }}/>
             <div className="bg-gray-400 transition-all" style={{ width: `${Math.round(tco.tpSell / (tco.fjSell + tco.tpSell) * 100)}%` }}/>
           </div>
-          <div className="flex justify-between text-[10px] mt-0.5">
+          <div className="flex justify-between text-micro mt-0.5">
             <span className="text-blue-600">Fujifilm {Math.round(tco.fjSell / (tco.fjSell + tco.tpSell) * 100)}%</span>
             <span className="text-gray-500">Third-party {Math.round(tco.tpSell / (tco.fjSell + tco.tpSell) * 100)}%</span>
           </div>
           {tco.fjGM < tco.tpGM - 5 && (
-            <p className="text-[10px] text-red-600 bg-red-50 rounded px-2 py-1 mt-1.5">
+            <p className="text-micro text-red-600 bg-red-50 rounded px-2 py-1 mt-1.5">
               ⚠ Fujifilm margin ({tco.fjGM.toFixed(1)}%) is lower than third-party ({tco.tpGM.toFixed(1)}%). Consider rebalancing.
             </p>
           )}
@@ -158,12 +158,12 @@ export default function ProjectTCO({ dealId, dealLines, isDistributor }) {
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[10px] text-gray-400">Cost €</label>
+              <label className="text-micro text-gray-400">Cost €</label>
               <input className="input text-xs" type="number" min="0" step="0.01"
                 value={c.cost_price} onChange={e => updateCost(idx, 'cost_price', e.target.value)}/>
             </div>
             <div>
-              <label className="text-[10px] text-gray-400">Sell to customer €</label>
+              <label className="text-micro text-gray-400">Sell to customer €</label>
               <input className="input text-xs" type="number" min="0" step="0.01"
                 value={c.sell_price} onChange={e => updateCost(idx, 'sell_price', e.target.value)}/>
             </div>
@@ -181,7 +181,7 @@ export default function ProjectTCO({ dealId, dealLines, isDistributor }) {
       )}
 
       {tco.fjAnnual > 0 && (
-        <p className="text-[10px] text-blue-600">
+        <p className="text-micro text-blue-600">
           Fujifilm annual recurring: {formatK(tco.fjAnnual)}/yr
         </p>
       )}

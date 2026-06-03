@@ -80,16 +80,16 @@ function EventRow({ ev }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 flex-wrap">
           {ev.user_name && (
-            <span className="text-[11px] font-medium text-gray-700">{ev.user_name}</span>
+            <span className="text-tiny font-medium text-gray-700">{ev.user_name}</span>
           )}
-          <span className="text-[10px] text-gray-400">· {relativeTime(ev.at)}</span>
-          <span className="text-[10px] text-gray-300 ml-auto">
+          <span className="text-micro text-gray-400">· {relativeTime(ev.at)}</span>
+          <span className="text-micro text-gray-300 ml-auto">
             {new Date(ev.at).toLocaleString('pt-PT', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}
           </span>
         </div>
         <div className="text-xs text-gray-800 mt-0.5">{ev.body}</div>
         {ev.next_action && (
-          <div className="mt-1 inline-flex items-center gap-1 text-[11px] text-blue-700 bg-blue-50 border border-blue-100 rounded-full px-2 py-0.5">
+          <div className="mt-1 inline-flex items-center gap-1 text-tiny text-blue-700 bg-blue-50 border border-blue-100 rounded-full px-2 py-0.5">
             <CalendarIcon size={10}/>
             <span>Next: {ev.next_action}</span>
             {ev.next_action_date && (
@@ -236,7 +236,7 @@ export default function DealTimeline({ dealId }) {
     <div className="space-y-2">
       {/* Filter chips */}
       <div className="flex items-center gap-1.5 flex-wrap">
-        <span className="text-[10px] text-gray-400 flex items-center gap-1"><Filter size={10}/> Filter</span>
+        <span className="text-micro text-gray-400 flex items-center gap-1"><Filter size={10}/> Filter</span>
         {[
           { id: 'all',     label: 'All' },
           { id: 'notes',   label: 'Notes' },
@@ -248,7 +248,7 @@ export default function DealTimeline({ dealId }) {
           return (
             <button key={o.id} type="button"
               onClick={() => setFilter(o.id)}
-              className={`text-[10px] px-2 py-0.5 rounded-full border transition-all ${
+              className={`text-micro px-2 py-0.5 rounded-full border transition-all ${
                 active
                   ? 'bg-navy text-white border-navy'
                   : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
@@ -276,7 +276,7 @@ export default function DealTimeline({ dealId }) {
         <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
           {buckets.map(([bucket, list]) => (
             <div key={bucket}>
-              <p className="sticky top-0 bg-white z-10 text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1.5">
+              <p className="sticky top-0 bg-white z-10 text-micro font-semibold uppercase tracking-wide text-gray-400 mb-1.5">
                 {bucket} <span className="text-gray-300 font-normal">· {list.length}</span>
               </p>
               <div className="space-y-3 border-l border-gray-100 pl-3 ml-3">

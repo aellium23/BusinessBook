@@ -70,15 +70,15 @@ export default function SalesRepFunnel({ selectedBU = '' }) {
 
       <div className="grid grid-cols-3 gap-2">
         <div className="bg-amber-50 rounded-xl p-3 text-center">
-          <p className="text-[10px] text-amber-600 font-semibold uppercase">Pipeline</p>
+          <p className="text-micro text-amber-600 font-semibold uppercase">Pipeline</p>
           <p className="text-lg font-bold text-amber-800">{formatK(totals.pipeline)}</p>
         </div>
         <div className="bg-purple-50 rounded-xl p-3 text-center">
-          <p className="text-[10px] text-purple-600 font-semibold uppercase">BackLog</p>
+          <p className="text-micro text-purple-600 font-semibold uppercase">BackLog</p>
           <p className="text-lg font-bold text-purple-800">{formatK(totals.backlog)}</p>
         </div>
         <div className="bg-green-50 rounded-xl p-3 text-center">
-          <p className="text-[10px] text-green-600 font-semibold uppercase">Invoiced</p>
+          <p className="text-micro text-green-600 font-semibold uppercase">Invoiced</p>
           <p className="text-lg font-bold text-green-800">{formatK(totals.invoiced)}</p>
         </div>
       </div>
@@ -94,7 +94,7 @@ export default function SalesRepFunnel({ selectedBU = '' }) {
               <div className="flex items-center gap-2 min-w-0">
                 <User size={13} className="text-gray-400 shrink-0"/>
                 <p className="text-sm font-semibold text-gray-900 truncate">{g.name}</p>
-                <span className="text-[10px] text-gray-400">({g.count})</span>
+                <span className="text-micro text-gray-400">({g.count})</span>
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <span className="text-sm font-bold text-gray-900">{formatK(g.total)}</span>
@@ -106,7 +106,7 @@ export default function SalesRepFunnel({ selectedBU = '' }) {
               {g.backlog > 0 && <div className="bg-purple-400" style={{ width: `${g.backlog / g.total * 100}%` }}/>}
               {g.invoiced > 0 && <div className="bg-green-500" style={{ width: `${g.invoiced / g.total * 100}%` }}/>}
             </div>
-            <div className="flex gap-3 text-[10px] text-gray-500 flex-wrap">
+            <div className="flex gap-3 text-micro text-gray-500 flex-wrap">
               <span>🟡 Pipe {formatK(g.pipeline)}</span>
               <span>🟣 BL {formatK(g.backlog)}</span>
               <span>🟢 Inv {formatK(g.invoiced)}</span>

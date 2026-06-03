@@ -15,7 +15,7 @@ import {
 function SlaStatusBadge({ status }) {
   const cfg = SLA_STATUSES.find(s => s.id === status) || SLA_STATUSES[0]
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${cfg.color}`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-micro font-bold border ${cfg.color}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`}/>
       {cfg.label}
     </span>
@@ -27,10 +27,10 @@ function RenewalBadge({ sla }) {
   const rd = sla.renewal_date || sla.end_date
   if (!rd || !['warranty','active','pending_renewal'].includes(sla.status)) return null
   const days = Math.ceil((new Date(rd) - new Date()) / 86400000)
-  if (days < 0) return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700">{t('sla_expired')}</span>
-  if (days <= 30) return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700">{days}d</span>
-  if (days <= 60) return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">{days}d</span>
-  if (days <= 90) return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700">{days}d</span>
+  if (days < 0) return <span className="text-micro font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700">{t('sla_expired')}</span>
+  if (days <= 30) return <span className="text-micro font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700">{days}d</span>
+  if (days <= 60) return <span className="text-micro font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">{days}d</span>
+  if (days <= 90) return <span className="text-micro font-bold px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700">{days}d</span>
   return null
 }
 
@@ -47,18 +47,18 @@ const SlaCard = memo(function SlaCard({ sla, onEdit, onDelete, canEdit, canDelet
             <BUBadge bu={sla.bu}/>
             <SlaStatusBadge status={sla.status}/>
             <RenewalBadge sla={sla}/>
-            {sla.sla_type && <span className="text-[10px] text-gray-400">{sla.sla_type}</span>}
+            {sla.sla_type && <span className="text-micro text-gray-400">{sla.sla_type}</span>}
           </div>
           <p className="font-semibold text-sm text-gray-900 mt-1 truncate">{sla.client}</p>
           {sla.description && <p className="text-xs text-gray-500 truncate">{sla.description}</p>}
         </div>
         <div className="text-right shrink-0">
           <p className="text-lg font-bold text-gray-900">{formatK(sla.annual_value)}</p>
-          <p className="text-[10px] text-gray-400">{t('sla_per_year')}</p>
+          <p className="text-micro text-gray-400">{t('sla_per_year')}</p>
         </div>
       </div>
 
-      <div className="flex items-center gap-3 text-[10px] text-gray-500 flex-wrap">
+      <div className="flex items-center gap-3 text-micro text-gray-500 flex-wrap">
         {sla.sla_owner && (
           <span className="flex items-center gap-1"><User size={9}/> {sla.sla_owner}</span>
         )}
@@ -79,7 +79,7 @@ const SlaCard = memo(function SlaCard({ sla, onEdit, onDelete, canEdit, canDelet
 
       <div className="flex items-center gap-1 flex-wrap">
         <button onClick={() => setExpanded(e => !e)}
-          className="text-[10px] text-gray-400 hover:text-gray-600 flex items-center gap-0.5 min-h-tap">
+          className="text-micro text-gray-400 hover:text-gray-600 flex items-center gap-0.5 min-h-tap">
           {expanded ? <ChevronUp size={10}/> : <ChevronDown size={10}/>}
           {expanded ? t('sla_hide') : t('sla_fy_break')}
         </button>
@@ -102,13 +102,13 @@ const SlaCard = memo(function SlaCard({ sla, onEdit, onDelete, canEdit, canDelet
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-1">
             {FY_RANGE.map(fy => (
               <div key={fy} className={`text-center rounded p-1.5 ${revenue[fy] ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                <p className="text-[9px] text-gray-400 font-medium">{fy}</p>
+                <p className="text-micro text-gray-400 font-medium">{fy}</p>
                 <p className="text-xs font-bold text-gray-700">{revenue[fy] ? formatK(revenue[fy]) : '—'}</p>
               </div>
             ))}
           </div>
           {sla.previous_value && (
-            <p className="text-[10px] text-orange-600 mt-1">
+            <p className="text-micro text-orange-600 mt-1">
               {t('sla_prev_value_label')}: {formatK(sla.previous_value)} — {sla.change_reason || 'reduced'}
             </p>
           )}
@@ -312,17 +312,17 @@ export default function SLAs() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <div className="card p-3">
-          <p className="text-[10px] text-gray-400 uppercase font-semibold">{t('sla_active_arr')}</p>
+          <p className="text-micro text-gray-400 uppercase font-semibold">{t('sla_active_arr')}</p>
           <p className="text-xl font-bold text-green-600">{formatK(kpis.activeValue)}</p>
           <p className="text-xs text-gray-500">{kpis.activeCount} {t('sla_contracts')}</p>
         </div>
         <div className="card p-3">
-          <p className="text-[10px] text-gray-400 uppercase font-semibold">{t('sla_renewals_90d')}</p>
+          <p className="text-micro text-gray-400 uppercase font-semibold">{t('sla_renewals_90d')}</p>
           <p className="text-xl font-bold text-amber-600">{kpis.renewals90}</p>
           <p className="text-xs text-gray-500">{formatK(kpis.renewals90Value)} {t('sla_at_stake')}</p>
         </div>
         <div className="card p-3">
-          <p className="text-[10px] text-gray-400 uppercase font-semibold">{t('sla_pipeline_arr')}</p>
+          <p className="text-micro text-gray-400 uppercase font-semibold">{t('sla_pipeline_arr')}</p>
           <p className="text-xl font-bold text-gray-700">{formatK(kpis.pipelineValue)}</p>
           <p className="text-xs text-gray-500">{t('sla_future_val')}</p>
         </div>
@@ -338,12 +338,12 @@ export default function SLAs() {
             const total = revenueByFY[fy].vgt + revenueByFY[fy].ect
             return (
               <div key={fy} className="text-center">
-                <p className="text-[10px] text-gray-400 font-medium">{fy}</p>
+                <p className="text-micro text-gray-400 font-medium">{fy}</p>
                 <p className="text-sm font-bold text-gray-800">{total > 0 ? formatK(total) : '—'}</p>
                 {isAdmin && total > 0 && (
                   <div className="flex justify-center gap-1 mt-0.5">
-                    <span className="text-[10px] text-teal-600">{formatK(revenueByFY[fy].vgt)}</span>
-                    <span className="text-[10px] text-coral-600">{formatK(revenueByFY[fy].ect)}</span>
+                    <span className="text-micro text-teal-600">{formatK(revenueByFY[fy].vgt)}</span>
+                    <span className="text-micro text-coral-600">{formatK(revenueByFY[fy].ect)}</span>
                   </div>
                 )}
               </div>
@@ -457,14 +457,14 @@ export default function SLAs() {
               return (
                 <div key={st.id} className="max-sm:w-full sm:flex-1 sm:min-w-[160px]">
                   <div className={`rounded-t-lg px-2 py-1.5 flex items-center justify-between ${st.color.split(' ').filter(c => c.startsWith('bg-')).join(' ')}`}>
-                    <span className={`text-[10px] font-bold uppercase ${st.color.split(' ').filter(c => c.startsWith('text-')).join(' ')}`}>
+                    <span className={`text-micro font-bold uppercase ${st.color.split(' ').filter(c => c.startsWith('text-')).join(' ')}`}>
                       {st.label}
                     </span>
-                    <span className="text-[10px] font-semibold text-gray-500">{colSlas.length}</span>
+                    <span className="text-micro font-semibold text-gray-500">{colSlas.length}</span>
                   </div>
                   <div className="bg-gray-50 rounded-b-lg p-1.5 space-y-1.5 min-h-[100px]">
                     {colValue > 0 && (
-                      <p className="text-[10px] text-center text-gray-400 font-medium">{formatK(colValue)}</p>
+                      <p className="text-micro text-center text-gray-400 font-medium">{formatK(colValue)}</p>
                     )}
                     {colSlas.map(s => (
                       <div key={s.id} onClick={() => { setEditSla(s); setFormOpen(true) }}
@@ -474,8 +474,8 @@ export default function SLAs() {
                           <RenewalBadge sla={s}/>
                         </div>
                         <p className="text-xs font-semibold text-gray-900 truncate">{s.client}</p>
-                        {s.description && <p className="text-[10px] text-gray-400 truncate">{s.description}</p>}
-                        <p className="text-xs font-bold text-gray-700 mt-1">{formatK(s.annual_value)}<span className="text-[10px] text-gray-400 font-normal">{t('sla_yr')}</span></p>
+                        {s.description && <p className="text-micro text-gray-400 truncate">{s.description}</p>}
+                        <p className="text-xs font-bold text-gray-700 mt-1">{formatK(s.annual_value)}<span className="text-micro text-gray-400 font-normal">{t('sla_yr')}</span></p>
                       </div>
                     ))}
                   </div>

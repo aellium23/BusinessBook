@@ -303,7 +303,7 @@ export default function Network() {
                 active ? 'text-navy border-navy' : 'text-gray-500 border-transparent hover:text-gray-700'
               }`}>
               <Icon size={12}/> {t(tb.labelKey)}
-              <span className="ml-1 text-[10px] text-gray-400 font-normal">
+              <span className="ml-1 text-micro text-gray-400 font-normal">
                 ({tb.id === 'distributors' ? distributors.length : hubs.length})
               </span>
             </button>
@@ -336,7 +336,7 @@ export default function Network() {
                 <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
                   <MapPin size={12} className="text-gray-400"/>
                   <span className="text-sm font-semibold text-gray-800">{country}</span>
-                  <span className="text-[10px] text-gray-400">({list.length})</span>
+                  <span className="text-micro text-gray-400">({list.length})</span>
                 </div>
                 <ul className="divide-y divide-gray-50">
                   {list.map(d => (
@@ -344,11 +344,11 @@ export default function Network() {
                       <Building size={14} className="text-navy/60 shrink-0 mt-0.5"/>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-900 truncate">{d.name}</p>
-                        <div className="flex items-center gap-2 text-[11px] text-gray-500 mt-0.5 flex-wrap">
+                        <div className="flex items-center gap-2 text-tiny text-gray-500 mt-0.5 flex-wrap">
                           {d.region && <span>{d.region}</span>}
                           {d.hub && <span className="bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded">{t('network_hub_label')}: {d.hub.name}</span>}
                         </div>
-                        {d.notes && <p className="text-[11px] text-gray-600 mt-1 whitespace-pre-wrap line-clamp-2">{d.notes}</p>}
+                        {d.notes && <p className="text-tiny text-gray-600 mt-1 whitespace-pre-wrap line-clamp-2">{d.notes}</p>}
                       </div>
                       {canEdit && (
                         <div className="flex flex-col gap-1 shrink-0">
@@ -388,10 +388,10 @@ export default function Network() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-semibold text-gray-900">{h.name}</p>
-                        {h.region && <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{h.region}</span>}
-                        <span className="text-[10px] text-gray-400">{dCount} {dCount !== 1 ? t('network_distributors_count') : t('network_distributor_count')}</span>
+                        {h.region && <span className="text-micro bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{h.region}</span>}
+                        <span className="text-micro text-gray-400">{dCount} {dCount !== 1 ? t('network_distributors_count') : t('network_distributor_count')}</span>
                       </div>
-                      {h.notes && <p className="text-[11px] text-gray-600 mt-1 whitespace-pre-wrap">{h.notes}</p>}
+                      {h.notes && <p className="text-tiny text-gray-600 mt-1 whitespace-pre-wrap">{h.notes}</p>}
                     </div>
                     {isAdmin && (
                       <div className="flex flex-col gap-1 shrink-0">

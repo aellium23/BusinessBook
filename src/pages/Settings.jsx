@@ -153,7 +153,7 @@ function SalesOwnersSection() {
                       <>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-800 truncate">{owner.name}</p>
-                          {owner.bu === 'ALL' && <span className="text-[10px] text-gray-400">Both teams</span>}
+                          {owner.bu === 'ALL' && <span className="text-micro text-gray-400">Both teams</span>}
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                           {/* Active toggle */}
@@ -277,7 +277,7 @@ function AppSettingsSection() {
           <input className="input" value={form.budget_cycles || ''}
             onChange={e => setForm(f => ({ ...f, budget_cycles: e.target.value }))}
             placeholder="BUD, EST1, EST2"/>
-          <p className="text-[10px] text-gray-400 mt-0.5">e.g. BUD, EST1, EST2, ACT</p>
+          <p className="text-micro text-gray-400 mt-0.5">e.g. BUD, EST1, EST2, ACT</p>
         </div>
       </div>
 
@@ -401,7 +401,7 @@ export default function Settings() {
                 {/* Rate input */}
                 <div className="flex items-center gap-2 shrink-0">
                   <div className="text-right">
-                    <p className="text-[10px] text-gray-400 mb-1">1 {code} =</p>
+                    <p className="text-micro text-gray-400 mb-1">1 {code} =</p>
                     <div className="flex items-center gap-1.5">
                       {isAdmin ? (
                         <input
@@ -424,7 +424,7 @@ export default function Settings() {
                       <span className="text-sm text-gray-500 font-medium">EUR</span>
                     </div>
                     {err && (
-                      <p className="text-[10px] text-red-500 mt-1 flex items-center gap-1">
+                      <p className="text-micro text-red-500 mt-1 flex items-center gap-1">
                         <AlertCircle size={10} /> {err}
                       </p>
                     )}

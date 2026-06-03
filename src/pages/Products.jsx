@@ -76,17 +76,17 @@ function ComponentsEditor({ productId, allProducts, t }) {
           {components.map(c => (
             <div key={c.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1.5">
               <button onClick={() => toggleIncluded(c)}
-                className={`w-4 h-4 rounded border flex items-center justify-center text-[10px] shrink-0 ${
+                className={`w-4 h-4 rounded border flex items-center justify-center text-micro shrink-0 ${
                   c.included ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 text-gray-300'
                 }`}>
                 {c.included ? '✓' : ''}
               </button>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium text-gray-800 truncate">{c.component?.name}</p>
-                {c.component?.sku && <p className="text-[10px] text-gray-400 font-mono">{c.component.sku}</p>}
+                {c.component?.sku && <p className="text-micro text-gray-400 font-mono">{c.component.sku}</p>}
               </div>
               {c.component?.annual_fee > 0 && (
-                <span className="text-[10px] text-blue-500 shrink-0">{formatK(c.component.annual_fee)}/yr</span>
+                <span className="text-micro text-blue-500 shrink-0">{formatK(c.component.annual_fee)}/yr</span>
               )}
               <button onClick={() => removeComponent(c.id)} className="text-gray-300 hover:text-red-500 shrink-0 min-h-tap p-1">
                 <X size={12}/>
@@ -131,7 +131,7 @@ function SectionHeader({ icon, title, subtitle }) {
       <span className="text-gray-400">{icon}</span>
       <div>
         <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">{title}</p>
-        {subtitle && <p className="text-[10px] text-gray-400 leading-tight">{subtitle}</p>}
+        {subtitle && <p className="text-micro text-gray-400 leading-tight">{subtitle}</p>}
       </div>
     </div>
   )
@@ -165,14 +165,14 @@ function ToggleChip({ checked, label, onChange }) {
 function SelectedBadges({ items, allOptions }) {
   const { t } = useTranslation()
   if (!items || items.length === 0) return (
-    <p className="text-[11px] text-gray-400 italic mt-1">{t('products_none_selected')}</p>
+    <p className="text-tiny text-gray-400 italic mt-1">{t('products_none_selected')}</p>
   )
   return (
     <div className="flex flex-wrap gap-1 mt-1.5">
       {items.map(id => {
         const opt = allOptions.find(o => o.id === id)
         return (
-          <span key={id} className="inline-flex items-center text-[11px] font-medium bg-navy/10 text-navy px-2 py-0.5 rounded-full">
+          <span key={id} className="inline-flex items-center text-tiny font-medium bg-navy/10 text-navy px-2 py-0.5 rounded-full">
             {opt?.labelKey ? t(opt.labelKey) : (opt?.label || id)}
           </span>
         )
@@ -337,7 +337,7 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
                       <option value="Fujifilm"/>
                       <option value="Medsky"/>
                     </datalist>
-                    <p className="text-[10px] text-gray-400 mt-0.5">Routes discount approvals to the brand's approver</p>
+                    <p className="text-micro text-gray-400 mt-0.5">Routes discount approvals to the brand's approver</p>
                   </div>
                 </div>
                 <div>
@@ -363,7 +363,7 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
                         </label>
                         <input className="input" type="number" min="0" step="0.01" value={form.license_fee} onChange={e => set('license_fee', e.target.value)}/>
                         {models.includes('pay_per_study') && (
-                          <p className="text-[10px] text-purple-500 mt-0.5">e.g. 0.53 = €0.53 per study</p>
+                          <p className="text-micro text-purple-500 mt-0.5">e.g. 0.53 = €0.53 per study</p>
                         )}
                       </div>
                       {/* Annual fee only applies to CAPEX (recurring maintenance on equipment) */}
@@ -371,7 +371,7 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
                         <div>
                           <label className="label">{t('products_annual')} (€)</label>
                           <input className="input" type="number" min="0" step="0.01" value={form.annual_fee} onChange={e => set('annual_fee', e.target.value)}/>
-                          <p className="text-[10px] text-gray-400 mt-0.5">Recurring maintenance (CAPEX only)</p>
+                          <p className="text-micro text-gray-400 mt-0.5">Recurring maintenance (CAPEX only)</p>
                         </div>
                       )}
                     </div>
@@ -532,11 +532,11 @@ export default function Products() {
 
       <div className="flex gap-1 mb-1">
         <button onClick={() => { const all = {}; Object.keys(grouped).forEach(c => { all[c] = true }); setExpandedCats(all) }}
-          className="text-[10px] text-gray-500 hover:text-gray-700 px-2 py-1 rounded border border-gray-200">
+          className="text-micro text-gray-500 hover:text-gray-700 px-2 py-1 rounded border border-gray-200">
           {t('products_expand_all')}
         </button>
         <button onClick={() => setExpandedCats({})}
-          className="text-[10px] text-gray-500 hover:text-gray-700 px-2 py-1 rounded border border-gray-200">
+          className="text-micro text-gray-500 hover:text-gray-700 px-2 py-1 rounded border border-gray-200">
           {t('products_collapse_all')}
         </button>
       </div>
@@ -561,7 +561,7 @@ export default function Products() {
               <div className="flex items-center gap-2">
                 <Package size={14} className="text-gray-500"/>
                 <span className="font-semibold text-sm text-gray-800">{cat}</span>
-                <span className="text-[10px] text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded">{prods.length}</span>
+                <span className="text-micro text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded">{prods.length}</span>
               </div>
               {expandedCats[cat] ? <ChevronUp size={14} className="text-gray-400"/> : <ChevronDown size={14} className="text-gray-400"/>}
             </button>
@@ -573,14 +573,14 @@ export default function Products() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-medium text-gray-900 truncate">{p.name}</p>
-                        {!p.active && <span className="text-[9px] bg-red-100 text-red-600 px-1 rounded">{t('products_inactive')}</span>}
+                        {!p.active && <span className="text-micro bg-red-100 text-red-600 px-1 rounded">{t('products_inactive')}</span>}
                         {compCounts[p.id] > 0 && (
-                          <span className="text-[9px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                          <span className="text-micro bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded flex items-center gap-0.5">
                             <Layers size={8}/> {compCounts[p.id]}
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                      <div className="flex items-center gap-2 text-micro text-gray-400">
                         {p.sku && <span className="font-mono">{p.sku}</span>}
                         {p.description && <span>· {p.description}</span>}
                       </div>
@@ -589,13 +589,13 @@ export default function Products() {
                     <div className="text-right shrink-0 space-y-0.5">
                       {p.license_fee > 0 && (
                         <p className="text-xs font-semibold text-gray-700">
-                          <span className="text-[10px] text-gray-400 mr-1">{t('products_license')}</span>
+                          <span className="text-micro text-gray-400 mr-1">{t('products_license')}</span>
                           {formatK(p.license_fee)}
                         </p>
                       )}
                       {p.annual_fee > 0 && (
                         <p className="text-xs text-blue-600">
-                          <span className="text-[10px] text-gray-400 mr-1">{t('products_annual')}</span>
+                          <span className="text-micro text-gray-400 mr-1">{t('products_annual')}</span>
                           {formatK(p.annual_fee)}
                         </p>
                       )}

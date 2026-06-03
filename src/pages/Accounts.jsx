@@ -88,17 +88,17 @@ function AccountRow({ account, depth, open, children, onToggle, onEdit, onDelete
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-xs font-semibold text-gray-900 truncate">{account.name}</span>
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
+            <span className="text-micro font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
               {account.bu}
             </span>
             {(account.country || account.region) && (
-              <span className="text-[10px] text-gray-400">
+              <span className="text-micro text-gray-400">
                 {[account.country, account.region].filter(Boolean).join(' · ')}
               </span>
             )}
           </div>
         </div>
-        <div className="shrink-0 flex items-center gap-3 text-[10px]">
+        <div className="shrink-0 flex items-center gap-3 text-micro">
           <span className="w-12 text-right text-gray-500" title="Own / Roll-up deals">
             {own.count}{hasChildren ? ` · Σ ${roll.count}` : ''}
           </span>
@@ -388,7 +388,7 @@ export default function Accounts() {
             <GitBranch size={20} className="text-navy"/> {t('accounts_title')}
           </h1>
           <p className="text-xs text-gray-400 mt-0.5">{t('accounts_subtitle') || 'Organizational hierarchy and structure'}</p>
-          <Link to="/clients" className="text-[10px] text-blue-500 hover:text-blue-700">{t('accounts_go_clients') || 'View individual clients →'}</Link>
+          <Link to="/clients" className="text-micro text-blue-500 hover:text-blue-700">{t('accounts_go_clients') || 'View individual clients →'}</Link>
         </div>
         <div className="flex gap-1.5">
           <button onClick={expandAll}   className="btn-secondary text-xs">{t('accounts_expand_all')}</button>
@@ -437,7 +437,7 @@ export default function Accounts() {
           action={canEdit && <button onClick={() => setEditing('new')} className="btn-primary">{t('accounts_new')}</button>}/>
       ) : (
         <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-          <div className="flex items-center gap-3 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400 bg-gray-50 border-b border-gray-100">
+          <div className="flex items-center gap-3 px-3 py-2 text-micro font-semibold uppercase tracking-wide text-gray-400 bg-gray-50 border-b border-gray-100">
             <span className="flex-1">{t('accounts_col_account')}</span>
             <span className="w-12 text-right">{t('accounts_col_deals')}</span>
             <span className="hidden sm:block w-16 text-right">{t('accounts_col_pipeline')}</span>

@@ -14,7 +14,7 @@ export function ForecastBadge({ deal, compact = false }) {
   return (
     <span
       title={isInferred ? `Forecast: ${cat.label} (inferred from stage)` : `Forecast: ${cat.label}`}
-      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${cat.color} ${isInferred ? 'opacity-70' : ''}`}>
+      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-micro font-bold border ${cat.color} ${isInferred ? 'opacity-70' : ''}`}>
       {compact ? cat.short : cat.label}
     </span>
   )
@@ -87,7 +87,7 @@ export function currencySymbol(currency) {
 export function CurrencyBadge({ currency }) {
   if (!currency || currency === 'EUR') return null
   const color = currency === 'USD' ? 'bg-green-100 text-green-700' : 'bg-purple-100 text-purple-700'
-  return <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${color}`}>{currency}</span>
+  return <span className={`text-micro font-bold px-1 py-0.5 rounded ${color}`}>{currency}</span>
 }
 
 export function formatK(n, currency) {

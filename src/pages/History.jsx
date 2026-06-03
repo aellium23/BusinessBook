@@ -16,7 +16,7 @@ function KpiBox({ label, value, sub, color }) {
   return (
     <div className={`bg-white rounded-xl border border-gray-200 p-4 border-t-2`}
       style={{ borderTopColor: color }}>
-      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">{label}</p>
+      <p className="text-micro font-semibold text-gray-400 uppercase tracking-wide">{label}</p>
       <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
       {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
     </div>
@@ -323,9 +323,9 @@ export default function History() {
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="text-left px-4 py-2 font-semibold text-gray-500 w-20 sm:w-28 text-[10px] sm:text-xs">Metric</th>
+                <th className="text-left px-4 py-2 font-semibold text-gray-500 w-20 sm:w-28 text-micro sm:text-xs">Metric</th>
                 {MONTHS.map(m => (
-                  <th key={m} className="px-2 py-2 font-semibold text-gray-500 text-center w-10 sm:w-12 text-[10px] sm:text-xs">{m}</th>
+                  <th key={m} className="px-2 py-2 font-semibold text-gray-500 text-center w-10 sm:w-12 text-micro sm:text-xs">{m}</th>
                 ))}
                 <th className="px-3 py-2 font-semibold text-gray-700 text-center">FY25</th>
               </tr>
@@ -334,18 +334,18 @@ export default function History() {
               {showVGT && (
                 <>
                   <tr className="border-b border-gray-50">
-                    <td className="px-4 py-2 font-semibold text-vgt text-[10px] sm:text-xs">VGT NS</td>
+                    <td className="px-4 py-2 font-semibold text-vgt text-micro sm:text-xs">VGT NS</td>
                     {MONTHS_K.map(m => (
-                      <td key={m} className="px-1 py-2 text-center text-gray-700 text-[11px]">
+                      <td key={m} className="px-1 py-2 text-center text-gray-700 text-tiny">
                         {get('VGT','ns',m).toFixed(1)}
                       </td>
                     ))}
-                    <td className="px-2 py-2 text-center font-bold text-vgt text-[11px]">
+                    <td className="px-2 py-2 text-center font-bold text-vgt text-tiny">
                       {totals.vgt.ns.toFixed(1)}
                     </td>
                   </tr>
                   <tr className="border-b border-gray-100 bg-gray-50/50">
-                    <td className="px-4 py-2 text-vgt/70 text-[10px] sm:text-xs">VGT GM</td>
+                    <td className="px-4 py-2 text-vgt/70 text-micro sm:text-xs">VGT GM</td>
                     {MONTHS_K.map(m => (
                       <td key={m} className={`px-2 py-2 text-center ${get('VGT','gm',m) < 0 ? 'text-red-500' : 'text-gray-500'}`}>
                         {get('VGT','gm',m).toFixed(1)}
@@ -360,9 +360,9 @@ export default function History() {
               {showECT && (
                 <>
                   <tr className="border-b border-gray-50">
-                    <td className="px-4 py-2 font-semibold text-ect text-[10px] sm:text-xs">ECT NS</td>
+                    <td className="px-4 py-2 font-semibold text-ect text-micro sm:text-xs">ECT NS</td>
                     {MONTHS_K.map(m => (
-                      <td key={m} className="px-1 py-2 text-center text-gray-700 text-[11px]">
+                      <td key={m} className="px-1 py-2 text-center text-gray-700 text-tiny">
                         {get('ECT','ns',m).toFixed(1)}
                       </td>
                     ))}
@@ -371,7 +371,7 @@ export default function History() {
                     </td>
                   </tr>
                   <tr className="border-b border-gray-100 bg-gray-50/50">
-                    <td className="px-4 py-2 text-ect/70 text-[10px] sm:text-xs">ECT GM</td>
+                    <td className="px-4 py-2 text-ect/70 text-micro sm:text-xs">ECT GM</td>
                     {MONTHS_K.map(m => (
                       <td key={m} className={`px-2 py-2 text-center ${get('ECT','gm',m) < 0 ? 'text-red-500' : 'text-gray-500'}`}>
                         {get('ECT','gm',m).toFixed(1)}
@@ -385,7 +385,7 @@ export default function History() {
               )}
               {activeBU === 'both' && (
                 <tr className="bg-navy/5 font-bold">
-                  <td className="px-4 py-2 text-navy text-[10px] sm:text-xs">Iberia NS</td>
+                  <td className="px-4 py-2 text-navy text-micro sm:text-xs">Iberia NS</td>
                   {MONTHS_K.map(m => (
                     <td key={m} className="px-2 py-2 text-center text-navy">
                       {(get('VGT','ns',m) + get('ECT','ns',m)).toFixed(1)}

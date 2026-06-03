@@ -78,12 +78,12 @@ function Trend({ value, reference }) {
   const pct = ((value - reference) / Math.abs(reference)) * 100
   if (Math.abs(pct) < 0.5) return <Minus size={10} className="text-gray-400"/>
   if (pct > 0) return (
-    <span className="flex items-center gap-0.5 text-green-600 text-[10px] font-medium">
+    <span className="flex items-center gap-0.5 text-green-600 text-micro font-medium">
       <TrendingUp size={9}/>{pct.toFixed(1)}%
     </span>
   )
   return (
-    <span className="flex items-center gap-0.5 text-red-500 text-[10px] font-medium">
+    <span className="flex items-center gap-0.5 text-red-500 text-micro font-medium">
       <TrendingDown size={9}/>{Math.abs(pct).toFixed(1)}%
     </span>
   )
@@ -231,15 +231,15 @@ export default function Budget() {
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="bg-gray-50">
-                      <th className="text-left px-2 sm:px-4 py-2 font-bold w-24 sm:w-32 sticky left-0 bg-gray-50 text-[10px] sm:text-xs">{tr("budget_pl_line")}</th>
+                      <th className="text-left px-2 sm:px-4 py-2 font-bold w-24 sm:w-32 sticky left-0 bg-gray-50 text-micro sm:text-xs">{tr("budget_pl_line")}</th>
                       {MONTHS.map(m => (
-                        <th key={m} className="px-0.5 sm:px-1 py-2 text-center w-12 sm:w-20 font-semibold text-gray-500 text-[10px] sm:text-xs">
+                        <th key={m} className="px-0.5 sm:px-1 py-2 text-center w-12 sm:w-20 font-semibold text-gray-500 text-micro sm:text-xs">
                           <span className="hidden sm:inline">{m}</span>
                           <span className="sm:hidden">{MONTHS_SHORT[MONTHS.indexOf(m)]}</span>
                         </th>
                       ))}
-                      <th className="px-1 sm:px-2 py-2 text-center w-12 sm:w-20 font-bold text-gray-800 text-[10px] sm:text-xs">YTD</th>
-                      <th className="px-1 sm:px-2 py-2 text-center w-12 sm:w-20 font-bold text-gray-800 text-[10px] sm:text-xs">FY</th>
+                      <th className="px-1 sm:px-2 py-2 text-center w-12 sm:w-20 font-bold text-gray-800 text-micro sm:text-xs">YTD</th>
+                      <th className="px-1 sm:px-2 py-2 text-center w-12 sm:w-20 font-bold text-gray-800 text-micro sm:text-xs">FY</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -280,7 +280,7 @@ export default function Budget() {
 
                       return (
                         <tr key={plKey} className={`border-b ${isTotal ? 'bg-gray-50 font-bold' : ''}`}>
-                          <td className={`px-2 sm:px-4 py-1.5 sticky left-0 text-[10px] sm:text-xs ${isTotal ? 'bg-gray-50 text-gray-900' : 'bg-white text-gray-600'}`}>{label}</td>
+                          <td className={`px-2 sm:px-4 py-1.5 sticky left-0 text-micro sm:text-xs ${isTotal ? 'bg-gray-50 text-gray-900' : 'bg-white text-gray-600'}`}>{label}</td>
                           {MONTHS_K.map((m, mi) => {
                             const left = cellVal(cmp.left, m)
                             const right = cellVal(cmp.right, m)
@@ -288,10 +288,10 @@ export default function Budget() {
                             const pct = right !== 0 ? (variance / Math.abs(right) * 100) : 0
                             return (
                               <td key={m} className="px-0.5 sm:px-1 py-1 text-center">
-                                <p className="text-[10px] sm:text-xs font-semibold text-gray-800">{left ? left.toFixed(1) : '—'}</p>
-                                <p className="text-[10px] text-gray-400">{right ? right.toFixed(1) : '—'}</p>
+                                <p className="text-micro sm:text-xs font-semibold text-gray-800">{left ? left.toFixed(1) : '—'}</p>
+                                <p className="text-micro text-gray-400">{right ? right.toFixed(1) : '—'}</p>
                                 {(left || right) ? (
-                                  <p className={`text-[10px] font-bold ${varColor(variance, isCost)}`}>
+                                  <p className={`text-micro font-bold ${varColor(variance, isCost)}`}>
                                     {variance > 0 ? '+' : ''}{variance.toFixed(1)} ({pct > 0 ? '+' : ''}{pct.toFixed(0)}%)
                                   </p>
                                 ) : null}
@@ -299,17 +299,17 @@ export default function Budget() {
                             )
                           })}
                           <td className="px-1 sm:px-2 py-1 text-center border-l-2 border-gray-200">
-                            <p className="text-[10px] sm:text-xs font-bold text-gray-800">{leftYTD.toFixed(1)}</p>
-                            <p className="text-[10px] text-gray-400">{rightYTD.toFixed(1)}</p>
+                            <p className="text-micro sm:text-xs font-bold text-gray-800">{leftYTD.toFixed(1)}</p>
+                            <p className="text-micro text-gray-400">{rightYTD.toFixed(1)}</p>
                             {(leftYTD || rightYTD) ? (
-                              <p className={`text-[10px] font-bold ${varColor(leftYTD - rightYTD, isCost)}`}>
+                              <p className={`text-micro font-bold ${varColor(leftYTD - rightYTD, isCost)}`}>
                                 {(leftYTD - rightYTD) > 0 ? '+' : ''}{(leftYTD - rightYTD).toFixed(1)}
                               </p>
                             ) : null}
                           </td>
                           <td className="px-1 sm:px-2 py-1 text-center">
-                            <p className="text-[10px] sm:text-xs font-bold text-gray-800">{leftFY.toFixed(1)}</p>
-                            <p className="text-[10px] text-gray-400">{rightFY.toFixed(1)}</p>
+                            <p className="text-micro sm:text-xs font-bold text-gray-800">{leftFY.toFixed(1)}</p>
+                            <p className="text-micro text-gray-400">{rightFY.toFixed(1)}</p>
                           </td>
                         </tr>
                       )
@@ -319,7 +319,7 @@ export default function Budget() {
               </div>
             )
           })()}
-          <p className="text-[10px] text-gray-400 text-center">
+          <p className="text-micro text-gray-400 text-center">
             Top: {COMPARE_OPTIONS.find(o => o.id === compareMode)?.left} · Bottom: {COMPARE_OPTIONS.find(o => o.id === compareMode)?.right} · Green = favorable · Red = unfavorable · K€
           </p>
         </div>
@@ -343,7 +343,7 @@ export default function Budget() {
               }}>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold" style={{ color: cfg.color }}>{cfg.label}</span>
-                {isActive && <span className="text-[9px] bg-white/70 px-1.5 py-0.5 rounded font-medium" style={{ color: cfg.color }}>{tr("budget_active")}</span>}
+                {isActive && <span className="text-micro bg-white/70 px-1.5 py-0.5 rounded font-medium" style={{ color: cfg.color }}>{tr("budget_active")}</span>}
               </div>
               <p className="text-lg font-bold text-gray-900">{formatK(t.ns * 1000)}</p>
               <p className="text-xs text-gray-500 mt-0.5">
@@ -393,19 +393,19 @@ export default function Budget() {
           <table className="w-full text-xs">
             <thead>
               <tr style={{ background: buCfg.bg }}>
-                <th className="text-left px-2 sm:px-4 py-3 font-bold w-24 sm:w-28 sticky left-0 text-[10px] sm:text-xs" style={{ background:buCfg.bg, color:buCfg.color }}>
+                <th className="text-left px-2 sm:px-4 py-3 font-bold w-24 sm:w-28 sticky left-0 text-micro sm:text-xs" style={{ background:buCfg.bg, color:buCfg.color }}>
                   {buCfg.label}
                 </th>
                 {PERIODS[activePeriod].display.map((m, mi) => (
-                  <th key={m} className="px-0.5 sm:px-1.5 py-3 font-semibold text-gray-500 text-center w-12 sm:w-14 text-[10px] sm:text-xs">
+                  <th key={m} className="px-0.5 sm:px-1.5 py-3 font-semibold text-gray-500 text-center w-12 sm:w-14 text-micro sm:text-xs">
                     <span className="hidden sm:inline">{m}</span>
                     <span className="sm:hidden">{MONTHS_SHORT[MONTHS.indexOf(m)]}</span>
                   </th>
                 ))}
-                <th className="px-1 sm:px-3 py-3 font-bold text-gray-800 text-center w-12 sm:w-16 text-[10px] sm:text-xs">
+                <th className="px-1 sm:px-3 py-3 font-bold text-gray-800 text-center w-12 sm:w-16 text-micro sm:text-xs">
                   {activePeriod === 'FY' ? 'FY26' : PERIODS[activePeriod].label.split(" ")[0]}
                 </th>
-                {refCycle && <th className="px-1 sm:px-3 py-3 font-medium text-gray-400 text-center w-12 sm:w-16 text-[10px] sm:text-xs">vs {CYCLE_CONFIG[refCycle].label}</th>}
+                {refCycle && <th className="px-1 sm:px-3 py-3 font-medium text-gray-400 text-center w-12 sm:w-16 text-micro sm:text-xs">vs {CYCLE_CONFIG[refCycle].label}</th>}
               </tr>
             </thead>
             <tbody>
@@ -438,7 +438,7 @@ export default function Budget() {
                     }`}>
 
                     {/* Line label */}
-                    <td className={`px-2 sm:px-4 py-2 sticky left-0 text-[10px] sm:text-xs ${isTotal ? 'bg-gray-50' : lineIdx%2===0?'bg-white':'bg-gray-50/40'}`}>
+                    <td className={`px-2 sm:px-4 py-2 sticky left-0 text-micro sm:text-xs ${isTotal ? 'bg-gray-50' : lineIdx%2===0?'bg-white':'bg-gray-50/40'}`}>
                       <span className={`${isTotal ? 'font-bold text-gray-900' : 'text-gray-600'}`}>
                         {label}
                       </span>
@@ -464,7 +464,7 @@ export default function Budget() {
                               onBlur={() => setFocusCell(null)}
                               onChange={e => setVal(activeBu,activeCycle,key,mk,e.target.value)}
                               placeholder="—"
-                              className={`w-full text-center text-[10px] sm:text-xs px-0.5 sm:px-1 py-1.5 rounded-lg transition-all outline-none
+                              className={`w-full text-center text-micro sm:text-xs px-0.5 sm:px-1 py-1.5 rounded-lg transition-all outline-none
                                 ${isFocused
                                   ? 'ring-2 bg-white shadow-sm'
                                   : 'bg-transparent hover:bg-white hover:shadow-sm'
@@ -472,7 +472,7 @@ export default function Budget() {
                               style={isFocused ? { ringColor: buCfg.color } : {}}
                             />
                           ) : (
-                            <div className={`text-center px-0.5 sm:px-1 py-1.5 text-[10px] sm:text-xs font-bold ${
+                            <div className={`text-center px-0.5 sm:px-1 py-1.5 text-micro sm:text-xs font-bold ${
                               isNeg ? 'text-red-600' : 'text-gray-800'
                             }`}>
                               {cellVal ? cellVal.toFixed(1) : '—'}
@@ -484,7 +484,7 @@ export default function Budget() {
 
                     {/* FY26 total */}
                     <td className="px-1 sm:px-3 py-2 text-center">
-                      <span className={`text-[10px] sm:text-xs font-bold ${
+                      <span className={`text-micro sm:text-xs font-bold ${
                         isTotal
                           ? annualVal < 0 ? 'text-red-600' : 'text-gray-900'
                           : annualVal < 0 ? 'text-red-500' : 'text-gray-700'
@@ -541,7 +541,7 @@ export default function Budget() {
             <p className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
               <Camera size={14}/> {tr("budget_manual_fct")}
             </p>
-            <p className="text-[10px] text-gray-400">{tr("budget_fct_subtitle")}</p>
+            <p className="text-micro text-gray-400">{tr("budget_fct_subtitle")}</p>
           </div>
           {!fctForm && (
             <button onClick={() => {
@@ -576,18 +576,18 @@ export default function Budget() {
                 <option value="VGT">VGT</option>
                 <option value="ECT">ECT</option>
               </select>
-              <span className="text-[10px] text-blue-500">{tr("budget_prefilled")}</span>
+              <span className="text-micro text-blue-500">{tr("budget_prefilled")}</span>
             </div>
 
             {['ns_ext', 'ns_int'].map(plKey => (
               <div key={plKey}>
-                <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">
+                <p className="text-micro font-semibold text-gray-500 uppercase mb-1">
                   {plKey === 'ns_ext' ? tr("budget_ext_sales") : tr("budget_int_sales")}
                 </p>
                 <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
                   {MONTHS_K.map((m, i) => (
                     <div key={m}>
-                      <label className="text-[10px] text-gray-400">{MONTHS[i]}</label>
+                      <label className="text-micro text-gray-400">{MONTHS[i]}</label>
                       <input className="input text-xs py-1" type="number"
                         value={fctForm[plKey][m] || 0}
                         onChange={e => setFctForm(f => ({
@@ -596,14 +596,14 @@ export default function Budget() {
                     </div>
                   ))}
                 </div>
-                <p className="text-[10px] text-right text-gray-500 mt-0.5">
+                <p className="text-micro text-right text-gray-500 mt-0.5">
                   Total: {formatK(MONTHS_K.reduce((s, m) => s + (fctForm[plKey][m] || 0), 0) * 1000)}
                 </p>
               </div>
             ))}
 
             <div>
-              <label className="text-[10px] text-gray-500">{tr("budget_notes_opt")}</label>
+              <label className="text-micro text-gray-500">{tr("budget_notes_opt")}</label>
               <input className="input text-xs" value={fctForm.notes}
                 onChange={e => setFctForm(f => ({ ...f, notes: e.target.value }))}
                 placeholder="e.g. EST1 reviewed with Director — adjusted Q3 pipeline"/>
@@ -632,7 +632,7 @@ export default function Budget() {
         {/* FCT History */}
         {fctSnapshots.length > 0 && (
           <div className="space-y-2">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase">{tr("budget_snapshot_history")}</p>
+            <p className="text-micro font-semibold text-gray-400 uppercase">{tr("budget_snapshot_history")}</p>
             {(() => {
               const byDate = {}
               for (const s of fctSnapshots) {
@@ -653,17 +653,17 @@ export default function Budget() {
                       if (el) el.classList.toggle('hidden')
                     }} className="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-100 transition-colors">
                       <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${CYCLE_CONFIG[group.cycle]?.badge}`}>
+                        <span className={`text-micro font-bold px-1.5 py-0.5 rounded ${CYCLE_CONFIG[group.cycle]?.badge}`}>
                           {group.cycle}
                         </span>
-                        <span className="text-[10px] text-gray-500">{group.bu}</span>
-                        <span className="text-[10px] text-gray-400">
+                        <span className="text-micro text-gray-500">{group.bu}</span>
+                        <span className="text-micro text-gray-400">
                           {new Date(group.created_at).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         </span>
                         {group.rows[0]?.is_locked && <Lock size={10} className="text-amber-500"/>}
                       </div>
                       <div className="flex items-center gap-2">
-                        {group.notes && <span className="text-[10px] text-gray-400 max-w-32 truncate">{group.notes}</span>}
+                        {group.notes && <span className="text-micro text-gray-400 max-w-32 truncate">{group.notes}</span>}
                         <span className="text-xs font-semibold text-gray-700">{formatK(total * 1000)}</span>
                         <ChevronDown size={12} className="text-gray-400"/>
                       </div>
@@ -671,12 +671,12 @@ export default function Budget() {
                     <div id={`fct-detail-${i}`} className="hidden px-3 pb-2 space-y-1">
                       {extRow && (
                         <div>
-                          <p className="text-[10px] text-gray-400 uppercase">External</p>
+                          <p className="text-micro text-gray-400 uppercase">External</p>
                           <div className="grid grid-cols-6 gap-0.5">
                             {MONTHS.map((m, mi) => (
                               <div key={m} className="text-center">
-                                <p className="text-[10px] text-gray-300">{m}</p>
-                                <p className="text-[10px] font-semibold text-gray-700">{Number(extRow[MONTHS_K[mi]]) || '—'}</p>
+                                <p className="text-micro text-gray-300">{m}</p>
+                                <p className="text-micro font-semibold text-gray-700">{Number(extRow[MONTHS_K[mi]]) || '—'}</p>
                               </div>
                             ))}
                           </div>
@@ -684,12 +684,12 @@ export default function Budget() {
                       )}
                       {intRow && (
                         <div>
-                          <p className="text-[10px] text-gray-400 uppercase">Internal</p>
+                          <p className="text-micro text-gray-400 uppercase">Internal</p>
                           <div className="grid grid-cols-6 gap-0.5">
                             {MONTHS.map((m, mi) => (
                               <div key={m} className="text-center">
-                                <p className="text-[10px] text-gray-300">{m}</p>
-                                <p className="text-[10px] font-semibold text-gray-700">{Number(intRow[MONTHS_K[mi]]) || '—'}</p>
+                                <p className="text-micro text-gray-300">{m}</p>
+                                <p className="text-micro font-semibold text-gray-700">{Number(intRow[MONTHS_K[mi]]) || '—'}</p>
                               </div>
                             ))}
                           </div>

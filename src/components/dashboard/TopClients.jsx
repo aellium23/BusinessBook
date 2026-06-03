@@ -71,11 +71,11 @@ export default function TopClients({ selectedBU = '' }) {
             className="w-full text-left bg-white border border-gray-200 rounded-xl p-3 space-y-2 hover:border-navy hover:shadow-sm transition-all">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="text-[10px] font-bold text-gray-400 w-5 shrink-0">#{i + 1}</span>
+                <span className="text-micro font-bold text-gray-400 w-5 shrink-0">#{i + 1}</span>
                 <Building2 size={13} className="text-gray-400 shrink-0"/>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-gray-900 truncate">{c.name}</p>
-                  <p className="text-[10px] text-gray-400">{c.region} · {c.count} deal{c.count > 1 ? 's' : ''}</p>
+                  <p className="text-micro text-gray-400">{c.region} · {c.count} deal{c.count > 1 ? 's' : ''}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
@@ -88,7 +88,7 @@ export default function TopClients({ selectedBU = '' }) {
               {c.backlog > 0 && <div className="bg-purple-400" style={{ width: `${c.backlog / c.total * 100}%` }}/>}
               {c.invoiced > 0 && <div className="bg-green-500" style={{ width: `${c.invoiced / c.total * 100}%` }}/>}
             </div>
-            <div className="flex gap-3 text-[10px] text-gray-500">
+            <div className="flex gap-3 text-micro text-gray-500">
               <span>🟡 Pipe {formatK(c.pipeline)}</span>
               <span>🟣 BL {formatK(c.backlog)}</span>
               <span>🟢 Inv {formatK(c.invoiced)}</span>

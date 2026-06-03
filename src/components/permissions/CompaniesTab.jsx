@@ -147,13 +147,13 @@ function CompaniesSection({ companies, onRefresh }) {
                   <button onClick={() => loadAuth(co)} className="flex-1 min-w-0 text-left hover:text-blue-700">
                     <p className="text-sm font-medium text-gray-800 truncate">{co.name}</p>
                     <div className="flex items-center gap-2">
-                      {co.country && <span className="text-[10px] text-gray-400">{co.country}</span>}
+                      {co.country && <span className="text-micro text-gray-400">{co.country}</span>}
                       {co.default_currency && co.default_currency !== 'EUR' && (
-                        <span className="text-[10px] font-medium text-blue-600 bg-blue-50 px-1 rounded">{co.default_currency}</span>
+                        <span className="text-micro font-medium text-blue-600 bg-blue-50 px-1 rounded">{co.default_currency}</span>
                       )}
                     </div>
                   </button>
-                  <select className="text-[10px] border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-600 shrink-0"
+                  <select className="text-micro border border-gray-200 rounded px-1 py-0.5 bg-white text-gray-600 shrink-0"
                     value={co.default_currency || 'EUR'}
                     onClick={e => e.stopPropagation()}
                     onChange={async (e) => {
@@ -190,7 +190,7 @@ function CompaniesSection({ companies, onRefresh }) {
               {Object.entries(byProduct).length > 0 ? Object.entries(byProduct).map(([pid, prod]) => (
                 <div key={pid} className="bg-gray-50 rounded-xl p-3 space-y-2">
                   <p className="text-xs font-semibold text-gray-800">{prod.name}
-                    {prod.sku && <span className="text-[10px] text-gray-400 font-mono ml-1">{prod.sku}</span>}
+                    {prod.sku && <span className="text-micro text-gray-400 font-mono ml-1">{prod.sku}</span>}
                   </p>
                   {prod.markets.map(m => (
                     <div key={m.id} className="flex items-center gap-2 bg-white rounded-lg px-2 py-1.5">
@@ -224,7 +224,7 @@ function CompaniesSection({ companies, onRefresh }) {
               )}
 
               <div className="border-t pt-3 space-y-2">
-                <p className="text-[10px] font-semibold text-gray-500 uppercase">{t('perm_add_auth') || 'Add Product Authorization'}</p>
+                <p className="text-micro font-semibold text-gray-500 uppercase">{t('perm_add_auth') || 'Add Product Authorization'}</p>
                 <select className="select text-xs" value={addProd} onChange={e => setAddProd(e.target.value)} style={{fontSize:'16px'}}>
                   <option value="">{t('perm_select_product') || 'Select product…'}</option>
                   {Object.entries(
@@ -367,7 +367,7 @@ function SalesTargetsSection({ companies, onRefresh }) {
                         <p className="text-sm font-bold text-gray-900">
                           {target > 0 ? `${target >= 1000 ? Math.round(target/1000)+'K€' : target+'€'}` : '—'}
                         </p>
-                        <p className="text-[10px] text-gray-400">{t('perm_target_fy26')}</p>
+                        <p className="text-micro text-gray-400">{t('perm_target_fy26')}</p>
                       </div>
                       <button onClick={() => { setEditing(co.id); setEditVal(target > 0 ? String(target) : '') }}
                         className="text-gray-300 hover:text-navy p-1 transition-colors">

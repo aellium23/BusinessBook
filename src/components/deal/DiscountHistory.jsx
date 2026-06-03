@@ -152,7 +152,7 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
           </button>
         )}
         {isDistributor && hasPending && (
-          <span className="text-[10px] text-purple-600 bg-purple-50 px-2 py-1 rounded-full font-semibold">
+          <span className="text-micro text-purple-600 bg-purple-50 px-2 py-1 rounded-full font-semibold">
             Awaiting response
           </span>
         )}
@@ -168,7 +168,7 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
                 <option value="">— Select brand —</option>
                 {dealBrands.map(b => <option key={b} value={b}>{b}</option>)}
               </select>
-              <p className="text-[10px] text-gray-400 mt-0.5">This deal has products from multiple brands. Pick which one the discount applies to.</p>
+              <p className="text-micro text-gray-400 mt-0.5">This deal has products from multiple brands. Pick which one the discount applies to.</p>
             </div>
           )}
           <div>
@@ -181,7 +181,7 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
             <textarea className="input min-h-[100px] resize-y" rows={4}
               value={justification} onChange={e => setJustification(e.target.value)}
               placeholder="Explain why: competitive situation, client budget, strategic account, volume commitment…"/>
-            <p className="text-[10px] text-gray-400 mt-1">Detailed justification speeds up approval.</p>
+            <p className="text-micro text-gray-400 mt-1">Detailed justification speeds up approval.</p>
           </div>
           <button onClick={handleSubmit} disabled={saving || !pct || !justification.trim()}
             className="btn-primary text-xs w-full gap-1 disabled:opacity-40">
@@ -205,14 +205,14 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
               req.status === 'pending' ? 'border-purple-200 bg-purple-50/50' : 'border-gray-200'
             }`}>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${st.cls}`}>
+                <span className={`text-micro font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${st.cls}`}>
                   <Icon size={10}/> {st.label}
                 </span>
                 {req.brand && (
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{req.brand}</span>
+                  <span className="text-micro font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{req.brand}</span>
                 )}
                 <span className="text-sm font-bold text-gray-900">{req.requested_pct}%</span>
-                <span className="text-[10px] text-gray-400 ml-auto">
+                <span className="text-micro text-gray-400 ml-auto">
                   {new Date(req.created_at).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </span>
               </div>
@@ -234,7 +234,7 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
                   )}
                   {req.response_note && <p className="mt-0.5">{req.response_note}</p>}
                   {req.responded_at && (
-                    <p className="text-[10px] opacity-70 mt-1">
+                    <p className="text-micro opacity-70 mt-1">
                       {new Date(req.responded_at).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}
                     </p>
                   )}
@@ -270,7 +270,7 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
                   <div className="border-t pt-2 space-y-2">
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-[10px] text-gray-500">Decision</label>
+                        <label className="text-micro text-gray-500">Decision</label>
                         <select className="select text-xs" value={respStatus} onChange={e => setRespStatus(e.target.value)}>
                           <option value="approved">Approve</option>
                           <option value="counter">Counter-offer</option>
@@ -279,7 +279,7 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
                       </div>
                       {(respStatus === 'approved' || respStatus === 'counter') && (
                         <div>
-                          <label className="text-[10px] text-gray-500">{respStatus === 'counter' ? 'Counter %' : 'Approved %'}</label>
+                          <label className="text-micro text-gray-500">{respStatus === 'counter' ? 'Counter %' : 'Approved %'}</label>
                           <input className="input text-xs" type="number" min="0" max="100"
                             value={respPct} onChange={e => setRespPct(e.target.value)}
                             placeholder={String(req.requested_pct)}/>
@@ -287,7 +287,7 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
                       )}
                     </div>
                     <div>
-                      <label className="text-[10px] text-gray-500">Note</label>
+                      <label className="text-micro text-gray-500">Note</label>
                       <input className="input text-xs" value={respNote} onChange={e => setRespNote(e.target.value)}
                         placeholder="Optional response note"/>
                     </div>

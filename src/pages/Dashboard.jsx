@@ -24,17 +24,17 @@ function KpiCard({ label, value, plan, py, color = 'gray' }) {
 
   return (
     <div className={`bg-white rounded-xl border border-gray-200 shadow-sm p-3 ${border[color]}`}>
-      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">{label}</p>
+      <p className="text-micro font-semibold text-gray-400 uppercase tracking-wide">{label}</p>
       <p className="text-xl font-bold text-gray-900 mt-0.5">{formatK(value)}</p>
       <div className="flex gap-2 mt-1.5 flex-wrap">
         {vsPlan !== null && (
-          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+          <span className={`text-micro font-bold px-1.5 py-0.5 rounded ${
             vsPlan >= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
             {vsPlan >= 0 ? '+' : ''}{vsPlan.toFixed(1)}% vs Plan
           </span>
         )}
         {vsPY !== null && (
-          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+          <span className={`text-micro font-bold px-1.5 py-0.5 rounded ${
             vsPY >= 0 ? 'bg-blue-50 text-blue-700' : 'bg-orange-50 text-orange-600'}`}>
             {vsPY >= 0 ? '+' : ''}{vsPY.toFixed(1)}% vs PY
           </span>
@@ -336,7 +336,7 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
         <div className="flex items-center justify-between mb-4">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t("dash_monthly")}</p>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-gray-400">{t("dash_plan_cycle")}</span>
+            <span className="text-micro text-gray-400">{t("dash_plan_cycle")}</span>
             {['BUD','EST1','EST2'].map(c => (
               <button key={c} onClick={() => setSelectedCycle(c)}
                 className={`text-xs px-2 py-0.5 rounded font-bold transition-colors ${
@@ -353,7 +353,7 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
         </div>
 
         {/* Legend */}
-        <div className="flex gap-4 text-[10px] text-gray-400 mb-3">
+        <div className="flex gap-4 text-micro text-gray-400 mb-3">
           <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm inline-block" style={{background:'#1D9E75'}}/>{t("dash_actuals")}</span>
           <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-blue-200 inline-block"/>{t("dash_forecast")}</span>
           <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-gray-400 inline-block"/>Plan ({displayCycle})</span>
@@ -397,17 +397,17 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">{t("dash_recurring_sla")}</p>
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-green-50 rounded-lg p-3 text-center">
-              <p className="text-[10px] text-gray-500">{t("dash_active_arr")}</p>
+              <p className="text-micro text-gray-500">{t("dash_active_arr")}</p>
               <p className="text-lg font-bold text-green-600">{formatK(slaRecurring.value)}</p>
-              <p className="text-[10px] text-gray-400">{slaRecurring.active} {t("dash_contracts")}</p>
+              <p className="text-micro text-gray-400">{slaRecurring.active} {t("dash_contracts")}</p>
             </div>
             <div className="bg-gray-50 rounded-lg p-3 text-center">
-              <p className="text-[10px] text-gray-500">{t("deals_pipeline")}</p>
+              <p className="text-micro text-gray-500">{t("deals_pipeline")}</p>
               <p className="text-lg font-bold text-gray-600">{formatK(slaRecurring.pipeline)}</p>
-              <p className="text-[10px] text-gray-400">{t("dash_future_recurring")}</p>
+              <p className="text-micro text-gray-400">{t("dash_future_recurring")}</p>
             </div>
             <div className="bg-amber-50 rounded-lg p-3 text-center">
-              <p className="text-[10px] text-gray-500">{t("dash_manual_fct")}</p>
+              <p className="text-micro text-gray-500">{t("dash_manual_fct")}</p>
               <p className="text-lg font-bold text-amber-600">
                 {fctSnapshots.length > 0
                   ? (() => {
@@ -423,7 +423,7 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
                     })()
                   : '—'}
               </p>
-              <p className="text-[10px] text-gray-400">{t("dash_last_snapshot")}</p>
+              <p className="text-micro text-gray-400">{t("dash_last_snapshot")}</p>
             </div>
           </div>
         </div>
@@ -445,10 +445,10 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
                     style={{ width: `${total_fc > 0 ? Math.min(agg[`${key}_fc`]/total_fc*100,100) : 0}%`, background: color }}/>
                 </div>
                 <div className="flex justify-between mt-1">
-                  <span className="text-[10px] text-gray-400">
+                  <span className="text-micro text-gray-400">
                     Plan: {formatK(key === 'vgt' ? budgetTotals.vgt_ns : budgetTotals.ect_ns)}
                   </span>
-                  <span className="text-[10px] text-gray-400">
+                  <span className="text-micro text-gray-400">
                     {total_fc > 0 ? Math.round(agg[`${key}_fc`]/total_fc*100) : 0}% of total
                   </span>
                 </div>
@@ -492,30 +492,30 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
           <p className="text-xs font-semibold uppercase text-gray-500 mb-2">Key Metrics</p>
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-purple-50 rounded-lg p-3">
-              <p className="text-[10px] text-purple-500 font-semibold uppercase tracking-wide">{t("dash_weighted")}</p>
+              <p className="text-micro text-purple-500 font-semibold uppercase tracking-wide">{t("dash_weighted")}</p>
               <p className="text-lg font-bold text-purple-700 mt-0.5">{formatK(funnelAnalytics.weighted)}</p>
-              <p className="text-[10px] text-purple-400">{t("dash_funnel_note")}</p>
+              <p className="text-micro text-purple-400">{t("dash_funnel_note")}</p>
             </div>
             <div className={`rounded-lg p-3 ${funnelAnalytics.winRate !== null ? (funnelAnalytics.winRate >= 50 ? 'bg-green-50' : 'bg-amber-50') : 'bg-gray-50'}`}>
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{t("dash_win_rate")}</p>
+              <p className="text-micro font-semibold uppercase tracking-wide text-gray-400">{t("dash_win_rate")}</p>
               <p className={`text-lg font-bold mt-0.5 ${funnelAnalytics.winRate !== null ? (funnelAnalytics.winRate >= 50 ? 'text-green-700' : 'text-amber-700') : 'text-gray-400'}`}>
                 {funnelAnalytics.winRate !== null ? `${funnelAnalytics.winRate}%` : '—'}
               </p>
-              <p className="text-[10px] text-gray-400">{funnelAnalytics.wonCount} won / {funnelAnalytics.closedCount} closed</p>
+              <p className="text-micro text-gray-400">{funnelAnalytics.wonCount} won / {funnelAnalytics.closedCount} closed</p>
             </div>
             <div className="bg-blue-50 rounded-lg p-3">
-              <p className="text-[10px] text-blue-500 font-semibold uppercase tracking-wide">{t("dash_avg_vel")}</p>
+              <p className="text-micro text-blue-500 font-semibold uppercase tracking-wide">{t("dash_avg_vel")}</p>
               <p className="text-lg font-bold text-blue-700 mt-0.5">
                 {funnelAnalytics.avgVelocity !== null ? `${funnelAnalytics.avgVelocity}d` : '—'}
               </p>
-              <p className="text-[10px] text-blue-400">{t("dash_created")}</p>
+              <p className="text-micro text-blue-400">{t("dash_created")}</p>
             </div>
             <div className={`rounded-lg p-3 ${funnelAnalytics.aged.length > 0 ? 'bg-red-50' : 'bg-gray-50'}`}>
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{t("dash_aging")}</p>
+              <p className="text-micro font-semibold uppercase tracking-wide text-gray-400">{t("dash_aging")}</p>
               <p className={`text-lg font-bold mt-0.5 ${funnelAnalytics.aged.length > 0 ? 'text-red-700' : 'text-gray-400'}`}>
                 {funnelAnalytics.aged.length} deal{funnelAnalytics.aged.length !== 1 ? 's' : ''}
               </p>
-              <p className="text-[10px] text-gray-400">Lead/Pipeline &gt;{AGING_DAYS}d</p>
+              <p className="text-micro text-gray-400">Lead/Pipeline &gt;{AGING_DAYS}d</p>
             </div>
           </div>
         </div>
@@ -569,7 +569,7 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
                       {idx < convRates.length && convRates[idx].rate !== null && (
                         <div className="flex items-center gap-3 my-0.5">
                           <span className="w-14" />
-                          <span className="text-[10px] text-gray-400 pl-2">→ {convRates[idx].rate}%</span>
+                          <span className="text-micro text-gray-400 pl-2">→ {convRates[idx].rate}%</span>
                         </div>
                       )}
                     </div>
@@ -598,11 +598,11 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
                   <div key={d.id} className="flex items-center justify-between px-3 py-2 border-t border-red-100">
                     <div>
                       <p className="text-xs font-medium text-gray-900">{d.client}</p>
-                      <p className="text-[10px] text-gray-400">{d.stage} · {d.sales_owner || '—'}</p>
+                      <p className="text-micro text-gray-400">{d.stage} · {d.sales_owner || '—'}</p>
                     </div>
                     <div className="text-right">
                       <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded">{days}d</span>
-                      <p className="text-[10px] text-gray-400 mt-0.5">{formatK(d.value_total)}</p>
+                      <p className="text-micro text-gray-400 mt-0.5">{formatK(d.value_total)}</p>
                     </div>
                   </div>
                 )
@@ -627,13 +627,13 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
                 <div key={d.id} className="flex items-center justify-between px-3 py-2 border-t border-purple-100">
                   <div>
                     <p className="text-xs font-medium text-gray-900">{d.end_customer || d.client}</p>
-                    <p className="text-[10px] text-gray-400">{d.distributor} · {d.product}</p>
+                    <p className="text-micro text-gray-400">{d.distributor} · {d.product}</p>
                   </div>
                   <div className="text-right">
                     <span className="text-xs font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded">
                       -{d.discount_requested}% req.
                     </span>
-                    <p className="text-[10px] text-gray-400 mt-0.5">{formatK(d.end_customer_value||d.value_total)}</p>
+                    <p className="text-micro text-gray-400 mt-0.5">{formatK(d.end_customer_value||d.value_total)}</p>
                   </div>
                 </div>
               ))}

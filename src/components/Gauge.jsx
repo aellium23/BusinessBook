@@ -116,12 +116,12 @@ export default function Gauge({
       <div className="flex items-center justify-center gap-2 text-center -mt-1">
         <div className="text-center">
           <span className="text-sm font-bold text-gray-900">{formatK(value)}</span>
-          <p className="text-[9px] text-gray-400 leading-tight">Actuals</p>
+          <p className="text-micro text-gray-400 leading-tight">Actuals</p>
         </div>
         <span className="text-gray-300">/</span>
         <div className="text-center">
           <span className="text-xs text-gray-500">{formatK(target)}</span>
-          <p className="text-[9px] text-gray-400 leading-tight">Budget</p>
+          <p className="text-micro text-gray-400 leading-tight">Budget</p>
         </div>
       </div>
 

@@ -99,7 +99,7 @@ export default function DiscountSection({ form, set, deal, isDistributor, onSave
             {t("df_disc_request")}
           </p>
           {isDistributor && (
-            <p className="text-[10px] text-gray-400">Optional — request approval for a discount beyond your standard pricing.</p>
+            <p className="text-micro text-gray-400">Optional — request approval for a discount beyond your standard pricing.</p>
           )}
         </div>
         {deal?.discount_status && (
@@ -137,7 +137,7 @@ export default function DiscountSection({ form, set, deal, isDistributor, onSave
             ? 'Explain why this discount is needed: competitive situation, client budget, strategic account, volume commitment…'
             : t("df_placeholder_discount")}/>
         {isDistributor && (
-          <p className="text-[10px] text-gray-400 mt-1">Provide a detailed justification to speed up the approval process.</p>
+          <p className="text-micro text-gray-400 mt-1">Provide a detailed justification to speed up the approval process.</p>
         )}
       </div>
 

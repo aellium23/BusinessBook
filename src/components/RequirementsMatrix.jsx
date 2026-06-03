@@ -111,7 +111,7 @@ function ApplyTemplatesModal({ onClose, onApply, existingTitles }) {
         <div className="px-4 py-2 border-b border-gray-100 space-y-2">
           <input className="input py-1.5 text-sm" placeholder="Search templates…"
             value={search} onChange={e => setSearch(e.target.value)}/>
-          <div className="flex gap-2 text-[11px]">
+          <div className="flex gap-2 text-tiny">
             <button onClick={selectAllVisible} className="text-navy hover:underline">Select visible</button>
             <span className="text-gray-300">·</span>
             <button onClick={clearVisible} className="text-gray-500 hover:underline">Clear visible</button>
@@ -129,7 +129,7 @@ function ApplyTemplatesModal({ onClose, onApply, existingTitles }) {
             if (list.length === 0) return null
             return (
               <div key={cat.id} className="mb-3">
-                <p className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-1 border ${cat.color}`}>
+                <p className={`inline-block text-micro font-bold px-2 py-0.5 rounded-full mb-1 border ${cat.color}`}>
                   {cat.label}
                 </p>
                 <ul className="space-y-1">
@@ -148,10 +148,10 @@ function ApplyTemplatesModal({ onClose, onApply, existingTitles }) {
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-gray-800">{t.title}</p>
                             {t.description && (
-                              <p className="text-[11px] text-gray-500 mt-0.5">{t.description}</p>
+                              <p className="text-tiny text-gray-500 mt-0.5">{t.description}</p>
                             )}
                             {alreadyHas && (
-                              <p className="text-[10px] text-gray-400 italic mt-0.5">Already added</p>
+                              <p className="text-micro text-gray-400 italic mt-0.5">Already added</p>
                             )}
                           </div>
                         </label>
@@ -281,7 +281,7 @@ export default function RequirementsMatrix({ tenderId, canEdit = true, assignees
 
   if (!tenderId) {
     return (
-      <p className="text-[11px] text-gray-400 italic">
+      <p className="text-tiny text-gray-400 italic">
         Save the tender first to start adding requirements.
       </p>
     )
@@ -294,7 +294,7 @@ export default function RequirementsMatrix({ tenderId, canEdit = true, assignees
         <div className="flex items-center justify-between mb-1.5">
           <p className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
             <ListChecks size={13}/> Requirements
-            <span className="text-[10px] text-gray-400 font-normal">
+            <span className="text-micro text-gray-400 font-normal">
               ({doneCount} / {totalCount} complete{items.length !== totalCount ? `, ${items.length - totalCount} N/A` : ''})
             </span>
           </p>
@@ -345,10 +345,10 @@ export default function RequirementsMatrix({ tenderId, canEdit = true, assignees
             <button type="button" onClick={() => toggleCat(cat.id)}
               className="w-full flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-gray-100 text-left">
               {isOpen ? <ChevronDown size={13} className="text-gray-400"/> : <ChevronRight size={13} className="text-gray-400"/>}
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${cat.color}`}>
+              <span className={`text-micro font-bold px-2 py-0.5 rounded-full border ${cat.color}`}>
                 {cat.label}
               </span>
-              <span className="text-[11px] text-gray-500">{done} / {list.length}</span>
+              <span className="text-tiny text-gray-500">{done} / {list.length}</span>
             </button>
             {isOpen && (
               <ul className="divide-y divide-gray-100">
@@ -364,7 +364,7 @@ export default function RequirementsMatrix({ tenderId, canEdit = true, assignees
                         />
                         {(req.description || canEdit) && (
                           <textarea
-                            className="input py-1 text-[11px] text-gray-600 mt-1 min-h-[28px] resize-none"
+                            className="input py-1 text-tiny text-gray-600 mt-1 min-h-[28px] resize-none"
                             value={req.description || ''}
                             placeholder="Notes / description…"
                             disabled={!canEdit}

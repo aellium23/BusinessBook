@@ -77,7 +77,7 @@ export default function AttachmentsList({ entityType, entityId, canEdit = true }
         <label className="label flex items-center gap-1.5">
           <Paperclip size={12}/> Attachments
           {items.length > 0 && (
-            <span className="text-[10px] text-gray-400 font-normal">({items.length})</span>
+            <span className="text-micro text-gray-400 font-normal">({items.length})</span>
           )}
         </label>
         {canEdit && entityId && (
@@ -91,7 +91,7 @@ export default function AttachmentsList({ entityType, entityId, canEdit = true }
       </div>
 
       {!entityId && (
-        <p className="text-[11px] text-gray-400 italic">
+        <p className="text-tiny text-gray-400 italic">
           Save the record first to start attaching files.
         </p>
       )}
@@ -108,7 +108,7 @@ export default function AttachmentsList({ entityType, entityId, canEdit = true }
           <p className="text-xs text-gray-500">
             <strong>Drop files</strong> here or click to browse
           </p>
-          <p className="text-[10px] text-gray-400 mt-0.5">
+          <p className="text-micro text-gray-400 mt-0.5">
             PDF, Word, Excel, PowerPoint, images · up to {formatBytes(MAX_FILE_SIZE_BYTES)}
           </p>
         </div>
@@ -140,7 +140,7 @@ export default function AttachmentsList({ entityType, entityId, canEdit = true }
               <span className="text-base shrink-0" aria-hidden>{iconForMime(att.mime_type)}</span>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium text-gray-800 truncate">{att.file_name}</p>
-                <p className="text-[10px] text-gray-400">
+                <p className="text-micro text-gray-400">
                   {formatBytes(att.size_bytes)} · {new Date(att.created_at).toLocaleDateString('pt-PT', { day:'numeric', month:'short', year:'numeric' })}
                 </p>
               </div>

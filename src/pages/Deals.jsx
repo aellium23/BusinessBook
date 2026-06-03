@@ -313,7 +313,7 @@ export default function Deals() {
                   {isDistributor ? 'My Discount Requests' : 'Discount Approvals'}
                 </p>
                 {counts.pending > 0 && (
-                  <p className="text-[10px] text-purple-600 truncate">
+                  <p className="text-micro text-purple-600 truncate">
                     {pending.map(d => d.client).filter(Boolean).slice(0, 3).join(', ')}{counts.pending > 3 ? ` +${counts.pending - 3} more` : ''}
                   </p>
                 )}
@@ -329,7 +329,7 @@ export default function Deals() {
               ].map(chip => (
                 <button key={chip.id}
                   onClick={() => { setDiscountF(f => f === chip.id ? '' : chip.id); resetPage() }}
-                  className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-all ${
+                  className={`text-tiny font-semibold px-2.5 py-1 rounded-full border transition-all ${
                     discountF === chip.id ? chip.cls : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
                   }`}>
                   {chip.label}
@@ -344,7 +344,7 @@ export default function Deals() {
       <div className="flex items-center justify-between pt-1">
         <div>
           <h1 className="text-xl font-bold text-gray-900">{t("deals_title")}</h1>
-          <p className="text-[10px] text-gray-400">{t("deals_subtitle")}</p>
+          <p className="text-micro text-gray-400">{t("deals_subtitle")}</p>
           <p className="text-sm text-gray-400">
             {deals.length} {t("deals_records")}
             {activeFilters > 0 && <span className="ml-1 text-blue-500">· {activeFilters} {t("deals_filters_active")}</span>}
@@ -400,7 +400,7 @@ export default function Deals() {
             <Search size={13}/>
             {t("deals_filters")}
             {activeFilters > 0 && (
-              <span className="bg-blue-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
+              <span className="bg-blue-500 text-white text-micro rounded-full w-4 h-4 flex items-center justify-center font-bold">
                 {activeFilters}
               </span>
             )}
@@ -432,7 +432,7 @@ export default function Deals() {
             {/* BU */}
             {isAdmin && (
               <div>
-                <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">BU</label>
+                <label className="text-micro text-gray-400 font-semibold uppercase tracking-wide mb-1 block">BU</label>
                 <select className="select text-xs w-full" value={buF} onChange={e => handleBu(e.target.value)}>
                   <option value="">{t("deals_all_bu")}</option>
                   {BUS.map(b => <option key={b} value={b}>{b}</option>)}
@@ -442,7 +442,7 @@ export default function Deals() {
 
             {/* Stage */}
             <div>
-              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Stage</label>
+              <label className="text-micro text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Stage</label>
               <select className="select text-xs w-full" value={stageF} onChange={e => handleStage(e.target.value)}>
                 <option value="">{t("deals_all_stages")}</option>
                 {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -451,7 +451,7 @@ export default function Deals() {
 
             {/* Region */}
             <div>
-              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Region</label>
+              <label className="text-micro text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Region</label>
               <select className="select text-xs w-full" value={regionF} onChange={e => handleRegion(e.target.value)}>
                 <option value="">{t("deals_all_regions")}</option>
                 {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
@@ -460,7 +460,7 @@ export default function Deals() {
 
             {/* Sales Owner */}
             <div>
-              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">{t("df_owner")}</label>
+              <label className="text-micro text-gray-400 font-semibold uppercase tracking-wide mb-1 block">{t("df_owner")}</label>
               <select className="select text-xs w-full" value={ownerF} onChange={e => handleOwner(e.target.value)}>
                 <option value="">{t("deals_all_owners")}</option>
                 {owners.map(o => <option key={o} value={o}>{o}</option>)}
@@ -469,7 +469,7 @@ export default function Deals() {
 
             {/* Forecast category */}
             <div>
-              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Forecast</label>
+              <label className="text-micro text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Forecast</label>
               <select className="select text-xs w-full" value={forecastF}
                 onChange={e => { setForecastF(e.target.value); resetPage() }}>
                 <option value="">{t("deals_all_forecasts")}</option>
@@ -479,7 +479,7 @@ export default function Deals() {
 
             {/* Brand */}
             <div>
-              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Brand</label>
+              <label className="text-micro text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Brand</label>
               <select className="select text-xs w-full" value={brandF} onChange={e => { setBrandF(e.target.value); setProductF(''); resetPage() }}>
                 <option value="">All brands</option>
                 {(() => {
@@ -493,7 +493,7 @@ export default function Deals() {
 
             {/* Product */}
             <div>
-              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Product</label>
+              <label className="text-micro text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Product</label>
               <select className="select text-xs w-full" value={productF} onChange={e => { setProductF(e.target.value); resetPage() }}>
                 <option value="">All products</option>
                 {(() => {
@@ -510,37 +510,37 @@ export default function Deals() {
 
             {/* Invoiced Month */}
             <div>
-              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">
+              <label className="text-micro text-gray-400 font-semibold uppercase tracking-wide mb-1 block">
                 {t("deals_invoiced_month")}
               </label>
               <div className="flex gap-1 flex-wrap">
                 <button onClick={() => setInvoicedMonthF([])}
-                  className={`text-[10px] px-1.5 py-0.5 rounded ${invoicedMonthF.length === 0 ? 'bg-navy text-white' : 'bg-gray-100 text-gray-500'}`}>All</button>
+                  className={`text-micro px-1.5 py-0.5 rounded ${invoicedMonthF.length === 0 ? 'bg-navy text-white' : 'bg-gray-100 text-gray-500'}`}>All</button>
                 <button onClick={() => {
                   const m = new Date().getMonth() + 1
                   const elapsed = ((m - 4 + 12) % 12) + 1
                   setInvoicedMonthF(MONTHS_K.slice(0, elapsed))
                 }}
-                  className={`text-[10px] px-1.5 py-0.5 rounded ${invoicedMonthF.length > 1 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>FY YTD</button>
+                  className={`text-micro px-1.5 py-0.5 rounded ${invoicedMonthF.length > 1 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>FY YTD</button>
               </div>
               <div className="grid grid-cols-4 gap-0.5 mt-1">
                 {MONTHS.map((m, i) => (
                   <button key={m} onClick={() => {
                     setInvoicedMonthF(prev => prev.includes(MONTHS_K[i]) ? prev.filter(x => x !== MONTHS_K[i]) : [...prev, MONTHS_K[i]])
                   }}
-                    className={`text-[10px] px-1 py-0.5 rounded ${invoicedMonthF.includes(MONTHS_K[i]) ? 'bg-blue-500 text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
+                    className={`text-micro px-1 py-0.5 rounded ${invoicedMonthF.includes(MONTHS_K[i]) ? 'bg-blue-500 text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
                     {m}
                   </button>
                 ))}
               </div>
               {invoicedMonthF.length > 0 && (
-                <p className="text-[9px] text-blue-500 mt-0.5">{invoicedMonthF.length} month{invoicedMonthF.length > 1 ? 's' : ''} selected</p>
+                <p className="text-micro text-blue-500 mt-0.5">{invoicedMonthF.length} month{invoicedMonthF.length > 1 ? 's' : ''} selected</p>
               )}
             </div>
 
             {/* Período */}
             <div>
-              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">{t("deals_period")}</label>
+              <label className="text-micro text-gray-400 font-semibold uppercase tracking-wide mb-1 block">{t("deals_period")}</label>
               <select className="select text-xs w-full" value={periodF} onChange={e => handlePeriod(e.target.value)}>
                 {PERIOD_KEYS.map(p => <option key={p.days} value={p.days}>{t(p.key)}</option>)}
               </select>
@@ -548,7 +548,7 @@ export default function Deals() {
 
             {/* Cards por página */}
             <div>
-              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1 block">{t("deals_per_page")}</label>
+              <label className="text-micro text-gray-400 font-semibold uppercase tracking-wide mb-1 block">{t("deals_per_page")}</label>
               <select className="select text-xs w-full" value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); resetPage() }}>
                 {PAGE_SIZE_OPTIONS.map(n => <option key={n} value={n}>{n} {t("deals_per_page_suffix")}</option>)}
               </select>
@@ -585,7 +585,7 @@ export default function Deals() {
               className={`text-left rounded-xl border p-2.5 transition-colors ${
                 active ? 'border-navy ring-2 ring-navy/10' : 'border-gray-200 hover:border-gray-300'
               } ${c.color.split(' ')[0]}`}>
-              <p className="text-[10px] font-semibold uppercase tracking-wide opacity-70">{c.label}</p>
+              <p className="text-micro font-semibold uppercase tracking-wide opacity-70">{c.label}</p>
               <p className="text-sm font-bold mt-0.5">{formatK(v)}</p>
             </button>
           )
@@ -602,7 +602,7 @@ export default function Deals() {
           { l:t("deals_weighted"), v:weightedTotal, c:'text-purple-700 font-bold' },
         ].map(({ l, v, c }) => (
           <div key={l} className="text-center shrink-0">
-            <p className="text-[10px] text-gray-400">{l}</p>
+            <p className="text-micro text-gray-400">{l}</p>
             <p className={`text-sm font-semibold ${c}`}>{formatK(v)}</p>
           </div>
         ))}

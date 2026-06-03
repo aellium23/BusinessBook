@@ -143,7 +143,7 @@ export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete, b
             )}
             {showDiscount && <DiscountChip deal={deal} />}
             {deferredInfo && (
-              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-micro font-bold ${
                 deferredInfo.type === 'deferred' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'
               }`}>
                 {deferredInfo.label}
@@ -169,13 +169,13 @@ export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete, b
                   </p>
                 </div>
                 {fy26 > 0 && Number(deal.value_total) > 0 && fy26 !== Number(deal.value_total) && (
-                  <p className="text-[10px] text-gray-400">Total: {formatK(deal.value_total)}</p>
+                  <p className="text-micro text-gray-400">Total: {formatK(deal.value_total)}</p>
                 )}
               </>
             )
           })()}
           {deal.gm_pct > 0 && (
-            <p className="text-[10px] text-green-600 font-semibold">GM {(deal.gm_pct * 100).toFixed(0)}%</p>
+            <p className="text-micro text-green-600 font-semibold">GM {(deal.gm_pct * 100).toFixed(0)}%</p>
           )}
         </div>
       </div>
@@ -192,7 +192,7 @@ export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete, b
         </button>
         <div className="flex items-center gap-2">
           {!isIC && (
-            <div className={`hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+            <div className={`hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-full text-micro font-bold ${
               score.color === 'green' ? 'bg-green-100 text-green-700' :
               score.color === 'amber' ? 'bg-amber-100 text-amber-700' :
               score.color === 'red'   ? 'bg-red-100 text-red-700' :
@@ -318,7 +318,7 @@ export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete, b
               const v = Number(deal[MONTHS_K[i]]) || 0
               return (
                 <div key={m} className={`text-center rounded p-1 ${v > 0 ? (isIC ? 'bg-vgt/10' : 'bg-blue-50') : 'bg-gray-50'}`}>
-                  <p className="text-[9px] text-gray-400">{m}</p>
+                  <p className="text-micro text-gray-400">{m}</p>
                   <p className="text-micro font-bold text-gray-700">{v > 0 ? `${(v/1000).toFixed(1)}K` : '—'}</p>
                 </div>
               )

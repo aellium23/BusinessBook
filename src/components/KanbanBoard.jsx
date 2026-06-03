@@ -52,12 +52,12 @@ const KanbanCard = memo(function KanbanCard({ deal, onEdit, onDelete, canEdit, d
             <BUBadge bu={deal.bu}/>
             <ForecastBadge deal={deal} compact/>
             {deal.win_probability != null && (
-              <span className="text-[9px] text-gray-400 font-medium">{deal.win_probability}%</span>
+              <span className="text-micro text-gray-400 font-medium">{deal.win_probability}%</span>
             )}
           </div>
           <p className="text-xs font-semibold text-gray-900 truncate">{deal.client}</p>
           {(deal.country || deal.sales_owner) && (
-            <p className="text-[10px] text-gray-400 truncate">
+            <p className="text-micro text-gray-400 truncate">
               {[deal.country, deal.sales_owner].filter(Boolean).join(' · ')}
             </p>
           )}
@@ -66,7 +66,7 @@ const KanbanCard = memo(function KanbanCard({ deal, onEdit, onDelete, canEdit, d
               {formatK(val)}
             </span>
             {weight > 0 && weight < 1 && (
-              <span className="text-[10px] text-blue-500">W: {formatK(weighted)}</span>
+              <span className="text-micro text-blue-500">W: {formatK(weighted)}</span>
             )}
           </div>
         </div>
@@ -74,11 +74,11 @@ const KanbanCard = memo(function KanbanCard({ deal, onEdit, onDelete, canEdit, d
       {canEdit && !isIC && (
         <div className="flex gap-1 mt-1.5 pt-1.5 border-t border-gray-50 opacity-0 group-hover:opacity-100 transition-opacity">
           <button type="button" onClick={() => onEdit(deal)}
-            className="text-[10px] text-gray-500 hover:text-navy flex items-center gap-0.5">
+            className="text-micro text-gray-500 hover:text-navy flex items-center gap-0.5">
             <Pencil size={9}/> Edit
           </button>
           <button type="button" onClick={() => onDelete(deal)}
-            className="text-[10px] text-gray-400 hover:text-red-500 ml-auto flex items-center gap-0.5">
+            className="text-micro text-gray-400 hover:text-red-500 ml-auto flex items-center gap-0.5">
             <Trash2 size={9}/>
           </button>
         </div>
@@ -155,18 +155,18 @@ export default function KanbanBoard({ deals = [], onEdit, onDelete, onMove, canE
               {/* Column header */}
               <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${stageColor(stage)}`}>
+                  <span className={`text-micro font-bold px-2 py-0.5 rounded ${stageColor(stage)}`}>
                     {stage}
                   </span>
-                  <span className="text-[10px] text-gray-400">{list.length}</span>
+                  <span className="text-micro text-gray-400">{list.length}</span>
                 </div>
-                <span className="text-[11px] font-semibold text-gray-600">{formatK(total)}</span>
+                <span className="text-tiny font-semibold text-gray-600">{formatK(total)}</span>
               </div>
 
               {/* Cards */}
               <div className="p-2 space-y-2 min-h-[100px] max-h-[70vh] overflow-y-auto">
                 {list.length === 0 ? (
-                  <p className="text-[11px] text-gray-400 text-center py-4 italic">Drop deals here</p>
+                  <p className="text-tiny text-gray-400 text-center py-4 italic">Drop deals here</p>
                 ) : list.map(d => (
                   <KanbanCard
                     key={d.id}

@@ -116,7 +116,7 @@ export default function SearchableSelect({
               </button>
             )}
             {onCreateNew && createRequiresQuery && !query.trim() && (
-              <p className="px-3 py-2 text-[11px] text-gray-400 border-b border-gray-100">
+              <p className="px-3 py-2 text-tiny text-gray-400 border-b border-gray-100">
                 Type a name above to create a new entry
               </p>
             )}
@@ -129,7 +129,7 @@ export default function SearchableSelect({
                   o.value === value ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
                 }`}>
                 <div className="truncate">{o.label}</div>
-                {o.hint && <div className="text-[10px] text-gray-400 truncate">{o.hint}</div>}
+                {o.hint && <div className="text-micro text-gray-400 truncate">{o.hint}</div>}
               </button>
             ))}
           </div>

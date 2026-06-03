@@ -33,7 +33,7 @@ function ActionBadge({ action }) {
   const m = map[action] || { label: action, cls: 'bg-gray-100 text-gray-600', Icon: User }
   const I = m.Icon
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded ${m.cls}`}>
+    <span className={`inline-flex items-center gap-1 text-micro font-bold px-1.5 py-0.5 rounded ${m.cls}`}>
       <I size={10}/> {m.label}
     </span>
   )
@@ -42,7 +42,7 @@ function ActionBadge({ action }) {
 function formatVal(v) {
   if (v === null || v === undefined) return <span className="text-gray-400 italic">null</span>
   if (typeof v === 'boolean') return String(v)
-  if (typeof v === 'object') return <code className="text-[10px]">{JSON.stringify(v).slice(0, 60)}</code>
+  if (typeof v === 'object') return <code className="text-micro">{JSON.stringify(v).slice(0, 60)}</code>
   return String(v).slice(0, 80)
 }
 
@@ -51,7 +51,7 @@ function DiffTable({ changed }) {
   const entries = Object.entries(changed)
   if (entries.length === 0) return null
   return (
-    <table className="w-full text-[11px]">
+    <table className="w-full text-tiny">
       <tbody>
         {entries.map(([field, { old: oldV, new: newV }]) => (
           <tr key={field} className="border-t border-gray-50">
@@ -71,14 +71,14 @@ function Snapshot({ data, title }) {
   if (!data) return null
   const keys = Object.keys(data)
   return (
-    <div className="text-[11px]">
+    <div className="text-tiny">
       <button type="button" onClick={() => setOpen(o => !o)}
         className="text-gray-500 hover:text-gray-800 flex items-center gap-1">
         {open ? <ChevronDown size={11}/> : <ChevronRight size={11}/>}
         {title} ({keys.length} fields)
       </button>
       {open && (
-        <pre className="mt-1 bg-gray-50 rounded p-2 overflow-x-auto max-h-48 text-[10px] leading-snug">
+        <pre className="mt-1 bg-gray-50 rounded p-2 overflow-x-auto max-h-48 text-micro leading-snug">
 {JSON.stringify(data, null, 2)}
         </pre>
       )}
@@ -231,7 +231,7 @@ export default function AuditLog() {
             </button>
           )}
         </div>
-        <p className="text-[10px] text-gray-400">
+        <p className="text-micro text-gray-400">
           {filtered.length} event{filtered.length !== 1 ? 's' : ''} shown
         </p>
       </div>
@@ -263,19 +263,19 @@ export default function AuditLog() {
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <ActionBadge action={r.action}/>
                       <span className="text-xs font-semibold text-gray-800">{r.table_name}</span>
-                      <span className="text-[10px] text-gray-400 font-mono truncate">
+                      <span className="text-micro text-gray-400 font-mono truncate">
                         {r.record_id?.slice(0, 8) || '—'}
                       </span>
-                      <span className="text-[10px] text-gray-400 ml-auto">
+                      <span className="text-micro text-gray-400 ml-auto">
                         {new Date(r.at).toLocaleString('pt-PT', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[11px] text-gray-500 flex items-center gap-1">
+                      <span className="text-tiny text-gray-500 flex items-center gap-1">
                         <User size={10}/> {r.actor_email || '(system)'}
                       </span>
                       {r.changed && (
-                        <span className="text-[10px] text-gray-400">
+                        <span className="text-micro text-gray-400">
                           · {Object.keys(r.changed).length} field{Object.keys(r.changed).length !== 1 ? 's' : ''} changed
                         </span>
                       )}

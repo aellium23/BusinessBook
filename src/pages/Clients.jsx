@@ -246,7 +246,7 @@ export default function Clients() {
         <div>
           <h1 className="text-lg font-bold text-gray-900">{t('clients_title')}</h1>
           <p className="text-xs text-gray-400">{t('clients_subtitle')}</p>
-          <Link to="/accounts" className="text-[10px] text-blue-500 hover:text-blue-700">{t('clients_go_accounts')}</Link>
+          <Link to="/accounts" className="text-micro text-blue-500 hover:text-blue-700">{t('clients_go_accounts')}</Link>
         </div>
         <div className="flex items-center gap-2">
           {isAdmin && (
@@ -267,19 +267,19 @@ export default function Clients() {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <div className="card p-3">
-          <p className="text-[10px] text-gray-400 uppercase font-semibold">Clients</p>
+          <p className="text-micro text-gray-400 uppercase font-semibold">Clients</p>
           <p className="text-xl font-bold text-navy">{stats.total}</p>
         </div>
         <div className="card p-3">
-          <p className="text-[10px] text-gray-400 uppercase font-semibold">Pipeline</p>
+          <p className="text-micro text-gray-400 uppercase font-semibold">Pipeline</p>
           <p className="text-xl font-bold text-amber-600">{formatK(stats.pipeline)}</p>
         </div>
         <div className="card p-3">
-          <p className="text-[10px] text-gray-400 uppercase font-semibold">Invoiced</p>
+          <p className="text-micro text-gray-400 uppercase font-semibold">Invoiced</p>
           <p className="text-xl font-bold text-green-600">{formatK(stats.invoiced)}</p>
         </div>
         <div className="card p-3">
-          <p className="text-[10px] text-gray-400 uppercase font-semibold">With SLA</p>
+          <p className="text-micro text-gray-400 uppercase font-semibold">With SLA</p>
           <p className="text-xl font-bold text-blue-600">{stats.withSLA}</p>
         </div>
       </div>
@@ -336,17 +336,17 @@ export default function Clients() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
                   <BUBadge bu={c.bu}/>
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${c.client_type === 'public' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                  <span className={`text-micro font-bold px-1.5 py-0.5 rounded ${c.client_type === 'public' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
                     {c.client_type === 'public' ? 'Public' : 'Private'}
                   </span>
                   {c.slaCount > 0 && (
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700 flex items-center gap-0.5">
+                    <span className="text-micro font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700 flex items-center gap-0.5">
                       <RefreshCw size={8}/> {c.slaCount} SLA
                     </span>
                   )}
                 </div>
                 <p className="font-semibold text-sm text-gray-900 truncate">{c.name}</p>
-                <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                <div className="flex items-center gap-2 text-micro text-gray-400">
                   {c.country && <span className="flex items-center gap-0.5"><MapPin size={8}/> {c.country}</span>}
                   {c.region && <span>{c.region}</span>}
                   {c.dealCount > 0 && <span>{c.dealCount} deals</span>}
@@ -354,7 +354,7 @@ export default function Clients() {
               </div>
               <div className="text-right shrink-0">
                 {c.invoiced > 0 && <p className="text-sm font-bold text-green-600">{formatK(c.invoiced)}</p>}
-                {c.pipeline > 0 && <p className="text-[10px] text-amber-600">+{formatK(c.pipeline)} pipe</p>}
+                {c.pipeline > 0 && <p className="text-micro text-amber-600">+{formatK(c.pipeline)} pipe</p>}
               </div>
               {canEdit && (
                 <button onClick={() => { setEditClient(c); setFormOpen(true) }}
@@ -365,7 +365,7 @@ export default function Clients() {
             </div>
             {clientDeals.length > 0 && (
               <details className="border-t border-gray-100">
-                <summary className="px-3 py-1.5 text-[10px] text-gray-400 cursor-pointer hover:text-gray-600">
+                <summary className="px-3 py-1.5 text-micro text-gray-400 cursor-pointer hover:text-gray-600">
                   View {clientDeals.length} deal{clientDeals.length > 1 ? 's' : ''}
                 </summary>
                 <div className="px-3 pb-2 space-y-1">
@@ -373,7 +373,7 @@ export default function Clients() {
                     <button key={d.id} onClick={() => setSelectedDeal(d)}
                       className="w-full flex items-center justify-between bg-gray-50 rounded px-2 py-1.5 hover:bg-blue-50 transition-colors cursor-pointer text-left">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${
+                        <span className={`text-micro font-bold px-1 py-0.5 rounded ${
                           d.stage === 'Invoiced' ? 'bg-green-100 text-green-700' :
                           d.stage === 'BackLog' ? 'bg-purple-100 text-purple-700' :
                           d.stage === 'Lost' ? 'bg-red-100 text-red-600' :

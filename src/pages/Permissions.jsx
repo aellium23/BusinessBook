@@ -76,7 +76,7 @@ export default function Permissions() {
             }`}>
             {t_.label}
             {t_.count !== undefined && (
-              <span className="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">{t_.count}</span>
+              <span className="text-micro bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">{t_.count}</span>
             )}
           </button>
         ))}
