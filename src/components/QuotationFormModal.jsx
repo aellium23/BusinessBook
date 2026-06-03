@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { useTranslation } from '../hooks/useTranslation'
-import { Modal, formatK } from './ui'
+import { Modal, formatK, CollapsibleSection } from './ui'
 import { createQuotation, updateQuotation } from '../hooks/useQuotations'
 import { X, Plus } from 'lucide-react'
 import SearchableSelect from './SearchableSelect'
@@ -268,24 +268,25 @@ export default function QuotationFormModal({ quotation, onClose, onSaved, prefil
           )}
         </div>
 
-        {/* Validity */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="label">{t('quot_validity')}</label>
-            <select className="select" value={form.validity_days} onChange={e => set('validity_days', e.target.value)}>
-              <option value="15">15 days</option>
-              <option value="30">30 days</option>
-              <option value="60">60 days</option>
-              <option value="90">90 days</option>
-            </select>
+        {/* Validity & notes — collapsed by default */}
+        <CollapsibleSection title={`${t('quot_validity')} · ${t('quot_notes')}`} subtitle={t('df_optional')}>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">{t('quot_validity')}</label>
+              <select className="select" value={form.validity_days} onChange={e => set('validity_days', e.target.value)}>
+                <option value="15">15 days</option>
+                <option value="30">30 days</option>
+                <option value="60">60 days</option>
+                <option value="90">90 days</option>
+              </select>
+            </div>
           </div>
-        </div>
-
-        <div>
-          <label className="label">{t('quot_notes')}</label>
-          <textarea className="input min-h-[60px] resize-none" value={form.notes} onChange={e => set('notes', e.target.value)}
-            placeholder={t('quot_notes_ph')}/>
-        </div>
+          <div>
+            <label className="label">{t('quot_notes')}</label>
+            <textarea className="input min-h-[60px] resize-none" value={form.notes} onChange={e => set('notes', e.target.value)}
+              placeholder={t('quot_notes_ph')}/>
+          </div>
+        </CollapsibleSection>
       </div>
     </Modal>
   )
