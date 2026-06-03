@@ -33,6 +33,7 @@ function DistributorEditor({ item, hubs, onClose, onSaved }) {
     region:     item?.region     ?? '',
     hub_id:     item?.hub_id     ?? '',
     sales_type: item?.sales_type ?? 'external',
+    is_master_distributor: item?.is_master_distributor ?? false,
     notes:      item?.notes      ?? '',
   })
   const [saving, setSaving] = useState(false)
@@ -49,6 +50,7 @@ function DistributorEditor({ item, hubs, onClose, onSaved }) {
       region:     form.region  || null,
       hub_id:     form.hub_id  || null,
       sales_type: form.sales_type || 'external',
+      is_master_distributor: !!form.is_master_distributor,
       notes:      form.notes   || null,
     }
     const res = isEdit
@@ -116,6 +118,16 @@ function DistributorEditor({ item, hubs, onClose, onSaved }) {
               emptyLabel={t('network_not_linked')}
             />
           </div>
+          {/* Master distributor — resells to local distributors (e.g. TIMED Chile) */}
+          <label className="flex items-start gap-2 cursor-pointer bg-gray-50 border border-gray-200 rounded-lg p-3">
+            <input type="checkbox" className="w-4 h-4 accent-navy mt-0.5"
+              checked={!!form.is_master_distributor}
+              onChange={e => set('is_master_distributor', e.target.checked)}/>
+            <span>
+              <span className="text-sm text-gray-700 font-medium">{t('network_master_distributor')}</span>
+              <span className="block text-micro text-gray-400">{t('network_master_distributor_hint')}</span>
+            </span>
+          </label>
           <div>
             <label className="label">{t('network_notes')}</label>
             <textarea className="input min-h-[72px] resize-none" value={form.notes}
@@ -177,6 +189,9 @@ function HubEditor({ item, onClose, onSaved }) {
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={16}/></button>
         </div>
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+          <p className="text-micro text-gray-500 bg-blue-50 border border-blue-100 rounded-lg px-2 py-1.5">
+            {t('network_hub_subsidiary_note')}
+          </p>
           <div>
             <label className="label">{t('network_name')} *</label>
             <input className="input" value={form.name} autoFocus
@@ -346,6 +361,7 @@ export default function Network() {
                         <p className="text-sm font-semibold text-gray-900 truncate">{d.name}</p>
                         <div className="flex items-center gap-2 text-tiny text-gray-500 mt-0.5 flex-wrap">
                           {d.region && <span>{d.region}</span>}
+                          {d.is_master_distributor && <span className="bg-navy/10 text-navy px-1.5 py-0.5 rounded font-semibold">★ {t('network_master_distributor')}</span>}
                           {d.hub && <span className="bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded">{t('network_hub_label')}: {d.hub.name}</span>}
                         </div>
                         {d.notes && <p className="text-tiny text-gray-600 mt-1 whitespace-pre-wrap line-clamp-2">{d.notes}</p>}

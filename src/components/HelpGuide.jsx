@@ -149,6 +149,7 @@ const HELP = {
         'A discount-approvals banner at the top shows pending / approved / rejected requests with filter chips, for admins, managers, and distributors.',
         'Project TCO: on a saved deal, add third-party (other vendor) costs to see the global project margin alongside Fujifilm products.',
         'Delivery acceptance (Auto de Receção): on BackLog deals, send an acceptance certificate email to the client. The client clicks a link to confirm delivery — no login required. Track acceptance status (not sent / pending / accepted) with the delivery filter. Send reminder emails for deals without confirmation.',
+        'Internal/External is automatic: pick "Billed to" (Fuji subsidiary / distributor / end client). VGT invoicing a Fuji subsidiary = Internal; everything else (and all ECT) = External. You can still override manually.',
       ],
       steps: [
         '1. Click "+ Deal" (top right) to open the quick-create form.',
@@ -204,6 +205,7 @@ const HELP = {
         'Un banner de aprobaciones de descuento en la parte superior muestra solicitudes pendientes / aprobadas / rechazadas con chips de filtro, para admins, managers y distribuidores.',
         'TCO del proyecto: en un deal guardado, anade costes de terceros (otros proveedores) para ver el margen global del proyecto junto a los productos Fujifilm.',
         'Aceptacion de entrega (Auto de Recepcion): en deals BackLog, envia un email de certificado de aceptacion al cliente. El cliente hace clic en un enlace para confirmar la entrega — sin login. Filtra por estado de entrega (no enviado / pendiente / aceptado). Envia recordatorios para deals sin confirmacion.',
+        'Interna/Externa es automatico: elige "Facturado a" (subsidiaria Fuji / distribuidor / cliente final). VGT facturando a una subsidiaria Fuji = Interna; el resto (y toda ECT) = Externa. Puedes anular manualmente.',
       ],
       steps: [
         '1. Haz clic en "+ Deal" (arriba a la derecha) para abrir el formulario rapido.',
@@ -258,6 +260,7 @@ const HELP = {
         'Um banner de aprovacoes de desconto no topo mostra pedidos pendentes / aprovados / rejeitados com chips de filtro, para admins, gestores e distribuidores.',
         'TCO do projeto: num deal guardado, adiciona custos de terceiros (outros fornecedores) para ver a margem global do projeto a par dos produtos Fujifilm.',
         'Aceitacao de entrega (Auto de Rececao): em deals BackLog, envia um email de certificado de aceitacao ao cliente. O cliente clica num link para confirmar a entrega — sem login. Filtra por estado de entrega (nao enviado / pendente / aceite). Envia lembretes para deals sem confirmacao.',
+        'Interna/Externa e automatico: escolhe "Faturado a" (subsidiaria Fuji / distribuidor / cliente final). VGT a faturar a uma subsidiaria Fuji = Interna; o resto (e toda a ECT) = Externa. Podes alterar manualmente.',
       ],
       steps: [
         '1. Clica em "+ Deal" (canto superior direito) para abrir o formulario rapido.',
@@ -1163,6 +1166,8 @@ const HELP = {
         'Track hub locations and their associated territories.',
         'Link network entities to deals and clients.',
         'See performance metrics per distributor: pipeline, invoiced, target attainment.',
+        'Hubs represent the Fuji subsidiaries (HCUS, Fuji España, UK, ME…). Manage this list here — it feeds the "Billed to" field on deals, which auto-sets Internal/External.',
+        'Mark a distributor as "Master distributor" (e.g. future TIMED Chile) when it resells to local distributors and we invoice it directly.',
       ],
       steps: [
         '1. View the list of distributors and hubs.',
@@ -1188,6 +1193,8 @@ const HELP = {
         'Ve y gestiona relaciones con distribuidores.',
         'Rastrea ubicaciones de hubs y sus territorios asociados.',
         'Vincula entidades de red a deals y clientes.',
+        'Los hubs representan las subsidiarias Fuji (HCUS, Fuji España, UK, ME…). Gestiona esta lista aqui — alimenta el campo "Facturado a" de los deals, que define automaticamente Interna/Externa.',
+        'Marca un distribuidor como "Master distributor" (p. ej. futura TIMED Chile) cuando revende a distribuidores locales y le facturamos directamente.',
       ],
       steps: [
         '1. Ve la lista de distribuidores y hubs.',
@@ -1213,6 +1220,8 @@ const HELP = {
         'Ve e gere relacoes com distribuidores.',
         'Acompanha localizacoes de hubs e seus territorios associados.',
         'Liga entidades de rede a deals e clientes.',
+        'Os hubs representam as subsidiarias Fuji (HCUS, Fuji España, UK, ME…). Gere esta lista aqui — alimenta o campo "Faturado a" dos deals, que define automaticamente Interna/Externa.',
+        'Marca um distribuidor como "Master distributor" (ex. futura TIMED Chile) quando revende a distribuidores locais e lhe faturamos diretamente.',
       ],
       steps: [
         '1. Ve a lista de distribuidores e hubs.',

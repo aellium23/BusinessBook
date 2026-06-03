@@ -61,6 +61,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
     contract_start: deal.contract_start || '',
     contract_end: deal.contract_end || '',
     revenue_by_fy: deal.revenue_by_fy || null,
+    // Billing party — drives Internal/External (see deriveSalesType)
+    billing_party_type:    deal.billing_party_type || '',
+    billing_subsidiary_id: deal.billing_subsidiary_id || null,
     equipment_count: deal.equipment_count || '',
     annual_studies: deal.annual_studies || '',
     annual_exams: deal.annual_exams || '',
@@ -96,6 +99,15 @@ export default function DealForm({ deal, onClose, onSaved }) {
   const [catalogProducts, setCatalogProducts] = useState([])
   const [authMap, setAuthMap] = useState({})
   const isDistributor = profile?.role === 'distributor'
+  // Auto-derive Internal/External from BU + billing party (who we invoice):
+  //   ECT                         → External (always)
+  //   VGT invoicing a Fuji subsidiary (HCUS, Fuji España/UK/ME…) → Internal
+  //   VGT invoicing a distributor or end client                  → External
+  function deriveSalesType(bu, billingType) {
+    if (bu === 'ECT') return 'External'
+    if (bu === 'VGT' && billingType === 'fuji_subsidiary') return 'Internal'
+    return 'External'
+  }
   const accountsForBU = useMemo(() => {
     let filtered = accounts.filter(a => !form.bu || a.bu === form.bu)
     if (isDistributor && company?.country) {
@@ -128,7 +140,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
       .then(({ data }) => { if (data) setAccounts(data) })
       .catch(() => {})
     // Load distribution network (new in PR 5)
-    supabase.from('distributors').select('id, name, country, region, hub_id').order('name')
+    supabase.from('distributors').select('id, name, country, region, hub_id, is_master_distributor').order('name')
       .then(({ data }) => { if (data) setDistributors(data) })
       .catch(() => {})
     supabase.from('regional_hubs').select('id, name, region').order('name')
@@ -218,6 +230,14 @@ export default function DealForm({ deal, onClose, onSaved }) {
   useEffect(() => {
     if (isDistributor && !form.bu) set('bu', 'VGT')
   }, [isDistributor, form.bu])
+
+  // Auto-derive sales_type from BU + billing party, unless manually overridden
+  useEffect(() => {
+    if (isDistributor) return
+    if (form._sales_type_overridden) return
+    const derived = deriveSalesType(form.bu, form.billing_party_type)
+    if (derived !== form.sales_type) set('sales_type', derived)
+  }, [form.bu, form.billing_party_type, form._sales_type_overridden, isDistributor]) // eslint-disable-line react-hooks/exhaustive-deps
   function set(k, v) {
     setForm(f => {
       const next = { ...f, [k]: v }
@@ -282,6 +302,9 @@ export default function DealForm({ deal, onClose, onSaved }) {
       go_live_year: parseInt(form.go_live_year) || null,
       invoice_date: form.invoice_date || null,
       revenue_by_fy: (form.revenue_by_fy && Object.keys(form.revenue_by_fy).length) ? form.revenue_by_fy : null,
+      // Billing party → Internal/External
+      billing_party_type:    form.billing_party_type || null,
+      billing_subsidiary_id: form.billing_party_type === 'fuji_subsidiary' ? (form.billing_subsidiary_id || null) : null,
       equipment_count: parseInt(form.equipment_count) || null,
       annual_studies: parseInt(form.annual_studies) || null,
       annual_exams: parseInt(form.annual_exams) || null,
@@ -359,11 +382,28 @@ export default function DealForm({ deal, onClose, onSaved }) {
           )}
           {!isDistributor && (
           <div>
-            <label className="label">{t("df_sales_type")}</label>
-            <select className="select" value={form.sales_type} onChange={e => set('sales_type', e.target.value)}>
-              <option>Internal</option>
-              <option>External</option>
-            </select>
+            <label className="label flex items-center justify-between">
+              <span>{t("df_sales_type")}</span>
+              {!form._sales_type_overridden
+                ? <span className="text-micro text-gray-400 font-normal">{t("df_auto")}</span>
+                : <button type="button" onClick={() => set('_sales_type_overridden', false)}
+                    className="text-micro text-navy font-normal hover:underline">{t("df_sales_type_auto")}</button>}
+            </label>
+            {!form._sales_type_overridden ? (
+              <button type="button" onClick={() => set('_sales_type_overridden', true)}
+                className="select text-left flex items-center justify-between"
+                title={t("df_sales_type_override_hint")}>
+                <span className={`badge ${form.sales_type === 'Internal' ? 'badge-int' : 'badge-ext'}`}>
+                  {form.sales_type === 'Internal' ? t("df_internal") : t("df_external")}
+                </span>
+                <span className="text-micro text-gray-300">✎</span>
+              </button>
+            ) : (
+              <select className="select" value={form.sales_type} onChange={e => set('sales_type', e.target.value)}>
+                <option value="Internal">{t("df_internal")}</option>
+                <option value="External">{t("df_external")}</option>
+              </select>
+            )}
           </div>
           )}
           <div>
@@ -503,6 +543,66 @@ export default function DealForm({ deal, onClose, onSaved }) {
             </div>
           </div>
         )}
+        {/* Billing party ("Faturado a") — drives Internal/External.
+            Hidden for distributors; for ECT it's always External (no choice). */}
+        {!isDistributor && form.bu === 'VGT' && (
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-3">
+            <div>
+              <label className="label">{t("df_billed_to")}</label>
+              <select className="select" value={form.billing_party_type}
+                onChange={e => {
+                  const v = e.target.value
+                  set('billing_party_type', v)
+                  if (v !== 'fuji_subsidiary') set('billing_subsidiary_id', null)
+                  if (v !== 'distributor') set('distributor_id', null)
+                }}>
+                <option value="">{t("df_billed_select")}</option>
+                <option value="fuji_subsidiary">{t("df_billed_subsidiary")}</option>
+                <option value="distributor">{t("df_billed_distributor")}</option>
+                <option value="end_client">{t("df_billed_end_client")}</option>
+              </select>
+            </div>
+
+            {form.billing_party_type === 'fuji_subsidiary' && (
+              <div>
+                <label className="label">{t("df_billed_which_subsidiary")}</label>
+                <SearchableSelect
+                  value={form.billing_subsidiary_id || ''}
+                  onChange={v => set('billing_subsidiary_id', v || null)}
+                  options={hubs.map(h => ({ value: h.id, label: h.name, hint: h.region }))}
+                  placeholder={t("df_billed_subsidiary_search")}
+                  emptyLabel="—"
+                />
+              </div>
+            )}
+
+            {form.billing_party_type === 'distributor' && (
+              <div>
+                <label className="label">{t("df_billed_which_distributor")}</label>
+                <SearchableSelect
+                  value={form.distributor_id || ''}
+                  onChange={v => set('distributor_id', v || null)}
+                  options={distributors.map(d => ({
+                    value: d.id,
+                    label: d.is_master_distributor ? `${d.name} ★` : d.name,
+                    hint: [d.country, d.is_master_distributor ? t("df_master_dist") : null].filter(Boolean).join(' · '),
+                  }))}
+                  placeholder={t("df_billed_distributor_search")}
+                  emptyLabel="—"
+                />
+              </div>
+            )}
+
+            {form.billing_party_type && (
+              <p className="text-micro text-gray-500">
+                → {t("df_sales_type")}: <strong className={form.sales_type === 'Internal' ? 'text-green-700' : 'text-blue-700'}>
+                  {form.sales_type === 'Internal' ? t("df_internal") : t("df_external")}
+                </strong>
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Description */}
         <div>
           <label className="label">{t("df_description")}</label>
