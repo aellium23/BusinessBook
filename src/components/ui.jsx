@@ -55,10 +55,11 @@ export function KpiCard({ label, value, sub, color = 'gray' }) {
   )
 }
 
-export function Spinner() {
+export function Spinner({ label }) {
   return (
-    <div className="flex items-center justify-center p-8">
+    <div className="flex flex-col items-center justify-center gap-3 p-8">
       <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin" />
+      {label && <p className="text-xs text-gray-400">{label}</p>}
     </div>
   )
 }
@@ -68,7 +69,7 @@ export function EmptyState({ icon, title, description, action }) {
     <div className="text-center py-12 text-gray-400">
       <div className="text-4xl mb-3">{icon}</div>
       <p className="font-medium text-gray-600">{title}</p>
-      {description && <p className="text-sm mt-1">{description}</p>}
+      {description && <p className="text-sm mt-1 max-w-xs mx-auto">{description}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
   )

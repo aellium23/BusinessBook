@@ -238,7 +238,7 @@ export default function Clients() {
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize)
   const totalPages = Math.ceil(filtered.length / pageSize)
 
-  if (loading) return <Spinner/>
+  if (loading) return <Spinner label="Loading…"/>
 
   return (
     <div className="space-y-4">

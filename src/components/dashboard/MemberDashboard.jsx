@@ -147,7 +147,7 @@ export default function MemberDashboard() {
   return (
     <div className="space-y-4 max-w-lg mx-auto">
       {/* Target card */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+      <div className="card p-5 space-y-4">
         <div className="flex items-start justify-between">
           <div>
             <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">FY26 Target</p>
@@ -206,7 +206,7 @@ export default function MemberDashboard() {
 
       {/* Value breakdown: own vs overlay */}
       {overlayDeals.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+        <div className="card p-4 space-y-3">
           <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Value Breakdown</p>
 
           {/* Own sales */}

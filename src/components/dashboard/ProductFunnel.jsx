@@ -150,7 +150,7 @@ export default function ProductFunnel({ selectedBU = '' }) {
         ) : grouped.map(g => (
           <button key={g.name} type="button"
             onClick={() => navigate(g.name === '(no product)' ? '/deals?noproduct=1' : `/deals?${groupBy}=${encodeURIComponent(g.name)}`)}
-            className="w-full text-left bg-white border border-gray-200 rounded-xl p-3 space-y-2 hover:border-navy hover:shadow-sm transition-all">
+            className="w-full text-left card-link p-3 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <Package size={13} className="text-gray-400 shrink-0"/>

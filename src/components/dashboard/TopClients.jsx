@@ -68,7 +68,7 @@ export default function TopClients({ selectedBU = '' }) {
         ) : shown.map((c, i) => (
           <button key={c.name} type="button"
             onClick={() => navigate(`/deals?client=${encodeURIComponent(c.name)}`)}
-            className="w-full text-left bg-white border border-gray-200 rounded-xl p-3 space-y-2 hover:border-navy hover:shadow-sm transition-all">
+            className="w-full text-left card-link p-3 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <span className="text-micro font-bold text-gray-400 w-5 shrink-0">#{i + 1}</span>
