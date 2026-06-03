@@ -491,7 +491,7 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
         {/* ── Sub-section: KPI Cards ──────────────────────────────────────── */}
         <div>
           <p className="text-xs font-semibold uppercase text-gray-500 mb-2">Key Metrics</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="bg-purple-50 rounded-lg p-3">
               <p className="text-micro text-purple-500 font-semibold uppercase tracking-wide">{t("dash_weighted")}</p>
               <p className="text-lg font-bold text-purple-700 mt-0.5">{formatK(funnelAnalytics.weighted)}</p>
@@ -503,13 +503,6 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
                 {funnelAnalytics.winRate !== null ? `${funnelAnalytics.winRate}%` : '—'}
               </p>
               <p className="text-micro text-gray-400">{funnelAnalytics.wonCount} won / {funnelAnalytics.closedCount} closed</p>
-            </div>
-            <div className="bg-blue-50 rounded-lg p-3">
-              <p className="text-micro text-blue-500 font-semibold uppercase tracking-wide">{t("dash_avg_vel")}</p>
-              <p className="text-lg font-bold text-blue-700 mt-0.5">
-                {funnelAnalytics.avgVelocity !== null ? `${funnelAnalytics.avgVelocity}d` : '—'}
-              </p>
-              <p className="text-micro text-blue-400">{t("dash_created")}</p>
             </div>
             <div className={`rounded-lg p-3 ${funnelAnalytics.aged.length > 0 ? 'bg-red-50' : 'bg-gray-50'}`}>
               <p className="text-micro font-semibold uppercase tracking-wide text-gray-400">{t("dash_aging")}</p>

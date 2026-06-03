@@ -627,53 +627,18 @@ export default function DashboardSummary({ selectedBU = '' }) {
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1">
             <RefreshCw size={12}/> Recurring Business (SLA)
           </p>
-          <div className={`grid gap-3 ${!selectedBU ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2'}`}>
+          <div className="grid grid-cols-2 gap-3">
             <div className="bg-green-50 rounded-lg p-3">
               <p className="text-micro text-gray-500">{selectedBU || 'Consolidated'} ARR</p>
               <p className="text-xl font-bold text-green-600">{formatK(selectedBU === 'VGT' ? (slaStats.byBU?.VGT || 0) : selectedBU === 'ECT' ? (slaStats.byBU?.ECT || 0) : (slaStats.byBU?.total || slaStats.activeValue))}</p>
               <p className="text-micro text-gray-400">{slaStats.active} contracts</p>
             </div>
-            {showVGT && !selectedBU && (
-            <div className="bg-teal-50 rounded-lg p-3">
-              <p className="text-micro text-gray-500">VGT</p>
-              <p className="text-lg font-bold text-vgt">{formatK(slaStats.byBU?.VGT || 0)}</p>
-              <p className="text-micro text-gray-400">recurring/yr</p>
-            </div>
-            )}
-            {showECT && !selectedBU && (
-            <div className="bg-orange-50 rounded-lg p-3">
-              <p className="text-micro text-gray-500">ECT</p>
-              <p className="text-lg font-bold text-ect">{formatK(slaStats.byBU?.ECT || 0)}</p>
-              <p className="text-micro text-gray-400">recurring/yr</p>
-            </div>
-            )}
-            {!selectedBU && (
-            <div className="bg-blue-50 rounded-lg p-3">
-              <p className="text-micro text-gray-500">CWM</p>
-              <p className="text-lg font-bold text-blue-600">{formatK(slaStats.byBU?.CWM || 0)}</p>
-              <p className="text-micro text-gray-400">cross-market</p>
-            </div>
-            )}
-          </div>
-          {slaStats.pipelineValue > 0 && (
-            <div className="bg-gray-50 rounded-lg p-2 flex items-center justify-between">
+            <div className="bg-gray-50 rounded-lg p-3">
               <p className="text-micro text-gray-500">SLA Pipeline</p>
-              <p className="text-sm font-bold text-gray-600">{formatK(slaStats.pipelineValue)}</p>
+              <p className="text-xl font-bold text-gray-600">{formatK(slaStats.pipelineValue)}</p>
+              <a href="/sla" className="text-micro text-blue-600 hover:underline">{t('dash_view_contracts') || 'View contracts →'}</a>
             </div>
-          )}
-          {Object.keys(slaStats.revenueByFY).length > 0 && (
-            <div>
-              <p className="text-micro text-gray-400 mb-1">Projected by Fiscal Year</p>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1">
-                {['FY26','FY27','FY28','FY29','FY30','FY31'].map(fy => (
-                  <div key={fy} className={`text-center rounded p-1.5 ${slaStats.revenueByFY[fy] ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                    <p className="text-micro text-gray-400 font-medium">{fy}</p>
-                    <p className="text-xs font-bold text-gray-700">{slaStats.revenueByFY[fy] ? formatK(slaStats.revenueByFY[fy]) : '—'}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          </div>
         </div>
       )}
 

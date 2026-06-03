@@ -91,15 +91,12 @@ export default function DashboardIndex() {
         )}
       </div>
 
-      {/* View toggle — own row, horizontally scrollable on mobile */}
-      <div className="-mx-4 px-4 overflow-x-auto no-scrollbar">
+      {/* Primary view: Summary / Details */}
+      <div className="flex flex-wrap items-center gap-3">
         <div className="inline-flex rounded-control border border-gray-200 overflow-hidden">
           {[
-            { id: 'summary',  label: t('dash_view_summary') || 'Summary', icon: GaugeIcon },
-            { id: 'classic',  label: t('dash_view_classic') || 'Classic', icon: BarChart3 },
-            { id: 'products', label: 'Products', icon: Package },
-            { id: 'reps',     label: 'Reps',     icon: Users },
-            { id: 'clients',  label: 'Clients',  icon: Building2 },
+            { id: 'summary', label: t('dash_view_summary') || 'Summary', icon: GaugeIcon },
+            { id: 'classic', label: t('dash_view_details') || 'Details', icon: BarChart3 },
           ].map((v, i) => {
             const Icon = v.icon
             const active = view === v.id
@@ -107,10 +104,31 @@ export default function DashboardIndex() {
               <button key={v.id} type="button"
                 onClick={() => setView(v.id)}
                 aria-pressed={active}
-                className={`px-3.5 py-2 text-xs flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 ${
+                className={`px-4 py-2 text-xs flex items-center justify-center gap-1.5 whitespace-nowrap ${
                   i > 0 ? 'border-l border-gray-200' : ''
                 } ${active ? 'bg-navy text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
                 <Icon size={14}/> <span>{v.label}</span>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Secondary: breakdowns (lighter, set apart) */}
+        <div className="flex items-center gap-1.5 text-micro text-gray-400">
+          <span className="uppercase tracking-wide">{t('dash_breakdowns') || 'By'}:</span>
+          {[
+            { id: 'products', label: t('dash_view_products') || 'Products', icon: Package },
+            { id: 'reps',     label: t('dash_view_reps') || 'Reps',         icon: Users },
+            { id: 'clients',  label: t('dash_view_clients') || 'Clients',   icon: Building2 },
+          ].map(v => {
+            const Icon = v.icon
+            const active = view === v.id
+            return (
+              <button key={v.id} type="button" onClick={() => setView(v.id)} aria-pressed={active}
+                className={`px-2.5 py-1 rounded-full text-xs flex items-center gap-1 transition-colors ${
+                  active ? 'bg-navy text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}>
+                <Icon size={12}/> <span>{v.label}</span>
               </button>
             )
           })}

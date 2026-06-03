@@ -9,9 +9,9 @@ const HELP = {
   '/': {
     en: {
       title: 'Dashboard',
-      description: 'Your central command center with five views showing pipeline health, revenue, and analysis by product, sales rep, and client.',
+      description: 'Your central command center: two primary views (Summary, Details) plus secondary breakdowns by product, sales rep, and client.',
       features: [
-        'Five views via the top tabs: Summary, Classic, Products, Reps, Clients.',
+        'Two primary tabs (Summary, Details) plus secondary breakdown pills (Products, Reps, Clients).',
         'Summary: gauges comparing actuals vs budget with a colour legend (green/amber/red) and Actuals / Budget labels beneath each gauge. Forecast is marked with a blue diamond.',
         'All currency values are prefixed with the euro symbol (e.g. €500K, €1.2M).',
         'Classic: monthly charts + funnel analytics restructured into KPI Cards, Sales Funnel with conversion rates between stages, Attention Required alerts, and Analysis.',
@@ -49,9 +49,9 @@ const HELP = {
     },
     es: {
       title: 'Panel',
-      description: 'Tu centro de mando con cinco vistas: salud del pipeline, ingresos y analisis por producto, comercial y cliente.',
+      description: 'Tu centro de mando: dos vistas principales (Resumen, Detalle) mas desgloses por producto, comercial y cliente.',
       features: [
-        'Cinco vistas en las pestanas: Resumen, Clasico, Productos, Comerciales, Clientes.',
+        'Dos pestanas principales (Resumen, Detalle) mas pills de desglose (Productos, Comerciales, Clientes).',
         'Resumen: gauges reales vs presupuesto con leyenda de color (verde/ambar/rojo) y etiquetas Reales / Presupuesto debajo de cada gauge. El forecast se marca con un diamante azul.',
         'Todos los valores monetarios llevan el simbolo del euro (ej. €500K, €1.2M).',
         'Clasico: graficos mensuales + embudo reestructurado en Metricas Clave, Embudo de Ventas con tasas de conversion entre etapas, Atencion Requerida y Analisis.',
@@ -89,9 +89,9 @@ const HELP = {
     },
     pt: {
       title: 'Painel',
-      description: 'O teu centro de comando com cinco vistas: saude do pipeline, receita e analise por produto, comercial e cliente.',
+      description: 'O teu centro de comando: duas vistas principais (Resumo, Detalhe) mais desdobramentos por produto, comercial e cliente.',
       features: [
-        'Cinco vistas nas abas: Resumo, Classico, Produtos, Comerciais, Clientes.',
+        'Duas abas principais (Resumo, Detalhe) mais pills de desdobramento (Produtos, Comerciais, Clientes).',
         'Resumo: gauges reais vs orcamento com legenda de cor (verde/ambar/vermelho) e etiquetas Reais / Orcamento abaixo de cada gauge. O forecast e marcado com um losango azul.',
         'Todos os valores monetarios apresentam o simbolo do euro (ex. €500K, €1.2M).',
         'Classico: graficos mensais + funil reestruturado em Metricas Chave, Funil de Vendas com taxas de conversao entre fases, Atencao Necessaria e Analise.',
