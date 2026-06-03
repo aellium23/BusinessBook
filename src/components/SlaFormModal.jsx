@@ -40,6 +40,7 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
     billing_model:     sla?.billing_model     || 'fixed',
     price_per_study:   sla?.price_per_study   || '',
     estimated_annual_studies: sla?.estimated_annual_studies || '',
+    actual_production:       sla?.actual_production || '',
     billing_frequency: sla?.billing_frequency || 'annual',
     contract_duration_years: sla?.contract_duration_years || 1,
     renewal_date:    sla?.renewal_date    || '',
@@ -167,6 +168,7 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
       billing_model:     form.billing_model || 'fixed',
       price_per_study:   parseFloat(form.price_per_study) || null,
       estimated_annual_studies: parseInt(form.estimated_annual_studies) || null,
+      actual_production:       parseInt(form.actual_production) || null,
       billing_frequency: form.billing_frequency || 'annual',
       contract_duration_years: parseInt(form.contract_duration_years) || 1,
       renewal_date:    form.renewal_date || null,
@@ -566,17 +568,39 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
         )}
 
         {form.billing_model !== 'fixed' && (
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Price per Study €</label>
-              <input className={`input ${fieldErrors.price_per_study ? 'border-red-400' : ''}`} type="number" step="0.01" value={form.price_per_study} onChange={e => set('price_per_study', e.target.value)} placeholder="e.g. 2.50"/>
-              {fieldErrors.price_per_study && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.price_per_study}</p>}
+          <>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="label">Price per Study €</label>
+                <input className={`input ${fieldErrors.price_per_study ? 'border-red-400' : ''}`} type="number" step="0.01" value={form.price_per_study} onChange={e => set('price_per_study', e.target.value)} placeholder="e.g. 2.50"/>
+                {fieldErrors.price_per_study && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.price_per_study}</p>}
+              </div>
+              <div>
+                <label className="label">{t('sla_est_studies')}</label>
+                <input className="input" type="number" value={form.estimated_annual_studies} onChange={e => set('estimated_annual_studies', e.target.value)} placeholder="e.g. 15000"/>
+              </div>
+              <div>
+                <label className="label">{t('sla_actual_prod')}</label>
+                <input className={`input ${(() => { const e = parseInt(form.estimated_annual_studies)||0; const a = parseInt(form.actual_production)||0; return a > e && e > 0 ? 'border-red-400 bg-red-50' : '' })()}`}
+                  type="number" value={form.actual_production} onChange={e => set('actual_production', e.target.value)} placeholder="e.g. 50000"/>
+              </div>
             </div>
-            <div>
-              <label className="label">Est. Annual Studies</label>
-              <input className="input" type="number" value={form.estimated_annual_studies} onChange={e => set('estimated_annual_studies', e.target.value)} placeholder="e.g. 15000"/>
-            </div>
-          </div>
+            {(() => {
+              const est = parseInt(form.estimated_annual_studies) || 0
+              const act = parseInt(form.actual_production) || 0
+              if (act > est && est > 0) {
+                const overPct = Math.round(((act - est) / est) * 100)
+                return (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-2 flex items-center justify-between">
+                    <p className="text-xs text-red-700">
+                      <strong>{t('sla_compliance_alert')}</strong> — {t('sla_compliance_over')} {overPct}% ({act.toLocaleString('pt-PT')} vs {est.toLocaleString('pt-PT')} {t('sla_licensed')})
+                    </p>
+                  </div>
+                )
+              }
+              return null
+            })()}
+          </>
         )}
 
         {['reduced','cancelled'].includes(form.status) && (

@@ -8,7 +8,7 @@ const AuthContext = createContext(null)
 // ── Permissões por role ───────────────────────────────────────────────────────
 export const ROLE_PERMISSIONS = {
   admin: {
-    pages:    ['dashboard','deals','clients','contacts','accounts','whitespace','network','audit','history','quotas','budget','settings','tasks','tenders','permissions','sla','products'],
+    pages:    ['dashboard','deals','clients','contacts','accounts','whitespace','network','audit','history','quotas','budget','settings','tasks','tenders','permissions','sla','products','quotations'],
     canEdit:  true,
     canDelete: true,
     editOwn:  false,
@@ -17,7 +17,7 @@ export const ROLE_PERMISSIONS = {
     manageUsers: true,
   },
   manager: {
-    pages:    ['dashboard','deals','clients','contacts','accounts','whitespace','network','history','quotas','budget','tasks','tenders','sla','products'],
+    pages:    ['dashboard','deals','clients','contacts','accounts','whitespace','network','history','quotas','budget','tasks','tenders','sla','products','quotations'],
     canEdit:  true,
     canDelete: true,
     editOwn:  false,
@@ -26,7 +26,7 @@ export const ROLE_PERMISSIONS = {
     manageUsers: false,
   },
   member: {
-    pages:    ['dashboard','deals','clients','contacts','accounts','whitespace','network','history','quotas','tasks','tenders','sla','products'],
+    pages:    ['dashboard','deals','clients','contacts','accounts','whitespace','network','history','quotas','tasks','tenders','sla','products','quotations'],
     canEdit:  true,
     canDelete: false,
     editOwn:  true,
@@ -35,7 +35,7 @@ export const ROLE_PERMISSIONS = {
     manageUsers: false,
   },
   distributor: {
-    pages:    ['dashboard','deals','tasks','tenders','clients','contacts','history','quotas'],
+    pages:    ['dashboard','deals','tasks','tenders','clients','contacts','history','quotas','quotations'],
     canEdit:  true,
     canDelete: false,
     editOwn:  true,

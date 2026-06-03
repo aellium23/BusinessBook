@@ -81,6 +81,9 @@ const SlaCard = memo(function SlaCard({ sla, onEdit, onDelete, canEdit, canDelet
         {(sla.support_hours != null && sla.support_hours !== '') && (
           <span className="badge-neutral">{sla.support_hours}h {t('sla_support_short')}</span>
         )}
+        {sla.actual_production > 0 && sla.estimated_annual_studies > 0 && sla.actual_production > sla.estimated_annual_studies && (
+          <span className="badge-danger">⚠ {Math.round(((sla.actual_production - sla.estimated_annual_studies) / sla.estimated_annual_studies) * 100)}% over</span>
+        )}
       </div>
 
       <div className="flex items-center gap-1 flex-wrap">

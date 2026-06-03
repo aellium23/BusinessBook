@@ -858,6 +858,100 @@ const HELP = {
     },
   },
 
+  '/quotations': {
+    en: {
+      title: 'Quotations',
+      description: 'Create and manage quotations for distributors. Supports license compliance regularization, upgrades, and new business. Distributors can accept, reject, or counter-offer. Accepted quotations automatically generate Deal Cards.',
+      features: [
+        'Three quotation types: License Compliance (regularize over-usage), Upgrade, and New Business.',
+        'Add products from the catalog with quantity and unit price. Total is calculated automatically.',
+        'Link a quotation to a distributor — they see it on their portal and can accept, reject, or counter-offer.',
+        'Negotiation flow: draft → sent → accepted/rejected/counter-offer → converted to Deal.',
+        'Accepted quotations convert to Deal Cards with one click — products, value, and client are pre-filled.',
+        'License compliance: enter the licensed volume and actual volume; the SLA page flags over-usage automatically.',
+        'Tab-based filtering: All, Draft, Sent, Counter, Accepted, Converted.',
+      ],
+      steps: [
+        '1. Click "New Quotation" and select the type (License Compliance / New Business / Upgrade).',
+        '2. Pick the client, distributor, and add products from the catalog.',
+        '3. For compliance: enter the licensed vs actual volume to document the gap.',
+        '4. Save as Draft, then Send to the distributor.',
+        '5. The distributor reviews on their portal and accepts, rejects, or counter-offers.',
+        '6. If counter-offered, review the new value and accept or revise.',
+        '7. Once accepted, click the arrow button to auto-generate a Deal Card.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Sending a quotation without products — the distributor cannot evaluate an empty quote.',
+        'Not linking a distributor — the quotation will not appear on their portal.',
+        'Forgetting to convert an accepted quotation — the Deal Card will not be created.',
+      ],
+      seeAlso: [
+        { label: 'Deals — quotations generate Deal Cards', path: '/deals' },
+        { label: 'Contracts & SLAs — compliance detection triggers quotations', path: '/sla' },
+        { label: 'Products — line items reference the product catalog', path: '/products' },
+      ],
+    },
+    es: {
+      title: 'Cotizaciones',
+      description: 'Crea y gestiona cotizaciones para distribuidores. Soporta regularizacion de licencias, upgrades y nuevo negocio. Los distribuidores pueden aceptar, rechazar o contraofertar. Las cotizaciones aceptadas generan Deal Cards automaticamente.',
+      features: [
+        'Tres tipos: Compliance de Licencia, Upgrade y Nuevo Negocio.',
+        'Anade productos del catalogo con cantidad y precio unitario.',
+        'Vincula a un distribuidor — lo ve en su portal y puede aceptar, rechazar o contraofertar.',
+        'Flujo de negociacion: borrador → enviada → aceptada/rechazada/contrapropuesta → convertida en Deal.',
+        'Las cotizaciones aceptadas se convierten en Deal Cards con un clic.',
+        'Compliance: introduce el volumen licenciado y real; la pagina SLA marca el exceso automaticamente.',
+      ],
+      steps: [
+        '1. Haz clic en "Nueva Cotizacion" y selecciona el tipo.',
+        '2. Elige cliente, distribuidor y anade productos del catalogo.',
+        '3. Para compliance: introduce el volumen licenciado vs real.',
+        '4. Guarda como Borrador y luego Envia al distribuidor.',
+        '5. El distribuidor revisa y acepta, rechaza o hace contrapropuesta.',
+        '6. Una vez aceptada, haz clic en el boton de flecha para generar un Deal Card.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Enviar sin productos — el distribuidor no puede evaluar.',
+        'No vincular un distribuidor — no aparecera en su portal.',
+      ],
+      seeAlso: [
+        { label: 'Oportunidades — las cotizaciones generan Deal Cards', path: '/deals' },
+        { label: 'Contratos y SLAs — la deteccion de compliance desencadena cotizaciones', path: '/sla' },
+      ],
+    },
+    pt: {
+      title: 'Cotacoes',
+      description: 'Cria e gere cotacoes para distribuidores. Suporta regularizacao de licencas, upgrades e novo negocio. Os distribuidores podem aceitar, rejeitar ou contrapropor. Cotacoes aceites geram automaticamente Deal Cards.',
+      features: [
+        'Tres tipos: Conformidade de Licenca, Upgrade e Novo Negocio.',
+        'Adiciona produtos do catalogo com quantidade e preco unitario.',
+        'Associa a um distribuidor — ele ve no portal e pode aceitar, rejeitar ou contrapropor.',
+        'Fluxo de negociacao: rascunho → enviada → aceite/rejeitada/contraproposta → convertida em Deal.',
+        'Cotacoes aceites convertem-se em Deal Cards com um clique.',
+        'Conformidade: introduz o volume licenciado e real; a pagina SLA sinaliza o excesso automaticamente.',
+      ],
+      steps: [
+        '1. Clica em "Nova Cotacao" e seleciona o tipo.',
+        '2. Escolhe cliente, distribuidor e adiciona produtos do catalogo.',
+        '3. Para conformidade: introduz o volume licenciado vs real.',
+        '4. Guarda como Rascunho e depois Envia ao distribuidor.',
+        '5. O distribuidor revê e aceita, rejeita ou faz contraproposta.',
+        '6. Quando aceite, clica no botao de seta para gerar um Deal Card.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Enviar sem produtos — o distribuidor nao consegue avaliar.',
+        'Nao associar um distribuidor — nao aparecera no portal dele.',
+      ],
+      seeAlso: [
+        { label: 'Negocios — as cotacoes geram Deal Cards', path: '/deals' },
+        { label: 'Contratos e SLAs — a detecao de conformidade desencadeia cotacoes', path: '/sla' },
+      ],
+    },
+  },
+
   '/products': {
     en: {
       title: 'Products',
