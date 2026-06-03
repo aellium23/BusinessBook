@@ -185,13 +185,42 @@ export const SLA_TYPES = [
   'Support & Updates',
 ]
 
+// ── Deal business models ────────────────────────────────────────────────
+// Five canonical commercial scenarios. Each one ALWAYS carries a contract
+// start + end date (see DealForm "Contract Period"). The `hint` is shown
+// under the selector to guide the rep.
 export const BUSINESS_MODELS = [
-  { id: 'capex',         label: 'CAPEX (License + Annual Fee)' },
-  { id: 'opex',          label: 'OPEX (Subscription)' },
-  { id: 'saas',          label: 'SaaS' },
-  { id: 'hybrid',        label: 'Hybrid (CAPEX + OPEX)' },
-  { id: 'pay_per_study', label: 'Pay per Study' },
+  { id: 'financed_project', label: 'Financed Project (bank-financed, deferred)', hint: 'Multi-year project, bank financing. We collect upfront and defer revenue across the years (revenue schedule).' },
+  { id: 'pay_per_study',    label: 'OPEX — Pay per Study',                       hint: 'Quarterly invoicing based on real production. Set an annual estimate, then enter actuals when invoicing.' },
+  { id: 'subscription',     label: 'Subscription (annual renewal)',              hint: 'Annual fee for a solution (e.g. CWM-Dose). Invoice monthly/quarterly/annually. Renews every year.' },
+  { id: 'capex',            label: 'CAPEX (license + warranty + SLA)',           hint: 'Client owns the licenses. Recognise the sale upfront with X years warranty, then a maintenance contract (SLA) afterwards.' },
+  { id: 'one_shot',         label: 'One-shot (no recurrence)',                   hint: 'No recurring business expected (e.g. hardware sale).' },
 ]
+
+// Legacy → canonical mapping so historical deals never lose meaning.
+// (Old taxonomy was capex / opex / saas / hybrid / pay_per_study.)
+export const LEGACY_BUSINESS_MODELS = {
+  opex:   'subscription',
+  saas:   'subscription',
+  hybrid: 'capex',
+}
+
+// Resolve a stored business_model id (new OR legacy) to the canonical id.
+export function normalizeBusinessModel(id) {
+  if (!id) return ''
+  if (BUSINESS_MODELS.some(m => m.id === id)) return id
+  return LEGACY_BUSINESS_MODELS[id] || id
+}
+
+// Human label for any business_model id (tolerant of legacy/unknown values).
+export function businessModelLabel(id) {
+  if (!id) return ''
+  const canonical = normalizeBusinessModel(id)
+  return BUSINESS_MODELS.find(m => m.id === canonical)?.label || id
+}
+
+// Models that imply recurring revenue (→ prompt to create a Contract/SLA).
+export const RECURRING_MODELS = ['pay_per_study', 'subscription']
 
 export const BILLING_MODELS = [
   { id: 'fixed',                     label: 'Fixed Annual' },

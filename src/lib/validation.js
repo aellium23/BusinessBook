@@ -97,6 +97,17 @@ export function validateDeal(form) {
   if (form.stage === 'Lost' && !form.lost_reason)
     errors.lost_reason = 'Please select a reason for losing this deal'
 
+  // Contract period — end must be after start when both are set
+  if (form.contract_start && !isValidDate(form.contract_start))
+    errors.contract_start = 'Invalid contract start date'
+  if (form.contract_end && !isValidDate(form.contract_end))
+    errors.contract_end = 'Invalid contract end date'
+  if (form.contract_start && form.contract_end &&
+      isValidDate(form.contract_start) && isValidDate(form.contract_end)) {
+    if (new Date(form.contract_end) <= new Date(form.contract_start))
+      errors.contract_end = 'Contract end must be after start'
+  }
+
   return { valid: Object.keys(errors).length === 0, errors }
 }
 

@@ -75,6 +75,12 @@ const SlaCard = memo(function SlaCard({ sla, onEdit, onDelete, canEdit, canDelet
         {sla.deal_owner && sla.deal_owner !== sla.sla_owner && (
           <span className="text-gray-400">{t('sla_deal_label')}: {sla.deal_owner}</span>
         )}
+        {sla.includes_updates && (
+          <span className="badge-info">↑ {t('sla_updates_short')}</span>
+        )}
+        {(sla.support_hours != null && sla.support_hours !== '') && (
+          <span className="badge-neutral">{sla.support_hours}h {t('sla_support_short')}</span>
+        )}
       </div>
 
       <div className="flex items-center gap-1 flex-wrap">

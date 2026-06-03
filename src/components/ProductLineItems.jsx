@@ -13,7 +13,7 @@ const LICENSE_TYPES = [
 export default function ProductLineItems({ lines, onChange, products, businessModel, t, onTotalChange, onBusinessModelInfer, userRole }) {
   const [searchTerm, setSearchTerm] = useState('')
 
-  const isCapex = ['capex', 'hybrid'].includes(businessModel)
+  const isCapex = ['capex', 'financed_project', 'one_shot'].includes(businessModel)
   const isDistributor = userRole === 'distributor'
 
   const filteredProducts = useMemo(() => {
@@ -133,8 +133,9 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
       const types = new Set(updatedLines.map(l => l.license_type).filter(Boolean))
       const hasCapex = types.has('flat') || types.has('per_ccu') || types.has('per_equipment')
       const hasOpex = types.has('per_volume') || types.has('per_package')
-      if (hasCapex && hasOpex) onBusinessModelInfer('hybrid')
-      else if (hasOpex) onBusinessModelInfer('pay_per_study')
+      // Recurring volume/package licensing → pay-per-study; otherwise CAPEX.
+      // (A capex+recurring mix stays CAPEX; the post-sale SLA captures the recurring part.)
+      if (hasOpex && !hasCapex) onBusinessModelInfer('pay_per_study')
       else onBusinessModelInfer('capex')
     }
   }

@@ -44,6 +44,10 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
     contract_duration_years: sla?.contract_duration_years || 1,
     renewal_date:    sla?.renewal_date    || '',
     invoice_date:    sla?.invoice_date    || '',
+    // Scenario 4 — what the maintenance contract actually covers
+    includes_updates:   sla?.includes_updates ?? false,
+    support_hours:      sla?.support_hours ?? '',
+    support_hours_note: sla?.support_hours_note || '',
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState(null)
@@ -167,6 +171,9 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
       contract_duration_years: parseInt(form.contract_duration_years) || 1,
       renewal_date:    form.renewal_date || null,
       invoice_date:    form.invoice_date || null,
+      includes_updates:   !!form.includes_updates,
+      support_hours:      form.support_hours === '' ? null : (parseInt(form.support_hours) || 0),
+      support_hours_note: form.support_hours_note || null,
       ...(!isEdit ? { created_by: profile?.id } : {}),
     }
 
@@ -439,6 +446,32 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
           <input className={`input ${fieldErrors.invoice_date ? 'border-red-400' : ''}`} type="date" value={form.invoice_date} onChange={e => set('invoice_date', e.target.value)}/>
           {fieldErrors.invoice_date && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.invoice_date}</p>}
           <p className="text-micro text-gray-400 mt-0.5">Date when PO received and invoice issued</p>
+        </div>
+
+        {/* Contract coverage — what the SLA actually includes (Scenario 4) */}
+        <div className="border-t pt-3 space-y-2">
+          <p className="text-xs font-semibold text-gray-500 uppercase">{t('sla_coverage')}</p>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" className="w-4 h-4 accent-navy"
+              checked={!!form.includes_updates}
+              onChange={e => set('includes_updates', e.target.checked)}/>
+            <span className="text-sm text-gray-700">{t('sla_includes_updates')}</span>
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">{t('sla_support_hours')}</label>
+              <input className="input" type="number" min="0" value={form.support_hours}
+                onChange={e => set('support_hours', e.target.value)}
+                placeholder={t('sla_support_hours_ph')}/>
+              <p className="text-micro text-gray-400 mt-0.5">{t('sla_support_hours_hint')}</p>
+            </div>
+            <div>
+              <label className="label">{t('sla_support_hours_note')}</label>
+              <input className="input" value={form.support_hours_note}
+                onChange={e => set('support_hours_note', e.target.value)}
+                placeholder={t('sla_support_hours_note_ph')}/>
+            </div>
+          </div>
         </div>
 
         {monthlyRecognition && (

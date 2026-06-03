@@ -5,6 +5,10 @@ export const EMPTY_DEAL = {
   sales_owner:'', description:'',
   go_live_month: '', go_live_year: '',
   invoice_date: '',
+  // Contract period — required for every business model
+  contract_start: '', contract_end: '',
+  // Multi-year deferral schedule (financed_project) — { FY26: 936200, … }
+  revenue_by_fy: null,
   value_total:'', gm_pct:'',
   rec_month:'', rec_year:'',
   cs_day:1, cs_month:'', cs_year:'', ce_day:31, ce_month:'', ce_year:'',

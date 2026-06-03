@@ -11,7 +11,7 @@ import AttachmentsList from './AttachmentsList'
 import ContactsList from './ContactsList'
 import SearchableSelect from './SearchableSelect'
 import ProductLineItems from './ProductLineItems'
-import { FORECAST_CATEGORIES, defaultForecastFromStage, BUSINESS_MODELS, REGIONS, COUNTRY_MAP, MONTHS, MONTHS_K, DIST_STAGES, regionForCountry } from '../constants'
+import { FORECAST_CATEGORIES, defaultForecastFromStage, BUSINESS_MODELS, RECURRING_MODELS, normalizeBusinessModel, REGIONS, COUNTRY_MAP, MONTHS, MONTHS_K, DIST_STAGES, regionForCountry } from '../constants'
 import { saveDealProducts } from '../hooks/useDealProducts'
 import { getAllowedTransitions, canTransition } from '../lib/stateMachine'
 import { validateDeal } from '../lib/validation'
@@ -22,6 +22,7 @@ import DealActivityNotes from './deal/DealActivityNotes'
 import DistributionSection from './deal/DistributionSection'
 import DiscountHistory from './deal/DiscountHistory'
 import ProjectTCO from './deal/ProjectTCO'
+import RevenueSchedule from './deal/RevenueSchedule'
 import { EMPTY_DEAL as EMPTY } from './deal/dealDefaults'
 
 export default function DealForm({ deal, onClose, onSaved }) {
@@ -51,11 +52,14 @@ export default function DealForm({ deal, onClose, onSaved }) {
     discount_requested: deal.discount_requested || '',
     discount_note_dist: deal.discount_note_dist || '',
     product: deal.product || '',
-    business_model: deal.business_model || '',
+    business_model: normalizeBusinessModel(deal.business_model) || '',
     warranty_months: deal.warranty_months || 36,
     go_live_month: deal.go_live_month || '',
     go_live_year: deal.go_live_year || '',
     invoice_date: deal.invoice_date || '',
+    contract_start: deal.contract_start || '',
+    contract_end: deal.contract_end || '',
+    revenue_by_fy: deal.revenue_by_fy || null,
     equipment_count: deal.equipment_count || '',
     annual_studies: deal.annual_studies || '',
     annual_exams: deal.annual_exams || '',
@@ -240,6 +244,12 @@ export default function DealForm({ deal, onClose, onSaved }) {
 
     const monthly = Object.fromEntries(MONTHS_K.map(m => [m, parseFloat(form[m]) || 0]))
 
+    // Derive legacy cs_*/ce_* (used by the SLA warranty + recognition engine)
+    // from the canonical contract-period date pickers, when set.
+    const MONTHS_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    const csD = form.contract_start ? new Date(form.contract_start) : null
+    const ceD = form.contract_end ? new Date(form.contract_end) : null
+
     const payload = {
       ...(deal?.id ? { id: deal.id } : {}),
       bu: form.bu, sales_type: form.sales_type, stage: form.stage,
@@ -251,8 +261,15 @@ export default function DealForm({ deal, onClose, onSaved }) {
       value_total: parseFloat(form.value_total) || 0,
       gm_pct: parseFloat(form.gm_pct) / 100 || 0,
       rec_month: form.rec_month || null, rec_year: parseInt(form.rec_year) || null,
-      cs_day: parseInt(form.cs_day) || 1, cs_month: form.cs_month || null, cs_year: parseInt(form.cs_year) || null,
-      ce_day: parseInt(form.ce_day) || 31, ce_month: form.ce_month || null, ce_year: parseInt(form.ce_year) || null,
+      cs_day:   csD ? csD.getDate()              : (parseInt(form.cs_day) || 1),
+      cs_month: csD ? MONTHS_ABBR[csD.getMonth()] : (form.cs_month || null),
+      cs_year:  csD ? csD.getFullYear()           : (parseInt(form.cs_year) || null),
+      ce_day:   ceD ? ceD.getDate()              : (parseInt(form.ce_day) || 31),
+      ce_month: ceD ? MONTHS_ABBR[ceD.getMonth()] : (form.ce_month || null),
+      ce_year:  ceD ? ceD.getFullYear()           : (parseInt(form.ce_year) || null),
+      // Canonical contract period (every business model carries these)
+      contract_start: form.contract_start || null,
+      contract_end:   form.contract_end || null,
       // Currency
       currency: form.currency || 'EUR',
       exchange_rate: form.currency === 'EUR' ? 1.0 : (parseFloat(form.exchange_rate) || 1.0),
@@ -263,6 +280,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
       go_live_month: form.go_live_month || null,
       go_live_year: parseInt(form.go_live_year) || null,
       invoice_date: form.invoice_date || null,
+      revenue_by_fy: (form.revenue_by_fy && Object.keys(form.revenue_by_fy).length) ? form.revenue_by_fy : null,
       equipment_count: parseInt(form.equipment_count) || null,
       annual_studies: parseInt(form.annual_studies) || null,
       annual_exams: parseInt(form.annual_exams) || null,
@@ -606,16 +624,40 @@ export default function DealForm({ deal, onClose, onSaved }) {
         <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
           <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{t("df_product_lbl")}</p>
           {/* Business model selector — hidden for distributors, auto-inferred from products */}
-          {!isDistributor && <div className="grid grid-cols-2 gap-3">
+          {!isDistributor && <div className="space-y-3">
             <div>
               <label className="label">{t("df_business_model")}</label>
               <select className="select" value={form.business_model} onChange={e => set('business_model', e.target.value)}>
                 <option value="">{t("df_select_model")}</option>
                 {BUSINESS_MODELS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
               </select>
+              {form.business_model && (
+                <p className="text-micro text-gray-500 mt-1">
+                  {BUSINESS_MODELS.find(m => m.id === form.business_model)?.hint}
+                </p>
+              )}
             </div>
-            {['opex','saas','pay_per_study'].includes(form.business_model) && !deal?.id && (
-              <div className="col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-2 flex items-center justify-between">
+
+            {/* Contract period — required for every business model */}
+            {form.business_model && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">{t("df_contract_start")}</label>
+                  <input className={`input ${fieldErrors.contract_end ? '' : ''}`} type="date"
+                    value={form.contract_start} onChange={e => set('contract_start', e.target.value)}/>
+                </div>
+                <div>
+                  <label className="label">{t("df_contract_end")}</label>
+                  <input className={`input ${fieldErrors.contract_end ? 'border-red-400' : ''}`} type="date"
+                    value={form.contract_end} onChange={e => set('contract_end', e.target.value)}/>
+                  {fieldErrors.contract_end && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.contract_end}</p>}
+                </div>
+              </div>
+            )}
+
+            {/* Recurring models → prompt to create a Contract/SLA */}
+            {RECURRING_MODELS.includes(form.business_model) && !deal?.id && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 flex items-center justify-between">
                 <p className="text-xs text-blue-700">
                   {t("df_recurring_hint")} <strong>{t("df_contract_lbl")}</strong>.
                 </p>
@@ -624,38 +666,70 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 </a>
               </div>
             )}
-            {['capex','hybrid'].includes(form.business_model) && (
-              <div>
-                <label className="label">{t("df_warranty_months")}</label>
-                <input className="input" type="number" value={form.warranty_months}
-                  onChange={e => set('warranty_months', e.target.value)} placeholder="36"/>
-              </div>
+
+            {/* Financed project → multi-year deferral schedule */}
+            {form.business_model === 'financed_project' && (
+              <RevenueSchedule
+                contractStart={form.contract_start}
+                contractEnd={form.contract_end}
+                valueTotal={form.value_total}
+                schedule={form.revenue_by_fy}
+                onChange={(next) => set('revenue_by_fy', next)}
+                currency={form.currency}
+                t={t}
+              />
+            )}
+
+            {/* Pay-per-study → quarterly billing on real production */}
+            {form.business_model === 'pay_per_study' && (
+              <p className="text-micro text-purple-700 bg-purple-50 rounded px-2 py-1">
+                {t("df_pps_hint")}
+              </p>
+            )}
+
+            {/* Subscription → annual renewal + invoice cycle */}
+            {form.business_model === 'subscription' && (
+              <p className="text-micro text-blue-700 bg-blue-50 rounded px-2 py-1">
+                {t("df_subscription_hint")}
+              </p>
+            )}
+
+            {/* CAPEX → warranty period before the post-warranty SLA */}
+            {form.business_model === 'capex' && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label">{t("df_warranty_months")}</label>
+                    <select className="select" value={form.warranty_months}
+                      onChange={e => set('warranty_months', e.target.value)}>
+                      <option value="12">12 ({t("df_one_year")})</option>
+                      <option value="24">24 ({t("df_two_years")})</option>
+                      <option value="36">36 ({t("df_three_years")})</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label">{t("df_go_live_month")} {['BackLog','Invoiced'].includes(form.stage) ? '*' : ''}</label>
+                    <select className="select" value={form.go_live_month} onChange={e => set('go_live_month', e.target.value)}>
+                      <option value="">—</option>
+                      {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map(m => <option key={m}>{m}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">{t("df_go_live_year")}</label>
+                    <select className="select" value={form.go_live_year} onChange={e => set('go_live_year', e.target.value)}>
+                      <option value="">—</option>
+                      {[2025,2026,2027,2028].map(y => <option key={y}>{y}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <p className="text-micro text-blue-600 bg-blue-50 rounded px-2 py-1">
+                  {t("df_warranty_hint")} {form.warranty_months || 36} {t("df_warranty_months_suffix")} · {t("df_capex_sla_hint")}
+                </p>
+              </>
             )}
           </div>}
-
-          {!isDistributor && ['capex','hybrid'].includes(form.business_model) && (
-            <>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="label">{t("df_go_live_month")} {['BackLog','Invoiced'].includes(form.stage) ? '*' : ''}</label>
-                  <select className="select" value={form.go_live_month} onChange={e => set('go_live_month', e.target.value)}>
-                    <option value="">—</option>
-                    {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map(m => <option key={m}>{m}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="label">{t("df_go_live_year")}</label>
-                  <select className="select" value={form.go_live_year} onChange={e => set('go_live_year', e.target.value)}>
-                    <option value="">—</option>
-                    {[2025,2026,2027,2028].map(y => <option key={y}>{y}</option>)}
-                  </select>
-                </div>
-              </div>
-              <p className="text-micro text-blue-600 bg-blue-50 rounded px-2 py-1">
-                {t("df_warranty_hint")} {form.warranty_months || 36} {t("df_warranty_months_suffix")}
-              </p>
-            </>
-          )}
           {isDistributor && form.country && resolvedProducts.length === 0 && (
             <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
               {Object.keys(authMap).length === 0
@@ -731,7 +805,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
         {/* ── CONTRACT LINK ──────────────────────────────────── */}
         {deal?.id && (isAdmin || profile?.role === 'manager') && !deal.converted_to_sla && (() => {
           const isInvoiced = form.stage === 'Invoiced'
-          const isRecurring = ['opex','saas','pay_per_study'].includes(form.business_model)
+          const isRecurring = RECURRING_MODELS.includes(form.business_model)
           const shouldPrompt = isInvoiced || isRecurring
           const hasRecurringProducts = dealLines.some(l => ['per_volume','per_package'].includes(l.license_type) || (Number(l.annual_fee) || 0) > 0)
           const urgent = isInvoiced && (isRecurring || hasRecurringProducts)
