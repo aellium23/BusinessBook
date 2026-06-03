@@ -8,6 +8,17 @@ export default {
         ect:  { DEFAULT: '#D85A30', light: '#FAECE7', dark: '#993C1D' },
         navy: { DEFAULT: '#0D2137', light: '#1a3a5c' },
       },
+      // Refined shadow scale — subtle, intentional elevation.
+      //   sm  → resting cards / rows
+      //   md  → hover / interactive lift
+      //   lg  → floating elements (popovers, dropdowns)
+      //   modal → bottom sheets & dialogs
+      boxShadow: {
+        sm:    '0 1px 2px rgba(13, 33, 55, 0.06)',
+        md:    '0 4px 10px rgba(13, 33, 55, 0.08)',
+        lg:    '0 10px 24px rgba(13, 33, 55, 0.10)',
+        modal: '0 -8px 40px rgba(13, 33, 55, 0.18)',
+      },
       // ── Design tokens ───────────────────────────────────────────────────
       // Unified across the app so components don't invent their own scales.
       //   radius-card     → cards, list rows, dropdowns    (16px)

@@ -9,7 +9,7 @@
 }
 
 @layer components {
-  .card  { @apply bg-white rounded-xl border border-gray-200 shadow-sm; }
+  .card  { @apply bg-white rounded-card border border-gray-200 shadow-sm; }
   /* .btn definido abaixo com mobile styles */
   .btn-primary   { @apply btn bg-navy text-white hover:bg-navy-light; }
   .btn-secondary { @apply btn bg-gray-100 text-gray-700 hover:bg-gray-200; }
@@ -17,14 +17,31 @@
   /* .input definido abaixo com mobile styles */
   /* .select definido abaixo com mobile styles */
   .label  { @apply block text-xs font-medium text-gray-500 mb-1; }
-  .badge-vgt  { @apply inline-flex px-2 py-0.5 rounded text-xs font-bold bg-vgt text-white; }
-  .badge-ect  { @apply inline-flex px-2 py-0.5 rounded text-xs font-bold bg-ect text-white; }
-  .badge-int  { @apply inline-flex px-2 py-0.5 rounded text-xs font-bold bg-green-700 text-white; }
-  .badge-ext  { @apply inline-flex px-2 py-0.5 rounded text-xs font-bold bg-blue-700 text-white; }
-  .badge-lead     { @apply inline-flex px-2 py-0.5 rounded text-xs font-bold bg-pink-200 text-pink-900; }
-  .badge-pipeline { @apply inline-flex px-2 py-0.5 rounded text-xs font-bold bg-amber-200 text-amber-900; }
-  .badge-backlog  { @apply inline-flex px-2 py-0.5 rounded text-xs font-bold bg-blue-200 text-blue-900; }
-  .badge-invoiced { @apply inline-flex px-2 py-0.5 rounded text-xs font-bold bg-green-200 text-green-900; }
+
+  /* ── Unified badge system ──────────────────────────────────────────
+     One base + semantic/stage variants. Use .badge with a variant class
+     instead of inventing inline px/py/rounded each time. */
+  .badge { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-micro font-bold whitespace-nowrap; }
+  .badge-primary { @apply badge bg-navy/10 text-navy; }
+  .badge-success { @apply badge bg-vgt/10 text-vgt-dark; }
+  .badge-warning { @apply badge bg-ect/10 text-ect-dark; }
+  .badge-info    { @apply badge bg-blue-50 text-blue-700; }
+  .badge-neutral { @apply badge bg-gray-100 text-gray-600; }
+  .badge-danger  { @apply badge bg-red-50 text-red-700; }
+
+  /* Solid BU/type badges (kept for strong identity) */
+  .badge-vgt  { @apply badge bg-vgt text-white; }
+  .badge-ect  { @apply badge bg-ect text-white; }
+  .badge-int  { @apply badge bg-green-700 text-white; }
+  .badge-ext  { @apply badge bg-blue-700 text-white; }
+
+  /* Stage badges — consistent semantic mapping across the app */
+  .badge-lead     { @apply badge bg-gray-100 text-gray-600; }
+  .badge-pipeline { @apply badge bg-blue-100 text-blue-700; }
+  .badge-offer    { @apply badge bg-purple-100 text-purple-700; }
+  .badge-backlog  { @apply badge bg-amber-100 text-amber-800; }
+  .badge-invoiced { @apply badge bg-green-100 text-green-700; }
+  .badge-lost     { @apply badge bg-red-100 text-red-700; }
 }
 
 @layer base {
@@ -67,11 +84,19 @@
   }
   /* Botões touch-friendly */
   .btn {
-    @apply inline-flex items-center gap-2 px-3 rounded-lg text-sm font-medium transition-colors;
+    @apply inline-flex items-center justify-center gap-2 px-3 rounded-control text-sm font-medium transition-all
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-navy/30;
     min-height: 44px;
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
   }
+  .btn:disabled { @apply opacity-50 cursor-not-allowed pointer-events-none; }
+  /* Compact button — still respects 44px hit area via min-height */
+  .btn-sm { @apply px-2.5 text-xs; }
+  /* Input states */
+  .input-error  { @apply border-red-400 focus:ring-red-300; }
+  /* Clickable card affordance */
+  .card-link { @apply card transition-all hover:border-navy/40 hover:shadow-md cursor-pointer; }
 }
 
 /* Hide scrollbar but keep scroll (for horizontal tab strips on mobile) */
