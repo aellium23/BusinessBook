@@ -234,14 +234,6 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
       return (now - new Date(ref).getTime()) / 86400000 >= AGING_DAYS
     })
 
-    // Avg deal velocity (days from created to Invoiced)
-    const invoiced = active.filter(d => d.stage === 'Invoiced' && d.created_at && d.stage_changed_at)
-    const avgVelocity = invoiced.length > 0
-      ? Math.round(invoiced.reduce((s,d) =>
-          s + (new Date(d.stage_changed_at) - new Date(d.created_at)) / 86400000, 0
-        ) / invoiced.length)
-      : null
-
     // Lost reasons breakdown
     const lostDeals = active.filter(d => d.stage === 'Lost' && d.lost_reason)
     const lostReasons = lostDeals.reduce((acc, d) => {
@@ -262,7 +254,7 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
     const distDeals = active.filter(d => d.distributor)
     const distPending = active.filter(d => d.discount_status === 'pending')
 
-    return { weighted, winRate, aged, avgVelocity, lostReasons, wonCount: won.length, closedCount: closed.length, productBreakdown, distDeals, distPending }
+    return { weighted, winRate, aged, lostReasons, wonCount: won.length, closedCount: closed.length, productBreakdown, distDeals, distPending }
   }, [deals])
 
   // Region breakdown

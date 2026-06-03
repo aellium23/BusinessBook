@@ -38,6 +38,11 @@ export default function DealForm({ deal, onClose, onSaved }) {
     currency: deal.currency || 'EUR',
     exchange_rate: deal.exchange_rate || '',
     win_probability: deal.win_probability ?? '',
+    _prob_edited: (() => {
+      if (deal.win_probability == null) return false
+      const defaults = { Lead:10, Pipeline:30, 'Offer Presented':60, BackLog:100, Invoiced:100, Lost:0 }
+      return defaults[deal.stage] !== undefined && Number(deal.win_probability) !== defaults[deal.stage]
+    })(),
     end_customer: deal.end_customer || '',
     distributor: deal.distributor || '',
     hub: deal.hub || '',
@@ -64,9 +69,11 @@ export default function DealForm({ deal, onClose, onSaved }) {
     // Billing party — drives Internal/External (see deriveSalesType)
     billing_party_type:    deal.billing_party_type || '',
     billing_subsidiary_id: deal.billing_subsidiary_id || null,
-    // Detect if sales_type was manually overridden on a previous save
+    // Detect if sales_type was manually overridden on a previous save.
+    // When billing_party_type is null (pre-migration), treat existing sales_type
+    // as authoritative to avoid silently flipping Internal→External.
     _sales_type_overridden: (() => {
-      if (!deal.billing_party_type) return false
+      if (!deal.billing_party_type) return !!deal.sales_type
       const auto = deal.bu === 'ECT' ? 'External'
         : (deal.bu === 'VGT' && deal.billing_party_type === 'fuji_subsidiary') ? 'Internal' : 'External'
       return deal.sales_type !== auto
@@ -281,7 +288,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
     const payload = {
       ...(deal?.id ? { id: deal.id } : {}),
       bu: form.bu, sales_type: form.sales_type, stage: form.stage,
-      forecast_category: form.forecast_category || null,
+      forecast_category: null,
       account_id: form.account_id || null,
       client: form.client, region: form.region, country: form.country,
       sales_owner: form.sales_owner,
