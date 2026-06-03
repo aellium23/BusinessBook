@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { Spinner, formatK } from '../components/ui'
+import { Spinner, formatK, CollapsibleSection } from '../components/ui'
 import { Save, CheckCircle, TrendingUp, TrendingDown, Minus, Camera, Lock, Clock, Plus, ChevronDown } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 
@@ -531,15 +531,9 @@ export default function Budget() {
 
       </>)}
 
-      {/* ── Manual FCT Section ──────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div>
-            <p className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
-              <Camera size={14}/> {tr("budget_manual_fct")}
-            </p>
-            <p className="text-micro text-gray-400">{tr("budget_fct_subtitle")}</p>
-          </div>
+      {/* ── Manual FCT Section — collapsed by default (separate workflow) ── */}
+      <CollapsibleSection title={tr("budget_manual_fct")} subtitle={tr("budget_fct_subtitle")}>
+        <div className="flex items-center justify-end flex-wrap gap-2">
           {!fctForm && (
             <button onClick={() => {
               const autoExt = {}; const autoInt = {}
@@ -699,7 +693,7 @@ export default function Budget() {
             })()}
           </div>
         )}
-      </div>
+      </CollapsibleSection>
     </div>
   )
 }

@@ -222,8 +222,8 @@ export default function Clients() {
   }, [enriched, regionF, countryF, typeF, buF, debouncedSearch])
 
   const countries = useMemo(() =>
-    [...new Set(enriched.map(a => a.country).filter(Boolean))].sort(),
-    [enriched]
+    [...new Set(enriched.filter(a => !regionF || a.region === regionF).map(a => a.country).filter(Boolean))].sort(),
+    [enriched, regionF]
   )
 
   const stats = useMemo(() => ({
@@ -265,7 +265,7 @@ export default function Clients() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         <div className="card p-3">
           <p className="text-micro text-gray-400 uppercase font-semibold">Clients</p>
           <p className="text-xl font-bold text-navy">{stats.total}</p>
@@ -277,10 +277,6 @@ export default function Clients() {
         <div className="card p-3">
           <p className="text-micro text-gray-400 uppercase font-semibold">Invoiced</p>
           <p className="text-xl font-bold text-green-600">{formatK(stats.invoiced)}</p>
-        </div>
-        <div className="card p-3">
-          <p className="text-micro text-gray-400 uppercase font-semibold">With SLA</p>
-          <p className="text-xl font-bold text-blue-600">{stats.withSLA}</p>
         </div>
       </div>
 

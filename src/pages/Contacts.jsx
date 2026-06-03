@@ -135,7 +135,7 @@ export default function Contacts() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
           <p className="text-2xl font-bold text-gray-900">{items.length}</p>
           <p className="text-micro text-gray-400 uppercase tracking-wide">{t('contacts_total')}</p>
@@ -145,12 +145,6 @@ export default function Contacts() {
             {items.filter(c => c.role_type === 'decision_maker').length}
           </p>
           <p className="text-micro text-gray-400 uppercase tracking-wide">{t('contacts_decision_makers')}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
-          <p className="text-2xl font-bold text-green-700">
-            {items.filter(c => c.role_type === 'champion').length}
-          </p>
-          <p className="text-micro text-gray-400 uppercase tracking-wide">{t('contacts_champions')}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
           <p className="text-2xl font-bold text-gray-900">{clients.length}</p>
@@ -258,7 +252,7 @@ export default function Contacts() {
                         )}
                       </div>
                       {canEdit && (
-                        <div className="flex flex-col gap-1 shrink-0">
+                        <div className="flex flex-row gap-1 shrink-0">
                           <button type="button" onClick={() => setEditing(c)}
                             className="p-1.5 text-gray-400 hover:text-gray-700 rounded hover:bg-gray-100"
                             aria-label="Edit contact">
