@@ -177,7 +177,7 @@ const HELP = {
         'Submitting a discount request without a justification — the approver needs context to decide or counter-offer.',
       ],
       seeAlso: [
-        { label: 'Contracts & SLAs — deals can generate SLA records', path: '/sla' },
+        { label: 'ARR — deals can generate SLA records', path: '/sla' },
         { label: 'Products — line items reference the product catalog', path: '/products' },
         { label: 'Tasks — create follow-up tasks linked to deals', path: '/tasks' },
         { label: 'Tenders — link deals to public tenders', path: '/tenders' },
@@ -234,7 +234,7 @@ const HELP = {
         'Enviar una solicitud de descuento sin justificacion — el aprobador necesita contexto para decidir o contraofertar.',
       ],
       seeAlso: [
-        { label: 'Contratos y SLAs — los deals pueden generar registros SLA', path: '/sla' },
+        { label: 'ARR — los deals pueden generar registros SLA', path: '/sla' },
         { label: 'Productos — las lineas referencian el catalogo de productos', path: '/products' },
         { label: 'Tareas — crea tareas de seguimiento vinculadas a deals', path: '/tasks' },
         { label: 'Licitaciones — vincula deals a concursos publicos', path: '/tenders' },
@@ -290,7 +290,7 @@ const HELP = {
         'Submeter um pedido de desconto sem justificacao — o aprovador precisa de contexto para decidir ou fazer contraproposta.',
       ],
       seeAlso: [
-        { label: 'Contratos e SLAs — os deals podem gerar registos SLA', path: '/sla' },
+        { label: 'ARR — os deals podem gerar registos SLA', path: '/sla' },
         { label: 'Produtos — as linhas referenciam o catalogo de produtos', path: '/products' },
         { label: 'Tarefas — cria tarefas de seguimento associadas a deals', path: '/tasks' },
         { label: 'Concursos — associa deals a concursos publicos', path: '/tenders' },
@@ -762,7 +762,7 @@ const HELP = {
 
   '/sla': {
     en: {
-      title: 'Contracts & SLAs',
+      title: 'ARR',
       description: 'Manage service-level agreements, maintenance contracts, and recurring revenue streams with clients.',
       features: [
         'Define SLA terms including response times and uptime guarantees.',
@@ -797,7 +797,7 @@ const HELP = {
       admin: 'You can create and modify SLA templates for the organization.',
     },
     es: {
-      title: 'Contratos y SLAs',
+      title: 'ARR',
       description: 'Gestiona acuerdos de nivel de servicio, contratos de mantenimiento y flujos de ingresos recurrentes.',
       features: [
         'Define terminos de SLA incluyendo tiempos de respuesta y garantias.',
@@ -830,7 +830,7 @@ const HELP = {
       admin: 'Puedes crear y modificar plantillas SLA para la organizacion.',
     },
     pt: {
-      title: 'Contratos e SLAs',
+      title: 'ARR',
       description: 'Gere acordos de nivel de servico, contratos de manutencao e fluxos de receita recorrente.',
       features: [
         'Define termos de SLA incluindo tempos de resposta e garantias.',
@@ -894,7 +894,7 @@ const HELP = {
       ],
       seeAlso: [
         { label: 'Deals — quotations generate Deal Cards', path: '/deals' },
-        { label: 'Contracts & SLAs — compliance detection triggers quotations', path: '/sla' },
+        { label: 'ARR — compliance detection triggers quotations', path: '/sla' },
         { label: 'Products — line items reference the product catalog', path: '/products' },
       ],
     },
@@ -924,7 +924,7 @@ const HELP = {
       ],
       seeAlso: [
         { label: 'Oportunidades — las cotizaciones generan Deal Cards', path: '/deals' },
-        { label: 'Contratos y SLAs — la deteccion de compliance desencadena cotizaciones', path: '/sla' },
+        { label: 'ARR — la deteccion de compliance desencadena cotizaciones', path: '/sla' },
       ],
     },
     pt: {
@@ -953,7 +953,7 @@ const HELP = {
       ],
       seeAlso: [
         { label: 'Negocios — as cotacoes geram Deal Cards', path: '/deals' },
-        { label: 'Contratos e SLAs — a detecao de conformidade desencadeia cotacoes', path: '/sla' },
+        { label: 'ARR — a detecao de conformidade desencadeia cotacoes', path: '/sla' },
       ],
     },
   },

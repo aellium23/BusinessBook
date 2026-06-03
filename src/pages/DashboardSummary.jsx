@@ -598,7 +598,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
       {(
         <div className="card p-4 space-y-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1">
-            <RefreshCw size={12}/> Recurring Business (SLA)
+            <RefreshCw size={12}/> ARR
           </p>
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-green-50 rounded-lg p-3">
