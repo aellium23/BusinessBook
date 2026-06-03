@@ -12,6 +12,7 @@ const LICENSE_TYPES = [
 
 export default function ProductLineItems({ lines, onChange, products, businessModel, t, onTotalChange, onBusinessModelInfer, userRole }) {
   const [searchTerm, setSearchTerm] = useState('')
+  const [expandedIdx, setExpandedIdx] = useState(null)
 
   const isCapex = ['capex', 'financed_project', 'one_shot'].includes(businessModel)
   const isDistributor = userRole === 'distributor'
@@ -281,25 +282,31 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
           )
         }
 
-        // ── INTERNAL VIEW (admin/manager/member) — full editing ──
+        // ── INTERNAL VIEW (admin/manager/member) — compact with expand ──
         return (
-        <div key={line._key || line.id || idx} className="bg-gray-50 rounded-lg p-3 space-y-2">
-          <div className="flex items-start gap-2">
-            <div className="flex-1 min-w-0">
-              {line.product_id ? (
-                <p className="text-sm font-medium text-gray-800 truncate">{line.product_name}</p>
-              ) : (
-                <input className="input text-sm" value={line.product_name}
-                  onChange={e => updateLine(idx, 'product_name', e.target.value)}
-                  placeholder={t?.('products_name') || 'Product name'}/>
-              )}
+        <div key={line._key || line.id || idx} className="bg-gray-50 rounded-lg overflow-hidden">
+          {/* Compact row: name + qty + net price + remove */}
+          <div className="flex items-center gap-2 p-2 cursor-pointer" onClick={() => setExpandedIdx(expandedIdx === idx ? null : idx)}>
+            <div className="flex-1 min-w-0 flex items-center gap-2">
+              <p className="text-sm font-medium text-gray-800 truncate">{line.product_name || t?.('products_name') || '—'}</p>
+              <span className="text-micro text-gray-400 shrink-0">×{line.quantity || 1}</span>
             </div>
-            <button onClick={() => removeLine(idx)} className="text-gray-300 hover:text-red-500 p-1 min-h-tap">
-              <X size={14}/>
+            <span className="text-sm font-bold text-gray-900 shrink-0">{formatK(parseFloat(line.net_price) || 0)}</span>
+            <button onClick={e => { e.stopPropagation(); removeLine(idx) }} className="text-gray-300 hover:text-red-500 p-1 min-h-tap shrink-0">
+              <X size={12}/>
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {/* Expanded: full pricing detail */}
+          {expandedIdx === idx && (
+          <div className="px-3 pb-3 space-y-2 border-t border-gray-200">
+          {!line.product_id && (
+            <input className="input text-sm mt-2" value={line.product_name}
+              onChange={e => updateLine(idx, 'product_name', e.target.value)}
+              placeholder={t?.('products_name') || 'Product name'}/>
+          )}
+
+          <div className="grid grid-cols-2 gap-2 mt-2">
             <div>
               <label className="text-micro text-gray-400">Licensing</label>
               <select className="select text-xs py-1" value={line.license_type || 'flat'}
@@ -317,7 +324,7 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
           </div>
 
           {isVolume && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-micro text-purple-500">Annual Studies</label>
                 <input className="input text-xs py-1 border-purple-200" type="number" value={line.volume || ''}
@@ -335,7 +342,7 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
             </div>
           )}
 
-          <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-2 grid-cols-2 sm:grid-cols-4">
             <div>
               <label className="text-micro text-gray-400">Cost €</label>
               <input className="input text-xs py-1" type="number" value={line.cost_price || line.unit_price}
@@ -358,19 +365,20 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <div className="flex-1">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
               <label className="text-micro text-gray-700 font-semibold">Net Price €</label>
               <input className="input text-xs py-1 font-semibold bg-white" type="number" value={line.net_price}
                 onChange={e => updateLine(idx, 'net_price', e.target.value)}/>
             </div>
+            <div>
+              <label className="text-micro text-blue-500">Annual Fee €</label>
+              <input className="input text-xs py-1 border-blue-200" type="number" value={line.annual_fee}
+                onChange={e => updateLine(idx, 'annual_fee', e.target.value)}/>
+            </div>
           </div>
-
-          <div>
-            <label className="text-micro text-blue-500">Annual Fee €</label>
-            <input className="input text-xs py-1 border-blue-200" type="number" value={line.annual_fee}
-              onChange={e => updateLine(idx, 'annual_fee', e.target.value)}/>
           </div>
+          )}
         </div>
         )
       })}

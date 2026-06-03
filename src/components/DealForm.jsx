@@ -926,43 +926,43 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </CollapsibleSection>
         )}
 
-        {/* Unified activity timeline — replaces the old Change History + Activity Log */}
+        {/* Activity, contacts, attachments — collapsed by default */}
         {deal?.id && (
-          <DealActivityNotes
-            dealId={deal.id}
-            actNote={actNote} setActNote={setActNote}
-            nextAction={nextAction} setNextAction={setNextAction}
-            nextActionDate={nextActionDate} setNextActionDate={setNextActionDate}
-            addingAct={addingAct}
-            onAddActivity={async () => {
-              await addActivity()
-              setTimelineNonce(n => n + 1)
-            }}
-            timelineNonce={timelineNonce}
-            t={t}
-          />
+          <CollapsibleSection title={t("df_section_activity")} subtitle={t("df_optional")}>
+            <DealActivityNotes
+              dealId={deal.id}
+              actNote={actNote} setActNote={setActNote}
+              nextAction={nextAction} setNextAction={setNextAction}
+              nextActionDate={nextActionDate} setNextActionDate={setNextActionDate}
+              addingAct={addingAct}
+              onAddActivity={async () => {
+                await addActivity()
+                setTimelineNonce(n => n + 1)
+              }}
+              timelineNonce={timelineNonce}
+              t={t}
+            />
+          </CollapsibleSection>
         )}
 
-        {/* Stakeholders / Contacts — keyed by BU + client name */}
         {form.bu && form.client && (
-          <div className="pt-3 border-t border-gray-100">
+          <CollapsibleSection title={t("df_section_contacts")} subtitle={t("df_optional")}>
             <ContactsList
               bu={form.bu}
               clientName={form.client}
               canEdit={canEdit}
               compact
             />
-          </div>
+          </CollapsibleSection>
         )}
 
-        {/* Attachments — available after the deal exists */}
-        <div className="pt-3 border-t border-gray-100">
+        <CollapsibleSection title={t("df_section_attachments")} subtitle={t("df_optional")}>
           <AttachmentsList
             entityType="deal"
             entityId={deal?.id}
             canEdit={canEdit}
           />
-        </div>
+        </CollapsibleSection>
       </div>
     </Modal>
   )
