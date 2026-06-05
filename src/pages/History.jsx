@@ -185,17 +185,23 @@ export default function History() {
   const { isAdmin, profile } = useAuth()
   const [fy25, setFy25]   = useState([])
   const [fySummary, setFySummary] = useState([])
+  const [sga, setSga] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeBU, setActiveBU] = useState(isAdmin ? 'both' : (profile?.bu || 'both'))
   const [period, setPeriod] = useState('recent')
+  const [sgaYear, setSgaYear] = useState(null)
+  const [sgaSort, setSgaSort] = useState('abs') // 'abs' | 'pct'
+  const [sgaAll, setSgaAll] = useState(false)
 
   useEffect(() => {
     Promise.all([
       supabase.from('fy25_actuals').select('*'),
       supabase.from('fy_summary').select('*'),
-    ]).then(([f25, fsum]) => {
+      supabase.from('fy_sga_rubrica').select('*'),
+    ]).then(([f25, fsum, srub]) => {
       setFy25(f25.data || [])
       setFySummary(fsum.data || [])
+      setSga(srub.data || [])
       setLoading(false)
     }).catch(() => { setLoading(false) })
   }, [])
@@ -298,6 +304,42 @@ export default function History() {
   const achData = useMemo(() =>
     vgtHistory.filter(d => d.planNs !== null && d.ach !== null)
   , [vgtHistory])
+
+  // SG&A rubrica years available (VGT)
+  const sgaYears = useMemo(() =>
+    [...new Set(sga.filter(r => r.bu === 'VGT').map(r => r.fiscal_year))].sort()
+  , [sga])
+
+  // Default the SG&A year to the latest available
+  useEffect(() => {
+    if (sgaYears.length && (!sgaYear || !sgaYears.includes(sgaYear))) {
+      setSgaYear(sgaYears[sgaYears.length - 1])
+    }
+  }, [sgaYears, sgaYear])
+
+  // SG&A rubricas for the selected year, with variance
+  const sgaRubricas = useMemo(() => {
+    const rows = sga.filter(r => r.bu === 'VGT' && r.fiscal_year === sgaYear)
+      .map(r => {
+        const plan = Number(r.plan) || 0
+        const actual = Number(r.actual) || 0
+        const variance = Math.round((actual - plan) * 10) / 10
+        const pct = plan !== 0 ? Math.round((actual - plan) / Math.abs(plan) * 100) : null
+        return { rubrica: r.rubrica, plan, actual, variance, pct }
+      })
+    const sorted = [...rows].sort((a, b) =>
+      sgaSort === 'pct'
+        ? Math.abs(b.pct ?? 0) - Math.abs(a.pct ?? 0)
+        : Math.abs(b.variance) - Math.abs(a.variance)
+    )
+    const totPlan = rows.reduce((s, r) => s + r.plan, 0)
+    const totActual = rows.reduce((s, r) => s + r.actual, 0)
+    const maxAbs = Math.max(1, ...rows.map(r => Math.abs(r.variance)))
+    return { sorted, totPlan: Math.round(totPlan), totActual: Math.round(totActual),
+             totVar: Math.round(totActual - totPlan), maxAbs }
+  }, [sga, sgaYear, sgaSort])
+
+  const hasSga = sgaYears.length > 0
 
   if (loading) return (
     <div className="flex items-center justify-center p-16">
@@ -495,6 +537,125 @@ export default function History() {
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
+          )}
+
+          {/* SG&A Budget Variance (rubricas) */}
+          {hasSga && (
+            <CollapsibleSection
+              title="SG&A Budget Variance"
+              subtitle={`VGT · ${sgaYear} · Plan vs Actual by rubrica · K€`}
+              defaultOpen={false}>
+              <div className="space-y-4">
+                {/* Year selector + totals */}
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex gap-1.5">
+                    {sgaYears.map(y => (
+                      <button key={y} onClick={() => setSgaYear(y)}
+                        className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                          sgaYear === y ? 'bg-navy text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        }`}>{y}</button>
+                    ))}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-micro text-gray-400 uppercase tracking-wide">Total SG&amp;A</p>
+                    <p className="text-sm font-semibold text-gray-700">
+                      Plan {sgaRubricas.totPlan.toLocaleString('pt-PT')}K · Act {sgaRubricas.totActual.toLocaleString('pt-PT')}K
+                      <span className={`ml-1 ${sgaRubricas.totVar <= 0 ? 'text-green-600' : 'text-ect'}`}>
+                        ({sgaRubricas.totVar > 0 ? '+' : ''}{sgaRubricas.totVar}K)
+                      </span>
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-micro text-gray-400">
+                  Diverging bar: <span className="text-green-600 font-medium">green = under budget</span> ·{' '}
+                  <span className="text-ect font-medium">orange = over budget</span> (cost lines)
+                </p>
+
+                {/* Sort toggle */}
+                <div className="flex gap-1.5">
+                  {[['abs','By € variance'],['pct','By % variance']].map(([k,lbl]) => (
+                    <button key={k} onClick={() => setSgaSort(k)}
+                      className={`text-micro px-2.5 py-1 rounded-md font-medium transition-colors ${
+                        sgaSort === k ? 'bg-navy/10 text-navy' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                      }`}>{lbl}</button>
+                  ))}
+                </div>
+
+                {/* Diverging variance rows */}
+                <div className="space-y-1.5">
+                  {(sgaAll ? sgaRubricas.sorted : sgaRubricas.sorted.slice(0, 6)).map(r => {
+                    const over = r.variance > 0
+                    const widthPct = Math.min(50, Math.abs(r.variance) / sgaRubricas.maxAbs * 50)
+                    return (
+                      <div key={r.rubrica} className="flex items-center gap-2 text-xs">
+                        <p className="w-28 sm:w-36 truncate text-gray-600 shrink-0" title={r.rubrica}>{r.rubrica}</p>
+                        {/* center-anchored diverging bar */}
+                        <div className="flex-1 flex items-center h-5 min-w-0">
+                          <div className="flex-1 flex justify-end">
+                            {!over && (
+                              <div className="h-3 rounded-l bg-vgt" style={{ width: `${widthPct * 2}%` }}/>
+                            )}
+                          </div>
+                          <div className="w-px h-4 bg-gray-300 shrink-0"/>
+                          <div className="flex-1 flex justify-start">
+                            {over && (
+                              <div className="h-3 rounded-r bg-ect" style={{ width: `${widthPct * 2}%` }}/>
+                            )}
+                          </div>
+                        </div>
+                        <p className={`w-12 text-right font-medium shrink-0 ${over ? 'text-ect' : 'text-green-600'}`}>
+                          {r.variance > 0 ? '+' : ''}{r.variance}
+                        </p>
+                        <p className={`w-10 text-right text-micro shrink-0 ${over ? 'text-ect/70' : 'text-green-600/70'}`}>
+                          {r.pct !== null ? `${r.pct > 0 ? '+' : ''}${r.pct}%` : '—'}
+                        </p>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {sgaRubricas.sorted.length > 6 && (
+                  <button onClick={() => setSgaAll(!sgaAll)}
+                    className="text-xs text-navy font-medium hover:underline">
+                    {sgaAll ? 'Show top 6 only' : `Show all ${sgaRubricas.sorted.length} rubricas`}
+                  </button>
+                )}
+
+                {/* Detail table */}
+                <div className="overflow-x-auto -mx-4 px-4">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-100">
+                        <th className="text-left px-3 py-2 font-semibold text-gray-500">Rubrica</th>
+                        <th className="px-3 py-2 font-semibold text-gray-500 text-right">Plan</th>
+                        <th className="px-3 py-2 font-semibold text-gray-500 text-right">Actual</th>
+                        <th className="px-3 py-2 font-semibold text-gray-500 text-right">Var</th>
+                        <th className="px-3 py-2 font-semibold text-gray-500 text-right">%</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sgaRubricas.sorted.map(r => {
+                        const over = r.variance > 0
+                        return (
+                          <tr key={r.rubrica} className="border-b border-gray-50">
+                            <td className="px-3 py-1.5 text-gray-600">{r.rubrica}</td>
+                            <td className="px-3 py-1.5 text-right text-gray-500">{r.plan.toLocaleString('pt-PT')}</td>
+                            <td className="px-3 py-1.5 text-right text-gray-700">{r.actual.toLocaleString('pt-PT')}</td>
+                            <td className={`px-3 py-1.5 text-right font-medium ${over ? 'text-ect' : 'text-green-600'}`}>
+                              {r.variance > 0 ? '+' : ''}{r.variance}
+                            </td>
+                            <td className={`px-3 py-1.5 text-right ${over ? 'text-ect/70' : 'text-green-600/70'}`}>
+                              {r.pct !== null ? `${r.pct > 0 ? '+' : ''}${r.pct}%` : '—'}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </CollapsibleSection>
           )}
 
           {/* Annual summary table */}
