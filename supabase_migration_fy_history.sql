@@ -41,3 +41,8 @@ ON CONFLICT (fiscal_year, bu) DO UPDATE SET
 UPDATE public.fy_summary
 SET dm = gross_margin
 WHERE dm IS NULL AND gross_margin IS NOT NULL AND gross_margin != 0;
+
+-- Backfill plan_ns + net_profit for FY23–FY25 (VGT) from SAP P&L Plan column
+UPDATE public.fy_summary SET plan_ns = 4012.0, net_profit = 431.0 WHERE fiscal_year = 'FY23' AND bu = 'VGT';
+UPDATE public.fy_summary SET plan_ns = 5007.0, net_profit = 520.0 WHERE fiscal_year = 'FY24' AND bu = 'VGT';
+UPDATE public.fy_summary SET plan_ns = 5466.0, net_profit = 510.0 WHERE fiscal_year = 'FY25' AND bu = 'VGT';
