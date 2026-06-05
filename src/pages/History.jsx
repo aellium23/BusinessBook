@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useTranslation } from '../hooks/useTranslation'
 import { formatK } from '../components/ui'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts'
+import { BarChart, Bar, ComposedChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts'
 
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
@@ -294,42 +294,41 @@ export default function History() {
         )}
       </div>
 
-      {/* 3-Year Evolution (FY23–FY25) */}
+      {/* 3-Year Evolution (FY23–FY25) — consolidated: NS (left axis) + OP (right axis) */}
       {hasEvolution && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Net Sales evolution */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-              Net Sales evolution · K€ · FY23–FY25
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+              Net Sales &amp; Operating Profit · FY23–FY25
             </p>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={evolution} barGap={4} margin={{ top:4, right:4, left:-20, bottom:0 }}>
-                <XAxis dataKey="fy" tick={{ fontSize:11 }} axisLine={false} tickLine={false}/>
-                <YAxis tick={{ fontSize:10 }} axisLine={false} tickLine={false}/>
-                <Tooltip contentStyle={TOOLTIP} formatter={(v,n) => [`€${v}K`, n]}/>
-                <Legend wrapperStyle={{ fontSize:10 }}/>
-                {showVGT && <Bar dataKey="VGT NS" fill="#1D9E75" radius={[3,3,0,0]}/>}
-                {showECT && <Bar dataKey="ECT NS" fill="#D85A30" radius={[3,3,0,0]}/>}
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          {/* Operating Profit evolution */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-              Operating Profit evolution · K€ · FY23–FY25
+            <p className="text-micro text-gray-400">
+              K€ · <span className="text-gray-500">━ Net Sales</span> · <span className="text-gray-500">┄ Op. Profit</span>
             </p>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={evolution} barGap={4} margin={{ top:4, right:4, left:-20, bottom:0 }}>
-                <XAxis dataKey="fy" tick={{ fontSize:11 }} axisLine={false} tickLine={false}/>
-                <YAxis tick={{ fontSize:10 }} axisLine={false} tickLine={false}/>
-                <Tooltip contentStyle={TOOLTIP} formatter={(v,n) => [`€${v}K`, n]}/>
-                <Legend wrapperStyle={{ fontSize:10 }}/>
-                <ReferenceLine y={0} stroke="#cbd5e1"/>
-                {showVGT && <Bar dataKey="VGT OP" fill="#1D9E75" radius={[3,3,0,0]}/>}
-                {showECT && <Bar dataKey="ECT OP" fill="#D85A30" radius={[3,3,0,0]}/>}
-              </BarChart>
-            </ResponsiveContainer>
           </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <ComposedChart data={evolution} margin={{ top:12, right:8, left:-12, bottom:0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false}/>
+              <XAxis dataKey="fy" tick={{ fontSize:12, fontWeight:600, fill:'#475569' }} axisLine={false} tickLine={false}/>
+              <YAxis yAxisId="ns" tick={{ fontSize:10, fill:'#94a3b8' }} axisLine={false} tickLine={false}
+                tickFormatter={v => `${(v/1000).toFixed(1)}M`}/>
+              <YAxis yAxisId="op" orientation="right" tick={{ fontSize:10, fill:'#94a3b8' }} axisLine={false} tickLine={false}
+                tickFormatter={v => `${v}`}/>
+              <Tooltip contentStyle={{ ...TOOLTIP, border:'1px solid #e2e8f0', boxShadow:'0 4px 12px rgba(0,0,0,0.08)' }}
+                formatter={(v,n) => [`€${Number(v).toLocaleString('pt-PT')}K`, n]}/>
+              <Legend wrapperStyle={{ fontSize:11 }} iconType="plainline"/>
+              <ReferenceLine yAxisId="op" y={0} stroke="#e2e8f0"/>
+              {/* Net Sales — solid, thick (left axis) */}
+              {showVGT && <Line yAxisId="ns" type="monotone" dataKey="VGT NS" stroke="#1D9E75" strokeWidth={3}
+                dot={{ r:4, fill:'#1D9E75' }} activeDot={{ r:6 }}/>}
+              {showECT && <Line yAxisId="ns" type="monotone" dataKey="ECT NS" stroke="#D85A30" strokeWidth={3}
+                dot={{ r:4, fill:'#D85A30' }} activeDot={{ r:6 }}/>}
+              {/* Operating Profit — dashed, thinner (right axis) */}
+              {showVGT && <Line yAxisId="op" type="monotone" dataKey="VGT OP" stroke="#1D9E75" strokeWidth={2}
+                strokeDasharray="5 4" dot={{ r:3, fill:'#fff', stroke:'#1D9E75', strokeWidth:2 }}/>}
+              {showECT && <Line yAxisId="op" type="monotone" dataKey="ECT OP" stroke="#D85A30" strokeWidth={2}
+                strokeDasharray="5 4" dot={{ r:3, fill:'#fff', stroke:'#D85A30', strokeWidth:2 }}/>}
+            </ComposedChart>
+          </ResponsiveContainer>
         </div>
       )}
 
