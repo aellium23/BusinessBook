@@ -325,6 +325,34 @@ export default function History() {
     })
   }, [fySummary])
 
+  // Iberia consolidated full history (VGT + ECT)
+  const iberiaHist = useMemo(() => {
+    return PERIOD_PRESETS[period].fys.map(fy => {
+      const vNs = sum(fy, 'VGT', 'net_sales'); const eNs = sum(fy, 'ECT', 'net_sales')
+      if (vNs === null && eNs === null) return null
+      const v = vNs ?? 0, e = eNs ?? 0
+      const vDm = sum(fy, 'VGT', 'dm') ?? sum(fy, 'VGT', 'gross_margin') ?? 0
+      const eDm = sum(fy, 'ECT', 'dm') ?? sum(fy, 'ECT', 'gross_margin') ?? 0
+      const vOp = sum(fy, 'VGT', 'op') ?? 0; const eOp = sum(fy, 'ECT', 'op') ?? 0
+      const vPlan = sum(fy, 'VGT', 'plan_ns'); const ePlan = sum(fy, 'ECT', 'plan_ns')
+      const ns = v + e, dm = vDm + eDm, op = vOp + eOp
+      let planTot = 0, nsForPlan = 0
+      if (vPlan && vPlan > 0) { planTot += vPlan; nsForPlan += v }
+      if (ePlan && ePlan > 0) { planTot += ePlan; nsForPlan += e }
+      const ach = planTot > 0 ? Math.round(nsForPlan / planTot * 100) : null
+      return {
+        fy, 'VGT NS': Math.round(v), 'ECT NS': Math.round(e), ns: Math.round(ns),
+        'VGT OP': Math.round(vOp), 'ECT OP': Math.round(eOp), op: Math.round(op),
+        dm: Math.round(dm), dmPct: ns ? Math.round(dm / ns * 100) : null,
+        opPct: ns ? Math.round(op / ns * 1000) / 10 : null,
+        ach, planNs: planTot ? Math.round(planTot) : null,
+      }
+    }).filter(Boolean)
+  }, [fySummary, period])
+
+  const ibLatest = iberiaHist[iberiaHist.length - 1]
+  const ibAch = useMemo(() => iberiaHist.filter(d => d.ach !== null), [iberiaHist])
+
   // Budget achievement data (only years with plan)
   const achData = useMemo(() =>
     histData.filter(d => d.planNs !== null && d.ach !== null)
@@ -395,7 +423,7 @@ export default function History() {
           <div>
             <h1 className="text-xl font-bold text-gray-900">History</h1>
             <p className="text-sm text-gray-400">
-              {PERIOD_PRESETS[period].label} · {period === 'recent' ? 'Iberia' : histBU} actuals
+              {PERIOD_PRESETS[period].label} · {activeBU === 'both' ? 'Iberia' : histBU} actuals
             </p>
           </div>
           {isAdmin && (
@@ -431,8 +459,8 @@ export default function History() {
         </div>
       </div>
 
-      {/* ── BU FULL HISTORY MODE ── */}
-      {showFullHistory && (
+      {/* ── BU FULL HISTORY MODE (VGT or ECT) ── */}
+      {showFullHistory && activeBU !== 'both' && (
         <>
           {/* Sparkline KPI Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -712,6 +740,140 @@ export default function History() {
                       </tr>
                     )
                   })}
+                </tbody>
+              </table>
+            </div>
+          </CollapsibleSection>
+        </>
+      )}
+
+      {/* ── IBERIA FULL HISTORY MODE (VGT + ECT consolidated) ── */}
+      {showFullHistory && activeBU === 'both' && (
+        <>
+          {/* Sparkline KPI Cards (Iberia totals) */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <KpiSparkCard label="Iberia Net Sales" color="#0D2137"
+              value={ibLatest ? `${tickK(ibLatest.ns)}€` : '—'}
+              sub={ibLatest ? `VGT ${tickK(ibLatest['VGT NS'])} · ECT ${tickK(ibLatest['ECT NS'])}` : null}
+              data={iberiaHist} dataKey="ns"/>
+            <KpiSparkCard label="Iberia DM%" color="#185FA5"
+              value={ibLatest?.dmPct != null ? `${ibLatest.dmPct}%` : '—'}
+              sub="Combined rate" data={iberiaHist} dataKey="dmPct"/>
+            <KpiSparkCard label="Iberia Op. Income" color="#0D2137"
+              value={ibLatest ? `${tickK(ibLatest.op)}€` : '—'}
+              sub={ibLatest?.opPct != null ? `${ibLatest.opPct}% margin` : null}
+              data={iberiaHist} dataKey="op"/>
+            <KpiSparkCard label="Budget Ach." color={ibLatest?.ach >= 100 ? '#1D9E75' : '#D85A30'}
+              value={ibLatest?.ach != null ? `${ibLatest.ach}%` : '—'}
+              sub={ibAch.length ? `${ibAch.filter(d => d.ach >= 100).length}/${ibAch.length} yrs ≥100%` : null}
+              data={ibAch} dataKey="ach"/>
+          </div>
+
+          {/* Consolidated NS + OP evolution */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+            <div className="flex items-center justify-between mb-1 flex-wrap gap-1">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                Iberia · Net Sales (VGT + ECT) &amp; Op. Income · K€
+              </p>
+              <p className="text-micro text-gray-400">━ NS · ┄ Iberia OP</p>
+            </div>
+            {period === 'full' && (
+              <p className="text-micro text-amber-600 mb-2">
+                ⚠ Scope breaks: VGT at FY18 (accounts), ECT at FY22 (takeover). Pre-break years not directly comparable.
+              </p>
+            )}
+            <ResponsiveContainer width="100%" height={300}>
+              <ComposedChart data={iberiaHist} margin={{ top:12, right:12, left:-8, bottom:0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false}/>
+                {period === 'full' && (
+                  <ReferenceLine x="FY18" stroke="#cbd5e1" strokeDasharray="4 4"
+                    label={{ value:'VGT ↗', position:'top', fontSize:9, fill:'#1D9E75' }}/>
+                )}
+                {period === 'full' && (
+                  <ReferenceLine x="FY22" stroke="#cbd5e1" strokeDasharray="4 4"
+                    label={{ value:'ECT ↗', position:'top', fontSize:9, fill:'#D85A30' }}/>
+                )}
+                <XAxis dataKey="fy" tick={{ fontSize:10, fill:'#475569' }} axisLine={false} tickLine={false}
+                  angle={-45} textAnchor="end" height={40}/>
+                <YAxis tick={{ fontSize:10, fill:'#94a3b8' }} axisLine={false} tickLine={false}
+                  tickFormatter={tickK}/>
+                <Tooltip contentStyle={{ ...TOOLTIP, border:'1px solid #e2e8f0', boxShadow:'0 4px 12px rgba(0,0,0,0.08)' }}
+                  formatter={(v,n) => [`€${Number(v).toLocaleString('pt-PT')}K`, n]}/>
+                <Legend wrapperStyle={{ fontSize:11 }} iconType="plainline"/>
+                <ReferenceLine y={0} stroke="#e2e8f0"/>
+                <Line type="monotone" dataKey="VGT NS" stroke="#1D9E75" strokeWidth={2} name="VGT NS"
+                  dot={{ r:2.5, fill:'#1D9E75' }}/>
+                <Line type="monotone" dataKey="ECT NS" stroke="#D85A30" strokeWidth={2} name="ECT NS"
+                  dot={{ r:2.5, fill:'#D85A30' }}/>
+                <Line type="monotone" dataKey="ns" stroke="#0D2137" strokeWidth={3} name="Iberia NS"
+                  dot={{ r:3, fill:'#0D2137' }} activeDot={{ r:5 }}/>
+                <Line type="monotone" dataKey="op" stroke="#0D2137" strokeWidth={2} name="Iberia OP"
+                  strokeDasharray="5 4" dot={{ r:2.5, fill:'#fff', stroke:'#0D2137', strokeWidth:2 }}/>
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Iberia Budget Achievement */}
+          {ibAch.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  Iberia · Budget Achievement %
+                </p>
+                <p className="text-micro text-gray-400">Target: 100%</p>
+              </div>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={ibAch} margin={{ top:8, right:8, left:-12, bottom:0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false}/>
+                  <XAxis dataKey="fy" tick={{ fontSize:10, fill:'#475569' }} axisLine={false} tickLine={false}
+                    angle={-45} textAnchor="end" height={40}/>
+                  <YAxis tick={{ fontSize:10, fill:'#94a3b8' }} axisLine={false} tickLine={false}
+                    domain={[70, 130]} tickFormatter={v => `${v}%`}/>
+                  <Tooltip contentStyle={{ ...TOOLTIP, border:'1px solid #e2e8f0' }}
+                    formatter={(v) => [`${v}%`, 'Achievement']}/>
+                  <ReferenceLine y={100} stroke="#475569" strokeDasharray="3 3"
+                    label={{ value:'100%', position:'right', fontSize:9, fill:'#475569' }}/>
+                  <Bar dataKey="ach" name="Achievement %" radius={[4,4,0,0]} barSize={28}>
+                    {ibAch.map((d, i) => (
+                      <Cell key={i} fill={d.ach >= 100 ? '#1D9E75' : d.ach >= 95 ? '#F59E0B' : '#D85A30'}/>
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Iberia annual table */}
+          <CollapsibleSection title="Annual Summary Table" subtitle="Iberia (VGT + ECT) · K€" defaultOpen={false}>
+            <div className="overflow-x-auto -mx-4 px-4">
+              <table className="w-full text-xs whitespace-nowrap">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100">
+                    <th className="text-left px-3 py-2 font-semibold text-gray-500 sticky left-0 bg-gray-50 z-10">FY</th>
+                    <th className="px-3 py-2 font-semibold text-gray-500 text-right">VGT NS</th>
+                    <th className="px-3 py-2 font-semibold text-gray-500 text-right">ECT NS</th>
+                    <th className="px-3 py-2 font-semibold text-gray-700 text-right">Iberia NS</th>
+                    <th className="px-3 py-2 font-semibold text-gray-500 text-right">DM</th>
+                    <th className="px-3 py-2 font-semibold text-gray-500 text-right">DM%</th>
+                    <th className="px-3 py-2 font-semibold text-gray-500 text-right">Op.Inc</th>
+                    <th className="px-3 py-2 font-semibold text-gray-500 text-right">Ach.%</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {iberiaHist.map(d => (
+                    <tr key={d.fy} className="border-b border-gray-50">
+                      <td className="px-3 py-1.5 font-semibold text-gray-700 sticky left-0 bg-white z-10">{d.fy}</td>
+                      <td className="px-3 py-1.5 text-right text-vgt">{d['VGT NS'].toLocaleString('pt-PT')}</td>
+                      <td className="px-3 py-1.5 text-right text-ect">{d['ECT NS'].toLocaleString('pt-PT')}</td>
+                      <td className="px-3 py-1.5 text-right font-bold text-navy">{d.ns.toLocaleString('pt-PT')}</td>
+                      <td className="px-3 py-1.5 text-right text-gray-600">{d.dm.toLocaleString('pt-PT')}</td>
+                      <td className="px-3 py-1.5 text-right text-gray-500">{d.dmPct != null ? `${d.dmPct}%` : '—'}</td>
+                      <td className={`px-3 py-1.5 text-right font-medium ${d.op < 0 ? 'text-red-500' : 'text-gray-700'}`}>{d.op.toLocaleString('pt-PT')}</td>
+                      <td className={`px-3 py-1.5 text-right font-medium ${d.ach === null ? 'text-gray-300' : d.ach >= 100 ? 'text-green-600' : d.ach >= 95 ? 'text-amber-600' : 'text-red-500'}`}>
+                        {d.ach !== null ? `${d.ach}%` : '—'}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
