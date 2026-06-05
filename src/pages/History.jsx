@@ -21,6 +21,16 @@ const PERIOD_PRESETS = {
   compare: { label: 'FY18–25',  fys: ALL_FYS.filter(f => Number(f.slice(2)) >= 18) },
 }
 
+const fyNum = fy => Number(fy.slice(2))
+
+// Per-BU scope/perimeter break: years before are not strictly comparable
+const SCOPE_BREAK = {
+  VGT: { year: 'FY18', tag: 'Scope ↗',
+         note: '⚠ Shaded area = legacy perimeter (FY10–17). Scope/accounts changed at FY18 — not directly comparable.' },
+  ECT: { year: 'FY22', tag: 'ECT ↗',
+         note: '⚠ Shaded area = inherited (FY10–21, 3rd-party run). Medical IT Spain taken over / ECT created at FY22; FY23 consolidates the GmbH-branch + Healthcare España entities.' },
+}
+
 function KpiBox({ label, value, sub, color }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 border-t-2"
@@ -253,19 +263,23 @@ export default function History() {
     return isNaN(v) ? null : v
   }
 
-  // ── VGT full history (FY10–FY25) ──
-  const vgtHistory = useMemo(() => {
+  // Full-history is single-BU; 'both' (Iberia) defaults to VGT
+  const histBU = activeBU === 'ECT' ? 'ECT' : 'VGT'
+  const brk = SCOPE_BREAK[histBU]
+
+  // ── BU full history (FY10–FY25) ──
+  const histData = useMemo(() => {
     const preset = PERIOD_PRESETS[period]
     return preset.fys
       .map(fy => {
-        const ns = sum(fy, 'VGT', 'net_sales')
-        if (ns === null && ns === null) return null
-        const dm = sum(fy, 'VGT', 'dm') ?? sum(fy, 'VGT', 'gross_margin')
-        const op = sum(fy, 'VGT', 'op')
-        const net = sum(fy, 'VGT', 'net_profit')
-        const planNs = sum(fy, 'VGT', 'plan_ns')
-        const intl = sum(fy, 'VGT', 'ns_int') ?? 0
-        const ext = sum(fy, 'VGT', 'ns_ext') ?? 0
+        const ns = sum(fy, histBU, 'net_sales')
+        if (ns === null) return null
+        const dm = sum(fy, histBU, 'dm') ?? sum(fy, histBU, 'gross_margin')
+        const op = sum(fy, histBU, 'op')
+        const net = sum(fy, histBU, 'net_profit')
+        const planNs = sum(fy, histBU, 'plan_ns')
+        const intl = sum(fy, histBU, 'ns_int') ?? 0
+        const ext = sum(fy, histBU, 'ns_ext') ?? 0
         const ach = (planNs && planNs > 0 && ns !== null) ? Math.round(ns / planNs * 100) : null
         const dmPct = (ns && dm !== null) ? Math.round(dm / ns * 100) : null
         const opPct = (ns && op !== null) ? Math.round(op / ns * 1000) / 10 : null
@@ -275,19 +289,26 @@ export default function History() {
                  intPct: (intl + ext) > 0 ? Math.round(intl / (intl + ext) * 100) : 0 }
       })
       .filter(Boolean)
-  }, [fySummary, period])
+  }, [fySummary, period, histBU])
 
-  const hasVgtHistory = vgtHistory.length > 3
+  const hasHist = histData.length > 3
 
-  // Latest VGT values for KPI sparklines
-  const latestVgt = vgtHistory[vgtHistory.length - 1]
-  const prevVgt = vgtHistory[vgtHistory.length - 2]
+  // Latest values for KPI sparklines
+  const latest = histData[histData.length - 1]
+  const prev = histData[histData.length - 2]
 
   // CAGR computation
   const cagr = (start, end, years) => {
     if (!start || !end || start <= 0 || years <= 0) return null
     return ((end / start) ** (1 / years) - 1) * 100
   }
+  // CAGR across the comparable era (scope-break year → last visible year)
+  const eraCagr = (() => {
+    const base = histData.find(d => d.fy === brk.year)
+    const last = histData[histData.length - 1]
+    if (!base || !last || base.fy === last.fy) return null
+    return cagr(base.ns, last.ns, fyNum(last.fy) - fyNum(base.fy))
+  })()
 
   // ECT 3-year evolution (only for recent period)
   const evolution = useMemo(() => {
@@ -302,13 +323,13 @@ export default function History() {
 
   // Budget achievement data (only years with plan)
   const achData = useMemo(() =>
-    vgtHistory.filter(d => d.planNs !== null && d.ach !== null)
-  , [vgtHistory])
+    histData.filter(d => d.planNs !== null && d.ach !== null)
+  , [histData])
 
-  // SG&A rubrica years available (VGT)
+  // SG&A rubrica years available for the active BU
   const sgaYears = useMemo(() =>
-    [...new Set(sga.filter(r => r.bu === 'VGT').map(r => r.fiscal_year))].sort()
-  , [sga])
+    [...new Set(sga.filter(r => r.bu === histBU).map(r => r.fiscal_year))].sort()
+  , [sga, histBU])
 
   // Default the SG&A year to the latest available
   useEffect(() => {
@@ -319,7 +340,7 @@ export default function History() {
 
   // SG&A rubricas for the selected year, with variance
   const sgaRubricas = useMemo(() => {
-    const rows = sga.filter(r => r.bu === 'VGT' && r.fiscal_year === sgaYear)
+    const rows = sga.filter(r => r.bu === histBU && r.fiscal_year === sgaYear)
       .map(r => {
         const plan = Number(r.plan) || 0
         const actual = Number(r.actual) || 0
@@ -337,7 +358,7 @@ export default function History() {
     const maxAbs = Math.max(1, ...rows.map(r => Math.abs(r.variance)))
     return { sorted, totPlan: Math.round(totPlan), totActual: Math.round(totActual),
              totVar: Math.round(totActual - totPlan), maxAbs }
-  }, [sga, sgaYear, sgaSort])
+  }, [sga, sgaYear, sgaSort, histBU])
 
   const hasSga = sgaYears.length > 0
 
@@ -353,11 +374,13 @@ export default function History() {
 
   const showVGT = activeBU === 'both' || activeBU === 'VGT'
   const showECT = activeBU === 'both' || activeBU === 'ECT'
-  const showFullHistory = period !== 'recent' && hasVgtHistory
+  const showFullHistory = period !== 'recent' && hasHist
 
-  // Determine if legacy band should show (only when FY10-17 are visible)
-  const showLegacyBand = period === 'full' && vgtHistory.some(d => Number(d.fy.slice(2)) < 18)
-  const legacyEnd = vgtHistory.findIndex(d => d.fy === 'FY18')
+  // Per-BU colour for the headline series (VGT green / ECT orange)
+  const histColor = histBU === 'ECT' ? '#D85A30' : '#1D9E75'
+
+  // Determine if legacy/inherited band should show (only when pre-break years are visible)
+  const showLegacyBand = period === 'full' && histData.some(d => fyNum(d.fy) < fyNum(brk.year))
 
   return (
     <div className="p-4 space-y-5 max-w-5xl mx-auto">
@@ -367,7 +390,9 @@ export default function History() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-gray-900">History</h1>
-            <p className="text-sm text-gray-400">{PERIOD_PRESETS[period].label} · VGT actuals</p>
+            <p className="text-sm text-gray-400">
+              {PERIOD_PRESETS[period].label} · {period === 'recent' ? 'Iberia' : histBU} actuals
+            </p>
           </div>
           {isAdmin && (
             <div className="flex gap-1.5">
@@ -402,32 +427,25 @@ export default function History() {
         </div>
       </div>
 
-      {/* ── VGT FULL HISTORY MODE ── */}
-      {showFullHistory && showVGT && (
+      {/* ── BU FULL HISTORY MODE ── */}
+      {showFullHistory && (
         <>
           {/* Sparkline KPI Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <KpiSparkCard label="Net Sales" color="#1D9E75"
-              value={latestVgt ? `${tickK(latestVgt.ns)}€` : '—'}
-              sub={(() => {
-                const c18 = cagr(
-                  vgtHistory.find(d => d.fy === 'FY18')?.ns,
-                  vgtHistory[vgtHistory.length - 1]?.ns,
-                  Number(vgtHistory[vgtHistory.length - 1]?.fy.slice(2)) - 18
-                )
-                return c18 !== null ? `CAGR FY18+: ${c18.toFixed(1)}%` : null
-              })()}
-              data={vgtHistory} dataKey="ns"/>
+            <KpiSparkCard label="Net Sales" color={histColor}
+              value={latest ? `${tickK(latest.ns)}€` : '—'}
+              sub={eraCagr !== null ? `CAGR ${brk.year}+: ${eraCagr.toFixed(1)}%` : null}
+              data={histData} dataKey="ns"/>
             <KpiSparkCard label="DM%" color="#185FA5"
-              value={latestVgt?.dmPct != null ? `${latestVgt.dmPct}%` : '—'}
-              sub={prevVgt?.dmPct != null ? `prev: ${prevVgt.dmPct}%` : null}
-              data={vgtHistory} dataKey="dmPct"/>
+              value={latest?.dmPct != null ? `${latest.dmPct}%` : '—'}
+              sub={prev?.dmPct != null ? `prev: ${prev.dmPct}%` : null}
+              data={histData} dataKey="dmPct"/>
             <KpiSparkCard label="Op. Income" color="#0D2137"
-              value={latestVgt ? `${tickK(latestVgt.op)}€` : '—'}
-              sub={latestVgt?.opPct != null ? `${latestVgt.opPct}% margin` : null}
-              data={vgtHistory} dataKey="op"/>
-            <KpiSparkCard label="Budget Ach." color={latestVgt?.ach >= 100 ? '#1D9E75' : '#D85A30'}
-              value={latestVgt?.ach != null ? `${latestVgt.ach}%` : '—'}
+              value={latest ? `${tickK(latest.op)}€` : '—'}
+              sub={latest?.opPct != null ? `${latest.opPct}% margin` : null}
+              data={histData} dataKey="op"/>
+            <KpiSparkCard label="Budget Ach." color={latest?.ach >= 100 ? '#1D9E75' : '#D85A30'}
+              value={latest?.ach != null ? `${latest.ach}%` : '—'}
               sub={(() => {
                 const hits = achData.filter(d => d.ach >= 100).length
                 return achData.length > 0 ? `${hits}/${achData.length} years ≥100%` : null
@@ -439,27 +457,25 @@ export default function History() {
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
             <div className="flex items-center justify-between mb-1 flex-wrap gap-1">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                VGT · Net Sales &amp; Operating Income · K€
+                {histBU} · Net Sales &amp; Operating Income · K€
               </p>
               <p className="text-micro text-gray-400">
                 <span className="text-gray-500">━ NS</span> · <span className="text-gray-500">┄ OP</span>
               </p>
             </div>
             {showLegacyBand && (
-              <p className="text-micro text-amber-600 mb-2">
-                ⚠ Shaded area = legacy perimeter (FY10–17). Scope/accounts changed at FY18 — not directly comparable.
-              </p>
+              <p className="text-micro text-amber-600 mb-2">{brk.note}</p>
             )}
             <ResponsiveContainer width="100%" height={300}>
-              <ComposedChart data={vgtHistory} margin={{ top:12, right:12, left:-8, bottom:0 }}>
+              <ComposedChart data={histData} margin={{ top:12, right:12, left:-8, bottom:0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false}/>
-                {showLegacyBand && legacyEnd > 0 && (
-                  <ReferenceArea x1={vgtHistory[0]?.fy} x2="FY17"
+                {showLegacyBand && (
+                  <ReferenceArea x1={histData[0]?.fy} x2={`FY${fyNum(brk.year) - 1}`}
                     fill="#0D2137" fillOpacity={0.04} ifOverflow="extendDomain"/>
                 )}
                 {showLegacyBand && (
-                  <ReferenceLine x="FY18" stroke="#94a3b8" strokeDasharray="4 4"
-                    label={{ value:'Scope ↗', position:'top', fontSize:9, fill:'#94a3b8' }}/>
+                  <ReferenceLine x={brk.year} stroke="#94a3b8" strokeDasharray="4 4"
+                    label={{ value: brk.tag, position:'top', fontSize:9, fill:'#94a3b8' }}/>
                 )}
                 <XAxis dataKey="fy" tick={{ fontSize:10, fill:'#475569' }} axisLine={false} tickLine={false}
                   angle={-45} textAnchor="end" height={40}/>
@@ -469,8 +485,8 @@ export default function History() {
                   formatter={(v,n) => [`€${Number(v).toLocaleString('pt-PT')}K`, n]}/>
                 <Legend wrapperStyle={{ fontSize:11 }} iconType="plainline"/>
                 <ReferenceLine y={0} stroke="#e2e8f0"/>
-                <Line type="monotone" dataKey="ns" stroke="#1D9E75" strokeWidth={3} name="Net Sales"
-                  dot={{ r:3, fill:'#1D9E75' }} activeDot={{ r:5 }}/>
+                <Line type="monotone" dataKey="ns" stroke={histColor} strokeWidth={3} name="Net Sales"
+                  dot={{ r:3, fill: histColor }} activeDot={{ r:5 }}/>
                 <Line type="monotone" dataKey="op" stroke="#0D2137" strokeWidth={2} name="Op. Income"
                   strokeDasharray="5 4" dot={{ r:2.5, fill:'#fff', stroke:'#0D2137', strokeWidth:2 }}/>
               </ComposedChart>
@@ -482,7 +498,7 @@ export default function History() {
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
               <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                  VGT · Budget Achievement %
+                  {histBU} · Budget Achievement %
                 </p>
                 <p className="text-micro text-gray-400">Target: 100%</p>
               </div>
@@ -508,18 +524,18 @@ export default function History() {
           )}
 
           {/* Internal vs External (full history) */}
-          {vgtHistory.some(d => d.Internal > 0) && (
+          {histData.some(d => d.Internal > 0) && (
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
               <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                  VGT · Internal vs External Net Sales · K€
+                  {histBU} · Internal vs External Net Sales · K€
                 </p>
                 <p className="text-micro text-gray-400">
-                  Internal %: {vgtHistory.filter(d => d.intPct > 0).map(d => `${d.fy} ${d.intPct}%`).join(' · ')}
+                  Internal %: {histData.filter(d => d.intPct > 0).map(d => `${d.fy} ${d.intPct}%`).join(' · ')}
                 </p>
               </div>
               <ResponsiveContainer width="100%" height={260}>
-                <ComposedChart data={vgtHistory} margin={{ top:8, right:30, left:-8, bottom:0 }}>
+                <ComposedChart data={histData} margin={{ top:8, right:30, left:-8, bottom:0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false}/>
                   <XAxis dataKey="fy" tick={{ fontSize:10, fill:'#475569' }} axisLine={false} tickLine={false}
                     angle={-45} textAnchor="end" height={40}/>
@@ -543,7 +559,7 @@ export default function History() {
           {hasSga && (
             <CollapsibleSection
               title="SG&A Budget Variance"
-              subtitle={`VGT · ${sgaYear} · Plan vs Actual by rubrica · K€`}
+              subtitle={`${histBU} · ${sgaYear} · Plan vs Actual by rubrica · K€`}
               defaultOpen={false}>
               <div className="space-y-4">
                 {/* Year selector + totals */}
@@ -659,7 +675,7 @@ export default function History() {
           )}
 
           {/* Annual summary table */}
-          <CollapsibleSection title="Annual Summary Table" subtitle="VGT · K€" defaultOpen={false}>
+          <CollapsibleSection title="Annual Summary Table" subtitle={`${histBU} · K€`} defaultOpen={false}>
             <div className="overflow-x-auto -mx-4 px-4">
               <table className="w-full text-xs whitespace-nowrap">
                 <thead>
@@ -675,10 +691,10 @@ export default function History() {
                   </tr>
                 </thead>
                 <tbody>
-                  {vgtHistory.map((d, i) => {
-                    const isLegacy = Number(d.fy.slice(2)) < 18
+                  {histData.map((d, i) => {
+                    const isLegacy = fyNum(d.fy) < fyNum(brk.year)
                     return (
-                      <tr key={d.fy} className={`border-b border-gray-50 ${isLegacy ? 'bg-gray-50/50' : ''} ${d.fy === 'FY18' ? 'border-t-2 border-t-amber-300' : ''}`}>
+                      <tr key={d.fy} className={`border-b border-gray-50 ${isLegacy ? 'bg-gray-50/50' : ''} ${d.fy === brk.year ? 'border-t-2 border-t-amber-300' : ''}`}>
                         <td className={`px-3 py-1.5 font-semibold sticky left-0 z-10 ${isLegacy ? 'text-gray-400 bg-gray-50/50' : 'text-gray-700 bg-white'}`}>{d.fy}</td>
                         <td className="px-3 py-1.5 text-right font-medium text-gray-700">{d.ns.toLocaleString('pt-PT')}</td>
                         <td className="px-3 py-1.5 text-right text-gray-500">{d.planNs ? d.planNs.toLocaleString('pt-PT') : '—'}</td>

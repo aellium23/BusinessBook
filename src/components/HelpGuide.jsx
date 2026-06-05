@@ -1398,10 +1398,10 @@ const HELP = {
   '/history': {
     en: {
       title: 'History',
-      description: 'Browse 16-year VGT history (FY10–FY25) and 3-year Iberia evolution with budget achievement, internal/external split, and FY25 monthly detail.',
+      description: 'Browse 16-year VGT & ECT history (FY10–FY25) with budget achievement, internal/external split, SG&A variance, and FY25 monthly detail.',
       features: [
-        '16-year VGT evolution (FY10–FY25): Net Sales, Operating Income, Distribution Margin, with sparkline KPI cards and CAGR.',
-        'Period presets: Recent (FY23–25), Full (FY10–25), Comparable (FY18–25). The FY18 scope break is shown as a shaded band — FY10–17 and FY18+ are not directly comparable.',
+        '16-year evolution (FY10–FY25) per BU: Net Sales, Operating Income, Distribution Margin, with sparkline KPI cards and CAGR. Toggle VGT or ECT.',
+        'Period presets: Recent (FY23–25), Full (FY10–25), Comparable (FY18–25). Each BU has its own scope break shown as a shaded band — VGT at FY18 (account change), ECT at FY22 (takeover; FY23 consolidates the GmbH-branch + Healthcare España entities). Pre-break years are not directly comparable.',
         'Budget Achievement chart: colour-coded bars vs 100% target (green ≥100%, amber 95–100%, red <95%).',
         'Internal vs External sales: stacked bars + Internal % trend line — shows the shift from local sales to distribution hub.',
         'SG&A Budget Variance: Plan vs Actual by rubrica (line item) with top movers and diverging bars (green = under budget, orange = over budget). Pick the fiscal year.',
@@ -1430,10 +1430,10 @@ const HELP = {
     },
     es: {
       title: 'Historial',
-      description: 'Consulta la historia de 16 anos de VGT (FY10–FY25) y la evolucion de Iberia a 3 anos con cumplimiento de presupuesto, desglose interno/externo y detalle mensual FY25.',
+      description: 'Consulta la historia de 16 anos de VGT y ECT (FY10–FY25) con cumplimiento de presupuesto, desglose interno/externo, desviacion SG&A y detalle mensual FY25.',
       features: [
-        'Evolucion de VGT a 16 anos (FY10–FY25): Ventas Netas, Resultado Operativo, Margen de Distribucion, con tarjetas KPI y CAGR.',
-        'Preajustes de periodo: Reciente (FY23–25), Completo (FY10–25), Comparable (FY18–25). El cambio de perimetro en FY18 se muestra como una banda sombreada.',
+        'Evolucion a 16 anos (FY10–FY25) por BU: Ventas Netas, Resultado Operativo, Margen de Distribucion, con tarjetas KPI y CAGR. Alterna VGT o ECT.',
+        'Preajustes de periodo: Reciente (FY23–25), Completo (FY10–25), Comparable (FY18–25). Cada BU tiene su cambio de perimetro como banda sombreada — VGT en FY18 (cambio de cuentas), ECT en FY22 (toma de control; FY23 consolida las entidades sucursal GmbH + Healthcare España). Los anos previos al cambio no son comparables.',
         'Grafico de cumplimiento de presupuesto: barras con color vs objetivo 100% (verde ≥100%, ambar 95–100%, rojo <95%).',
         'Ventas Internas vs Externas: barras apiladas + linea de % Interno — muestra la transicion a hub de distribucion.',
         'Desviacion de Presupuesto SG&A: Plan vs Real por rubrica con mayores variaciones y barras divergentes (verde = bajo presupuesto, naranja = sobre presupuesto). Elige el ano fiscal.',
@@ -1462,10 +1462,10 @@ const HELP = {
     },
     pt: {
       title: 'Historico',
-      description: 'Consulta o historico de 16 anos da VGT (FY10–FY25) e a evolucao Iberia a 3 anos com cumprimento de orcamento, repartição interno/externo e detalhe mensal FY25.',
+      description: 'Consulta o historico de 16 anos da VGT e ECT (FY10–FY25) com cumprimento de orcamento, repartição interno/externo, desvio SG&A e detalhe mensal FY25.',
       features: [
-        'Evolucao VGT a 16 anos (FY10–FY25): Vendas Liquidas, Resultado Operacional, Margem de Distribuicao, com cartoes KPI e CAGR.',
-        'Predefinicoes de periodo: Recente (FY23–25), Completo (FY10–25), Comparavel (FY18–25). A alteracao de perimetro no FY18 e mostrada como uma faixa sombreada.',
+        'Evolucao a 16 anos (FY10–FY25) por BU: Vendas Liquidas, Resultado Operacional, Margem de Distribuicao, com cartoes KPI e CAGR. Alterna VGT ou ECT.',
+        'Predefinicoes de periodo: Recente (FY23–25), Completo (FY10–25), Comparavel (FY18–25). Cada BU tem a sua quebra de perimetro como faixa sombreada — VGT no FY18 (mudanca de contas), ECT no FY22 (assuncao da gestao; FY23 consolida as entidades sucursal GmbH + Healthcare Espanha). Os anos anteriores a quebra nao sao comparaveis.',
         'Grafico de cumprimento de orcamento: barras com cor vs objetivo 100% (verde ≥100%, âmbar 95–100%, vermelho <95%).',
         'Vendas Internas vs Externas: barras empilhadas + linha de % Interno — mostra a transicao para hub de distribuicao.',
         'Desvio de Orcamento SG&A: Plano vs Real por rubrica com as maiores variacoes e barras divergentes (verde = abaixo do orcamento, laranja = acima do orcamento). Escolhe o ano fiscal.',
