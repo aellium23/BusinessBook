@@ -258,6 +258,8 @@ export default function DashboardSummary({ selectedBU = '' }) {
   const [fy25, setFy25]      = useState([])
   const [slaStats, setSlaStats] = useState({ active: 0, activeValue: 0, pipelineValue: 0, revenueByFY: {}, byBU: {} })
   const [manualFct, setManualFct] = useState(null)
+  // Actuals source: 'BB' = sum of invoiced deals (CRM) · 'SAP' = budget ACT cycle (official P&L)
+  const [source, setSource] = useState('BB')
 
   useEffect(() => {
     supabase.from('budget').select('*')
@@ -357,6 +359,19 @@ export default function DashboardSummary({ selectedBU = '' }) {
     return result
   }, [deals, ytdKeys])
 
+  // SAP actuals: budget ACT cycle (ns_ext + ns_int per BU, YTD only, thousands → EUR)
+  const sapActuals = useMemo(() => {
+    function bucketFor(bu, plKey) {
+      const row = budget.find(r => r.bu === bu && r.cycle === 'ACT' && r.pl_key === plKey)
+      return row ? sumMonthly(row, ytdKeys) * K : 0
+    }
+    return {
+      vgt_ext: bucketFor('VGT', 'ns_ext'), vgt_int: bucketFor('VGT', 'ns_int'),
+      ect_ext: bucketFor('ECT', 'ns_ext'), ect_int: bucketFor('ECT', 'ns_int'),
+    }
+  }, [budget, ytdKeys])
+  const hasSap = sapActuals.vgt_ext || sapActuals.vgt_int || sapActuals.ect_ext || sapActuals.ect_int
+
   // Forecast YTD: Invoiced + BackLog deals for the same elapsed months
   const forecastYTD = useMemo(() => {
     const result = { vgt_ext: 0, vgt_int: 0, ect_ext: 0, ect_int: 0 }
@@ -420,34 +435,39 @@ export default function DashboardSummary({ selectedBU = '' }) {
   const showECT = (isAdmin || profile?.bu === 'ECT') && (!selectedBU || selectedBU === 'ECT')
   const showIberia = !selectedBU
 
+  // Pick the actual value for the active source, but always keep both for the gap line
+  const val = (k) => source === 'SAP' ? sapActuals[k] : actuals[k]
+
   const gauges = []
   if (showVGT) {
     gauges.push({
       key: 'vgt-ext', label: 'VGT · External', subLabel: 'Sales to distributors',
-      value: actuals.vgt_ext, forecast: forecastYTD.vgt_ext,
+      value: val('vgt_ext'), bb: actuals.vgt_ext, sap: sapActuals.vgt_ext, forecast: forecastYTD.vgt_ext,
       target: budgetData.vgt_ext_ytd, py: priorYear.vgt_ext,
     })
     gauges.push({
       key: 'vgt-int', label: 'VGT · Internal', subLabel: 'Intercompany (to ECT)',
-      value: actuals.vgt_int, forecast: forecastYTD.vgt_int,
+      value: val('vgt_int'), bb: actuals.vgt_int, sap: sapActuals.vgt_int, forecast: forecastYTD.vgt_int,
       target: budgetData.vgt_int_ytd, py: priorYear.vgt_int,
     })
   }
   if (showECT) {
     gauges.push({
       key: 'ect-ext', label: 'ECT · External', subLabel: 'Sales to customers',
-      value: actuals.ect_ext, forecast: forecastYTD.ect_ext,
+      value: val('ect_ext'), bb: actuals.ect_ext, sap: sapActuals.ect_ext, forecast: forecastYTD.ect_ext,
       target: budgetData.ect_ext_ytd, py: priorYear.ect_ext,
     })
   }
   if (isAdmin && showIberia) {
-    const ib_actuals  = actuals.vgt_ext + actuals.ect_ext
+    const ib_bb       = actuals.vgt_ext + actuals.ect_ext
+    const ib_sap      = sapActuals.vgt_ext + sapActuals.ect_ext
     const ib_forecast = forecastYTD.vgt_ext + forecastYTD.ect_ext
     const ib_budget   = budgetData.vgt_ext_ytd + budgetData.ect_ext_ytd
     const ib_py       = priorYear.vgt_ext + priorYear.ect_ext
     gauges.push({
       key: 'iberia', label: 'Iberia · External', subLabel: 'VGT + ECT consolidated',
-      value: ib_actuals, forecast: ib_forecast, target: ib_budget, py: ib_py,
+      value: source === 'SAP' ? ib_sap : ib_bb, bb: ib_bb, sap: ib_sap,
+      forecast: ib_forecast, target: ib_budget, py: ib_py,
       color: '#0D2137',
     })
   }
@@ -469,9 +489,20 @@ export default function DashboardSummary({ selectedBU = '' }) {
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
             {t('dash_sales_vs_budget') || 'Sales vs Budget'}
           </p>
-          <span className="ml-auto text-micro text-gray-400">
-            FY26 YTD · cycle {cycle}
-          </span>
+          <div className="ml-auto flex items-center gap-2">
+            {/* Actuals source toggle: BB (CRM deals) vs SAP (official P&L) */}
+            <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg" title="Source of the actual sales values">
+              {['BB', 'SAP'].map(s => (
+                <button key={s} onClick={() => setSource(s)} disabled={s === 'SAP' && !hasSap}
+                  className={`text-micro font-semibold px-2 py-0.5 rounded-md transition-colors ${
+                    source === s ? 'bg-white shadow-sm text-gray-900' : 'text-gray-400 hover:text-gray-600'
+                  } ${s === 'SAP' && !hasSap ? 'opacity-40 cursor-not-allowed' : ''}`}>
+                  {s}
+                </button>
+              ))}
+            </div>
+            <span className="text-micro text-gray-400">FY26 YTD · cycle {cycle}</span>
+          </div>
         </div>
         {/* Color legend */}
         <div className="flex flex-wrap gap-3 text-micro text-gray-500 mb-3">
@@ -480,7 +511,9 @@ export default function DashboardSummary({ selectedBU = '' }) {
           <span className="flex items-center gap-1">🔴 &lt;70%</span>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-          {gauges.map(g => (
+          {gauges.map(g => {
+            const gap = (g.sap || 0) - (g.bb || 0)
+            return (
             <div key={g.key} className="card p-4">
               <Gauge
                 label={g.label}
@@ -492,8 +525,21 @@ export default function DashboardSummary({ selectedBU = '' }) {
                 color={g.color}
                 size="md"
               />
+              {/* Dual-source line — surfaces deals missing in the CRM (SAP − BB gap) */}
+              {hasSap && (
+                <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between text-micro">
+                  <span className={source === 'SAP' ? 'text-gray-400' : 'font-semibold text-gray-700'}>BB {formatK(g.bb || 0)}</span>
+                  <span className={source === 'BB' ? 'text-gray-400' : 'font-semibold text-gray-700'}>SAP {formatK(g.sap || 0)}</span>
+                  {Math.abs(gap) >= 1000 && (
+                    <span className={`px-1 rounded ${gap > 0 ? 'text-amber-600 bg-amber-50' : 'text-green-600 bg-green-50'}`}
+                      title="SAP − BB: positive = sales in SAP not yet tracked as deals in the CRM">
+                      {gap > 0 ? '▲' : '▼'}{formatK(Math.abs(gap))}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
-          ))}
+          )})}
         </div>
         {gauges.some(g => g.target === 0) && (
           <p className="mt-2 text-micro text-gray-400 flex items-center gap-1">
@@ -503,10 +549,10 @@ export default function DashboardSummary({ selectedBU = '' }) {
         {/* Explainer — right below the gauge grid */}
         <div className="card p-4 bg-gray-50 border-dashed mt-3">
           <p className="text-xs text-gray-500 leading-relaxed">
-            <strong className="text-gray-700">How to read this:</strong> the gauges compare Invoiced actuals to the Budget for the same months (FY26 year-to-date).
+            <strong className="text-gray-700">How to read this:</strong> the gauges compare actuals to the Budget for the same months (FY26 year-to-date).
+            Use the <strong>BB / SAP</strong> toggle to switch the actuals source — <strong>BB</strong> sums invoiced deals from the CRM, <strong>SAP</strong> uses the official P&amp;L (budget ACT cycle).
+            The BB / SAP line under each gauge shows both, and the ▲ gap flags sales booked in SAP but not yet tracked as deals in the CRM.
             Colour reflects performance against target — red &lt; 70%, amber 70–95%, green ≥ 95%.
-            The pill below each gauge is the delta versus the same period last year.
-            Switch to the Classic view any time using the toggle in the header.
           </p>
         </div>
       </div>

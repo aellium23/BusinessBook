@@ -13,6 +13,7 @@ const HELP = {
       features: [
         'Two primary tabs (Summary, Details) plus secondary breakdown pills (Products, Reps, Clients).',
         'Summary: gauges comparing actuals vs budget with a colour legend (green/amber/red) and Actuals / Budget labels beneath each gauge. Forecast is marked with a blue diamond.',
+        'Actuals source toggle (BB / SAP): BB sums invoiced deals from the CRM, SAP uses the official P&L (budget ACT cycle). The BB/SAP line under each gauge shows both, and the ▲ gap highlights sales in SAP not yet tracked as deals — useful to find missing CRM entries.',
         'All currency values are prefixed with the euro symbol (e.g. €500K, €1.2M).',
         'Classic: monthly charts + funnel analytics restructured into KPI Cards, Sales Funnel with conversion rates between stages, Attention Required alerts, and Analysis.',
         'Sales Funnel shows stage-to-stage conversion percentages (e.g. Lead to Pipeline: 65%).',
@@ -53,6 +54,7 @@ const HELP = {
       features: [
         'Dos pestanas principales (Resumen, Detalle) mas pills de desglose (Productos, Comerciales, Clientes).',
         'Resumen: gauges reales vs presupuesto con leyenda de color (verde/ambar/rojo) y etiquetas Reales / Presupuesto debajo de cada gauge. El forecast se marca con un diamante azul.',
+        'Selector de fuente (BB / SAP): BB suma los deals facturados del CRM, SAP usa el P&L oficial (ciclo ACT del presupuesto). La linea BB/SAP bajo cada gauge muestra ambos, y el desfase ▲ resalta ventas en SAP aun no registradas como deals — util para detectar entradas que faltan en el CRM.',
         'Todos los valores monetarios llevan el simbolo del euro (ej. €500K, €1.2M).',
         'Clasico: graficos mensuales + embudo reestructurado en Metricas Clave, Embudo de Ventas con tasas de conversion entre etapas, Atencion Requerida y Analisis.',
         'El Embudo de Ventas muestra porcentajes de conversion etapa a etapa (ej. Lead a Pipeline: 65%).',
@@ -93,6 +95,7 @@ const HELP = {
       features: [
         'Duas abas principais (Resumo, Detalhe) mais pills de desdobramento (Produtos, Comerciais, Clientes).',
         'Resumo: gauges reais vs orcamento com legenda de cor (verde/ambar/vermelho) e etiquetas Reais / Orcamento abaixo de cada gauge. O forecast e marcado com um losango azul.',
+        'Seletor de fonte (BB / SAP): BB soma os deals faturados do CRM, SAP usa o P&L oficial (ciclo ACT do orcamento). A linha BB/SAP por baixo de cada gauge mostra ambos, e o desvio ▲ realca vendas no SAP ainda nao registadas como deals — util para encontrar entradas em falta no CRM.',
         'Todos os valores monetarios apresentam o simbolo do euro (ex. €500K, €1.2M).',
         'Classico: graficos mensais + funil reestruturado em Metricas Chave, Funil de Vendas com taxas de conversao entre fases, Atencao Necessaria e Analise.',
         'O Funil de Vendas mostra percentagens de conversao fase a fase (ex. Lead para Pipeline: 65%).',
