@@ -225,6 +225,18 @@ export default function History() {
   }, [fySummary])
   const hasEvolution = fySummary.length > 0
 
+  // VGT internal vs external net sales (annual, FY23–FY25)
+  const intExt = useMemo(() =>
+    ['FY23', 'FY24', 'FY25'].map(fy => {
+      const row = fySummary.find(r => r.fiscal_year === fy && r.bu === 'VGT')
+      const intl = Math.round(Number(row?.ns_int) || 0)
+      const ext  = Math.round(Number(row?.ns_ext) || 0)
+      const tot  = intl + ext
+      return { fy, Internal: intl, External: ext, intPct: tot > 0 ? Math.round(intl / tot * 100) : 0 }
+    })
+  , [fySummary])
+  const hasIntExt = intExt.some(d => d.Internal > 0 || d.External > 0)
+
   if (loading) return (
     <div className="flex items-center justify-center p-16">
       <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin"/>
@@ -326,6 +338,33 @@ export default function History() {
               {showECT && <Line type="monotone" dataKey="ECT OP" stroke="#D85A30" strokeWidth={2}
                 strokeDasharray="5 4" dot={{ r:3, fill:'#fff', stroke:'#D85A30', strokeWidth:2 }}/>}
             </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* VGT — Internal vs External Net Sales (FY23–FY25) */}
+      {hasIntExt && showVGT && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+              VGT · Internal vs External Net Sales · K€
+            </p>
+            <p className="text-micro text-gray-400">
+              Internal % FY23–25: {intExt.map(d => `${d.intPct}%`).join(' → ')}
+            </p>
+          </div>
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={intExt} barSize={56} margin={{ top:8, right:8, left:-8, bottom:0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false}/>
+              <XAxis dataKey="fy" tick={{ fontSize:12, fontWeight:600, fill:'#475569' }} axisLine={false} tickLine={false}/>
+              <YAxis tick={{ fontSize:10, fill:'#94a3b8' }} axisLine={false} tickLine={false}
+                tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(1)}M` : `${v}K`}/>
+              <Tooltip contentStyle={{ ...TOOLTIP, border:'1px solid #e2e8f0', boxShadow:'0 4px 12px rgba(0,0,0,0.08)' }}
+                formatter={(v,n) => [`€${Number(v).toLocaleString('pt-PT')}K`, n]}/>
+              <Legend wrapperStyle={{ fontSize:11 }}/>
+              <Bar dataKey="External" stackId="ns" fill="#1D9E75" radius={[0,0,0,0]}/>
+              <Bar dataKey="Internal" stackId="ns" fill="#185FA5" radius={[4,4,0,0]}/>
+            </BarChart>
           </ResponsiveContainer>
         </div>
       )}
