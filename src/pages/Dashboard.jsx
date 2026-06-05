@@ -26,6 +26,8 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
   const [fy25, setFy25]      = useState([])
   const [fctSnapshots, setFctSnapshots] = useState([])
   const [slaRecurring, setSlaRecurring] = useState({ active: 0, value: 0, pipeline: 0 })
+  // Actuals source: 'BB' = invoiced deals (CRM) · 'SAP' = budget ACT cycle (official P&L)
+  const [source, setSource] = useState('BB')
   const loadStart = useRef(performance.now())
   const perfLogged = useRef(false)
 
@@ -125,6 +127,23 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
     return result
   }, [deals])
 
+  // SAP actuals (budget ACT cycle) — per BU per month, already in thousands (K)
+  const sapMonthly = useMemo(() => {
+    const out = { VGT: Array(12).fill(0), ECT: Array(12).fill(0) }
+    for (const bu of ['VGT','ECT']) {
+      for (const key of ['ns_int','ns_ext']) {
+        const row = budget.find(r => r.bu === bu && r.cycle === 'ACT' && r.pl_key === key)
+        if (row) MONTHS_K.forEach((m, i) => { out[bu][i] += Number(row[m]) || 0 })
+      }
+    }
+    return out
+  }, [budget])
+  const hasSap = useMemo(() => budget.some(r => r.cycle === 'ACT'), [budget])
+  const sapTotals = useMemo(() => ({
+    vgt: sapMonthly.VGT.reduce((a,b)=>a+b,0),
+    ect: sapMonthly.ECT.reduce((a,b)=>a+b,0),
+  }), [sapMonthly])
+
   // Monthly chart data — per BU
   const monthlyDataByBU = useMemo(() => {
     const getPlan = (bu, m_idx, cycle) => {
@@ -161,9 +180,10 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
           if (d.stage === 'Invoiced') actuals += v / 1000
           else if (d.stage === 'BackLog') forecast += v / 1000
         })
+        const act = source === 'SAP' ? (sapMonthly[bu]?.[i] || 0) : actuals
         return {
           month: m,
-          Actuals:  Math.round(actuals * 10) / 10,
+          Actuals:  Math.round(act * 10) / 10,
           Forecast: Math.round(forecast * 10) / 10,
           Plan:     Math.round(getPlan(bu, i, displayCycle) * 10) / 10,
           FY25:     Math.round(getPY(bu, i) * 10) / 10,
@@ -172,7 +192,7 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
       })
       return acc
     }, {})
-  }, [deals, budget, fy25, displayCycle, fctSnapshots])
+  }, [deals, budget, fy25, displayCycle, fctSnapshots, source, sapMonthly])
 
   // Funnel analytics
   const funnelAnalytics = useMemo(() => {
@@ -285,10 +305,26 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
       </div>
       )}
 
+      {/* Actuals source toggle (BB = CRM deals · SAP = official P&L / budget ACT) */}
+      <div className="flex items-center justify-end gap-2">
+        <span className="text-micro text-gray-400 uppercase tracking-wide">{t('dash_actuals') || 'Actuals'} source</span>
+        <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg" title="Source of the actual sales values">
+          {['BB','SAP'].map(s => (
+            <button key={s} onClick={() => setSource(s)} disabled={s === 'SAP' && !hasSap}
+              className={`text-micro font-semibold px-2 py-0.5 rounded-md transition-colors ${
+                source === s ? 'bg-white shadow-sm text-gray-900' : 'text-gray-400 hover:text-gray-600'
+              } ${s === 'SAP' && !hasSap ? 'opacity-40 cursor-not-allowed' : ''}`}>
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* ── PERFORMANCE MTD / YTD ─────────────────────────────────────────── */}
       <PerformanceSection
         deals={deals} budget={budget} fy25={fy25}
         activeCycle={activeCycle} isAdmin={isAdmin} selectedBU={selectedBU}
+        source={source}
       />
 
       {/* ── MONTHLY EVOLUTION — VGT + ECT separate ───────────────────────── */}

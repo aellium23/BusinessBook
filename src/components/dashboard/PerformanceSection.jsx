@@ -98,14 +98,24 @@ function BUPerformanceCard({ bu, color, label, actMTD, actYTD, actExtMTD=0, actI
   )
 }
 
-export default function PerformanceSection({ deals, budget, fy25, activeCycle, isAdmin, selectedBU = '' }) {
+export default function PerformanceSection({ deals, budget, fy25, activeCycle, isAdmin, selectedBU = '', source = 'BB' }) {
   const fyIdx = getFYMonthIndex()
   const curMonth = MONTHS_K[fyIdx]
   const ytdMonths = MONTHS_K.slice(0, fyIdx + 1)
   const mtdLabel = MONTHS_LABEL[fyIdx]
   const ytdLabel = fyIdx === 0 ? MONTHS_LABEL[0] : `${MONTHS_LABEL[0]}–${MONTHS_LABEL[fyIdx]}`
 
+  // SAP actuals from the budget ACT cycle (ns_int/ns_ext), already in thousands
+  function sumSap(bu, months, salesType = null) {
+    const keys = salesType === 'External' ? ['ns_ext']
+      : salesType === 'Internal' ? ['ns_int'] : ['ns_int','ns_ext']
+    return keys.reduce((s,key)=>{
+      const row = budget.find(r => r.bu===bu && r.cycle==='ACT' && r.pl_key===key)
+      return s + months.reduce((ms,m)=>ms+(Number(row?.[m])||0),0)
+    },0)
+  }
   function sumDeals(bu, months, salesType = null) {
+    if (source === 'SAP') return sumSap(bu, months, salesType)
     return deals
       .filter(d => d.bu===bu && d.stage==='Invoiced' && !d.is_intercompany_mirror
         && (salesType===null || (salesType==='External' ? d.sales_type!=='Internal' : d.sales_type==='Internal')))
