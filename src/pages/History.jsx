@@ -312,13 +312,17 @@ export default function History() {
 
   // ECT 3-year evolution (only for recent period)
   const evolution = useMemo(() => {
-    return ['FY23', 'FY24', 'FY25'].map(fy => ({
-      fy,
-      'VGT NS': Math.round(sum(fy, 'VGT', 'net_sales') ?? 0),
-      'ECT NS': Math.round(sum(fy, 'ECT', 'net_sales') ?? 0),
-      'VGT OP': Math.round(sum(fy, 'VGT', 'op') ?? 0),
-      'ECT OP': Math.round(sum(fy, 'ECT', 'op') ?? 0),
-    }))
+    return ['FY23', 'FY24', 'FY25'].map(fy => {
+      const vNs = Math.round(sum(fy, 'VGT', 'net_sales') ?? 0)
+      const eNs = Math.round(sum(fy, 'ECT', 'net_sales') ?? 0)
+      const vOp = Math.round(sum(fy, 'VGT', 'op') ?? 0)
+      const eOp = Math.round(sum(fy, 'ECT', 'op') ?? 0)
+      return {
+        fy,
+        'VGT NS': vNs, 'ECT NS': eNs, 'Iberia NS': vNs + eNs,
+        'VGT OP': vOp, 'ECT OP': eOp, 'Iberia OP': vOp + eOp,
+      }
+    })
   }, [fySummary])
 
   // Budget achievement data (only years with plan)
@@ -775,6 +779,10 @@ export default function History() {
                     strokeDasharray="5 4" dot={{ r:3, fill:'#fff', stroke:'#1D9E75', strokeWidth:2 }}/>}
                   {showECT && <Line type="monotone" dataKey="ECT OP" stroke="#D85A30" strokeWidth={2}
                     strokeDasharray="5 4" dot={{ r:3, fill:'#fff', stroke:'#D85A30', strokeWidth:2 }}/>}
+                  {activeBU === 'both' && <Line type="monotone" dataKey="Iberia NS" stroke="#0D2137" strokeWidth={3}
+                    dot={{ r:4, fill:'#0D2137' }} activeDot={{ r:6 }}/>}
+                  {activeBU === 'both' && <Line type="monotone" dataKey="Iberia OP" stroke="#0D2137" strokeWidth={2}
+                    strokeDasharray="5 4" dot={{ r:3, fill:'#fff', stroke:'#0D2137', strokeWidth:2 }}/>}
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
