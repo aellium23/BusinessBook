@@ -173,6 +173,10 @@ export function AuthProvider({ children }) {
   const canSeeAll  = isAdmin || perms.seeAll
   const canEdit    = perms.canEdit
   const editOwnOnly = perms.editOwn
+  // Read-only user: can view (possibly everything, if admin) but cannot write/delete.
+  // Used to lock down pages that otherwise gate writes on `isAdmin` alone (Budget,
+  // Settings, Permissions, Network, Quotas…), enabling a "view-only admin" profile.
+  const readOnly   = !perms.canEdit && !perms.canDelete
 
   // Verificar se o user pode aceder a uma página
   // Brand-only approvers have no other page access
@@ -194,7 +198,7 @@ export function AuthProvider({ children }) {
       user, profile, company, permSet, loading,
       role, bu, perms,
       isAdmin, isVGT, isECT,
-      canSeeAll, canEdit, editOwnOnly,
+      canSeeAll, canEdit, editOwnOnly, readOnly,
       canAccessPage,
     }}>
       {children}

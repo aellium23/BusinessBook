@@ -228,7 +228,7 @@ function HubEditor({ item, onClose, onSaved }) {
 
 // ── Main page ──────────────────────────────────────────────────────────────
 export default function Network() {
-  const { isAdmin, canEdit } = useAuth()
+  const { isAdmin, canEdit, readOnly } = useAuth()
   const { t } = useTranslation()
   const [tab, setTab]               = useState('distributors')
   const [distributors, setDistributors] = useState([])
@@ -392,7 +392,7 @@ export default function Network() {
         filteredHubs.length === 0 ? (
           <EmptyState icon="🌐" title={t('network_no_hubs')}
             description={t('network_no_hubs_desc')}
-            action={isAdmin && <button onClick={() => setEditing({ type: 'hubs', item: 'new' })} className="btn-primary">{t('network_new_hub')}</button>}/>
+            action={isAdmin && !readOnly && <button onClick={() => setEditing({ type: 'hubs', item: 'new' })} className="btn-primary">{t('network_new_hub')}</button>}/>
         ) : (
           <div className="bg-white border border-gray-200 rounded-card overflow-hidden">
             <ul className="divide-y divide-gray-50">
@@ -409,7 +409,7 @@ export default function Network() {
                       </div>
                       {h.notes && <p className="text-tiny text-gray-600 mt-1 whitespace-pre-wrap">{h.notes}</p>}
                     </div>
-                    {isAdmin && (
+                    {isAdmin && !readOnly && (
                       <div className="flex flex-col gap-1 shrink-0">
                         <button type="button" onClick={() => setEditing({ type: 'hubs', item: h })}
                           className="p-1.5 text-gray-400 hover:text-gray-700 rounded hover:bg-gray-100 min-h-tap min-w-tap">

@@ -233,7 +233,7 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
   )
 }
 
-function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, profile }) {
+function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, canWrite, profile }) {
   const { t } = useTranslation()
   const { color, manager } = TEAM_STRUCTURE[bu]
   const [addingNew, setAddingNew] = useState(false)
@@ -272,7 +272,7 @@ function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, profil
           <span className="w-3 h-3 rounded-full" style={{ background: color }}/>
           <h2 className="font-bold text-gray-800">{bu} · {bu === 'VGT' ? 'Portugal' : 'Spain'}</h2>
         </div>
-        {isAdmin && (
+        {canWrite && (
           <button onClick={() => setAddingNew(o=>!o)}
             className="text-xs flex items-center gap-1 text-gray-500 hover:text-gray-800">
             <Plus size={12}/> {t('quotas_add_member')}
@@ -288,7 +288,7 @@ function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, profil
           forecast={forecast[`${bu}::${manager}`]}
           teamActuals={teamAct} teamForecast={teamFC}
           onEdit={onRefresh} onDelete={async id => { await supabase.from('quotas').delete().eq('id',id); onRefresh() }}
-          isAdmin={isAdmin} ownerName={profile?.sales_owner_name}
+          isAdmin={canWrite} ownerName={profile?.sales_owner_name}
         />
       ) : (
         <div className="border-2 border-dashed rounded-xl p-4 text-center text-xs text-gray-400"
@@ -322,7 +322,7 @@ function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, profil
               teamActuals={0} teamForecast={0}
               onEdit={onRefresh}
               onDelete={async id => { await supabase.from('quotas').delete().eq('id',id); onRefresh() }}
-              isAdmin={isAdmin} ownerName={profile?.sales_owner_name}
+              isAdmin={canWrite} ownerName={profile?.sales_owner_name}
             />
           ))}
         </div>
@@ -439,7 +439,8 @@ function DistributorQuota({ quotas, actuals, forecast, profile }) {
 }
 
 export default function Quotas() {
-  const { isAdmin, canSeeAll, profile } = useAuth()
+  const { isAdmin, canSeeAll, profile, readOnly } = useAuth()
+  const canWrite = isAdmin && !readOnly
   const { t } = useTranslation()
   const [quotas, setQuotas] = useState([])
   const [deals, setDeals]   = useState([])
@@ -523,7 +524,7 @@ export default function Quotas() {
           {visibleBUs.map((bu, i) => (
             <div key={bu} className={`space-y-3 ${i > 0 ? 'lg:border-l lg:border-gray-100 lg:pl-6' : ''}`}>
               <TeamSection bu={bu} quotas={scopedQuotas} actuals={actuals} forecast={forecast}
-                onRefresh={load} isAdmin={isAdmin} profile={profile}/>
+                onRefresh={load} isAdmin={isAdmin} canWrite={canWrite} profile={profile}/>
             </div>
           ))}
         </div>

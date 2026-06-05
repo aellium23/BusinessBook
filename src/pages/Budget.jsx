@@ -90,7 +90,7 @@ function Trend({ value, reference }) {
 }
 
 export default function Budget() {
-  const { isAdmin } = useAuth()
+  const { isAdmin, readOnly } = useAuth()
   const { t: tr } = useTranslation()
   const [rows, setRows]       = useState([])
   const [loading, setLoading] = useState(true)
@@ -185,11 +185,12 @@ export default function Budget() {
           <h1 className="text-xl font-bold text-gray-900">{tr("budget_title")}</h1>
           <p className="text-sm text-gray-400">{tr("budget_values")}</p>
         </div>
-        {activeBu !== 'ALL' && <button onClick={handleSave} disabled={saving}
+        {activeBu !== 'ALL' && !readOnly && <button onClick={handleSave} disabled={saving}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white transition-all"
           style={{ background: saved ? '#1D9E75' : '#0D2137' }}>
           {saved ? <><CheckCircle size={15}/> {tr("budget_saved")}</> : saving ? tr("budget_saving") : <><Save size={15}/> {tr("budget_save")}</>}
         </button>}
+        {readOnly && <span className="flex items-center gap-1.5 text-xs text-gray-400 px-3 py-2 bg-gray-100 rounded-xl"><Lock size={13}/> {tr("budget_values")?.includes('K€') ? 'Read-only' : 'Só leitura'}</span>}
       </div>
 
       {/* Edit / Compare tab + BU selector — scope controls first */}
@@ -469,7 +470,7 @@ export default function Budget() {
 
                       return (
                         <td key={mk} className="p-0.5">
-                          {input && activeBu !== 'ALL' ? (
+                          {input && activeBu !== 'ALL' && !readOnly ? (
                             <input
                               type="number" step="0.1"
                               value={isFocused ? (getVal(activeBu,activeCycle,key,mk)||'') : (cellVal ? Math.round(cellVal*10)/10 : '')}
@@ -534,7 +535,7 @@ export default function Budget() {
       {/* ── Manual FCT Section — collapsed by default (separate workflow) ── */}
       <CollapsibleSection title={tr("budget_manual_fct")} subtitle={tr("budget_fct_subtitle")}>
         <div className="flex items-center justify-end flex-wrap gap-2">
-          {!fctForm && (
+          {!fctForm && !readOnly && (
             <button onClick={() => {
               const autoExt = {}; const autoInt = {}
               MONTHS_K.forEach(m => {

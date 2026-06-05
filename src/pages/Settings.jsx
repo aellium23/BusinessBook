@@ -3,7 +3,7 @@ import { useFxRates, updateFxRate } from '../hooks/useFxRates'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useSettings } from '../hooks/useSettings'
-import { TrendingUp, Save, RefreshCw, AlertCircle, CheckCircle2, Info, Users, Plus, Trash2, Edit3, Check, X, Palette, Calendar } from 'lucide-react'
+import { TrendingUp, Save, RefreshCw, AlertCircle, CheckCircle2, Info, Users, Plus, Trash2, Edit3, Check, X, Palette, Calendar, Lock } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 
 const CURRENCIES = [
@@ -289,7 +289,7 @@ function AppSettingsSection() {
 }
 
 export default function Settings() {
-  const { isAdmin } = useAuth()
+  const { isAdmin, readOnly } = useAuth()
   const { t } = useTranslation()
   const { rates, loading, refetch } = useFxRates()
   const [settingsTab, setSettingsTab] = useState('app')
@@ -353,6 +353,13 @@ export default function Settings() {
         )}
       </div>
 
+      {readOnly && (
+        <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          <Lock size={13}/> Read-only view — settings are visible but cannot be changed.
+        </div>
+      )}
+
+      <div className={readOnly ? 'pointer-events-none' : 'contents'}>
       {settingsTab === 'people' && isAdmin && <SalesOwnersSection />}
 
       {settingsTab === 'app' && <AppSettingsSection />}
@@ -481,6 +488,7 @@ export default function Settings() {
         </p>
       )}
       </>}
+      </div>
 
     </div>
   )

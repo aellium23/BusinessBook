@@ -11,7 +11,7 @@ import CompaniesTab from '../components/permissions/CompaniesTab'
 // ── Página principal ──────────────────────────────────────────────────────────
 export default function Permissions() {
   const { t } = useTranslation()
-  const { isAdmin, user, loading: authLoading } = useAuth()
+  const { isAdmin, readOnly, user, loading: authLoading } = useAuth()
   const [permSets, setPermSets]     = useState([])
   const [profiles, setProfiles]     = useState([])
   const [companies, setCompanies]   = useState([])
@@ -67,6 +67,12 @@ export default function Permissions() {
         </p>
       </div>
 
+      {readOnly && (
+        <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          <Lock size={13}/> {t('perm_readonly_banner') || 'Read-only view — you can browse users, roles and companies but cannot make changes.'}
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-xl overflow-x-auto">
         {TABS.map(t_ => (
@@ -82,31 +88,34 @@ export default function Permissions() {
         ))}
       </div>
 
-      {/* Tab: Permission Sets */}
-      {tab === 'sets' && (
-        <RolesTab permSets={permSets} profiles={profiles} onRefresh={load}/>
-      )}
+      {/* Read-only users get a non-interactive content layer (no mutations possible) */}
+      <div className={readOnly ? 'pointer-events-none' : ''} aria-disabled={readOnly}>
+        {/* Tab: Permission Sets */}
+        {tab === 'sets' && (
+          <RolesTab permSets={permSets} profiles={profiles} onRefresh={load}/>
+        )}
 
-      {/* Tab: Users (now includes the Invite flow as a collapsible section) */}
-      {tab === 'users' && (
-        <UsersTab
-          profiles={profiles}
-          permSets={permSets}
-          companies={companies}
-          salesOwners={salesOwners}
-          user={user}
-          onRefresh={load}
-          buFilter={buFilter}
-          setBuFilter={setBuFilter}
-          search={search}
-          setSearch={setSearch}
-        />
-      )}
+        {/* Tab: Users (now includes the Invite flow as a collapsible section) */}
+        {tab === 'users' && (
+          <UsersTab
+            profiles={profiles}
+            permSets={permSets}
+            companies={companies}
+            salesOwners={salesOwners}
+            user={user}
+            onRefresh={load}
+            buFilter={buFilter}
+            setBuFilter={setBuFilter}
+            search={search}
+            setSearch={setSearch}
+          />
+        )}
 
-      {/* Tab: Companies */}
-      {tab === 'companies' && (
-        <CompaniesTab companies={companies} onRefresh={load}/>
-      )}
+        {/* Tab: Companies */}
+        {tab === 'companies' && (
+          <CompaniesTab companies={companies} onRefresh={load}/>
+        )}
+      </div>
     </div>
   )
 }

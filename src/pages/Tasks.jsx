@@ -375,9 +375,9 @@ function NotificationsPanel({ onClose, notifications, markRead, markAllRead, t }
 
 // ── Main Tasks Page ────────────────────────────────────────────────────────────
 export default function Tasks() {
-  const { user, profile, isAdmin } = useAuth()
+  const { user, profile, isAdmin, readOnly } = useAuth()
   const { t } = useTranslation()
-  const canAssign = isAdmin || ['vgt_editor','ect_editor'].includes(profile?.role)
+  const canAssign = (isAdmin || ['vgt_editor','ect_editor'].includes(profile?.role)) && !readOnly
 
   const { myTasks, assignedToMe, assignedByMe, loading, refetch } = useTasks()
   const { unread, notifications, markRead, markAllRead, pushNotification } = useNotifications()
@@ -507,10 +507,12 @@ export default function Tasks() {
               </button>
             ))}
           </div>
-          <button className="btn-primary flex items-center gap-1.5 py-2 px-3 text-sm shrink-0"
-            onClick={() => setModal('new')}>
-            <Plus size={15} /> <span>{t('tasks_new')}</span>
-          </button>
+          {!readOnly && (
+            <button className="btn-primary flex items-center gap-1.5 py-2 px-3 text-sm shrink-0"
+              onClick={() => setModal('new')}>
+              <Plus size={15} /> <span>{t('tasks_new')}</span>
+            </button>
+          )}
         </div>
       </div>
 
