@@ -306,26 +306,24 @@ export default function History() {
             </p>
           </div>
           <ResponsiveContainer width="100%" height={300}>
-            <ComposedChart data={evolution} margin={{ top:12, right:8, left:-12, bottom:0 }}>
+            <ComposedChart data={evolution} margin={{ top:12, right:12, left:-8, bottom:0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false}/>
               <XAxis dataKey="fy" tick={{ fontSize:12, fontWeight:600, fill:'#475569' }} axisLine={false} tickLine={false}/>
-              <YAxis yAxisId="ns" tick={{ fontSize:10, fill:'#94a3b8' }} axisLine={false} tickLine={false}
-                tickFormatter={v => `${(v/1000).toFixed(1)}M`}/>
-              <YAxis yAxisId="op" orientation="right" tick={{ fontSize:10, fill:'#94a3b8' }} axisLine={false} tickLine={false}
-                tickFormatter={v => `${v}`}/>
+              <YAxis tick={{ fontSize:10, fill:'#94a3b8' }} axisLine={false} tickLine={false}
+                tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(1)}M` : `${v}K`}/>
               <Tooltip contentStyle={{ ...TOOLTIP, border:'1px solid #e2e8f0', boxShadow:'0 4px 12px rgba(0,0,0,0.08)' }}
                 formatter={(v,n) => [`€${Number(v).toLocaleString('pt-PT')}K`, n]}/>
               <Legend wrapperStyle={{ fontSize:11 }} iconType="plainline"/>
-              <ReferenceLine yAxisId="op" y={0} stroke="#e2e8f0"/>
-              {/* Net Sales — solid, thick (left axis) */}
-              {showVGT && <Line yAxisId="ns" type="monotone" dataKey="VGT NS" stroke="#1D9E75" strokeWidth={3}
+              <ReferenceLine y={0} stroke="#e2e8f0"/>
+              {/* Net Sales — solid, thick */}
+              {showVGT && <Line type="monotone" dataKey="VGT NS" stroke="#1D9E75" strokeWidth={3}
                 dot={{ r:4, fill:'#1D9E75' }} activeDot={{ r:6 }}/>}
-              {showECT && <Line yAxisId="ns" type="monotone" dataKey="ECT NS" stroke="#D85A30" strokeWidth={3}
+              {showECT && <Line type="monotone" dataKey="ECT NS" stroke="#D85A30" strokeWidth={3}
                 dot={{ r:4, fill:'#D85A30' }} activeDot={{ r:6 }}/>}
-              {/* Operating Profit — dashed, thinner (right axis) */}
-              {showVGT && <Line yAxisId="op" type="monotone" dataKey="VGT OP" stroke="#1D9E75" strokeWidth={2}
+              {/* Operating Profit — dashed, thinner */}
+              {showVGT && <Line type="monotone" dataKey="VGT OP" stroke="#1D9E75" strokeWidth={2}
                 strokeDasharray="5 4" dot={{ r:3, fill:'#fff', stroke:'#1D9E75', strokeWidth:2 }}/>}
-              {showECT && <Line yAxisId="op" type="monotone" dataKey="ECT OP" stroke="#D85A30" strokeWidth={2}
+              {showECT && <Line type="monotone" dataKey="ECT OP" stroke="#D85A30" strokeWidth={2}
                 strokeDasharray="5 4" dot={{ r:3, fill:'#fff', stroke:'#D85A30', strokeWidth:2 }}/>}
             </ComposedChart>
           </ResponsiveContainer>
