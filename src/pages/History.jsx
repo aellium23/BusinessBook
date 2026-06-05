@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useTranslation } from '../hooks/useTranslation'
 import { formatK } from '../components/ui'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts'
 
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
@@ -153,18 +153,20 @@ function DistributorHistory({ profile }) {
 export default function History() {
   const { isAdmin, profile } = useAuth()
   const [fy25, setFy25]   = useState([])
+  const [fySummary, setFySummary] = useState([])
   const [loading, setLoading] = useState(true)
   // Non-admins are scoped to their own BU; admins can see Iberia (both)
   const [activeBU, setActiveBU] = useState(isAdmin ? 'both' : (profile?.bu || 'both'))
 
   useEffect(() => {
-    supabase.from('fy25_actuals').select('*')
-      .then(({ data, error }) => {
-
-        setFy25(data || [])
-        setLoading(false)
-      })
-      .catch(() => { setLoading(false) })
+    Promise.all([
+      supabase.from('fy25_actuals').select('*'),
+      supabase.from('fy_summary').select('*'),
+    ]).then(([f25, fsum]) => {
+      setFy25(f25.data || [])
+      setFySummary(fsum.data || [])
+      setLoading(false)
+    }).catch(() => { setLoading(false) })
   }, [])
 
   // Lock non-admins to their own BU once the profile is available
@@ -207,6 +209,22 @@ export default function History() {
     })
   }, [fy25])
 
+  // 3-year evolution (FY23–FY25) — annual Net Sales + Operating Profit per BU
+  const evolution = useMemo(() => {
+    const sum = (fy, bu, key) => {
+      const row = fySummary.find(r => r.fiscal_year === fy && r.bu === bu)
+      return row ? Number(row[key]) || 0 : 0
+    }
+    return ['FY23', 'FY24', 'FY25'].map(fy => ({
+      fy,
+      'VGT NS': Math.round(sum(fy, 'VGT', 'net_sales')),
+      'ECT NS': Math.round(sum(fy, 'ECT', 'net_sales')),
+      'VGT OP': Math.round(sum(fy, 'VGT', 'op')),
+      'ECT OP': Math.round(sum(fy, 'ECT', 'op')),
+    }))
+  }, [fySummary])
+  const hasEvolution = fySummary.length > 0
+
   if (loading) return (
     <div className="flex items-center justify-center p-16">
       <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin"/>
@@ -227,8 +245,8 @@ export default function History() {
       {/* Header */}
       <div className="flex items-center justify-between pt-1">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">History · FY25</h1>
-          <p className="text-sm text-gray-400">Apr 2025 – Mar 2026 · Actual results</p>
+          <h1 className="text-xl font-bold text-gray-900">History · FY23–FY25</h1>
+          <p className="text-sm text-gray-400">3-year actuals · FY25 monthly detail</p>
         </div>
         {isAdmin && (
           <div className="flex gap-1.5">
@@ -275,6 +293,45 @@ export default function History() {
           </>
         )}
       </div>
+
+      {/* 3-Year Evolution (FY23–FY25) */}
+      {hasEvolution && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Net Sales evolution */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+              Net Sales evolution · K€ · FY23–FY25
+            </p>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={evolution} barGap={4} margin={{ top:4, right:4, left:-20, bottom:0 }}>
+                <XAxis dataKey="fy" tick={{ fontSize:11 }} axisLine={false} tickLine={false}/>
+                <YAxis tick={{ fontSize:10 }} axisLine={false} tickLine={false}/>
+                <Tooltip contentStyle={TOOLTIP} formatter={(v,n) => [`€${v}K`, n]}/>
+                <Legend wrapperStyle={{ fontSize:10 }}/>
+                {showVGT && <Bar dataKey="VGT NS" fill="#1D9E75" radius={[3,3,0,0]}/>}
+                {showECT && <Bar dataKey="ECT NS" fill="#D85A30" radius={[3,3,0,0]}/>}
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          {/* Operating Profit evolution */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+              Operating Profit evolution · K€ · FY23–FY25
+            </p>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={evolution} barGap={4} margin={{ top:4, right:4, left:-20, bottom:0 }}>
+                <XAxis dataKey="fy" tick={{ fontSize:11 }} axisLine={false} tickLine={false}/>
+                <YAxis tick={{ fontSize:10 }} axisLine={false} tickLine={false}/>
+                <Tooltip contentStyle={TOOLTIP} formatter={(v,n) => [`€${v}K`, n]}/>
+                <Legend wrapperStyle={{ fontSize:10 }}/>
+                <ReferenceLine y={0} stroke="#cbd5e1"/>
+                {showVGT && <Bar dataKey="VGT OP" fill="#1D9E75" radius={[3,3,0,0]}/>}
+                {showECT && <Bar dataKey="ECT OP" fill="#D85A30" radius={[3,3,0,0]}/>}
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       {/* Monthly Net Sales chart */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">

@@ -1400,10 +1400,9 @@ const HELP = {
       title: 'History',
       description: 'Browse historical deal data and track actual results from previous fiscal years.',
       features: [
-        'View past deal stages, amounts, and outcomes.',
-        'Filter history by date range, client, or deal owner.',
-        'Monthly Net Sales and Gross Margin charts for FY25.',
-        'Compare VGT vs ECT performance historically.',
+        '3-year evolution charts (FY23–FY25) of Net Sales and Operating Profit for VGT and ECT.',
+        'Monthly Net Sales and Gross Margin detail charts + table for FY25.',
+        'Compare VGT vs ECT performance historically; toggle Iberia (consolidated).',
       ],
       steps: [
         '1. Review the KPI summary cards at the top.',
@@ -1426,9 +1425,9 @@ const HELP = {
       title: 'Historial',
       description: 'Consulta datos historicos de deals y resultados reales de anos fiscales anteriores.',
       features: [
-        'Ve etapas, importes y resultados pasados.',
-        'Filtra historial por rango de fechas, cliente o responsable.',
-        'Graficos mensuales de Ventas Netas y Margen Bruto.',
+        'Graficos de evolucion a 3 anos (FY23–FY25) de Ventas Netas y Beneficio Operativo para VGT y ECT.',
+        'Graficos y tabla de detalle mensual de Ventas Netas y Margen Bruto (FY25).',
+        'Compara VGT vs ECT historicamente; alterna Iberia (consolidado).',
       ],
       steps: [
         '1. Revisa los resumes KPI en la parte superior.',
@@ -1449,9 +1448,9 @@ const HELP = {
       title: 'Historico',
       description: 'Consulta dados historicos de deals e resultados reais de anos fiscais anteriores.',
       features: [
-        'Ve fases, montantes e resultados passados.',
-        'Filtra historico por intervalo de datas, cliente ou responsavel.',
-        'Graficos mensais de Vendas Liquidas e Margem Bruta.',
+        'Graficos de evolucao a 3 anos (FY23–FY25) de Vendas Liquidas e Resultado Operacional para VGT e ECT.',
+        'Graficos e tabela de detalhe mensal de Vendas Liquidas e Margem Bruta (FY25).',
+        'Compara VGT vs ECT historicamente; alterna Iberia (consolidado).',
       ],
       steps: [
         '1. Revisa os resumos KPI no topo.',
