@@ -5,8 +5,8 @@ import { useTranslation } from '../hooks/useTranslation'
 import { supabase } from '../lib/supabase'
 import { formatK } from '../components/ui'
 import { MONTHS_K, WEIGHTS, STAGE_CLASS } from '../constants'
-import { useNavigate } from 'react-router-dom'
 import { Calendar, GripVertical, Filter, Split, X, Save, Eye } from 'lucide-react'
+import DealForm from '../components/DealForm'
 
 const MONTHS_LABEL = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 const FY_YEAR = 2026
@@ -311,7 +311,9 @@ export default function Forecast() {
     if (!editable || saving) return
     setSaving(true)
     setDragOverMonth(null)
-    await supabase.from('deals').update({ rec_month: null, rec_year: null }).eq('id', dealId)
+    const update = { rec_month: null, rec_year: null }
+    MONTHS_K.forEach(m => { update[m] = 0 })
+    await supabase.from('deals').update(update).eq('id', dealId)
     await refetch()
     setSaving(false)
   }, [editable, saving, refetch])
@@ -322,9 +324,10 @@ export default function Forecast() {
     await refetch()
   }, [editable, refetch])
 
+  const [viewDeal, setViewDeal] = useState(null)
   const handleView = useCallback((deal) => {
-    navigate(`/deals?client=${encodeURIComponent(deal.client)}`)
-  }, [navigate])
+    setViewDeal(deal)
+  }, [])
 
   const totals = useMemo(() => {
     const t = { total: 0, weighted: 0, allocated: 0, unalloc: 0 }
@@ -442,6 +445,13 @@ export default function Forecast() {
           />
         ))}
       </div>
+
+      {/* Deal detail modal */}
+      {viewDeal && (
+        <DealForm deal={viewDeal}
+          onClose={() => setViewDeal(null)}
+          onSaved={() => { setViewDeal(null); refetch() }}/>
+      )}
     </div>
   )
 }
