@@ -96,7 +96,7 @@ export default function Layout({ children }) {
     { to: '/whitespace', icon: LayoutGrid,    label: t("nav_whitespace"), page: 'whitespace' },
     { to: '/history',  icon: History,         label: t("nav_history"),  page: 'history' },
     { to: '/quotas',  icon: Target,          label: t("nav_targets"),  page: 'quotas' },
-    { to: '/forecast', icon: CalendarDays,    label: 'Forecast',        page: 'forecast' },
+    { to: '/forecast', icon: CalendarDays,    label: t("nav_forecast"),  page: 'forecast' },
     { to: '/budget',  icon: DollarSign,      label: t("nav_budget"),   page: 'budget' },
     { to: '/audit',   icon: Shield,          label: t("nav_audit"),    page: 'audit' },
     { to: '/settings',    icon: Settings, label: t("nav_settings"),    page: 'settings' },

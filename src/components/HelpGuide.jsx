@@ -1497,6 +1497,102 @@ const HELP = {
     },
   },
 
+  '/forecast': {
+    en: {
+      title: 'Forecast Calendar',
+      description: 'Visual revenue planning: drag deals to the month you expect to recognise revenue, or split a deal across multiple months.',
+      features: [
+        'Timeline with 12 FY months (Apr→Mar). Unallocated column for deals not yet scheduled.',
+        'Drag & drop: drag a deal card to a month to allocate the full value there.',
+        'Revenue split: click the "split" button on any deal card to open a 12-month grid and distribute revenue across months (e.g. 300K in Sep + 351K in Mar). Split deals appear in every month where they have value.',
+        'Monthly totals show both raw and stage-weighted values (Lead 10%, Pipeline 30%, Offer 60%, BackLog/Invoiced 100%).',
+        'Filters: BU (VGT/ECT), stage, show/hide Invoiced deals.',
+        'Summary bar: total pipeline, weighted forecast, allocated vs unallocated.',
+      ],
+      steps: [
+        '1. Review unallocated deals on the left — these have no expected recognition month yet.',
+        '2. Drag a deal to the month where you expect it to close/invoice.',
+        '3. For large projects with phased recognition, click "split" and enter amounts per month.',
+        '4. Use the BU and stage filters to focus on your pipeline.',
+        '5. The totals update in real time as you allocate deals.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Dragging a deal that already has a multi-month split will NOT overwrite the split — use the split editor to change it.',
+        'Invoiced deals are hidden by default. Toggle "Show Invoiced" to see them.',
+      ],
+      seeAlso: [
+        { label: 'Deals — manage the pipeline that feeds this forecast', path: '/deals' },
+        { label: 'Budget — P&L targets and actuals', path: '/budget' },
+        { label: 'Dashboard — current performance vs forecast', path: '/' },
+      ],
+      admin: 'You can allocate deals for all BUs.',
+      member: 'You can allocate your own deals.',
+    },
+    es: {
+      title: 'Calendario de Forecast',
+      description: 'Planificacion visual de ingresos: arrastra deals al mes en que esperas reconocer la venta, o divide un deal entre varios meses.',
+      features: [
+        'Linea temporal con 12 meses del ano fiscal (Abr→Mar). Columna de no asignados para deals sin mes programado.',
+        'Arrastrar y soltar: arrastra un deal a un mes para asignar el valor completo ahi.',
+        'Division de ingresos: haz clic en "split" en cualquier deal para abrir una rejilla de 12 meses y distribuir los ingresos (ej. 300K en Sep + 351K en Mar). Los deals divididos aparecen en cada mes donde tienen valor.',
+        'Totales mensuales muestran valores brutos y ponderados por etapa (Lead 10%, Pipeline 30%, Offer 60%, BackLog/Invoiced 100%).',
+        'Filtros: BU (VGT/ECT), etapa, mostrar/ocultar deals facturados.',
+        'Barra resumen: pipeline total, forecast ponderado, asignado vs sin asignar.',
+      ],
+      steps: [
+        '1. Revisa los deals no asignados a la izquierda.',
+        '2. Arrastra un deal al mes donde esperas que se cierre/facture.',
+        '3. Para proyectos grandes con reconocimiento por fases, haz clic en "split" e introduce los montos por mes.',
+        '4. Usa los filtros de BU y etapa para enfocar tu pipeline.',
+        '5. Los totales se actualizan en tiempo real al asignar deals.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Arrastrar un deal que ya tiene un split multi-mes NO sobreescribe el split — usa el editor de split para cambiarlo.',
+        'Los deals facturados estan ocultos por defecto. Activa "Show Invoiced" para verlos.',
+      ],
+      seeAlso: [
+        { label: 'Oportunidades — gestiona el pipeline que alimenta este forecast', path: '/deals' },
+        { label: 'Presupuesto — objetivos P&L y reales', path: '/budget' },
+        { label: 'Panel — rendimiento actual vs forecast', path: '/' },
+      ],
+      admin: 'Puedes asignar deals de todas las unidades.',
+      member: 'Puedes asignar tus propios deals.',
+    },
+    pt: {
+      title: 'Calendario de Forecast',
+      description: 'Planeamento visual de receitas: arrasta deals para o mes em que esperas reconhecer a venda, ou divide um deal por varios meses.',
+      features: [
+        'Timeline com 12 meses do ano fiscal (Abr→Mar). Coluna de nao alocados para deals sem mes programado.',
+        'Arrastar e largar: arrasta um deal para um mes para alocar o valor total nesse mes.',
+        'Divisao de receitas: clica em "split" em qualquer deal para abrir uma grelha de 12 meses e distribuir a receita (ex. 300K em Set + 351K em Mar). Deals divididos aparecem em todos os meses onde tem valor.',
+        'Totais mensais mostram valores brutos e ponderados por fase (Lead 10%, Pipeline 30%, Offer 60%, BackLog/Invoiced 100%).',
+        'Filtros: BU (VGT/ECT), fase, mostrar/ocultar deals faturados.',
+        'Barra resumo: pipeline total, forecast ponderado, alocado vs nao alocado.',
+      ],
+      steps: [
+        '1. Revisa os deals nao alocados a esquerda.',
+        '2. Arrasta um deal para o mes em que esperas fechar/faturar.',
+        '3. Para projetos grandes com reconhecimento faseado, clica em "split" e introduz os valores por mes.',
+        '4. Usa os filtros de BU e fase para focar o teu pipeline.',
+        '5. Os totais atualizam-se em tempo real ao alocares deals.',
+      ],
+      shortcuts: [],
+      mistakes: [
+        'Arrastar um deal que ja tem um split multi-mes NAO sobreescreve o split — usa o editor de split para o alterar.',
+        'Deals faturados estao ocultos por defeito. Ativa "Show Invoiced" para os ver.',
+      ],
+      seeAlso: [
+        { label: 'Deals — gere o pipeline que alimenta este forecast', path: '/deals' },
+        { label: 'Orcamento — objetivos P&L e reais', path: '/budget' },
+        { label: 'Painel — desempenho atual vs forecast', path: '/' },
+      ],
+      admin: 'Podes alocar deals de todas as unidades de negocio.',
+      member: 'Podes alocar os teus proprios deals.',
+    },
+  },
+
   '/settings': {
     en: {
       title: 'Settings',
