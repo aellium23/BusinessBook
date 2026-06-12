@@ -11,8 +11,14 @@ const MONTHS_LABEL = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan
 const FY_YEAR = 2026
 const CAL_MONTHS = [3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 1, 2]
 
+function slaIsInternal(s) {
+  return s.deal?.sales_type === 'Internal'
+}
+
 function computeArrByMonth(slas, filterBU) {
   const arr = Array(12).fill(0)
+  const arrExt = Array(12).fill(0)
+  const arrInt = Array(12).fill(0)
   const slasByMonth = Array.from({ length: 12 }, () => [])
   for (const s of slas) {
     if (!['warranty', 'active', 'pending_renewal'].includes(s.status)) continue
@@ -20,6 +26,7 @@ function computeArrByMonth(slas, filterBU) {
     const annual = Number(s.annual_value) || 0
     if (annual <= 0) continue
     const daily = annual / 365
+    const isInt = slaIsInternal(s)
     const start = s.start_date ? new Date(s.start_date) : null
     const end = s.end_date ? new Date(s.end_date) : null
     for (let i = 0; i < 12; i++) {
@@ -32,11 +39,13 @@ function computeArrByMonth(slas, filterBU) {
       if (pStart > pEnd) continue
       const days = (pEnd - pStart) / 86400000 + 1
       const totalDays = (mEnd - mStart) / 86400000 + 1
-      arr[i] += days >= totalDays * 0.95 ? daily * totalDays : daily * days
+      const mv = days >= totalDays * 0.95 ? daily * totalDays : daily * days
+      arr[i] += mv
+      if (isInt) arrInt[i] += mv; else arrExt[i] += mv
       slasByMonth[i].push(s)
     }
   }
-  return { arr, slasByMonth }
+  return { arr, arrExt, arrInt, slasByMonth }
 }
 
 function dealValue(d) {
@@ -201,7 +210,7 @@ function DealCard({ deal, canEdit, onDragStart, onDragEnd, onSaveSplit, onView, 
   )
 }
 
-function MonthColumn({ label, deals, canEdit, dragOver, onDragOver, onDragLeave, onDrop, onDragStart, onDragEnd, onSaveSplit, onView, arrValue, showArr }) {
+function MonthColumn({ label, deals, canEdit, dragOver, onDragOver, onDragLeave, onDrop, onDragStart, onDragEnd, onSaveSplit, onView, arrValue, arrExtValue, arrIntValue, showArr }) {
   const mk = monthKeyFromLabel(label)
   function dealMonthVal(d) {
     const mv = Number(d[mk]) || 0
@@ -209,10 +218,14 @@ function MonthColumn({ label, deals, canEdit, dragOver, onDragOver, onDragLeave,
   }
   const dealsTotal = deals.reduce((s, d) => s + dealMonthVal(d), 0)
   const arrVal = showArr ? (arrValue || 0) : 0
+  const arrExt = showArr ? (arrExtValue || 0) : 0
+  const arrInt = showArr ? (arrIntValue || 0) : 0
   const monthTotal = dealsTotal + arrVal
   const weighted = deals.reduce((s, d) => s + dealMonthVal(d) * (WEIGHTS[d.stage] ?? 0), 0) + arrVal
-  const extTotal = deals.filter(d => d.sales_type !== 'Internal').reduce((s, d) => s + dealMonthVal(d), 0)
-  const intTotal = deals.filter(d => d.sales_type === 'Internal').reduce((s, d) => s + dealMonthVal(d), 0)
+  const dealExt = deals.filter(d => d.sales_type !== 'Internal').reduce((s, d) => s + dealMonthVal(d), 0)
+  const dealInt = deals.filter(d => d.sales_type === 'Internal').reduce((s, d) => s + dealMonthVal(d), 0)
+  const extTotal = dealExt + arrExt
+  const intTotal = dealInt + arrInt
   const isPast = (() => {
     const now = new Date()
     const mi = MONTHS_LABEL.indexOf(label)
@@ -244,7 +257,10 @@ function MonthColumn({ label, deals, canEdit, dragOver, onDragOver, onDragLeave,
             <span className="text-purple-600 font-medium flex items-center gap-0.5">
               <RefreshCw size={8}/> ARR
             </span>
-            <span className="text-purple-600 font-medium">{formatK(arrVal)}</span>
+            <span className="text-purple-600 font-medium">
+              {formatK(arrVal)}
+              {arrInt > 0 && arrExt > 0 && <span className="text-purple-400 font-normal"> (E{formatK(arrExt)} I{formatK(arrInt)})</span>}
+            </span>
           </div>
         )}
         {(extTotal > 0 || intTotal > 0) && (
@@ -284,7 +300,7 @@ export default function ForecastCalendar() {
 
   useEffect(() => {
     supabase.from('slas')
-      .select('id, status, annual_value, start_date, end_date, bu, client, product')
+      .select('id, status, annual_value, start_date, end_date, bu, client, product, deal:deal_id(sales_type)')
       .in('status', ['warranty', 'active', 'pending_renewal'])
       .then(({ data }) => setSlas(data || []))
       .catch(() => {})
@@ -381,7 +397,7 @@ export default function ForecastCalendar() {
     setViewDeal(deal)
   }, [])
 
-  const { arr: arrMonthly, slasByMonth } = useMemo(
+  const { arr: arrMonthly, arrExt: arrExtMonthly, arrInt: arrIntMonthly, slasByMonth } = useMemo(
     () => computeArrByMonth(slas, filterBU),
     [slas, filterBU]
   )
@@ -508,6 +524,8 @@ export default function ForecastCalendar() {
             onSaveSplit={handleSaveSplit}
             onView={handleView}
             arrValue={arrMonthly[mi]}
+            arrExtValue={arrExtMonthly[mi]}
+            arrIntValue={arrIntMonthly[mi]}
             showArr={showArr}
           />
         ))}
