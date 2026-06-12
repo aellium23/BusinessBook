@@ -25,7 +25,8 @@ function productCategory(deal) {
   return 'Others'
 }
 
-// Core product (for New Business vs Existing Base) — null when non-core.
+// Core product (for New Business vs Existing Base).
+// Falls back to product category so "Others" deals can still be classified.
 function coreProduct(deal) {
   const s = (deal.product || deal.client || '').toLowerCase()
   if (s.includes('patholog') || s.includes('digital path') || /\bdp\b/.test(s)) return 'DP'
@@ -33,7 +34,9 @@ function coreProduct(deal) {
   if (s.includes('cardio') || /\bcv\b/.test(s)) return 'CV'
   if (/\beis\b/.test(s)) return 'EIS'
   if (s.includes('pacs') || s.includes('synapse') || s.includes('cwm')) return 'PACS'
-  return null
+  if (s.includes('3d')) return '3D'
+  if (s.includes('ris')) return 'RIS'
+  return 'OTHER'
 }
 
 // Revenue type bucket: maintenance | opex | product
@@ -186,17 +189,17 @@ export default function EST1Builder() {
     allDeals.forEach(d => {
       if (d.is_intercompany_mirror || d.stage !== 'Invoiced') return
       const core = coreProduct(d)
-      if (!core) return
       const key = normClient(d.client) + '|' + core
       ;(m[key] || (m[key] = new Set())).add(d.id)
     })
     return m
   }, [allDeals])
 
+  // A deal is New Business if the client has no prior invoiced deal for the same
+  // core product. Maintenance/OPEX are always Existing Base (recurring).
   const isNewBusiness = useMemo(() => (deal) => {
     if (revenueType(deal) !== 'product') return false
     const core = coreProduct(deal)
-    if (!core) return false
     const ids = invoicedCoreMap[normClient(deal.client) + '|' + core]
     const priorExists = ids && [...ids].some(id => id !== deal.id)
     return !priorExists
@@ -235,20 +238,25 @@ export default function EST1Builder() {
   // ── Internal Sales (semi-annual, VGT only) ────────────────────────────────
   const internal = useMemo(() => {
     const rows = Object.fromEntries(REGION_ROWS.map(r => [r, [0, 0]]))
+    const newBiz = [0, 0], recurring = [0, 0]
     internalDeals.forEach(d => {
       const factor = wf(d)
       if (!factor) return
       const ha = halfAmounts(d).map(v => v * factor)
       const reg = internalRegion(d)
-      ha.forEach((v, i) => { rows[reg][i] += v })
+      const nb = isNewBusiness(d)
+      ha.forEach((v, i) => {
+        rows[reg][i] += v
+        if (nb) newBiz[i] += v; else recurring[i] += v
+      })
     })
     internalSlas.forEach(s => {
       const ha = slaHalfAmounts(s)
       const reg = internalRegion({ client: s.client })
-      ha.forEach((v, i) => { rows[reg][i] += v })
+      ha.forEach((v, i) => { rows[reg][i] += v; recurring[i] += v })
     })
-    return rows
-  }, [internalDeals, internalSlas, wf])
+    return { rows, newBiz, recurring }
+  }, [internalDeals, internalSlas, wf, isNewBusiness])
 
   const fy = arr => arr.reduce((s, v) => s + v, 0)
 
@@ -266,7 +274,10 @@ export default function EST1Builder() {
 
   const internalClipboard = useMemo(() => {
     const out = [['Region', '1H', '2H', 'FY26']]
-    REGION_ROWS.forEach(r => out.push([r, kNum(internal[r][0]), kNum(internal[r][1]), kNum(fy(internal[r]))]))
+    REGION_ROWS.forEach(r => out.push([r, kNum(internal.rows[r][0]), kNum(internal.rows[r][1]), kNum(fy(internal.rows[r]))]))
+    out.push(['Total internal', kNum(REGION_ROWS.reduce((s, r) => s + internal.rows[r][0], 0)), kNum(REGION_ROWS.reduce((s, r) => s + internal.rows[r][1], 0)), kNum(REGION_ROWS.reduce((s, r) => s + fy(internal.rows[r]), 0))])
+    out.push(['of which New Business', kNum(internal.newBiz[0]), kNum(internal.newBiz[1]), kNum(fy(internal.newBiz))])
+    out.push(['of which Recurring', kNum(internal.recurring[0]), kNum(internal.recurring[1]), kNum(fy(internal.recurring))])
     return out
   }, [internal])
 
@@ -290,7 +301,7 @@ export default function EST1Builder() {
   )
 
   const productTotalFY = fy(sales.total)
-  const internalTotalFY = REGION_ROWS.reduce((s, r) => s + fy(internal[r]), 0)
+  const internalTotalFY = REGION_ROWS.reduce((s, r) => s + fy(internal.rows[r]), 0)
   const grandTotal = productTotalFY + internalTotalFY + unallocated.total
 
   return (
@@ -454,7 +465,7 @@ export default function EST1Builder() {
               </thead>
               <tbody>
                 {REGION_ROWS.map(r => {
-                  const row = internal[r]
+                  const row = internal.rows[r]
                   return (
                     <tr key={r} className="border-b border-gray-50 hover:bg-gray-50/50">
                       <td className="px-3 py-1.5 text-gray-600">{r}</td>
@@ -466,9 +477,21 @@ export default function EST1Builder() {
                 })}
                 <tr className="border-t-2 border-navy/20 bg-navy/[0.06] font-bold">
                   <td className="px-3 py-2 text-navy">Total internal</td>
-                  <td className="px-3 py-2 text-right text-navy">{k(REGION_ROWS.reduce((s, r) => s + internal[r][0], 0))}</td>
-                  <td className="px-3 py-2 text-right text-navy">{k(REGION_ROWS.reduce((s, r) => s + internal[r][1], 0))}</td>
-                  <td className="px-3 py-2 text-right text-navy">{k(REGION_ROWS.reduce((s, r) => s + fy(internal[r]), 0))}</td>
+                  <td className="px-3 py-2 text-right text-navy">{k(REGION_ROWS.reduce((s, r) => s + internal.rows[r][0], 0))}</td>
+                  <td className="px-3 py-2 text-right text-navy">{k(REGION_ROWS.reduce((s, r) => s + internal.rows[r][1], 0))}</td>
+                  <td className="px-3 py-2 text-right text-navy">{k(internalTotalFY)}</td>
+                </tr>
+                <tr className="border-b border-gray-50">
+                  <td className="px-3 py-1.5 text-green-700 pl-5">of which New Business</td>
+                  <td className="px-3 py-1.5 text-right text-green-700">{k(internal.newBiz[0])}</td>
+                  <td className="px-3 py-1.5 text-right text-green-700">{k(internal.newBiz[1])}</td>
+                  <td className="px-3 py-1.5 text-right font-semibold text-green-700">{k(fy(internal.newBiz))}</td>
+                </tr>
+                <tr>
+                  <td className="px-3 py-1.5 text-gray-500 pl-5">of which Recurring</td>
+                  <td className="px-3 py-1.5 text-right text-gray-500">{k(internal.recurring[0])}</td>
+                  <td className="px-3 py-1.5 text-right text-gray-500">{k(internal.recurring[1])}</td>
+                  <td className="px-3 py-1.5 text-right font-semibold text-gray-600">{k(fy(internal.recurring))}</td>
                 </tr>
               </tbody>
             </table>
