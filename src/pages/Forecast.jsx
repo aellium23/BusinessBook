@@ -5,8 +5,10 @@ import { useTranslation } from '../hooks/useTranslation'
 import { supabase } from '../lib/supabase'
 import { formatK } from '../components/ui'
 import { MONTHS_K, WEIGHTS, STAGE_CLASS } from '../constants'
-import { Calendar, GripVertical, Filter, Split, X, Save, Eye } from 'lucide-react'
+import { Calendar, GripVertical, Filter, Split, X, Save, Eye, Table } from 'lucide-react'
 import DealForm from '../components/DealForm'
+import EST1Builder from '../components/forecast/EST1Builder'
+import { productCategory, EST1_PRODUCTS } from '../lib/est1'
 
 const MONTHS_LABEL = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 const FY_YEAR = 2026
@@ -237,8 +239,11 @@ export default function Forecast() {
   const [dragOverMonth, setDragOverMonth] = useState(null)
   const [draggingId, setDraggingId] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [tab, setTab] = useState('calendar')
   const [filterBU, setFilterBU] = useState('')
   const [filterStage, setFilterStage] = useState('')
+  const [filterSalesType, setFilterSalesType] = useState('')
+  const [filterProduct, setFilterProduct] = useState('')
   const [showInvoiced, setShowInvoiced] = useState(false)
 
   const editable = (isAdmin || canEditPerm) && !readOnly
@@ -248,8 +253,10 @@ export default function Forecast() {
     if (filterBU) d = d.filter(x => x.bu === filterBU)
     if (!showInvoiced) d = d.filter(x => x.stage !== 'Invoiced')
     if (filterStage) d = d.filter(x => x.stage === filterStage)
+    if (filterSalesType) d = d.filter(x => (x.sales_type || 'External') === filterSalesType)
+    if (filterProduct) d = d.filter(x => productCategory(x) === filterProduct)
     return d
-  }, [allDeals, filterBU, filterStage, showInvoiced])
+  }, [allDeals, filterBU, filterStage, filterSalesType, filterProduct, showInvoiced])
 
   // Unallocated = no rec_month AND no monthly spread
   const unallocated = useMemo(() =>
@@ -353,29 +360,49 @@ export default function Forecast() {
     <div className="p-4 space-y-4 max-w-full mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Calendar size={20} className="text-navy"/> Forecast Calendar
-          </h1>
-          <p className="text-sm text-gray-400">
-            FY26 · Drag deals to months · Click <Split size={10} className="inline text-blue-500"/> to split revenue across months
-          </p>
-        </div>
-        <div className="flex items-center gap-3 text-xs flex-wrap">
-          <div className="bg-white border border-gray-200 rounded-lg px-3 py-1.5">
-            <span className="text-gray-400">Pipeline:</span>{' '}
-            <span className="font-bold text-gray-900">{formatK(totals.total)}</span>
-            <span className="text-gray-300 mx-1">·</span>
-            <span className="text-gray-400">Weighted:</span>{' '}
-            <span className="font-bold text-navy">{formatK(totals.weighted)}</span>
+        <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+          <Calendar size={20} className="text-navy"/> Forecast
+          <span className="text-sm font-normal text-gray-400">FY26</span>
+        </h1>
+        {tab === 'calendar' && (
+          <div className="flex items-center gap-3 text-xs flex-wrap">
+            <div className="bg-white border border-gray-200 rounded-lg px-3 py-1.5">
+              <span className="text-gray-400">Pipeline:</span>{' '}
+              <span className="font-bold text-gray-900">{formatK(totals.total)}</span>
+              <span className="text-gray-300 mx-1">·</span>
+              <span className="text-gray-400">Weighted:</span>{' '}
+              <span className="font-bold text-navy">{formatK(totals.weighted)}</span>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-lg px-3 py-1.5">
+              <span className="text-green-600 font-medium">Allocated: {formatK(totals.allocated)}</span>
+              <span className="text-gray-300 mx-1">·</span>
+              <span className="text-amber-600 font-medium">Unalloc: {formatK(totals.unalloc)}</span>
+            </div>
           </div>
-          <div className="bg-white border border-gray-200 rounded-lg px-3 py-1.5">
-            <span className="text-green-600 font-medium">Allocated: {formatK(totals.allocated)}</span>
-            <span className="text-gray-300 mx-1">·</span>
-            <span className="text-amber-600 font-medium">Unalloc: {formatK(totals.unalloc)}</span>
-          </div>
-        </div>
+        )}
       </div>
+
+      {/* Tabs */}
+      <div className="flex items-center gap-1 border-b border-gray-200">
+        {[
+          { id: 'calendar', label: 'Forecast Calendar', icon: Calendar },
+          { id: 'est1', label: 'EST1 Builder', icon: Table },
+        ].map(({ id, label, icon: Icon }) => (
+          <button key={id} onClick={() => setTab(id)}
+            className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              tab === id ? 'border-navy text-navy' : 'border-transparent text-gray-400 hover:text-gray-600'
+            }`}>
+            <Icon size={14}/> {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'est1' && <EST1Builder allDeals={allDeals}/>}
+
+      {tab === 'calendar' && (<>
+      <p className="text-sm text-gray-400">
+        Drag deals to months · Click <Split size={10} className="inline text-blue-500"/> to split revenue across months
+      </p>
 
       {/* Filters */}
       <div className="flex items-center gap-2 flex-wrap">
@@ -393,6 +420,17 @@ export default function Forecast() {
           <option value="Pipeline">Pipeline</option>
           <option value="Offer Presented">Offer Presented</option>
           <option value="BackLog">BackLog</option>
+        </select>
+        <select value={filterSalesType} onChange={e => setFilterSalesType(e.target.value)}
+          className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
+          <option value="">All Sales</option>
+          <option value="External">External</option>
+          <option value="Internal">Internal</option>
+        </select>
+        <select value={filterProduct} onChange={e => setFilterProduct(e.target.value)}
+          className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
+          <option value="">All Products</option>
+          {EST1_PRODUCTS.map(p => <option key={p} value={p}>{p}</option>)}
         </select>
         <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
           <input type="checkbox" checked={showInvoiced} onChange={e => setShowInvoiced(e.target.checked)}
@@ -441,13 +479,14 @@ export default function Forecast() {
             onDragOver={() => setDragOverMonth(m)}
             onDragLeave={() => { if (dragOverMonth === m) setDragOverMonth(null) }}
             onDrop={dealId => handleDrop(dealId, m)}
-            onDragStart={() => setDraggingId}
+            onDragStart={id => setDraggingId(id)}
             onDragEnd={() => setDraggingId(null)}
             onSaveSplit={handleSaveSplit}
             onView={handleView}
           />
         ))}
       </div>
+      </>)}
 
       {/* Deal detail modal */}
       {viewDeal && (
