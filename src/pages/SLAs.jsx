@@ -247,9 +247,13 @@ export default function SLAs() {
       const rd = s.renewal_date || s.end_date
       return rd && ['active','pending_renewal'].includes(s.status) && new Date(rd) <= new Date(now.getTime() + 30 * 86400000) && new Date(rd) >= now
     })]
+    const activeExt = active.filter(s => s.sales_type !== 'Internal')
+    const activeInt = active.filter(s => s.sales_type === 'Internal')
     return {
       activeCount: active.length,
       activeValue: active.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
+      extValue: activeExt.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
+      intValue: activeInt.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
       pipelineValue: pipeline.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
       renewals90: renewing90.length,
       renewals90Value: renewing90.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
@@ -327,6 +331,12 @@ export default function SLAs() {
           <p className="text-micro text-gray-400 uppercase font-semibold">{t('sla_active_arr')}</p>
           <p className="text-xl font-bold text-green-600">{formatK(kpis.activeValue)}</p>
           <p className="text-xs text-gray-500">{kpis.activeCount} {t('sla_contracts')}</p>
+          {(kpis.extValue > 0 || kpis.intValue > 0) && (
+            <div className="flex items-center gap-2 mt-1 text-micro">
+              <span className="text-amber-700 font-medium">Ext {formatK(kpis.extValue)}</span>
+              <span className="text-blue-700 font-medium">Int {formatK(kpis.intValue)}</span>
+            </div>
+          )}
         </div>
         <div className="card p-3">
           <p className="text-micro text-gray-400 uppercase font-semibold">{t('sla_renewals_90d')}</p>

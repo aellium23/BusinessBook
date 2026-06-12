@@ -272,7 +272,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
     supabase.from('fy25_actuals').select('*')
       .then(({ data }) => setFy25(data || []))
       .catch(() => {})
-    supabase.from('slas').select('status, annual_value, revenue_by_fy, bu, product')
+    supabase.from('slas').select('status, annual_value, revenue_by_fy, bu, product, sales_type')
       .then(({ data }) => {
         if (!data || !Array.isArray(data)) return
         try {
@@ -280,6 +280,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
         const pipeline = data.filter(s => s.status === 'pipeline')
         const revenueByFY = {}
         const byBU = { VGT: 0, ECT: 0, CWM: 0, total: 0 }
+        let extValue = 0, intValue = 0
         for (const s of data) {
           if (s.status === 'cancelled') continue
           const val = Number(s.annual_value) || 0
@@ -290,6 +291,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
             const prod = (s.product || '').toLowerCase()
             if (prod.includes('cwm') || prod.includes('ris') || prod.includes('connectivity') || prod.includes('dose')) byBU.CWM += val
             byBU.total += val
+            if (s.sales_type === 'Internal') intValue += val; else extValue += val
           }
           const rev = s.revenue_by_fy || {}
           for (const [fy, v] of Object.entries(rev)) {
@@ -300,6 +302,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
           active: active.length,
           activeValue: active.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
           pipelineValue: pipeline.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
+          extValue, intValue,
           revenueByFY, byBU,
         })
         } catch {}
@@ -651,6 +654,12 @@ export default function DashboardSummary({ selectedBU = '' }) {
               <p className="text-micro text-gray-500">{selectedBU || 'Consolidated'} ARR</p>
               <p className="text-xl font-bold text-green-600">{formatK(selectedBU === 'VGT' ? (slaStats.byBU?.VGT || 0) : selectedBU === 'ECT' ? (slaStats.byBU?.ECT || 0) : (slaStats.byBU?.total || slaStats.activeValue))}</p>
               <p className="text-micro text-gray-400">{slaStats.active} contracts</p>
+              {(slaStats.extValue > 0 || slaStats.intValue > 0) && (
+                <div className="flex items-center gap-2 mt-1 text-micro">
+                  <span className="text-amber-700 font-medium">Ext {formatK(slaStats.extValue)}</span>
+                  <span className="text-blue-700 font-medium">Int {formatK(slaStats.intValue)}</span>
+                </div>
+              )}
             </div>
             <div className="bg-gray-50 rounded-lg p-3">
               <p className="text-micro text-gray-500">SLA Pipeline</p>

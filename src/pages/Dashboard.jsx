@@ -50,15 +50,19 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
     supabase.from('forecast_snapshots').select('*').order('created_at', { ascending: false })
       .then(({ data }) => { if (data) setFctSnapshots(data) })
       .catch(() => {})
-    supabase.from('slas').select('status, annual_value, bu')
+    supabase.from('slas').select('status, annual_value, bu, sales_type')
       .then(({ data }) => {
         if (!data) return
         try {
           const active = data.filter(s => ['warranty','active','pending_renewal'].includes(s.status))
           const pipeline = data.filter(s => s.status === 'pipeline')
+          const activeExt = active.filter(s => s.sales_type !== 'Internal')
+          const activeInt = active.filter(s => s.sales_type === 'Internal')
           setSlaRecurring({
             active: active.length,
             value: active.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
+            extValue: activeExt.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
+            intValue: activeInt.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
             pipeline: pipeline.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
           })
         } catch {}
@@ -397,6 +401,12 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
               <p className="text-micro text-gray-500">{t("dash_active_arr")}</p>
               <p className="text-lg font-bold text-green-600">{formatK(slaRecurring.value)}</p>
               <p className="text-micro text-gray-400">{slaRecurring.active} {t("dash_contracts")}</p>
+              {(slaRecurring.extValue > 0 || slaRecurring.intValue > 0) && (
+                <div className="flex items-center justify-center gap-2 mt-1 text-micro">
+                  <span className="text-amber-700 font-medium">Ext {formatK(slaRecurring.extValue)}</span>
+                  <span className="text-blue-700 font-medium">Int {formatK(slaRecurring.intValue)}</span>
+                </div>
+              )}
             </div>
             <div className="bg-gray-50 rounded-lg p-3 text-center">
               <p className="text-micro text-gray-500">{t("deals_pipeline")}</p>
