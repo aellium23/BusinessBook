@@ -424,13 +424,16 @@ export default function ForecastCalendar() {
   const arrIntTotal = arrIntMonthly.reduce((s, v) => s + v, 0)
 
   const totals = useMemo(() => {
-    const t = { total: 0, weighted: 0, allocated: 0, unalloc: 0, ext: 0, int: 0 }
+    const t = { total: 0, weighted: 0, allocated: 0, unalloc: 0, ext: 0, int: 0, allocExt: 0, allocInt: 0, unallocExt: 0, unallocInt: 0 }
     deals.forEach(d => {
       const v = dealValue(d); const w = v * (WEIGHTS[d.stage] ?? 0)
+      const isInt = d.sales_type === 'Internal'
       t.total += v; t.weighted += w
-      if (d.sales_type === 'Internal') t.int += v; else t.ext += v
+      if (isInt) t.int += v; else t.ext += v
       const rm = recMonthLabel(d); const fm = firstMonthWithValue(d)
-      if (rm || fm || hasMonthlySpread(d)) t.allocated += v; else t.unalloc += v
+      const isAlloc = !!(rm || fm || hasMonthlySpread(d))
+      if (isAlloc) { t.allocated += v; if (isInt) t.allocInt += v; else t.allocExt += v }
+      else { t.unalloc += v; if (isInt) t.unallocInt += v; else t.unallocExt += v }
     })
     return t
   }, [deals])
@@ -478,13 +481,28 @@ export default function ForecastCalendar() {
       {/* Sub-header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <p className="text-sm text-gray-400">
-          Drag deals to months · Click <Split size={10} className="inline text-blue-500"/> to split revenue across months
+          Drag deals to months · Click <Split size={10} className="inline text-blue-500"/> to split revenue
         </p>
         <div className="flex items-center gap-3 text-xs flex-wrap">
           <div className="bg-white border border-gray-200 rounded-lg px-3 py-1.5">
-            <span className="text-green-600 font-medium">Allocated: {formatK(totals.allocated)}</span>
-            <span className="text-gray-300 mx-1">·</span>
-            <span className="text-amber-600 font-medium">Unalloc: {formatK(totals.unalloc)}</span>
+            <span className="text-green-600 font-bold">Allocated: {formatK(totals.allocated)}</span>
+            {(totals.allocExt > 0 || totals.allocInt > 0) && (
+              <span className="text-micro text-gray-400 ml-1">(
+                <span className="text-amber-600">E {formatK(totals.allocExt)}</span>
+                {' · '}
+                <span className="text-blue-600">I {formatK(totals.allocInt)}</span>)
+              </span>
+            )}
+          </div>
+          <div className="bg-white border border-gray-200 rounded-lg px-3 py-1.5">
+            <span className="text-red-500 font-bold">Unalloc: {formatK(totals.unalloc)}</span>
+            {(totals.unallocExt > 0 || totals.unallocInt > 0) && (
+              <span className="text-micro text-gray-400 ml-1">(
+                <span className="text-amber-600">E {formatK(totals.unallocExt)}</span>
+                {' · '}
+                <span className="text-blue-600">I {formatK(totals.unallocInt)}</span>)
+              </span>
+            )}
           </div>
         </div>
       </div>
