@@ -270,6 +270,19 @@ export default function EST1Builder() {
     return out
   }, [internal])
 
+  // Deals not placed in any quarter (no monthly allocation, no rec_month)
+  const unallocated = useMemo(() => {
+    let ext = 0, int = 0
+    scopeDeals.forEach(d => {
+      const qa = quarterAmounts(d)
+      if (qa.some(v => v > 0)) return
+      const v = Number(d.value_total) || 0
+      if (v <= 0) return
+      if (d.sales_type === 'Internal') int += v; else ext += v
+    })
+    return { ext, int, total: ext + int }
+  }, [scopeDeals])
+
   if (loading) return (
     <div className="flex items-center justify-center p-16">
       <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin"/>
@@ -277,6 +290,8 @@ export default function EST1Builder() {
   )
 
   const productTotalFY = fy(sales.total)
+  const internalTotalFY = REGION_ROWS.reduce((s, r) => s + fy(internal[r]), 0)
+  const grandTotal = productTotalFY + internalTotalFY + unallocated.total
 
   return (
     <div className="space-y-5">
@@ -322,6 +337,33 @@ export default function EST1Builder() {
           <span className="text-micro text-gray-400 ml-auto">
             {scopeDeals.length} deals{includeArr ? ` + ${scopeSlas.length} SLAs` : ''}
           </span>
+        </div>
+      </div>
+
+      {/* Reconciliation summary */}
+      <div className="bg-navy/5 border border-navy/15 rounded-xl px-4 py-3 flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <p className="text-micro text-gray-500 uppercase tracking-wide font-semibold">{bu} FY26 Total</p>
+          <p className="text-xl font-bold text-navy">{k(grandTotal)} K€</p>
+        </div>
+        <div className="flex items-center gap-4 text-xs">
+          <div className="text-center">
+            <p className="text-micro text-gray-400">External (tbl)</p>
+            <p className="font-bold text-amber-700">{k(productTotalFY)}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-micro text-gray-400">Internal (tbl)</p>
+            <p className="font-bold text-blue-700">{k(internalTotalFY)}</p>
+          </div>
+          {unallocated.total > 0 && (
+            <div className="text-center border-l border-gray-300 pl-4">
+              <p className="text-micro text-red-400">Unallocated</p>
+              <p className="font-bold text-red-500">{k(unallocated.total)}</p>
+              <p className="text-micro text-gray-400">
+                E {k(unallocated.ext)} · I {k(unallocated.int)}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

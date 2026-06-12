@@ -544,7 +544,7 @@ export default function ForecastCalendar() {
         <label className="flex items-center gap-1.5 text-xs text-purple-600 cursor-pointer">
           <input type="checkbox" checked={showArr} onChange={e => setShowArr(e.target.checked)}
             className="rounded border-purple-300 text-purple-600"/>
-          ARR ({slas.length})
+          ARR ({filterBU ? slas.filter(s => (s.bu || '').toUpperCase() === filterBU).length : slas.length})
         </label>
         {saving && <span className="text-micro text-amber-600 animate-pulse">Saving...</span>}
       </div>
