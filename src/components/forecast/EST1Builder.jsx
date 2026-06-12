@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useDeals } from '../../hooks/useDeals'
 import { supabase } from '../../lib/supabase'
 import { MONTHS_K, WEIGHTS, normalizeBusinessModel } from '../../constants'
-import { Copy, Check, Users, Package, Building2, Info, RefreshCw } from 'lucide-react'
+import { Copy, Check, Users, Package, Building2, Info, RefreshCw, Filter } from 'lucide-react'
 
 const MONTHS_LABEL = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 
@@ -113,12 +113,6 @@ function CopyButton({ label, rows }) {
 }
 
 const STAGE_OPTIONS = ['Lead', 'Pipeline', 'Offer Presented', 'BackLog', 'Invoiced']
-const STAGE_PRESETS = {
-  all:       STAGE_OPTIONS,
-  committed: ['BackLog', 'Invoiced'],
-  forecast:  ['Pipeline', 'Offer Presented', 'BackLog'],
-  pipeline:  ['Lead', 'Pipeline', 'Offer Presented'],
-}
 const CAL_MONTHS = [3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 1, 2]
 const FY_YEAR = 2026
 
@@ -165,7 +159,9 @@ export default function EST1Builder() {
       .catch(() => {})
   }, [])
 
-  const applyPreset = (key) => setStages([...STAGE_PRESETS[key]])
+  const toggleStage = (s) => setStages(prev =>
+    prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
+  )
 
   const scopeDeals = useMemo(() =>
     allDeals.filter(d =>
@@ -286,48 +282,43 @@ export default function EST1Builder() {
     <div className="space-y-5">
       {/* Controls */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <p className="text-sm text-gray-400">
-            FY26 EST1 · Auto-populated from CRM deals + SLA contracts · values in K€
-          </p>
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex rounded-xl overflow-hidden border border-gray-200">
-              {['VGT', 'ECT'].map(b => (
-                <button key={b} onClick={() => setBu(b)}
-                  className={`px-4 py-1.5 text-sm font-semibold transition-all ${
-                    bu === b ? (b === 'VGT' ? 'bg-vgt text-white' : 'bg-ect text-white') : 'bg-white text-gray-500'
-                  }`}>
-                  {b}
-                </button>
-              ))}
-            </div>
-            <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
-              <input type="checkbox" checked={weighted} onChange={e => setWeighted(e.target.checked)}
-                className="rounded border-gray-300"/>
-              Weight by stage
-            </label>
-            <label className="flex items-center gap-1.5 text-xs text-purple-600 cursor-pointer">
-              <input type="checkbox" checked={includeArr} onChange={e => setIncludeArr(e.target.checked)}
-                className="rounded border-purple-300 text-purple-600"/>
-              ARR ({scopeSlas.length})
-            </label>
-          </div>
-        </div>
+        <p className="text-sm text-gray-400">
+          FY26 EST1 · Auto-populated from CRM deals + SLA contracts · values in K€
+        </p>
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-micro text-gray-400 font-semibold uppercase">Scope:</span>
-          {Object.entries(STAGE_PRESETS).map(([key, vals]) => (
-            <button key={key} onClick={() => applyPreset(key)}
-              className={`text-xs px-3 py-1 rounded-lg border font-semibold transition-colors ${
-                JSON.stringify([...stages].sort()) === JSON.stringify([...vals].sort())
-                  ? 'border-navy bg-navy text-white'
-                  : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+          <Filter size={13} className="text-gray-400"/>
+          <div className="flex rounded-xl overflow-hidden border border-gray-200">
+            {['VGT', 'ECT'].map(b => (
+              <button key={b} onClick={() => setBu(b)}
+                className={`px-4 py-1.5 text-xs font-semibold transition-all ${
+                  bu === b ? (b === 'VGT' ? 'bg-vgt text-white' : 'bg-ect text-white') : 'bg-white text-gray-500'
+                }`}>
+                {b}
+              </button>
+            ))}
+          </div>
+          <span className="text-gray-300">|</span>
+          {STAGE_OPTIONS.map(s => (
+            <button key={s} onClick={() => toggleStage(s)}
+              className={`text-xs px-2 py-1 rounded-lg border font-medium transition-colors ${
+                stages.includes(s)
+                  ? 'border-navy bg-navy/10 text-navy'
+                  : 'border-gray-200 bg-white text-gray-400'
               }`}>
-              {key === 'all' ? 'All stages' : key === 'committed' ? 'Committed' : key === 'forecast' ? 'Forecast' : 'Pipeline'}
+              {s === 'Offer Presented' ? 'Offer' : s}
             </button>
           ))}
-          <span className="text-micro text-gray-400 ml-1">
-            ({stages.map(s => s === 'Offer Presented' ? 'Offer' : s).join(' + ')})
-          </span>
+          <span className="text-gray-300">|</span>
+          <label className="flex items-center gap-1.5 text-xs text-purple-600 cursor-pointer">
+            <input type="checkbox" checked={includeArr} onChange={e => setIncludeArr(e.target.checked)}
+              className="rounded border-purple-300 text-purple-600"/>
+            ARR ({scopeSlas.length})
+          </label>
+          <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+            <input type="checkbox" checked={weighted} onChange={e => setWeighted(e.target.checked)}
+              className="rounded border-gray-300"/>
+            Weight by stage
+          </label>
           <span className="text-micro text-gray-400 ml-auto">
             {scopeDeals.length} deals{includeArr ? ` + ${scopeSlas.length} SLAs` : ''}
           </span>
