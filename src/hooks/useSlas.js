@@ -74,6 +74,7 @@ export async function createSlaFromDeal(deal, overrides = {}) {
   const sla = {
     deal_id:           deal.id,
     bu:                deal.bu,
+    sales_type:        deal.sales_type || 'External',
     client:            deal.client,
     description:       overrides.description || deal.description || null,
     sla_type:          overrides.sla_type || deal.sla_type || null,

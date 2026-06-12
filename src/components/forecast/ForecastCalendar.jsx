@@ -12,7 +12,7 @@ const FY_YEAR = 2026
 const CAL_MONTHS = [3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 1, 2]
 
 function slaIsInternal(s) {
-  return s.deal?.sales_type === 'Internal'
+  return (s.sales_type || s.deal?.sales_type) === 'Internal'
 }
 
 function computeArrByMonth(slas, filterBU) {
@@ -300,7 +300,7 @@ export default function ForecastCalendar() {
 
   useEffect(() => {
     supabase.from('slas')
-      .select('id, status, annual_value, start_date, end_date, bu, client, product, deal:deal_id(sales_type)')
+      .select('id, status, annual_value, start_date, end_date, bu, client, product, sales_type, deal:deal_id(sales_type)')
       .in('status', ['warranty', 'active', 'pending_renewal'])
       .then(({ data }) => setSlas(data || []))
       .catch(() => {})

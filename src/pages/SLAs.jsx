@@ -45,6 +45,9 @@ const SlaCard = memo(function SlaCard({ sla, onEdit, onDelete, canEdit, canDelet
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <BUBadge bu={sla.bu}/>
+            <span className={`text-micro font-bold px-1.5 py-0.5 rounded ${sla.sales_type === 'Internal' ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>
+              {sla.sales_type === 'Internal' ? 'Int' : 'Ext'}
+            </span>
             <SlaStatusBadge status={sla.status}/>
             <RenewalBadge sla={sla}/>
             {sla.sla_type && <span className="text-micro text-gray-400">{sla.sla_type}</span>}
