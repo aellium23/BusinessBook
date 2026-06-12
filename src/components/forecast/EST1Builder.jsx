@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useDeals } from '../../hooks/useDeals'
+import { supabase } from '../../lib/supabase'
 import { MONTHS_K, WEIGHTS, normalizeBusinessModel } from '../../constants'
-import { Copy, Check, Users, Package, Building2, Info } from 'lucide-react'
+import { Copy, Check, Users, Package, Building2, Info, RefreshCw } from 'lucide-react'
 
 const MONTHS_LABEL = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 
@@ -111,22 +112,80 @@ function CopyButton({ label, rows }) {
   )
 }
 
+const STAGE_OPTIONS = ['Lead', 'Pipeline', 'Offer Presented', 'BackLog', 'Invoiced']
+const STAGE_PRESETS = {
+  all:       STAGE_OPTIONS,
+  committed: ['BackLog', 'Invoiced'],
+  forecast:  ['Pipeline', 'Offer Presented', 'BackLog'],
+  pipeline:  ['Lead', 'Pipeline', 'Offer Presented'],
+}
+const CAL_MONTHS = [3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 1, 2]
+const FY_YEAR = 2026
+
+function slaQuarterAmounts(sla) {
+  const annual = Number(sla.annual_value) || 0
+  if (annual <= 0) return [0, 0, 0, 0]
+  const daily = annual / 365
+  const start = sla.start_date ? new Date(sla.start_date) : null
+  const end = sla.end_date ? new Date(sla.end_date) : null
+  const monthly = []
+  for (let i = 0; i < 12; i++) {
+    const yr = i >= 9 ? FY_YEAR + 1 : FY_YEAR
+    const cm = CAL_MONTHS[i]
+    const mStart = new Date(yr, cm, 1)
+    const mEnd = new Date(yr, cm + 1, 0)
+    const pStart = start && start > mStart ? start : mStart
+    const pEnd = end && end < mEnd ? end : mEnd
+    if (pStart > pEnd) { monthly.push(0); continue }
+    const days = (pEnd - pStart) / 86400000 + 1
+    const totalDays = (mEnd - mStart) / 86400000 + 1
+    monthly.push(days >= totalDays * 0.95 ? daily * totalDays : daily * days)
+  }
+  return [0, 1, 2, 3].map(q => monthly.slice(q * 3, q * 3 + 3).reduce((s, v) => s + v, 0))
+}
+
+function slaHalfAmounts(sla) {
+  const qa = slaQuarterAmounts(sla)
+  return [qa[0] + qa[1], qa[2] + qa[3]]
+}
+
 export default function EST1Builder() {
   const { deals: allDeals, loading } = useDeals()
   const [bu, setBu] = useState('VGT')
   const [weighted, setWeighted] = useState(false)
+  const [stages, setStages] = useState(STAGE_OPTIONS)
+  const [includeArr, setIncludeArr] = useState(true)
+  const [slas, setSlas] = useState([])
 
-  // Scope: selected BU, real deals only (no intercompany mirrors), exclude Lost.
+  useEffect(() => {
+    supabase.from('slas')
+      .select('id, status, annual_value, start_date, end_date, bu, client, product, sales_type, deal:deal_id(sales_type)')
+      .in('status', ['warranty', 'active', 'pending_renewal'])
+      .then(({ data }) => setSlas(data || []))
+      .catch(() => {})
+  }, [])
+
+  const toggleStage = (s) => setStages(prev =>
+    prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
+  )
+  const applyPreset = (key) => setStages([...STAGE_PRESETS[key]])
+
   const scopeDeals = useMemo(() =>
     allDeals.filter(d =>
       !d.is_intercompany_mirror &&
       d.bu === bu &&
-      d.stage !== 'Lost'
+      stages.includes(d.stage)
     )
-  , [allDeals, bu])
+  , [allDeals, bu, stages])
+
+  const scopeSlas = useMemo(() =>
+    includeArr ? slas.filter(s => (s.bu || '').toUpperCase() === bu) : []
+  , [slas, bu, includeArr])
 
   const productDeals = useMemo(() => scopeDeals.filter(d => d.sales_type !== 'Internal'), [scopeDeals])
   const internalDeals = useMemo(() => scopeDeals.filter(d => d.sales_type === 'Internal'), [scopeDeals])
+  const productSlas = useMemo(() => scopeSlas.filter(s => (s.sales_type || s.deal?.sales_type) !== 'Internal'), [scopeSlas])
+  const internalSlas = useMemo(() => scopeSlas.filter(s => (s.sales_type || s.deal?.sales_type) === 'Internal'), [scopeSlas])
 
   // Prior-invoiced core products per customer (across all BUs) for New/Existing.
   const invoicedCoreMap = useMemo(() => {
@@ -173,8 +232,12 @@ export default function EST1Builder() {
         if (nb) newBiz[i] += v; else existing[i] += v
       })
     })
+    productSlas.forEach(s => {
+      const qa = slaQuarterAmounts(s)
+      qa.forEach((v, i) => { if (v) { maint[i] += v; total[i] += v; existing[i] += v } })
+    })
     return { products, maint, opex, newBiz, existing, total }
-  }, [productDeals, wf, isNewBusiness])
+  }, [productDeals, productSlas, wf, isNewBusiness])
 
   // ── Internal Sales (semi-annual, VGT only) ────────────────────────────────
   const internal = useMemo(() => {
@@ -186,8 +249,13 @@ export default function EST1Builder() {
       const reg = internalRegion(d)
       ha.forEach((v, i) => { rows[reg][i] += v })
     })
+    internalSlas.forEach(s => {
+      const ha = slaHalfAmounts(s)
+      const reg = internalRegion({ client: s.client })
+      ha.forEach((v, i) => { rows[reg][i] += v })
+    })
     return rows
-  }, [internalDeals, wf])
+  }, [internalDeals, internalSlas, wf])
 
   const fy = arr => arr.reduce((s, v) => s + v, 0)
 
@@ -220,26 +288,60 @@ export default function EST1Builder() {
   return (
     <div className="space-y-5">
       {/* Controls */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <p className="text-sm text-gray-400">
-          FY26 EST1 · Auto-populated from CRM deals using your Forecast Calendar allocations · values in K€
-        </p>
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex rounded-xl overflow-hidden border border-gray-200">
-            {['VGT', 'ECT'].map(b => (
-              <button key={b} onClick={() => setBu(b)}
-                className={`px-4 py-1.5 text-sm font-semibold transition-all ${
-                  bu === b ? (b === 'VGT' ? 'bg-vgt text-white' : 'bg-ect text-white') : 'bg-white text-gray-500'
-                }`}>
-                {b}
-              </button>
-            ))}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <p className="text-sm text-gray-400">
+            FY26 EST1 · Auto-populated from CRM deals + SLA contracts · values in K€
+          </p>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex rounded-xl overflow-hidden border border-gray-200">
+              {['VGT', 'ECT'].map(b => (
+                <button key={b} onClick={() => setBu(b)}
+                  className={`px-4 py-1.5 text-sm font-semibold transition-all ${
+                    bu === b ? (b === 'VGT' ? 'bg-vgt text-white' : 'bg-ect text-white') : 'bg-white text-gray-500'
+                  }`}>
+                  {b}
+                </button>
+              ))}
+            </div>
+            <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+              <input type="checkbox" checked={weighted} onChange={e => setWeighted(e.target.checked)}
+                className="rounded border-gray-300"/>
+              Weight by stage
+            </label>
+            <label className="flex items-center gap-1.5 text-xs text-purple-600 cursor-pointer">
+              <input type="checkbox" checked={includeArr} onChange={e => setIncludeArr(e.target.checked)}
+                className="rounded border-purple-300 text-purple-600"/>
+              ARR ({scopeSlas.length})
+            </label>
           </div>
-          <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
-            <input type="checkbox" checked={weighted} onChange={e => setWeighted(e.target.checked)}
-              className="rounded border-gray-300"/>
-            Weight by stage
-          </label>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-micro text-gray-400 font-semibold uppercase">Stages:</span>
+          {STAGE_OPTIONS.map(s => (
+            <button key={s} onClick={() => toggleStage(s)}
+              className={`text-xs px-2 py-1 rounded-lg border font-medium transition-colors ${
+                stages.includes(s)
+                  ? 'border-navy bg-navy/10 text-navy'
+                  : 'border-gray-200 bg-white text-gray-400'
+              }`}>
+              {s === 'Offer Presented' ? 'Offer' : s}
+            </button>
+          ))}
+          <span className="text-gray-300 mx-1">|</span>
+          {Object.entries(STAGE_PRESETS).map(([key, vals]) => (
+            <button key={key} onClick={() => applyPreset(key)}
+              className={`text-micro px-2 py-0.5 rounded border transition-colors ${
+                JSON.stringify([...stages].sort()) === JSON.stringify([...vals].sort())
+                  ? 'border-navy bg-navy text-white'
+                  : 'border-gray-200 text-gray-500 hover:border-gray-300'
+              }`}>
+              {key}
+            </button>
+          ))}
+          <span className="text-micro text-gray-400 ml-2">
+            {scopeDeals.length} deals{includeArr ? ` + ${scopeSlas.length} SLAs` : ''}
+          </span>
         </div>
       </div>
 
