@@ -42,10 +42,35 @@ function computeArrByMonth(slas, filterBU) {
       const mv = days >= totalDays * 0.95 ? daily * totalDays : daily * days
       arr[i] += mv
       if (isInt) arrInt[i] += mv; else arrExt[i] += mv
-      slasByMonth[i].push(s)
+      slasByMonth[i].push({ ...s, _monthValue: mv })
     }
   }
   return { arr, arrExt, arrInt, slasByMonth }
+}
+
+function SlaCard({ sla }) {
+  const isInt = slaIsInternal(sla)
+  return (
+    <div className="mb-1.5">
+      <div className="bg-purple-50/60 rounded-lg border border-purple-200 p-2">
+        <div className="flex items-center gap-1 mb-0.5">
+          <span className={`text-micro font-bold px-1 py-0 rounded ${sla.bu === 'VGT' ? 'bg-vgt/10 text-vgt' : 'bg-ect/10 text-ect'}`}>
+            {sla.bu}
+          </span>
+          <span className={`text-micro font-bold px-1 py-0 rounded ${isInt ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>
+            {isInt ? 'Int' : 'Ext'}
+          </span>
+          <span className="text-micro font-bold px-1 py-0 rounded bg-purple-100 text-purple-700 flex items-center gap-0.5">
+            <RefreshCw size={7}/> SLA
+          </span>
+        </div>
+        <p className="text-xs font-semibold text-gray-900 truncate leading-tight">{sla.client}</p>
+        {sla.product && <p className="text-micro text-gray-400 truncate">{sla.product}</p>}
+        <span className="text-xs font-bold text-purple-700">{formatK(sla._monthValue)}</span>
+        <span className="text-micro text-gray-400 ml-1">/ {formatK(Number(sla.annual_value) || 0)} yr</span>
+      </div>
+    </div>
+  )
 }
 
 function dealValue(d) {
@@ -210,7 +235,7 @@ function DealCard({ deal, canEdit, onDragStart, onDragEnd, onSaveSplit, onView, 
   )
 }
 
-function MonthColumn({ label, deals, canEdit, dragOver, onDragOver, onDragLeave, onDrop, onDragStart, onDragEnd, onSaveSplit, onView, arrValue, arrExtValue, arrIntValue, showArr }) {
+function MonthColumn({ label, deals, canEdit, dragOver, onDragOver, onDragLeave, onDrop, onDragStart, onDragEnd, onSaveSplit, onView, arrValue, arrExtValue, arrIntValue, showArr, monthSlas }) {
   const mk = monthKeyFromLabel(label)
   function dealMonthVal(d) {
     const mv = Number(d[mk]) || 0
@@ -218,12 +243,12 @@ function MonthColumn({ label, deals, canEdit, dragOver, onDragOver, onDragLeave,
   }
   const dealsTotal = deals.reduce((s, d) => s + dealMonthVal(d), 0)
   const arrVal = showArr ? (arrValue || 0) : 0
-  const arrExt = showArr ? (arrExtValue || 0) : 0
-  const arrInt = showArr ? (arrIntValue || 0) : 0
   const monthTotal = dealsTotal + arrVal
   const weighted = deals.reduce((s, d) => s + dealMonthVal(d) * (WEIGHTS[d.stage] ?? 0), 0) + arrVal
   const dealExt = deals.filter(d => d.sales_type !== 'Internal').reduce((s, d) => s + dealMonthVal(d), 0)
   const dealInt = deals.filter(d => d.sales_type === 'Internal').reduce((s, d) => s + dealMonthVal(d), 0)
+  const arrExt = showArr ? (arrExtValue || 0) : 0
+  const arrInt = showArr ? (arrIntValue || 0) : 0
   const extTotal = dealExt + arrExt
   const intTotal = dealInt + arrInt
   const isPast = (() => {
@@ -233,43 +258,32 @@ function MonthColumn({ label, deals, canEdit, dragOver, onDragOver, onDragLeave,
     const calMonth = (mi + 3) % 12
     return new Date(yr, calMonth + 1, 0) < now
   })()
+  const visibleSlas = showArr ? (monthSlas || []) : []
 
   return (
     <div
       onDragOver={e => { e.preventDefault(); onDragOver?.() }}
       onDragLeave={onDragLeave}
       onDrop={e => { e.preventDefault(); onDrop?.(e.dataTransfer.getData('text/plain')) }}
-      className={`flex flex-col min-w-[140px] max-w-[180px] rounded-xl border transition-colors shrink-0 ${
+      className={`flex flex-col min-w-[150px] max-w-[190px] rounded-xl border transition-colors shrink-0 ${
         dragOver ? 'border-navy bg-navy/5' : 'border-gray-200 bg-gray-50/50'
       } ${isPast ? 'opacity-60' : ''}`}
       style={{ scrollSnapAlign: 'start' }}
     >
-      <div className="px-2 py-1.5 border-b border-gray-200 bg-white rounded-t-xl">
+      <div className="px-2 py-2 border-b border-gray-200 bg-white rounded-t-xl space-y-1">
         <div className="flex items-center justify-between">
           <p className="text-xs font-bold text-gray-700">{label}</p>
-          <span className="text-xs font-bold text-navy">{formatK(monthTotal)}</span>
+          <span className="text-sm font-bold text-navy">{formatK(monthTotal)}</span>
         </div>
-        <div className="flex items-center justify-between text-micro text-gray-500">
+        <div className="flex items-center justify-between text-micro">
+          <span className="text-amber-700 font-medium">Ext {formatK(extTotal)}</span>
+          <span className="text-blue-700 font-medium">Int {formatK(intTotal)}</span>
+        </div>
+        <div className="flex items-center justify-between text-micro text-gray-400">
           <span>{deals.length} deals · {formatK(dealsTotal)}</span>
+          {showArr && arrVal > 0 && <span className="text-purple-500">{visibleSlas.length} SLA · {formatK(arrVal)}</span>}
         </div>
-        {showArr && arrVal > 0 && (
-          <div className="flex items-center justify-between text-micro">
-            <span className="text-purple-600 font-medium flex items-center gap-0.5">
-              <RefreshCw size={8}/> ARR
-            </span>
-            <span className="text-purple-600 font-medium">
-              {formatK(arrVal)}
-              {arrInt > 0 && arrExt > 0 && <span className="text-purple-400 font-normal"> (E{formatK(arrExt)} I{formatK(arrInt)})</span>}
-            </span>
-          </div>
-        )}
-        {(extTotal > 0 || intTotal > 0) && (
-          <div className="flex items-center gap-1.5 text-micro">
-            <span className="text-vgt font-medium">Ext {formatK(extTotal)}</span>
-            {intTotal > 0 && <span className="text-blue-600 font-medium">Int {formatK(intTotal)}</span>}
-          </div>
-        )}
-        {Math.abs(dealsTotal - (weighted - arrVal)) > 1 && (
+        {Math.abs(monthTotal - weighted) > 1 && (
           <p className="text-micro text-gray-400">weighted: {formatK(weighted)}</p>
         )}
       </div>
@@ -278,7 +292,11 @@ function MonthColumn({ label, deals, canEdit, dragOver, onDragOver, onDragLeave,
           <DealCard key={d.id} deal={d} canEdit={canEdit} monthContext={label}
             onDragStart={onDragStart} onDragEnd={onDragEnd} onSaveSplit={onSaveSplit} onView={onView}/>
         ))}
-        {deals.length === 0 && !arrVal && (
+        {visibleSlas.length > 0 && deals.length > 0 && (
+          <div className="border-t border-purple-200 my-1.5"/>
+        )}
+        {visibleSlas.map(s => <SlaCard key={s.id} sla={s}/>)}
+        {deals.length === 0 && visibleSlas.length === 0 && (
           <p className="text-micro text-gray-300 text-center py-4">Drop deals here</p>
         )}
       </div>
@@ -527,6 +545,7 @@ export default function ForecastCalendar() {
             arrExtValue={arrExtMonthly[mi]}
             arrIntValue={arrIntMonthly[mi]}
             showArr={showArr}
+            monthSlas={slasByMonth[mi]}
           />
         ))}
       </div>
