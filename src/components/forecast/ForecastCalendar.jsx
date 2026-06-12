@@ -1,14 +1,43 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { useDeals } from '../../hooks/useDeals'
 import { supabase } from '../../lib/supabase'
 import { formatK } from '../ui'
 import { MONTHS_K, WEIGHTS, STAGE_CLASS } from '../../constants'
-import { Calendar, GripVertical, Filter, Split, X, Save, Eye } from 'lucide-react'
+import { Calendar, GripVertical, Filter, Split, X, Save, Eye, RefreshCw } from 'lucide-react'
 import DealForm from '../DealForm'
 
 const MONTHS_LABEL = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 const FY_YEAR = 2026
+const CAL_MONTHS = [3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 1, 2]
+
+function computeArrByMonth(slas, filterBU) {
+  const arr = Array(12).fill(0)
+  const slasByMonth = Array.from({ length: 12 }, () => [])
+  for (const s of slas) {
+    if (!['warranty', 'active', 'pending_renewal'].includes(s.status)) continue
+    if (filterBU && (s.bu || '').toUpperCase() !== filterBU) continue
+    const annual = Number(s.annual_value) || 0
+    if (annual <= 0) continue
+    const daily = annual / 365
+    const start = s.start_date ? new Date(s.start_date) : null
+    const end = s.end_date ? new Date(s.end_date) : null
+    for (let i = 0; i < 12; i++) {
+      const yr = i >= 9 ? FY_YEAR + 1 : FY_YEAR
+      const cm = CAL_MONTHS[i]
+      const mStart = new Date(yr, cm, 1)
+      const mEnd = new Date(yr, cm + 1, 0)
+      const pStart = start && start > mStart ? start : mStart
+      const pEnd = end && end < mEnd ? end : mEnd
+      if (pStart > pEnd) continue
+      const days = (pEnd - pStart) / 86400000 + 1
+      const totalDays = (mEnd - mStart) / 86400000 + 1
+      arr[i] += days >= totalDays * 0.95 ? daily * totalDays : daily * days
+      slasByMonth[i].push(s)
+    }
+  }
+  return { arr, slasByMonth }
+}
 
 function dealValue(d) {
   const fy = MONTHS_K.reduce((s, m) => s + (Number(d[m]) || 0), 0)
@@ -172,14 +201,16 @@ function DealCard({ deal, canEdit, onDragStart, onDragEnd, onSaveSplit, onView, 
   )
 }
 
-function MonthColumn({ label, deals, canEdit, dragOver, onDragOver, onDragLeave, onDrop, onDragStart, onDragEnd, onSaveSplit, onView }) {
+function MonthColumn({ label, deals, canEdit, dragOver, onDragOver, onDragLeave, onDrop, onDragStart, onDragEnd, onSaveSplit, onView, arrValue, showArr }) {
   const mk = monthKeyFromLabel(label)
   function dealMonthVal(d) {
     const mv = Number(d[mk]) || 0
     return mv > 0 ? mv : dealValue(d)
   }
-  const monthTotal = deals.reduce((s, d) => s + dealMonthVal(d), 0)
-  const weighted = deals.reduce((s, d) => s + dealMonthVal(d) * (WEIGHTS[d.stage] ?? 0), 0)
+  const dealsTotal = deals.reduce((s, d) => s + dealMonthVal(d), 0)
+  const arrVal = showArr ? (arrValue || 0) : 0
+  const monthTotal = dealsTotal + arrVal
+  const weighted = deals.reduce((s, d) => s + dealMonthVal(d) * (WEIGHTS[d.stage] ?? 0), 0) + arrVal
   const extTotal = deals.filter(d => d.sales_type !== 'Internal').reduce((s, d) => s + dealMonthVal(d), 0)
   const intTotal = deals.filter(d => d.sales_type === 'Internal').reduce((s, d) => s + dealMonthVal(d), 0)
   const isPast = (() => {
@@ -201,18 +232,28 @@ function MonthColumn({ label, deals, canEdit, dragOver, onDragOver, onDragLeave,
       style={{ scrollSnapAlign: 'start' }}
     >
       <div className="px-2 py-1.5 border-b border-gray-200 bg-white rounded-t-xl">
-        <p className="text-xs font-bold text-gray-700">{label}</p>
         <div className="flex items-center justify-between">
-          <span className="text-micro text-gray-500">{deals.length} deals</span>
+          <p className="text-xs font-bold text-gray-700">{label}</p>
           <span className="text-xs font-bold text-navy">{formatK(monthTotal)}</span>
         </div>
+        <div className="flex items-center justify-between text-micro text-gray-500">
+          <span>{deals.length} deals · {formatK(dealsTotal)}</span>
+        </div>
+        {showArr && arrVal > 0 && (
+          <div className="flex items-center justify-between text-micro">
+            <span className="text-purple-600 font-medium flex items-center gap-0.5">
+              <RefreshCw size={8}/> ARR
+            </span>
+            <span className="text-purple-600 font-medium">{formatK(arrVal)}</span>
+          </div>
+        )}
         {(extTotal > 0 || intTotal > 0) && (
           <div className="flex items-center gap-1.5 text-micro">
             <span className="text-vgt font-medium">Ext {formatK(extTotal)}</span>
             {intTotal > 0 && <span className="text-blue-600 font-medium">Int {formatK(intTotal)}</span>}
           </div>
         )}
-        {Math.abs(monthTotal - weighted) > 1 && (
+        {Math.abs(dealsTotal - (weighted - arrVal)) > 1 && (
           <p className="text-micro text-gray-400">weighted: {formatK(weighted)}</p>
         )}
       </div>
@@ -221,7 +262,7 @@ function MonthColumn({ label, deals, canEdit, dragOver, onDragOver, onDragLeave,
           <DealCard key={d.id} deal={d} canEdit={canEdit} monthContext={label}
             onDragStart={onDragStart} onDragEnd={onDragEnd} onSaveSplit={onSaveSplit} onView={onView}/>
         ))}
-        {deals.length === 0 && (
+        {deals.length === 0 && !arrVal && (
           <p className="text-micro text-gray-300 text-center py-4">Drop deals here</p>
         )}
       </div>
@@ -238,6 +279,16 @@ export default function ForecastCalendar() {
   const [filterBU, setFilterBU] = useState('')
   const [filterStage, setFilterStage] = useState('')
   const [showInvoiced, setShowInvoiced] = useState(false)
+  const [showArr, setShowArr] = useState(true)
+  const [slas, setSlas] = useState([])
+
+  useEffect(() => {
+    supabase.from('slas')
+      .select('id, status, annual_value, start_date, end_date, bu, client, product')
+      .in('status', ['warranty', 'active', 'pending_renewal'])
+      .then(({ data }) => setSlas(data || []))
+      .catch(() => {})
+  }, [])
 
   const editable = (isAdmin || canEditPerm) && !readOnly
 
@@ -330,6 +381,12 @@ export default function ForecastCalendar() {
     setViewDeal(deal)
   }, [])
 
+  const { arr: arrMonthly, slasByMonth } = useMemo(
+    () => computeArrByMonth(slas, filterBU),
+    [slas, filterBU]
+  )
+  const arrTotal = arrMonthly.reduce((s, v) => s + v, 0)
+
   const totals = useMemo(() => {
     const t = { total: 0, weighted: 0, allocated: 0, unalloc: 0 }
     deals.forEach(d => {
@@ -358,11 +415,16 @@ export default function ForecastCalendar() {
         </div>
         <div className="flex items-center gap-3 text-xs flex-wrap">
           <div className="bg-white border border-gray-200 rounded-lg px-3 py-1.5">
-            <span className="text-gray-400">Pipeline:</span>{' '}
+            <span className="text-gray-400">New Biz:</span>{' '}
             <span className="font-bold text-gray-900">{formatK(totals.total)}</span>
-            <span className="text-gray-300 mx-1">·</span>
-            <span className="text-gray-400">Weighted:</span>{' '}
-            <span className="font-bold text-navy">{formatK(totals.weighted)}</span>
+            {showArr && arrTotal > 0 && (
+              <>
+                <span className="text-gray-300 mx-1">+</span>
+                <span className="text-purple-600 font-medium">ARR: {formatK(arrTotal)}</span>
+              </>
+            )}
+            <span className="text-gray-300 mx-1">=</span>
+            <span className="font-bold text-navy">{formatK(totals.total + (showArr ? arrTotal : 0))}</span>
           </div>
           <div className="bg-white border border-gray-200 rounded-lg px-3 py-1.5">
             <span className="text-green-600 font-medium">Allocated: {formatK(totals.allocated)}</span>
@@ -393,6 +455,11 @@ export default function ForecastCalendar() {
           <input type="checkbox" checked={showInvoiced} onChange={e => setShowInvoiced(e.target.checked)}
             className="rounded border-gray-300"/>
           Show Invoiced
+        </label>
+        <label className="flex items-center gap-1.5 text-xs text-purple-600 cursor-pointer">
+          <input type="checkbox" checked={showArr} onChange={e => setShowArr(e.target.checked)}
+            className="rounded border-purple-300 text-purple-600"/>
+          ARR ({slas.length} contracts)
         </label>
         {saving && <span className="text-micro text-amber-600 animate-pulse">Saving...</span>}
       </div>
@@ -429,7 +496,7 @@ export default function ForecastCalendar() {
         <div className="w-px bg-gray-200 shrink-0 self-stretch"/>
 
         {/* Month columns */}
-        {MONTHS_LABEL.map(m => (
+        {MONTHS_LABEL.map((m, mi) => (
           <MonthColumn key={m} label={m} deals={byMonth[m] || []}
             canEdit={editable}
             dragOver={dragOverMonth === m}
@@ -440,6 +507,8 @@ export default function ForecastCalendar() {
             onDragEnd={() => setDraggingId(null)}
             onSaveSplit={handleSaveSplit}
             onView={handleView}
+            arrValue={arrMonthly[mi]}
+            showArr={showArr}
           />
         ))}
       </div>

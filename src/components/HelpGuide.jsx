@@ -1506,6 +1506,7 @@ const HELP = {
         'Drag & drop: drag a deal card to a month to allocate the full value there; drag back to Unallocated to clear it.',
         'Revenue split: click "split" on any deal card to open a 12-month grid and distribute revenue across months (e.g. 300K in Sep + 351K in Mar). Split deals appear in every month where they have value.',
         'Monthly totals show raw and stage-weighted values (Lead 10%, Pipeline 30%, Offer 60%, BackLog/Invoiced 100%) plus an External/Internal split.',
+        'ARR (Annual Recurring Revenue): active SLA/contract revenue is automatically distributed across months pro-rated by contract dates. Shown in purple in each month header. Toggle the "ARR" checkbox to include/exclude from totals.',
         'EST1 Builder — read-only grids that mirror the HQ Excel: Sales by Product (quarterly, per product family with Maintenance and Rental/OPEX lines and a New Business vs Existing Base split) and Internal Sales (semi-annual by region, VGT only).',
         'EST1 figures are auto-populated from the calendar allocations; pick the BU (VGT/ECT), optionally weight by stage, and use "Copy table" to paste each section straight into the HQ Excel (K€).',
       ],
@@ -1521,6 +1522,7 @@ const HELP = {
         'Dragging a deal that already has a multi-month split will NOT overwrite the split — use the split editor to change it.',
         'Unscheduled deals (no recognition month) do not land in any EST1 quarter — allocate them on the calendar first.',
         'Invoiced deals are hidden by default on the calendar. Toggle "Show Invoiced" to see them.',
+        'ARR only includes active/warranty/pending_renewal contracts. Pipeline or cancelled SLAs are excluded.',
       ],
       seeAlso: [
         { label: 'Deals — manage the pipeline that feeds this forecast', path: '/deals' },
@@ -1538,6 +1540,7 @@ const HELP = {
         'Arrastrar y soltar: arrastra un deal a un mes para asignar el valor completo; arrastralo de vuelta a No asignados para limpiarlo.',
         'Division de ingresos: haz clic en "split" en cualquier deal para abrir una rejilla de 12 meses y distribuir los ingresos (ej. 300K en Sep + 351K en Mar). Los deals divididos aparecen en cada mes donde tienen valor.',
         'Totales mensuales muestran valores brutos y ponderados por etapa (Lead 10%, Pipeline 30%, Offer 60%, BackLog/Invoiced 100%) y la division Externo/Interno.',
+        'ARR (Ingresos Recurrentes Anuales): la facturacion de contratos/SLAs activos se distribuye automaticamente por meses segun fechas del contrato. Se muestra en purpura en cada cabecera de mes. Activa/desactiva la casilla "ARR" para incluir/excluir de los totales.',
         'Constructor EST1 — rejillas de solo lectura que reflejan el Excel de la central: Ventas por Producto (trimestral, por familia con lineas de Mantenimiento y Alquiler/OPEX y division Nuevo Negocio vs Base Existente) y Ventas Internas (semestral por region, solo VGT).',
         'Las cifras EST1 se rellenan automaticamente desde el calendario; elige la BU (VGT/ECT), pondera por etapa si quieres, y usa "Copy table" para pegar cada seccion directamente en el Excel de la central (K€).',
       ],
@@ -1553,6 +1556,7 @@ const HELP = {
         'Arrastrar un deal que ya tiene un split multi-mes NO sobreescribe el split — usa el editor de split para cambiarlo.',
         'Los deals sin mes de reconocimiento no entran en ningun trimestre EST1 — asignalos antes en el calendario.',
         'Los deals facturados estan ocultos por defecto. Activa "Show Invoiced" para verlos.',
+        'El ARR solo incluye contratos activos/warranty/pendientes de renovacion. Los SLAs en pipeline o cancelados se excluyen.',
       ],
       seeAlso: [
         { label: 'Oportunidades — gestiona el pipeline que alimenta este forecast', path: '/deals' },
@@ -1570,6 +1574,7 @@ const HELP = {
         'Arrastar e largar: arrasta um deal para um mes para alocar o valor total; arrasta de volta para Nao alocados para o limpar.',
         'Divisao de receitas: clica em "split" em qualquer deal para abrir uma grelha de 12 meses e distribuir a receita (ex. 300K em Set + 351K em Mar). Deals divididos aparecem em todos os meses onde tem valor.',
         'Totais mensais mostram valores brutos e ponderados por fase (Lead 10%, Pipeline 30%, Offer 60%, BackLog/Invoiced 100%) e a divisao Externo/Interno.',
+        'ARR (Receita Recorrente Anual): a receita de contratos/SLAs activos e distribuida automaticamente por meses com base nas datas do contrato. Aparece em roxo no cabecalho de cada mes. Liga/desliga a opcao "ARR" para incluir/excluir dos totais.',
         'Construtor EST1 — grelhas de so leitura que refletem o Excel da sede: Vendas por Produto (trimestral, por familia com linhas de Manutencao e Aluguer/OPEX e divisao Novo Negocio vs Base Existente) e Vendas Internas (semestral por regiao, so VGT).',
         'Os valores EST1 sao preenchidos automaticamente a partir do calendario; escolhe a BU (VGT/ECT), pondera por fase se quiseres, e usa "Copy table" para colar cada seccao diretamente no Excel da sede (K€).',
       ],
@@ -1585,6 +1590,7 @@ const HELP = {
         'Arrastar um deal que ja tem um split multi-mes NAO sobreescreve o split — usa o editor de split para o alterar.',
         'Deals sem mes de reconhecimento nao entram em nenhum trimestre EST1 — aloca-os primeiro no calendario.',
         'Deals faturados estao ocultos por defeito. Ativa "Show Invoiced" para os ver.',
+        'O ARR so inclui contratos activos/warranty/pendentes de renovacao. SLAs em pipeline ou cancelados sao excluidos.',
       ],
       seeAlso: [
         { label: 'Deals — gere o pipeline que alimenta este forecast', path: '/deals' },
