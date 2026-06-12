@@ -175,16 +175,14 @@ function DealCard({ deal, canEdit, onDragStart, onDragEnd, onSaveSplit, onView, 
 
 function MonthColumn({ label, deals, canEdit, dragOver, onDragOver, onDragLeave, onDrop, onDragStart, onDragEnd, onSaveSplit, onView }) {
   const mk = monthKeyFromLabel(label)
-  const total = deals.reduce((s, d) => s + (Number(d[mk]) || 0 || dealValue(d)), 0)
-  const monthTotal = deals.reduce((s, d) => {
+  function dealMonthVal(d) {
     const mv = Number(d[mk]) || 0
-    return s + (mv > 0 ? mv : dealValue(d))
-  }, 0)
-  const weighted = deals.reduce((s, d) => {
-    const mv = Number(d[mk]) || 0
-    const v = mv > 0 ? mv : dealValue(d)
-    return s + v * (WEIGHTS[d.stage] ?? 0)
-  }, 0)
+    return mv > 0 ? mv : dealValue(d)
+  }
+  const monthTotal = deals.reduce((s, d) => s + dealMonthVal(d), 0)
+  const weighted = deals.reduce((s, d) => s + dealMonthVal(d) * (WEIGHTS[d.stage] ?? 0), 0)
+  const extTotal = deals.filter(d => d.sales_type !== 'Internal').reduce((s, d) => s + dealMonthVal(d), 0)
+  const intTotal = deals.filter(d => d.sales_type === 'Internal').reduce((s, d) => s + dealMonthVal(d), 0)
   const isPast = (() => {
     const now = new Date()
     const mi = MONTHS_LABEL.indexOf(label)
@@ -209,6 +207,12 @@ function MonthColumn({ label, deals, canEdit, dragOver, onDragOver, onDragLeave,
           <span className="text-micro text-gray-500">{deals.length} deals</span>
           <span className="text-xs font-bold text-navy">{formatK(monthTotal)}</span>
         </div>
+        {(extTotal > 0 || intTotal > 0) && (
+          <div className="flex items-center gap-1.5 text-micro">
+            <span className="text-vgt font-medium">Ext {formatK(extTotal)}</span>
+            {intTotal > 0 && <span className="text-blue-600 font-medium">Int {formatK(intTotal)}</span>}
+          </div>
+        )}
         {Math.abs(monthTotal - weighted) > 1 && (
           <p className="text-micro text-gray-400">weighted: {formatK(weighted)}</p>
         )}
@@ -230,7 +234,6 @@ export default function Forecast() {
   const { isAdmin, canEdit: canEditPerm, profile, readOnly } = useAuth()
   const { deals: allDeals, loading, refetch } = useDeals()
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const [dragOverMonth, setDragOverMonth] = useState(null)
   const [draggingId, setDraggingId] = useState(null)
   const [saving, setSaving] = useState(false)
