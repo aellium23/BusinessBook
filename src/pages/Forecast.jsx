@@ -5,7 +5,8 @@ import { useTranslation } from '../hooks/useTranslation'
 import { supabase } from '../lib/supabase'
 import { formatK } from '../components/ui'
 import { MONTHS_K, WEIGHTS, STAGE_CLASS } from '../constants'
-import { Calendar, GripVertical, Filter, Split, X, Save, Check } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Calendar, GripVertical, Filter, Split, X, Save, Eye } from 'lucide-react'
 
 const MONTHS_LABEL = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 const FY_YEAR = 2026
@@ -105,7 +106,7 @@ function SplitEditor({ deal, onSave, onClose }) {
   )
 }
 
-function DealCard({ deal, canEdit, onDragStart, onDragEnd, onSaveSplit, monthContext }) {
+function DealCard({ deal, canEdit, onDragStart, onDragEnd, onSaveSplit, onView, monthContext }) {
   const [splitOpen, setSplitOpen] = useState(false)
   const val = dealValue(deal)
   const weight = WEIGHTS[deal.stage] ?? 0
@@ -149,12 +150,19 @@ function DealCard({ deal, canEdit, onDragStart, onDragEnd, onSaveSplit, monthCon
                 </>
               )}
             </div>
-            {canEdit && (
-              <button onClick={e => { e.stopPropagation(); setSplitOpen(o => !o) }}
-                className="text-micro text-blue-500 hover:text-blue-700 mt-0.5 flex items-center gap-0.5">
-                <Split size={9}/> {splitOpen ? 'close' : 'split'}
+            <div className="flex items-center gap-2 mt-0.5">
+              <button onClick={e => { e.stopPropagation(); onView?.(deal) }}
+                className="text-micro text-gray-400 hover:text-navy flex items-center gap-0.5"
+                title="View deal details">
+                <Eye size={9}/> view
               </button>
-            )}
+              {canEdit && (
+                <button onClick={e => { e.stopPropagation(); setSplitOpen(o => !o) }}
+                  className="text-micro text-blue-500 hover:text-blue-700 flex items-center gap-0.5">
+                  <Split size={9}/> {splitOpen ? 'close' : 'split'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -165,7 +173,7 @@ function DealCard({ deal, canEdit, onDragStart, onDragEnd, onSaveSplit, monthCon
   )
 }
 
-function MonthColumn({ label, deals, canEdit, dragOver, onDragOver, onDragLeave, onDrop, onDragStart, onDragEnd, onSaveSplit }) {
+function MonthColumn({ label, deals, canEdit, dragOver, onDragOver, onDragLeave, onDrop, onDragStart, onDragEnd, onSaveSplit, onView }) {
   const mk = monthKeyFromLabel(label)
   const total = deals.reduce((s, d) => s + (Number(d[mk]) || 0 || dealValue(d)), 0)
   const monthTotal = deals.reduce((s, d) => {
@@ -208,7 +216,7 @@ function MonthColumn({ label, deals, canEdit, dragOver, onDragOver, onDragLeave,
       <div className="flex-1 p-1.5 overflow-y-auto max-h-[55vh] min-h-[60px]">
         {deals.map(d => (
           <DealCard key={d.id} deal={d} canEdit={canEdit} monthContext={label}
-            onDragStart={onDragStart} onDragEnd={onDragEnd} onSaveSplit={onSaveSplit}/>
+            onDragStart={onDragStart} onDragEnd={onDragEnd} onSaveSplit={onSaveSplit} onView={onView}/>
         ))}
         {deals.length === 0 && (
           <p className="text-micro text-gray-300 text-center py-4">Drop deals here</p>
@@ -222,6 +230,7 @@ export default function Forecast() {
   const { isAdmin, canEdit: canEditPerm, profile, readOnly } = useAuth()
   const { deals: allDeals, loading, refetch } = useDeals()
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [dragOverMonth, setDragOverMonth] = useState(null)
   const [draggingId, setDraggingId] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -312,6 +321,10 @@ export default function Forecast() {
     await supabase.from('deals').update(update).eq('id', dealId)
     await refetch()
   }, [editable, refetch])
+
+  const handleView = useCallback((deal) => {
+    navigate(`/deals?client=${encodeURIComponent(deal.client)}`)
+  }, [navigate])
 
   const totals = useMemo(() => {
     const t = { total: 0, weighted: 0, allocated: 0, unalloc: 0 }
@@ -407,7 +420,7 @@ export default function Forecast() {
               <DealCard key={d.id} deal={d} canEdit={editable}
                 onDragStart={() => setDraggingId(d.id)}
                 onDragEnd={() => setDraggingId(null)}
-                onSaveSplit={handleSaveSplit}/>
+                onSaveSplit={handleSaveSplit} onView={handleView}/>
             ))}
           </div>
         </div>
@@ -425,6 +438,7 @@ export default function Forecast() {
             onDragStart={() => setDraggingId}
             onDragEnd={() => setDraggingId(null)}
             onSaveSplit={handleSaveSplit}
+            onView={handleView}
           />
         ))}
       </div>
