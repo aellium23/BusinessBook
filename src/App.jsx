@@ -54,6 +54,7 @@ const SetPassword = lazyWithRetry(() => import('./pages/SetPassword'))
 const Permissions = lazyWithRetry(() => import('./pages/Permissions'))
 const Approvals = lazyWithRetry(() => import('./pages/Approvals'))
 const Quotations = lazyWithRetry(() => import('./pages/Quotations'))
+const Forecast = lazyWithRetry(() => import('./pages/Forecast'))
 const AcceptancePage = lazyWithRetry(() => import('./pages/AcceptancePage'))
 
 // The user's landing route — dashboard for most, /approvals for
@@ -127,6 +128,7 @@ function AppRoutes() {
           <Route path="/permissions"  element={<Guard page="permissions" element={<Permissions />} />} />
           <Route path="/approvals"     element={<Guard page="approvals"    element={<Approvals />} />} />
           <Route path="/quotations"   element={<Guard page="quotations"   element={<Quotations />} />} />
+          <Route path="/forecast"     element={<Guard page="forecast"     element={<Forecast />} />} />
           <Route path="/account"       element={<MyAccount />} />
           <Route path="/auth/callback"     element={<AuthCallback />} />
           <Route path="/auth/set-password" element={<SetPassword />} />
