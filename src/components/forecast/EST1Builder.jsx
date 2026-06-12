@@ -287,12 +287,12 @@ export default function EST1Builder() {
     scopeDeals.forEach(d => {
       const qa = quarterAmounts(d)
       if (qa.some(v => v > 0)) return
-      const v = Number(d.value_total) || 0
+      const v = (Number(d.value_total) || 0) * wf(d)
       if (v <= 0) return
       if (d.sales_type === 'Internal') int += v; else ext += v
     })
     return { ext, int, total: ext + int }
-  }, [scopeDeals])
+  }, [scopeDeals, wf])
 
   if (loading) return (
     <div className="flex items-center justify-center p-16">

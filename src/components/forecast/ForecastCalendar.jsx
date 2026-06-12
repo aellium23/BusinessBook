@@ -588,7 +588,7 @@ export default function ForecastCalendar() {
             onDragOver={() => setDragOverMonth(m)}
             onDragLeave={() => { if (dragOverMonth === m) setDragOverMonth(null) }}
             onDrop={dealId => handleDrop(dealId, m)}
-            onDragStart={() => setDraggingId}
+            onDragStart={(id) => setDraggingId(id)}
             onDragEnd={() => setDraggingId(null)}
             onSaveSplit={handleSaveSplit}
             onView={handleView}

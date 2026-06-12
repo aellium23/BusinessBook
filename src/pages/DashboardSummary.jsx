@@ -281,6 +281,8 @@ export default function DashboardSummary({ selectedBU = '' }) {
         const revenueByFY = {}
         const byBU = { VGT: 0, ECT: 0, CWM: 0, total: 0 }
         let extValue = 0, intValue = 0
+        const extByBU = { VGT: 0, ECT: 0, total: 0 }
+        const intByBU = { VGT: 0, ECT: 0, total: 0 }
         for (const s of data) {
           if (s.status === 'cancelled') continue
           const val = Number(s.annual_value) || 0
@@ -291,7 +293,17 @@ export default function DashboardSummary({ selectedBU = '' }) {
             const prod = (s.product || '').toLowerCase()
             if (prod.includes('cwm') || prod.includes('ris') || prod.includes('connectivity') || prod.includes('dose')) byBU.CWM += val
             byBU.total += val
-            if (s.sales_type === 'Internal') intValue += val; else extValue += val
+            if (s.sales_type === 'Internal') {
+              intValue += val
+              if (bu === 'VGT') intByBU.VGT += val
+              if (bu === 'ECT') intByBU.ECT += val
+              intByBU.total += val
+            } else {
+              extValue += val
+              if (bu === 'VGT') extByBU.VGT += val
+              if (bu === 'ECT') extByBU.ECT += val
+              extByBU.total += val
+            }
           }
           const rev = s.revenue_by_fy || {}
           for (const [fy, v] of Object.entries(rev)) {
@@ -302,7 +314,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
           active: active.length,
           activeValue: active.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
           pipelineValue: pipeline.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
-          extValue, intValue,
+          extValue, intValue, extByBU, intByBU,
           revenueByFY, byBU,
         })
         } catch {}
@@ -654,12 +666,16 @@ export default function DashboardSummary({ selectedBU = '' }) {
               <p className="text-micro text-gray-500">{selectedBU || 'Consolidated'} ARR</p>
               <p className="text-xl font-bold text-green-600">{formatK(selectedBU === 'VGT' ? (slaStats.byBU?.VGT || 0) : selectedBU === 'ECT' ? (slaStats.byBU?.ECT || 0) : (slaStats.byBU?.total || slaStats.activeValue))}</p>
               <p className="text-micro text-gray-400">{slaStats.active} contracts</p>
-              {(slaStats.extValue > 0 || slaStats.intValue > 0) && (
-                <div className="flex items-center gap-2 mt-1 text-micro">
-                  <span className="text-amber-700 font-medium">Ext {formatK(slaStats.extValue)}</span>
-                  <span className="text-blue-700 font-medium">Int {formatK(slaStats.intValue)}</span>
-                </div>
-              )}
+              {(() => {
+                const ev = selectedBU ? (slaStats.extByBU?.[selectedBU] || 0) : (slaStats.extValue || 0)
+                const iv = selectedBU ? (slaStats.intByBU?.[selectedBU] || 0) : (slaStats.intValue || 0)
+                return (ev > 0 || iv > 0) ? (
+                  <div className="flex items-center gap-2 mt-1 text-micro">
+                    <span className="text-amber-700 font-medium">Ext {formatK(ev)}</span>
+                    <span className="text-blue-700 font-medium">Int {formatK(iv)}</span>
+                  </div>
+                ) : null
+              })()}
             </div>
             <div className="bg-gray-50 rounded-lg p-3">
               <p className="text-micro text-gray-500">SLA Pipeline</p>
