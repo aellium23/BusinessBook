@@ -311,10 +311,14 @@ export default function ForecastCalendar() {
   const [, setDraggingId] = useState(null)
   const [saving, setSaving] = useState(false)
   const [filterBU, setFilterBU] = useState('')
-  const [filterStage, setFilterStage] = useState('')
-  const [showInvoiced, setShowInvoiced] = useState(false)
+  const [stages, setStages] = useState(['Lead', 'Pipeline', 'Offer Presented', 'BackLog'])
   const [showArr, setShowArr] = useState(true)
   const [slas, setSlas] = useState([])
+
+  const STAGE_OPTIONS = ['Lead', 'Pipeline', 'Offer Presented', 'BackLog', 'Invoiced']
+  const toggleStage = (s) => setStages(prev =>
+    prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
+  )
 
   useEffect(() => {
     supabase.from('slas')
@@ -329,10 +333,9 @@ export default function ForecastCalendar() {
   const deals = useMemo(() => {
     let d = allDeals.filter(x => !x.is_intercompany_mirror)
     if (filterBU) d = d.filter(x => x.bu === filterBU)
-    if (!showInvoiced) d = d.filter(x => x.stage !== 'Invoiced')
-    if (filterStage) d = d.filter(x => x.stage === filterStage)
+    d = d.filter(x => stages.includes(x.stage))
     return d
-  }, [allDeals, filterBU, filterStage, showInvoiced])
+  }, [allDeals, filterBU, stages])
 
   // Unallocated = no rec_month AND no monthly spread
   const unallocated = useMemo(() =>
@@ -526,23 +529,22 @@ export default function ForecastCalendar() {
           <option value="VGT">VGT</option>
           <option value="ECT">ECT</option>
         </select>
-        <select value={filterStage} onChange={e => setFilterStage(e.target.value)}
-          className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
-          <option value="">All Stages</option>
-          <option value="Lead">Lead</option>
-          <option value="Pipeline">Pipeline</option>
-          <option value="Offer Presented">Offer Presented</option>
-          <option value="BackLog">BackLog</option>
-        </select>
-        <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
-          <input type="checkbox" checked={showInvoiced} onChange={e => setShowInvoiced(e.target.checked)}
-            className="rounded border-gray-300"/>
-          Show Invoiced
-        </label>
+        <span className="text-gray-300">|</span>
+        {STAGE_OPTIONS.map(s => (
+          <button key={s} onClick={() => toggleStage(s)}
+            className={`text-xs px-2 py-1 rounded-lg border font-medium transition-colors ${
+              stages.includes(s)
+                ? 'border-navy bg-navy/10 text-navy'
+                : 'border-gray-200 bg-white text-gray-400'
+            }`}>
+            {s === 'Offer Presented' ? 'Offer' : s}
+          </button>
+        ))}
+        <span className="text-gray-300">|</span>
         <label className="flex items-center gap-1.5 text-xs text-purple-600 cursor-pointer">
           <input type="checkbox" checked={showArr} onChange={e => setShowArr(e.target.checked)}
             className="rounded border-purple-300 text-purple-600"/>
-          ARR ({slas.length} contracts)
+          ARR ({slas.length})
         </label>
         {saving && <span className="text-micro text-amber-600 animate-pulse">Saving...</span>}
       </div>
