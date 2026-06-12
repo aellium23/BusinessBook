@@ -21,8 +21,10 @@ export function useDeals(filters = {}) {
   const mounted = useRef(true)
   useEffect(() => () => { mounted.current = false }, [])
 
+  const hasData = useRef(false)
+
   const fetch = useCallback(async () => {
-    setLoading(true)
+    if (!hasData.current) setLoading(true)
     let q = supabase.from('deals').select('*').order('created_at', { ascending: false })
 
     // Filtros por role
@@ -55,7 +57,7 @@ export function useDeals(filters = {}) {
     const { data, error } = await q
     if (!mounted.current) return
     if (error) { logger.error('Failed to fetch deals', { error: error.message, filters }); setError(error.message); showToast(`Failed to load deals: ${error.message}`, 'error') }
-    else { setDeals((data ?? []).filter(d => !d.converted_to_sla)); setError(null) }
+    else { setDeals((data ?? []).filter(d => !d.converted_to_sla)); setError(null); hasData.current = true }
     setLoading(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id, profile?.role, profile?.company_id, profile?.bu, isAdmin, filterKey])
