@@ -442,6 +442,16 @@ export default function ForecastCalendar() {
   const fyExt = totals.ext + (showArr ? arrExtTotal : 0)
   const fyInt = totals.int + (showArr ? arrIntTotal : 0)
 
+  // Precise formatter for summary bar — avoids M rounding where Ext+Int ≠ Total
+  const fmtP = (n) => {
+    if (n === 0) return '€0'
+    if (Math.abs(n) >= 1000000) {
+      const m = n / 1000000
+      return m === Math.round(m) ? `€${m.toFixed(1)}M` : `€${m.toFixed(2)}M`
+    }
+    return formatK(n)
+  }
+
   if (loading) return (
     <div className="flex items-center justify-center p-16">
       <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin"/>
@@ -454,25 +464,25 @@ export default function ForecastCalendar() {
       <div className="bg-navy/5 border border-navy/15 rounded-xl px-4 py-3 flex items-center justify-between flex-wrap gap-3">
         <div>
           <p className="text-micro text-gray-500 uppercase tracking-wide font-semibold">FY26 Total Forecast</p>
-          <p className="text-2xl font-bold text-navy">{formatK(fyTotal)}</p>
+          <p className="text-2xl font-bold text-navy">{fmtP(fyTotal)}</p>
         </div>
         <div className="flex items-center gap-4 text-sm">
           <div className="text-center">
             <p className="text-micro text-gray-400">External</p>
-            <p className="font-bold text-amber-700">{formatK(fyExt)}</p>
+            <p className="font-bold text-amber-700">{fmtP(fyExt)}</p>
           </div>
           <div className="text-center">
             <p className="text-micro text-gray-400">Internal</p>
-            <p className="font-bold text-blue-700">{formatK(fyInt)}</p>
+            <p className="font-bold text-blue-700">{fmtP(fyInt)}</p>
           </div>
           <div className="border-l border-gray-300 pl-4 text-center">
             <p className="text-micro text-gray-400">New Biz</p>
-            <p className="font-bold text-gray-700">{formatK(totals.total)}</p>
+            <p className="font-bold text-gray-700">{fmtP(totals.total)}</p>
           </div>
           {showArr && arrTotal > 0 && (
             <div className="text-center">
               <p className="text-micro text-gray-400">ARR</p>
-              <p className="font-bold text-purple-600">{formatK(arrTotal)}</p>
+              <p className="font-bold text-purple-600">{fmtP(arrTotal)}</p>
             </div>
           )}
         </div>
