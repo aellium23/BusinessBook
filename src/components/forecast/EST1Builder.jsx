@@ -165,9 +165,6 @@ export default function EST1Builder() {
       .catch(() => {})
   }, [])
 
-  const toggleStage = (s) => setStages(prev =>
-    prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
-  )
   const applyPreset = (key) => setStages([...STAGE_PRESETS[key]])
 
   const scopeDeals = useMemo(() =>
@@ -317,29 +314,21 @@ export default function EST1Builder() {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-micro text-gray-400 font-semibold uppercase">Stages:</span>
-          {STAGE_OPTIONS.map(s => (
-            <button key={s} onClick={() => toggleStage(s)}
-              className={`text-xs px-2 py-1 rounded-lg border font-medium transition-colors ${
-                stages.includes(s)
-                  ? 'border-navy bg-navy/10 text-navy'
-                  : 'border-gray-200 bg-white text-gray-400'
-              }`}>
-              {s === 'Offer Presented' ? 'Offer' : s}
-            </button>
-          ))}
-          <span className="text-gray-300 mx-1">|</span>
+          <span className="text-micro text-gray-400 font-semibold uppercase">Scope:</span>
           {Object.entries(STAGE_PRESETS).map(([key, vals]) => (
             <button key={key} onClick={() => applyPreset(key)}
-              className={`text-micro px-2 py-0.5 rounded border transition-colors ${
+              className={`text-xs px-3 py-1 rounded-lg border font-semibold transition-colors ${
                 JSON.stringify([...stages].sort()) === JSON.stringify([...vals].sort())
                   ? 'border-navy bg-navy text-white'
-                  : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                  : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
               }`}>
-              {key}
+              {key === 'all' ? 'All stages' : key === 'committed' ? 'Committed' : key === 'forecast' ? 'Forecast' : 'Pipeline'}
             </button>
           ))}
-          <span className="text-micro text-gray-400 ml-2">
+          <span className="text-micro text-gray-400 ml-1">
+            ({stages.map(s => s === 'Offer Presented' ? 'Offer' : s).join(' + ')})
+          </span>
+          <span className="text-micro text-gray-400 ml-auto">
             {scopeDeals.length} deals{includeArr ? ` + ${scopeSlas.length} SLAs` : ''}
           </span>
         </div>
