@@ -273,64 +273,87 @@ export default function Budget() {
               return months.reduce((s, m) => s + lineVal(cycle, pk, m), 0)
             }
 
-            const gapLines = ['ns_int', 'ns_ext', 'ns'].map(pk => {
-              const label = PL_LINES.find(l => l.key === pk)?.label || pk
-              const qBud = sumLine(cmp.right, pk, qMonths)
-              const qAct = sumLine(cmp.left, pk, qMonths)
-              const qGap = qBud - qAct
-              const actThisMonth = lineVal(cmp.left, pk, currentMonthK)
-              const budThisMonth = lineVal(cmp.right, pk, currentMonthK)
-              const neededThisMonth = qGap + actThisMonth
-              return { pk, label, qBud, qAct, qGap, actThisMonth, budThisMonth, neededThisMonth }
-            })
+            function buildGap(label, periodMonths, color) {
+              return ['ns_int', 'ns_ext', 'ns'].map(pk => {
+                const plLabel = PL_LINES.find(l => l.key === pk)?.label || pk
+                const bud = sumLine(cmp.right, pk, periodMonths)
+                const act = sumLine(cmp.left, pk, periodMonths)
+                const gap = bud - act
+                const actM = lineVal(cmp.left, pk, currentMonthK)
+                const budM = lineVal(cmp.right, pk, currentMonthK)
+                const need = gap + actM
+                return { pk, label: plLabel, bud, act, gap, actM, budM, need }
+              })
+            }
+            const ytdGap = buildGap('YTD', ytdMonths)
+            const qGap = buildGap(qKey, qMonths)
+
+            function GapTable({ title, periodLabel, rows: gapRows, accent }) {
+              const border = accent === 'navy' ? 'border-navy/20' : 'border-amber-200'
+              const bg = accent === 'navy' ? 'bg-navy/5' : 'bg-amber-50/50'
+              const titleColor = accent === 'navy' ? 'text-navy' : 'text-amber-800'
+              const rowBorder = accent === 'navy' ? 'border-navy/10' : 'border-amber-100'
+              const rowBold = accent === 'navy' ? 'border-navy/20' : 'border-amber-300'
+              return (
+                <div className={`${bg} border ${border} rounded-xl p-4 space-y-3`}>
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <p className={`text-xs font-bold ${titleColor}`}>{title}</p>
+                    <span className="text-micro text-gray-400">{cmp.left} vs {cmp.right} · {BU_CONFIG[activeBu]?.label} · K€</span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-gray-500">
+                          <th className="text-left px-2 py-1 font-semibold">P&L Line</th>
+                          <th className="text-right px-2 py-1 font-semibold">{periodLabel} Bud</th>
+                          <th className="text-right px-2 py-1 font-semibold">{periodLabel} Act</th>
+                          <th className="text-right px-2 py-1 font-semibold">Gap</th>
+                          <th className="text-right px-2 py-1 font-semibold">{currentMonthLabel} Act</th>
+                          <th className="text-right px-2 py-1 font-semibold">{currentMonthLabel} Bud</th>
+                          <th className={`text-right px-2 py-1 font-bold ${titleColor}`}>Need in {currentMonthLabel}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {gapRows.map(g => {
+                          const isNS = g.pk === 'ns'
+                          return (
+                            <tr key={g.pk} className={isNS ? `border-t-2 ${rowBold} font-bold` : `border-t ${rowBorder}`}>
+                              <td className="px-2 py-1.5 text-gray-700">{g.label}</td>
+                              <td className="px-2 py-1.5 text-right text-gray-600">{g.bud.toFixed(1)}</td>
+                              <td className="px-2 py-1.5 text-right text-gray-600">{g.act.toFixed(1)}</td>
+                              <td className={`px-2 py-1.5 text-right font-bold ${g.gap > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                {g.gap > 0 ? '' : '+'}{(-g.gap).toFixed(1)}
+                              </td>
+                              <td className="px-2 py-1.5 text-right text-gray-600">{g.actM ? g.actM.toFixed(1) : '—'}</td>
+                              <td className="px-2 py-1.5 text-right text-gray-400">{g.budM.toFixed(1)}</td>
+                              <td className={`px-2 py-1.5 text-right font-bold ${g.need > g.budM * 1.1 ? 'text-red-600' : 'text-green-600'}`}>
+                                {g.need.toFixed(1)}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )
+            }
 
             return (<>
-              {/* Quarter gap panel */}
-              <div className="bg-amber-50/50 border border-amber-200 rounded-xl p-4 space-y-3">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <p className="text-xs font-bold text-amber-800">
-                    {PERIODS[qKey].label} Gap — {currentMonthLabel} target to close the quarter
-                  </p>
-                  <span className="text-micro text-gray-400">{cmp.left} vs {cmp.right} · {BU_CONFIG[activeBu]?.label} · K€</span>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="text-gray-500">
-                        <th className="text-left px-2 py-1 font-semibold">P&L Line</th>
-                        <th className="text-right px-2 py-1 font-semibold">{qKey} Budget</th>
-                        <th className="text-right px-2 py-1 font-semibold">{qKey} Actual</th>
-                        <th className="text-right px-2 py-1 font-semibold">Gap</th>
-                        <th className="text-right px-2 py-1 font-semibold">{currentMonthLabel} Actual</th>
-                        <th className="text-right px-2 py-1 font-semibold">{currentMonthLabel} Budget</th>
-                        <th className="text-right px-2 py-1 font-bold text-amber-800">Need in {currentMonthLabel}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {gapLines.map(g => {
-                        const isNS = g.pk === 'ns'
-                        return (
-                          <tr key={g.pk} className={isNS ? 'border-t-2 border-amber-300 font-bold' : 'border-t border-amber-100'}>
-                            <td className="px-2 py-1.5 text-gray-700">{g.label}</td>
-                            <td className="px-2 py-1.5 text-right text-gray-600">{g.qBud.toFixed(1)}</td>
-                            <td className="px-2 py-1.5 text-right text-gray-600">{g.qAct.toFixed(1)}</td>
-                            <td className={`px-2 py-1.5 text-right font-bold ${g.qGap > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                              {g.qGap > 0 ? '' : '+'}{(-g.qGap).toFixed(1)}
-                            </td>
-                            <td className="px-2 py-1.5 text-right text-gray-600">{g.actThisMonth ? g.actThisMonth.toFixed(1) : '—'}</td>
-                            <td className="px-2 py-1.5 text-right text-gray-400">{g.budThisMonth.toFixed(1)}</td>
-                            <td className={`px-2 py-1.5 text-right font-bold ${g.neededThisMonth > g.budThisMonth * 1.1 ? 'text-red-600' : 'text-green-600'}`}>
-                              {g.neededThisMonth.toFixed(1)}
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                <p className="text-micro text-gray-400">
-                  Gap = {qKey} Budget − {qKey} Actuals so far. "Need in {currentMonthLabel}" = Gap + current {currentMonthLabel} actuals (what {currentMonthLabel} must reach for {qKey} to hit budget).
-                </p>
+              {/* Gap panels */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <GapTable
+                  title={`YTD Gap — what ${currentMonthLabel} must reach`}
+                  periodLabel="YTD"
+                  rows={ytdGap}
+                  accent="navy"
+                />
+                <GapTable
+                  title={`${PERIODS[qKey].label} Gap — ${currentMonthLabel} target`}
+                  periodLabel={qKey}
+                  rows={qGap}
+                  accent="amber"
+                />
               </div>
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-x-auto">
                 <table className="w-full text-xs">
