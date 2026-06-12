@@ -237,10 +237,101 @@ export default function Budget() {
 
           {(() => {
             const cmp = COMPARE_OPTIONS.find(o => o.id === compareMode) || COMPARE_OPTIONS[0]
-            const fyIdx = (() => { const m = new Date().getMonth() + 1; return ((m - 4 + 12) % 12) })()
+            const now = new Date()
+            const calMonth = now.getMonth() // 0-based
+            const fyIdx = ((calMonth - 3 + 12) % 12)
             const ytdMonths = MONTHS_K.slice(0, fyIdx + 1)
 
-            return (
+            // Current quarter
+            const qIdx = Math.floor(fyIdx / 3)
+            const qKey = ['Q1','Q2','Q3','Q4'][qIdx]
+            const qMonths = PERIODS[qKey].months
+            const currentMonthK = MONTHS_K[fyIdx]
+            const currentMonthLabel = MONTHS[fyIdx]
+            const pastMonthsInQ = qMonths.filter((_, i) => i < fyIdx - qIdx * 3)
+            const remainingMonths = qMonths.filter((_, i) => i >= fyIdx - qIdx * 3)
+
+            function getVal(cycle, bu, pk, month) {
+              if (bu === 'ALL') {
+                return ['VGT','ECT'].reduce((s, b) => {
+                  const row = rows.find(r => r.bu === b && r.cycle === cycle && r.pl_key === pk)
+                  return s + (Number(row?.[month]) || 0)
+                }, 0)
+              }
+              const row = rows.find(r => r.bu === bu && r.cycle === cycle && r.pl_key === pk)
+              return Number(row?.[month]) || 0
+            }
+            function getD(cycle, bu, month) {
+              const vals = Object.fromEntries(PL_LINES.filter(l=>l.input).map(l=>[l.key, getVal(cycle, bu, l.key, month)]))
+              return calcDerived(vals)
+            }
+            function lineVal(cycle, pk, month) {
+              const pl = PL_LINES.find(l => l.key === pk)
+              return pl?.input ? getVal(cycle, activeBu, pk, month) : (getD(cycle, activeBu, month)[pk] || 0)
+            }
+            function sumLine(cycle, pk, months) {
+              return months.reduce((s, m) => s + lineVal(cycle, pk, m), 0)
+            }
+
+            const gapLines = ['ns_int', 'ns_ext', 'ns'].map(pk => {
+              const label = PL_LINES.find(l => l.key === pk)?.label || pk
+              const qBud = sumLine(cmp.right, pk, qMonths)
+              const qAct = sumLine(cmp.left, pk, qMonths)
+              const qGap = qBud - qAct
+              const actThisMonth = lineVal(cmp.left, pk, currentMonthK)
+              const budThisMonth = lineVal(cmp.right, pk, currentMonthK)
+              const neededThisMonth = qGap + actThisMonth
+              return { pk, label, qBud, qAct, qGap, actThisMonth, budThisMonth, neededThisMonth }
+            })
+
+            return (<>
+              {/* Quarter gap panel */}
+              <div className="bg-amber-50/50 border border-amber-200 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <p className="text-xs font-bold text-amber-800">
+                    {PERIODS[qKey].label} Gap — {currentMonthLabel} target to close the quarter
+                  </p>
+                  <span className="text-micro text-gray-400">{cmp.left} vs {cmp.right} · {BU_CONFIG[activeBu]?.label} · K€</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="text-gray-500">
+                        <th className="text-left px-2 py-1 font-semibold">P&L Line</th>
+                        <th className="text-right px-2 py-1 font-semibold">{qKey} Budget</th>
+                        <th className="text-right px-2 py-1 font-semibold">{qKey} Actual</th>
+                        <th className="text-right px-2 py-1 font-semibold">Gap</th>
+                        <th className="text-right px-2 py-1 font-semibold">{currentMonthLabel} Actual</th>
+                        <th className="text-right px-2 py-1 font-semibold">{currentMonthLabel} Budget</th>
+                        <th className="text-right px-2 py-1 font-bold text-amber-800">Need in {currentMonthLabel}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {gapLines.map(g => {
+                        const isNS = g.pk === 'ns'
+                        return (
+                          <tr key={g.pk} className={isNS ? 'border-t-2 border-amber-300 font-bold' : 'border-t border-amber-100'}>
+                            <td className="px-2 py-1.5 text-gray-700">{g.label}</td>
+                            <td className="px-2 py-1.5 text-right text-gray-600">{g.qBud.toFixed(1)}</td>
+                            <td className="px-2 py-1.5 text-right text-gray-600">{g.qAct.toFixed(1)}</td>
+                            <td className={`px-2 py-1.5 text-right font-bold ${g.qGap > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                              {g.qGap > 0 ? '' : '+'}{(-g.qGap).toFixed(1)}
+                            </td>
+                            <td className="px-2 py-1.5 text-right text-gray-600">{g.actThisMonth ? g.actThisMonth.toFixed(1) : '—'}</td>
+                            <td className="px-2 py-1.5 text-right text-gray-400">{g.budThisMonth.toFixed(1)}</td>
+                            <td className={`px-2 py-1.5 text-right font-bold ${g.neededThisMonth > g.budThisMonth * 1.1 ? 'text-red-600' : 'text-green-600'}`}>
+                              {g.neededThisMonth.toFixed(1)}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-micro text-gray-400">
+                  Gap = {qKey} Budget − {qKey} Actuals so far. "Need in {currentMonthLabel}" = Gap + current {currentMonthLabel} actuals (what {currentMonthLabel} must reach for {qKey} to hit budget).
+                </p>
+              </div>
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead className="sticky top-0 z-20">
@@ -337,7 +428,7 @@ export default function Budget() {
                   </tbody>
                 </table>
               </div>
-            )
+            </>)
           })()}
           <p className="text-micro text-gray-400 text-center">
             Top: {COMPARE_OPTIONS.find(o => o.id === compareMode)?.left} · Bottom: {COMPARE_OPTIONS.find(o => o.id === compareMode)?.right} · Green = favorable · Red = unfavorable · K€

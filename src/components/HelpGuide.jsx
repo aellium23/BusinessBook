@@ -1078,6 +1078,7 @@ const HELP = {
       features: [
         'Compare actual revenue against budget targets (BUD, EST1, EST2, ACT).',
         'View P&L breakdowns by business unit (VGT, ECT, Iberia).',
+        'Quarter Gap panel (Compare mode): shows the gap for the current quarter and how much NS Internal/External you need to invoice this month to hit the quarterly budget target.',
         'FCT tab shows rolling forecasts based on pipeline data.',
         'Period filters: Full Year, Q1-Q4, H1, H2.',
         'Comparison mode: ACT vs BUD, ACT vs EST1, etc.',
@@ -1111,6 +1112,7 @@ const HELP = {
       features: [
         'Compara ingresos reales contra objetivos de presupuesto.',
         'Vista de P&L por unidad de negocio.',
+        'Panel Gap trimestral (modo Comparar): muestra el gap del trimestre actual y cuanto necesitas facturar en NS Internas/Externas este mes para alcanzar el objetivo trimestral.',
         'Pestana FCT con previsiones rolling.',
         'Filtros de periodo: Ano Completo, Q1-Q4, H1, H2.',
       ],
@@ -1139,6 +1141,7 @@ const HELP = {
       features: [
         'Compara receita real contra objetivos de orcamento.',
         'Vista de P&L por unidade de negocio.',
+        'Painel Gap trimestral (modo Comparar): mostra o gap do trimestre actual e quanto precisas faturar em NS Internas/Externas este mes para atingir o objetivo trimestral.',
         'Aba FCT com previsoes rolling.',
         'Filtros de periodo: Ano Completo, Q1-Q4, H1, H2.',
       ],
