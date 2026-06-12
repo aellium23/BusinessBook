@@ -420,17 +420,24 @@ export default function ForecastCalendar() {
     [slas, filterBU]
   )
   const arrTotal = arrMonthly.reduce((s, v) => s + v, 0)
+  const arrExtTotal = arrExtMonthly.reduce((s, v) => s + v, 0)
+  const arrIntTotal = arrIntMonthly.reduce((s, v) => s + v, 0)
 
   const totals = useMemo(() => {
-    const t = { total: 0, weighted: 0, allocated: 0, unalloc: 0 }
+    const t = { total: 0, weighted: 0, allocated: 0, unalloc: 0, ext: 0, int: 0 }
     deals.forEach(d => {
       const v = dealValue(d); const w = v * (WEIGHTS[d.stage] ?? 0)
       t.total += v; t.weighted += w
+      if (d.sales_type === 'Internal') t.int += v; else t.ext += v
       const rm = recMonthLabel(d); const fm = firstMonthWithValue(d)
       if (rm || fm || hasMonthlySpread(d)) t.allocated += v; else t.unalloc += v
     })
     return t
   }, [deals])
+
+  const fyTotal = totals.total + (showArr ? arrTotal : 0)
+  const fyExt = totals.ext + (showArr ? arrExtTotal : 0)
+  const fyInt = totals.int + (showArr ? arrIntTotal : 0)
 
   if (loading) return (
     <div className="flex items-center justify-center p-16">
@@ -440,26 +447,40 @@ export default function ForecastCalendar() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
+      {/* FY Total bar */}
+      <div className="bg-navy/5 border border-navy/15 rounded-xl px-4 py-3 flex items-center justify-between flex-wrap gap-3">
         <div>
-          <p className="text-sm text-gray-400">
-            FY26 · Drag deals to months · Click <Split size={10} className="inline text-blue-500"/> to split revenue across months
-          </p>
+          <p className="text-micro text-gray-500 uppercase tracking-wide font-semibold">FY26 Total Forecast</p>
+          <p className="text-2xl font-bold text-navy">{formatK(fyTotal)}</p>
         </div>
-        <div className="flex items-center gap-3 text-xs flex-wrap">
-          <div className="bg-white border border-gray-200 rounded-lg px-3 py-1.5">
-            <span className="text-gray-400">New Biz:</span>{' '}
-            <span className="font-bold text-gray-900">{formatK(totals.total)}</span>
-            {showArr && arrTotal > 0 && (
-              <>
-                <span className="text-gray-300 mx-1">+</span>
-                <span className="text-purple-600 font-medium">ARR: {formatK(arrTotal)}</span>
-              </>
-            )}
-            <span className="text-gray-300 mx-1">=</span>
-            <span className="font-bold text-navy">{formatK(totals.total + (showArr ? arrTotal : 0))}</span>
+        <div className="flex items-center gap-4 text-sm">
+          <div className="text-center">
+            <p className="text-micro text-gray-400">External</p>
+            <p className="font-bold text-amber-700">{formatK(fyExt)}</p>
           </div>
+          <div className="text-center">
+            <p className="text-micro text-gray-400">Internal</p>
+            <p className="font-bold text-blue-700">{formatK(fyInt)}</p>
+          </div>
+          <div className="border-l border-gray-300 pl-4 text-center">
+            <p className="text-micro text-gray-400">New Biz</p>
+            <p className="font-bold text-gray-700">{formatK(totals.total)}</p>
+          </div>
+          {showArr && arrTotal > 0 && (
+            <div className="text-center">
+              <p className="text-micro text-gray-400">ARR</p>
+              <p className="font-bold text-purple-600">{formatK(arrTotal)}</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Sub-header */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <p className="text-sm text-gray-400">
+          Drag deals to months · Click <Split size={10} className="inline text-blue-500"/> to split revenue across months
+        </p>
+        <div className="flex items-center gap-3 text-xs flex-wrap">
           <div className="bg-white border border-gray-200 rounded-lg px-3 py-1.5">
             <span className="text-green-600 font-medium">Allocated: {formatK(totals.allocated)}</span>
             <span className="text-gray-300 mx-1">·</span>
