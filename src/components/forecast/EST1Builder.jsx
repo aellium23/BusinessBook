@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { useDeals } from '../../hooks/useDeals'
 import { supabase } from '../../lib/supabase'
 import { MONTHS_K, WEIGHTS, normalizeBusinessModel } from '../../constants'
-import { Copy, Check, Users, Package, Building2, Info, RefreshCw, Filter } from 'lucide-react'
+import { Copy, Check, Users, Package, Building2, Info, RefreshCw, Filter, Download } from 'lucide-react'
+import { exportSalesByProduct, exportInternalSales } from './exportHQExcel'
 
 const MONTHS_LABEL = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 
@@ -384,7 +385,13 @@ export default function EST1Builder() {
           <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
             <Package size={15} className="text-navy"/> Sales by Product — {bu} {bu === 'VGT' ? '(FFPT)' : '(HCES)'}
           </h3>
-          <CopyButton label="Copy table" rows={salesClipboard}/>
+          <div className="flex items-center gap-2">
+            <CopyButton label="Copy table" rows={salesClipboard}/>
+            <button onClick={() => exportSalesByProduct(sales, bu)}
+              className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border border-green-200 bg-white hover:bg-green-50 text-green-700 transition-colors">
+              <Download size={12}/> Excel
+            </button>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
@@ -451,7 +458,13 @@ export default function EST1Builder() {
             <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
               <Building2 size={15} className="text-navy"/> Internal Sales — VGT (FFPT)
             </h3>
-            <CopyButton label="Copy table" rows={internalClipboard}/>
+            <div className="flex items-center gap-2">
+              <CopyButton label="Copy table" rows={internalClipboard}/>
+              <button onClick={() => exportInternalSales(internal, bu)}
+                className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border border-green-200 bg-white hover:bg-green-50 text-green-700 transition-colors">
+                <Download size={12}/> Excel
+              </button>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
