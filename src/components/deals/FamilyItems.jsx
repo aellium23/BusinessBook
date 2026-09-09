@@ -2,11 +2,12 @@ import { useMemo, useState } from 'react'
 import { cheapestCcuCombination, groupItems, packageLines } from '../../lib/ccu'
 import { itemCost } from '../../lib/itemPricing'
 import { formatK } from '../ui'
+import { useTranslation } from '../../hooks/useTranslation'
 import { Check, ChevronDown, ChevronRight } from 'lucide-react'
 
-const KIND_LABELS = {
-  package: 'Packages', module: 'A-la-carte modules',
-  upgrade: 'Upgrades', service: 'Services', hardware: 'Hardware',
+const KIND_KEYS = {
+  package: 'fi_packages', module: 'fi_modules',
+  upgrade: 'fi_upgrades', service: 'fi_services', hardware: 'fi_hardware',
 }
 
 /**
@@ -28,6 +29,7 @@ const KIND_LABELS = {
  * set one level up in the quote.
  */
 export default function FamilyItems({ items, studies, value, onChange }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const groups = useMemo(() => groupItems(items || []), [items])
 
@@ -64,10 +66,10 @@ export default function FamilyItems({ items, studies, value, onChange }) {
         <div className="space-y-2">
           {lines.length > 1 && (
             <div>
-              <label className="label">Package line</label>
+              <label className="label">{t('fi_line')}</label>
               <select className="select" value={lineKey}
                 onChange={e => onChange({ ...value, line: e.target.value })}>
-                <option value="">— pick one</option>
+                <option value="">{t('fi_pick_one')}</option>
                 {lines.map(l => (
                   <option key={l.key} value={l.key}>
                     {l.label} ({l.packages.map(p => `${p.ccu} CCU`).join(' / ')})
@@ -76,7 +78,7 @@ export default function FamilyItems({ items, studies, value, onChange }) {
               </select>
             </div>
           )}
-          <label className="label">Concurrent users</label>
+          <label className="label">{t('fi_users')}</label>
           <input className="input w-28" type="number" min="0" inputMode="numeric"
             value={users} placeholder="13" style={{ fontSize: '16px' }}
             disabled={!line}
@@ -90,12 +92,12 @@ export default function FamilyItems({ items, studies, value, onChange }) {
                 </div>
               ))}
               <div className="flex justify-between gap-3 pt-1 border-t border-gray-200 font-semibold text-navy">
-                <span>{combo.ccu} CCU · cost</span>
+                <span>{combo.ccu} CCU · {t('fi_cost')}</span>
                 <span className="tabular-nums">{formatK(combo.cost)}</span>
               </div>
               {combo.annualSupport > 0 && (
                 <div className="flex justify-between gap-3 text-gray-500">
-                  <span>Annual support</span>
+                  <span>{t('fi_annual_support')}</span>
                   <span className="tabular-nums">{formatK(combo.annualSupport)}</span>
                 </div>
               )}
@@ -107,7 +109,7 @@ export default function FamilyItems({ items, studies, value, onChange }) {
       <button type="button" onClick={() => setOpen(o => !o)}
         className="flex items-center gap-1 text-xs font-semibold text-gray-600 min-h-tap">
         {open ? <ChevronDown size={14}/> : <ChevronRight size={14}/>}
-        {open ? 'Hide the price list' : `Show all ${(items || []).length} price-list items`}
+        {open ? t('fi_hide') : `${t('fi_show_a')} ${(items || []).length} ${t('fi_show_b')}`}
       </button>
 
       {open && (
@@ -121,7 +123,7 @@ export default function FamilyItems({ items, studies, value, onChange }) {
             return (
               <div key={kind}>
                 <p className="text-micro font-semibold text-gray-400 uppercase tracking-wide mb-1">
-                  {KIND_LABELS[kind]}
+                  {t(KIND_KEYS[kind])}
                 </p>
                 <div className="space-y-0.5">
                   {rows.map(i => {
@@ -155,7 +157,7 @@ export default function FamilyItems({ items, studies, value, onChange }) {
 
       {total > 0 && (
         <p className="text-xs font-semibold text-navy border-t border-gray-200 pt-2">
-          Cost of this family: <span className="tabular-nums">{formatK(total)}</span>
+          {t('fi_family_cost')} <span className="tabular-nums">{formatK(total)}</span>
         </p>
       )}
     </div>
