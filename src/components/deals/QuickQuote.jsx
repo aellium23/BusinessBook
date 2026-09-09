@@ -41,7 +41,7 @@ const DEFAULT_MARGIN_PCT = 25
  * Margin is gross margin on the sell price — the definition used by deals.gm_pct
  * and the Budget's Gross Margin line — not a markup on cost.
  */
-export default function QuickQuote({ onCancel, onCreated }) {
+export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   const { profile } = useAuth()
   const { products } = useProducts()
   const { regions, countryMap, tiersByProduct, error: pricingError } = usePricing()
@@ -412,6 +412,13 @@ export default function QuickQuote({ onCancel, onCreated }) {
             </tbody>
           </table>
         </div>
+      )}
+
+      {onFullForm && (
+        <button type="button" onClick={onFullForm}
+          className="text-xs text-gray-500 underline underline-offset-2 min-h-tap">
+          Need every field, or a deal with no products? Open the full form
+        </button>
       )}
 
       <div className="flex gap-2">

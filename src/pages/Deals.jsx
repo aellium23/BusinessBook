@@ -6,7 +6,7 @@ import { useAuth } from '../hooks/useAuth'
 import { Spinner, EmptyState, formatK } from '../components/ui'
 import DealForm from '../components/DealForm'
 import KanbanBoard from '../components/KanbanBoard'
-import { Plus, Search, Download, RefreshCw, LayoutGrid, List, Globe, Zap } from 'lucide-react'
+import { Search, Download, RefreshCw, LayoutGrid, List, Globe, Zap } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 import { STAGES, WEIGHTS, REGIONS, BUS, MONTHS, MONTHS_K, FORECAST_CATEGORIES, resolveForecastCategory } from '../constants'
 import { canTransition, getAllowedTransitions } from '../lib/stateMachine'
@@ -418,14 +418,12 @@ export default function Deals() {
               </span>
             )}
           </button>
+          {/* One way in. The quick deal is the front door; the long form is
+              still reachable from inside it, for the deals it cannot express —
+              a services deal with no product lines, or an SLA-linked one. */}
           {canEdit && (
             <button onClick={() => setQuoteOpen(true)} className="btn-primary" title={t("deals_quick_quote")}>
               <Zap size={16}/> <span className="hidden sm:inline">{t("deals_quick_quote")}</span>
-            </button>
-          )}
-          {canEdit && (
-            <button onClick={() => { setEditDeal(null); setFormOpen(true) }} className="btn-secondary">
-              <Plus size={16}/> <span className="hidden sm:inline">{t("deals_new")}</span>
             </button>
           )}
         </div>
@@ -712,7 +710,8 @@ export default function Deals() {
         <Modal open title={t("deals_quick_quote")} onClose={() => setQuoteOpen(false)}>
           <QuickQuote
             onCancel={() => setQuoteOpen(false)}
-            onCreated={() => { setQuoteOpen(false); refetch() }}/>
+            onCreated={() => { setQuoteOpen(false); refetch() }}
+            onFullForm={() => { setQuoteOpen(false); setEditDeal(null); setFormOpen(true) }}/>
         </Modal>
       )}
 
