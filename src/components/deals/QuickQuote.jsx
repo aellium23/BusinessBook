@@ -14,6 +14,13 @@ import { X, Check } from 'lucide-react'
 
 const ALL_COUNTRIES = Object.values(COUNTRY_MAP).flat().sort()
 
+// Where each business unit actually sells. VGT is Portugal, ECT is Spain, and
+// between them that is very nearly every deal — so the country starts filled in
+// and the seventy-odd others sit behind a search box rather than in front of a
+// rep who almost never needs them.
+const HOME_COUNTRY = { VGT: 'Portugal', ECT: 'Spain' }
+const NEARBY = ['Portugal', 'Spain', 'France', 'Italy', 'UK', 'Germany']
+
 // The 90% case: a rep quoting imaging software for a hospital. These surface as
 // one-tap chips; everything else in the catalogue sits behind "more".
 const HEADLINE_SKUS = ['SYN-PACS', 'CWM-RISBI', 'CWM-DOSE']
@@ -39,9 +46,11 @@ export default function QuickQuote({ onCancel, onCreated }) {
   const { products } = useProducts()
   const { regions, countryMap, tiersByProduct, error: pricingError } = usePricing()
 
+  // Everything the rep's own account already tells us is filled in up front.
   const defaultBU = ['VGT', 'ECT'].includes(profile?.bu) ? profile.bu : 'VGT'
+
   const [client, setClient]   = useState('')
-  const [country, setCountry] = useState('Portugal')
+  const [country, setCountry] = useState(HOME_COUNTRY[defaultBU] || 'Portugal')
   const [studies, setStudies] = useState('')
   const [picked, setPicked]   = useState([])        // product ids
   const [overrides, setOver]  = useState({})        // productId -> { cost, pvp }
@@ -60,6 +69,16 @@ export default function QuickQuote({ onCancel, onCreated }) {
       .catch(() => setError('Could not load the client list — you can still type a new name.'))
   }, [])
 
+  // The BU's own market first, then its neighbours, then the rest alphabetically.
+  const countryOptions = useMemo(() => {
+    const home = HOME_COUNTRY[defaultBU]
+    const top = [home, ...NEARBY.filter(c => c !== home)].filter(Boolean)
+    return [
+      ...top.map(c => ({ value: c, label: c })),
+      ...ALL_COUNTRIES.filter(c => !top.includes(c)).map(c => ({ value: c, label: c })),
+    ]
+  }, [defaultBU])
+
   const regionCode = pricingRegionForCountry(countryMap, country)
   const region = regionCode ? regions[regionCode] : null
 
@@ -70,9 +89,23 @@ export default function QuickQuote({ onCancel, onCreated }) {
     () => HEADLINE_SKUS.map(sku => products.find(p => p.sku === sku)).filter(Boolean),
     [products]
   )
-  const rest = useMemo(
-    () => products.filter(p => !HEADLINE_SKUS.includes(p.sku)),
-    [products]
+  // Expanding "more" used to dump the whole catalogue as one unbroken run of
+  // chips. Grouped by category it reads as a handful of short lists.
+  const restGroups = useMemo(() => {
+    const by = new Map()
+    for (const p of products) {
+      if (HEADLINE_SKUS.includes(p.sku)) continue
+      const key = p.category || 'Other'
+      if (!by.has(key)) by.set(key, [])
+      by.get(key).push(p)
+    }
+    return [...by.entries()]
+      .map(([category, items]) => ({ category, items }))
+      .sort((a, b) => a.category.localeCompare(b.category))
+  }, [products])
+  const restCount = useMemo(
+    () => restGroups.reduce((n, g) => n + g.items.length, 0),
+    [restGroups]
   )
 
   // One volume figure selects the tier on every picked product at once.
@@ -202,9 +235,12 @@ export default function QuickQuote({ onCancel, onCreated }) {
         </div>
         <div>
           <label className="label">Country <span className="text-red-500">*</span></label>
-          <select className="select" value={country} onChange={e => setCountry(e.target.value)}>
-            {ALL_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <SearchableSelect
+            value={country} onChange={setCountry}
+            options={countryOptions}
+            placeholder="Search a country…"
+            emptyLabel="— Country"
+          />
         </div>
         <div>
           <label className="label">Studies / year <span className="text-red-500">*</span></label>
@@ -227,14 +263,28 @@ export default function QuickQuote({ onCancel, onCreated }) {
         <label className="label">Products</label>
         <div className="flex flex-wrap gap-1.5">
           {headline.map(p => <Chip key={p.id} p={p}/>)}
-          {!showAll && rest.length > 0 && (
+          {!showAll && restCount > 0 && (
             <button type="button" onClick={() => setShowAll(true)}
               className="min-h-tap px-3 py-1.5 rounded-lg border border-dashed border-gray-300 text-xs text-gray-500">
-              + {rest.length} more
+              + {restCount} more
             </button>
           )}
-          {showAll && rest.map(p => <Chip key={p.id} p={p}/>)}
         </div>
+
+        {showAll && (
+          <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+            {restGroups.map(g => (
+              <div key={g.category}>
+                <p className="text-micro font-semibold text-gray-400 uppercase tracking-wide mb-1">
+                  {g.category}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {g.items.map(p => <Chip key={p.id} p={p}/>)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Families that carry a supplier price list open a drill-down: which
             SKUs, at what cost. Families without one are quoted from the
@@ -258,8 +308,63 @@ export default function QuickQuote({ onCancel, onCreated }) {
       </div>
 
       {/* Economics */}
+      {/* On a phone the six-column table is unreadable — the sell price and the
+          margin, the two numbers the rep is here for, fall off the right edge.
+          Below `sm` each line becomes a card instead; the table returns on any
+          screen wide enough to hold it. */}
       {lines.length > 0 && (
-        <div className="border border-gray-200 rounded-xl overflow-x-auto">
+        <div className="sm:hidden space-y-2">
+          {lines.map(l => (
+            <div key={l.id} className="border border-gray-200 rounded-xl p-3 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-xs font-semibold text-gray-800 leading-tight">{l.product.name}</p>
+                <span className="text-micro text-gray-400 flex-shrink-0">
+                  {l.priced ? l.tierLabel : 'cost + margin'}
+                  {l.priced && l.boundBy !== 'tier' && (
+                    <span className="ml-1 font-semibold text-amber-700">
+                      {l.boundBy === 'minimum' ? 'min' : 'cap'}
+                    </span>
+                  )}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="label">Cost (€)</label>
+                  <input className="input text-right" type="number" min="0"
+                    value={l.cost} onChange={e => setCost(l.id, e.target.value)}
+                    style={{ fontSize: '16px' }}/>
+                </div>
+                <div>
+                  <label className="label">Margin (%)</label>
+                  <input className="input text-right border-green-200" type="number" min="0" max="99"
+                    value={l.marginPct} onChange={e => setMargin(l.id, e.target.value)}
+                    style={{ fontSize: '16px' }}/>
+                </div>
+              </div>
+              <div className="flex justify-between items-baseline pt-1 border-t border-gray-100">
+                <span className="text-xs text-green-700 font-semibold">GM {formatK(l.grossMargin)}</span>
+                <span className="text-sm font-bold text-gray-900">{formatK(l.pvp)}</span>
+              </div>
+            </div>
+          ))}
+          <div className="border-2 border-navy/20 bg-navy/[0.04] rounded-xl p-3 space-y-1">
+            <div className="flex justify-between text-xs text-navy">
+              <span>Cost</span><span className="tabular-nums font-semibold">{formatK(totals.cost)}</span>
+            </div>
+            <div className="flex justify-between text-xs text-green-700">
+              <span>Gross margin · {totals.marginPct}%</span>
+              <span className="tabular-nums font-semibold">{formatK(totals.grossMargin)}</span>
+            </div>
+            <div className="flex justify-between items-baseline pt-1 border-t border-navy/15">
+              <span className="text-xs font-semibold text-navy">Sell</span>
+              <span className="text-base font-bold text-navy tabular-nums">{formatK(totals.pvp)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {lines.length > 0 && (
+        <div className="hidden sm:block border border-gray-200 rounded-xl overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="bg-gray-50 text-gray-500">
               <tr>
