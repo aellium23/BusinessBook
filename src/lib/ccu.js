@@ -75,6 +75,52 @@ function round(n) {
 }
 
 /**
+ * The distinct package lines in a family, each with its own capacity ladder.
+ *
+ * Capacities are only interchangeable within one line. A Base Server 10 CCU and
+ * a Base Server 3 CCU add up to thirteen Base users, which is what a rep means
+ * by "I need 13 concurrent users". A Base Server 10 CCU and a Cardiology CT
+ * 1 CCU do not add up to eleven of anything — they are two different products
+ * with different applications. Mobility makes the same point more sharply: its
+ * 2D and 3D Full licences both come in CCU packs and combining them would quote
+ * a mixture nobody asked for.
+ *
+ * The line is the SKU name with its own capacity token removed, so "BASE PKG
+ * SERVER 3 CCU V6" and "BASE PKG SERVER 10 CCU V6" collapse to one line while
+ * "BASE PKG STANDALONE 1 CCU" stays separate — correctly, since the price list
+ * says that one cannot be increased later.
+ */
+export function packageLines(items) {
+  const packs = (items || []).filter(i => i.kind === 'package' && (num(i.ccu) ?? 0) > 0)
+  const byLine = new Map()
+  for (const p of packs) {
+    const key = lineKeyOf(p.name)
+    const row = byLine.get(key) || { key, label: lineLabelOf(p), packages: [] }
+    row.packages.push(p)
+    byLine.set(key, row)
+  }
+  return [...byLine.values()].map(l => ({
+    ...l,
+    packages: l.packages.sort((a, b) => (num(a.ccu) ?? 0) - (num(b.ccu) ?? 0)),
+  }))
+}
+
+function lineKeyOf(name) {
+  return String(name || '')
+    .replace(/\bPER\b/gi, ' ')
+    .replace(/\d+\s*CCU/gi, ' ')       // the capacity token itself
+    .replace(/[^a-z0-9]+/gi, ' ')
+    .trim()
+    .toUpperCase()
+}
+
+// Prefer the human description the price list carries, minus its capacity.
+function lineLabelOf(p) {
+  const base = p.description || p.name || ''
+  return base.replace(/\s*[-–]?\s*\d+\s*CCU/gi, '').replace(/\s{2,}/g, ' ').trim() || p.name
+}
+
+/**
  * Group a family's items the way the catalogue should present them: the
  * packages a rep starts from, then the à-la-carte modules, then everything
  * else. Without this the 84 Synapse 3D lines arrive as one flat list.

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { cheapestCcuCombination, groupItems } from '../../lib/ccu'
+import { cheapestCcuCombination, groupItems, packageLines } from '../../lib/ccu'
 import { itemCost } from '../../lib/itemPricing'
 import { formatK } from '../ui'
 import { Check, ChevronDown, ChevronRight } from 'lucide-react'
@@ -13,11 +13,16 @@ const KIND_LABELS = {
  * The drill-down under one catalogue family: what we actually buy, and what it
  * costs us.
  *
- * Two ways in. Where the family sells capacity in fixed packages — Synapse 3D
- * does, at 1, 3 and 10 concurrent users — the rep types how many users the site
- * needs and the cheapest combination is worked out, because it is not readable
- * off a price list: thirteen users is a 10 plus a 3 at 22,770, where thirteen
- * singles would cost 71,760. Everything else is picked by hand.
+ * Two ways in. Where the family sells capacity in fixed packages, the rep picks
+ * which package line the site is on — Base, Radiology, Full, Mobility 3D Full —
+ * and types how many concurrent users it needs; the cheapest combination within
+ * that line is worked out, because it is not readable off a price list:
+ * thirteen Base users is a 10 plus a 3 at 22,770, where thirteen single
+ * licences would cost 71,760.
+ *
+ * The choice of line is the rep's and cannot be solved for. Capacities only add
+ * up inside one line: a Base 10 CCU plus a Cardiology 1 CCU is not eleven users
+ * of anything, it is two different products. Everything else is picked by hand.
  *
  * Only cost is shown here. The sell price is the line's margin applied on top,
  * set one level up in the quote.
@@ -26,16 +31,15 @@ export default function FamilyItems({ items, studies, value, onChange }) {
   const [open, setOpen] = useState(false)
   const groups = useMemo(() => groupItems(items || []), [items])
 
-  // Packages that grant concurrent users are the ones the calculator can solve.
-  const capacity = useMemo(
-    () => groups.packages.filter(p => Number(p.ccu) > 0),
-    [groups.packages]
-  )
+  // Each package line is its own capacity ladder; combinations stay inside one.
+  const lines = useMemo(() => packageLines(items || []), [items])
+  const lineKey = value.line || (lines.length === 1 ? lines[0].key : '')
+  const line = lines.find(l => l.key === lineKey) || null
 
   const users = value.users || ''
   const combo = useMemo(
-    () => (capacity.length ? cheapestCcuCombination(capacity, parseFloat(users) || 0) : null),
-    [capacity, users]
+    () => (line ? cheapestCcuCombination(line.packages, parseFloat(users) || 0) : null),
+    [line, users]
   )
 
   const picked = value.itemIds || []
@@ -56,11 +60,26 @@ export default function FamilyItems({ items, studies, value, onChange }) {
 
   return (
     <div className="border border-gray-200 rounded-xl p-3 space-y-3 bg-gray-50/50">
-      {capacity.length > 0 && (
+      {lines.length > 0 && (
         <div className="space-y-2">
+          {lines.length > 1 && (
+            <div>
+              <label className="label">Package line</label>
+              <select className="select" value={lineKey}
+                onChange={e => onChange({ ...value, line: e.target.value })}>
+                <option value="">— pick one</option>
+                {lines.map(l => (
+                  <option key={l.key} value={l.key}>
+                    {l.label} ({l.packages.map(p => `${p.ccu} CCU`).join(' / ')})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <label className="label">Concurrent users</label>
           <input className="input w-28" type="number" min="0" inputMode="numeric"
             value={users} placeholder="13" style={{ fontSize: '16px' }}
+            disabled={!line}
             onChange={e => onChange({ ...value, users: e.target.value })}/>
           {combo && (
             <div className="text-xs text-gray-700 space-y-0.5">
@@ -146,9 +165,10 @@ export default function FamilyItems({ items, studies, value, onChange }) {
 /** The cost a family selection adds to its quote line. Shared with QuickQuote. */
 export function familyCost(items, selection, studies) {
   if (!items?.length || !selection) return 0
-  const capacity = items.filter(i => i.kind === 'package' && Number(i.ccu) > 0)
-  const combo = capacity.length
-    ? cheapestCcuCombination(capacity, parseFloat(selection.users) || 0)
+  const lines = packageLines(items)
+  const line = lines.find(l => l.key === selection.line) || (lines.length === 1 ? lines[0] : null)
+  const combo = line
+    ? cheapestCcuCombination(line.packages, parseFloat(selection.users) || 0)
     : null
   const manual = (selection.itemIds || [])
     .map(id => items.find(i => i.id === id))
