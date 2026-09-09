@@ -1,25 +1,10 @@
-import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
-export function useDealProducts(dealId) {
-  const [items, setItems] = useState([])
-  const [loading, setLoading] = useState(true)
-
-  const fetch = useCallback(async () => {
-    if (!dealId) { setItems([]); setLoading(false); return }
-    const { data } = await supabase
-      .from('deal_products')
-      .select('*, product:product_id(id, name, sku, category, license_fee, annual_fee, pricing_model)')
-      .eq('deal_id', dealId)
-      .order('created_at')
-    setItems(data || [])
-    setLoading(false)
-  }, [dealId])
-
-  useEffect(() => { fetch() }, [fetch])
-
-  return { items, loading, refetch: fetch }
-}
+// NOTE: reads of deal_products go through the `deal_products_v` view, which
+// masks cost_price / margin_pct for anyone who is not admin or manager (see
+// DealForm). SELECT on those two columns is revoked on the base table, so a
+// `select('*')` here would fail — and would have shipped costs to a
+// distributor's browser. Writes still target the base table, where RLS applies.
 
 export async function saveDealProducts(dealId, lines) {
   await supabase.from('deal_products').delete().eq('deal_id', dealId)
