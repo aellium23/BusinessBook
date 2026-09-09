@@ -55,6 +55,7 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
   const [error, setError]   = useState(null)
   const [fieldErrors, setFieldErrors] = useState({})
   const [clients, setClients] = useState([])
+  const [renamePlan, setRenamePlan] = useState(null)
   const [slaProducts, setSlaProducts] = useState([])
   const [catalogProducts, setCatalogProducts] = useState([])
   const [addProductId, setAddProductId] = useState('')
@@ -126,7 +127,42 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
     }
   }, [form.annual_value, form.start_date, form.end_date, form.invoice_date, form.contract_duration_years])
 
-  async function handleSave() {
+  // How many other records carry this client name? Counted before we offer to
+  // rename, so the user sees the blast radius instead of guessing.
+  async function countClientRename(oldName) {
+    const [a, d, s] = await Promise.all([
+      supabase.from('accounts').select('*', { count: 'exact', head: true }).eq('name', oldName),
+      supabase.from('deals').select('*', { count: 'exact', head: true }).eq('client', oldName),
+      supabase.from('slas').select('*', { count: 'exact', head: true }).eq('client', oldName).neq('id', sla.id),
+    ])
+    const accounts = a.count || 0, deals = d.count || 0, contracts = s.count || 0
+    return { accounts, deals, contracts, total: accounts + deals + contracts }
+  }
+
+  async function propagateClientRename(oldName, newName) {
+    const results = await Promise.all([
+      supabase.from('accounts').update({ name: newName }).eq('name', oldName),
+      supabase.from('deals').update({ client: newName }).eq('client', oldName),
+      supabase.from('slas').update({ client: newName }).eq('client', oldName).neq('id', sla.id),
+    ])
+    return results.find(r => r.error)?.error || null
+  }
+
+  // `renameDecision`: null = not asked yet, true = propagate, false = this SLA only.
+  async function handleSave(renameDecision = null) {
+    const nameChanged = isEdit && !!sla?.client && form.client.trim() !== sla.client
+
+    // Renaming the client used to silently rewrite that name across every
+    // account, deal and contract. Ask first, with counts.
+    if (nameChanged && renameDecision === null) {
+      const counts = await countClientRename(sla.client)
+      if (counts.total > 0) {
+        setRenamePlan({ oldName: sla.client, newName: form.client.trim(), ...counts })
+        return
+      }
+      renameDecision = false
+    }
+
     const { valid, errors: valErrors } = validateSLA(form)
     setFieldErrors(valErrors)
     if (!valid) { setError('Please fix the highlighted fields'); return }
@@ -188,13 +224,14 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
     setSaving(false)
     if (result.error) { setError(result.error.message); return }
 
-    // Sync client name to accounts and deals if changed
-    if (isEdit && sla.client && form.client.trim() !== sla.client) {
-      const oldName = sla.client
-      const newName = form.client.trim()
-      supabase.from('accounts').update({ name: newName }).eq('name', oldName).then(() => {})
-      supabase.from('deals').update({ client: newName }).eq('client', oldName).then(() => {})
-      supabase.from('slas').update({ client: newName }).eq('client', oldName).neq('id', sla.id).then(() => {})
+    // Propagate the client rename only when the user explicitly agreed.
+    // Awaited, and a failure is surfaced instead of leaving data half-renamed.
+    if (nameChanged && renameDecision === true) {
+      const propErr = await propagateClientRename(sla.client, form.client.trim())
+      if (propErr) {
+        setError(t('sla_rename_failed') || 'The contract was saved, but the client name could not be updated on the other records.')
+        return
+      }
     }
 
     onSaved()
@@ -207,11 +244,44 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
       footer={
         <div className="flex gap-2">
           <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
-          <button onClick={handleSave} disabled={saving} className="btn-primary flex-1">
+          {/* Arrow fn: a bare handler would pass the click event as renameDecision. */}
+          <button onClick={() => handleSave()} disabled={saving} className="btn-primary flex-1">
             {saving ? 'Saving…' : 'Save SLA'}
           </button>
         </div>
       }>
+      {renamePlan && (
+        <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setRenamePlan(null)} />
+          <div className="relative bg-white rounded-t-3xl sm:rounded-2xl p-6 w-full sm:max-w-sm shadow-xl"
+               style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
+            <h3 className="font-semibold text-gray-900 mb-2">
+              {t('sla_rename_title') || 'Rename this client everywhere?'}
+            </h3>
+            <p className="text-sm text-gray-600 mb-3 break-words">
+              <strong>{renamePlan.oldName}</strong> → <strong>{renamePlan.newName}</strong>
+            </p>
+            <p className="text-xs text-amber-700 bg-amber-50 px-3 py-2 rounded-lg mb-4">
+              {t('sla_rename_affects') || 'This also renames:'}{' '}
+              {renamePlan.accounts} {t('sla_rename_accounts') || 'account(s)'} ·{' '}
+              {renamePlan.deals} {t('sla_rename_deals') || 'deal(s)'} ·{' '}
+              {renamePlan.contracts} {t('sla_rename_contracts') || 'other contract(s)'}
+            </p>
+            <div className="flex flex-col gap-2">
+              <button onClick={() => { setRenamePlan(null); handleSave(true) }} className="btn-primary">
+                {t('sla_rename_everywhere') || 'Rename everywhere'}
+              </button>
+              <button onClick={() => { setRenamePlan(null); handleSave(false) }} className="btn-secondary">
+                {t('sla_rename_only_this') || 'Only this contract'}
+              </button>
+              <button onClick={() => setRenamePlan(null)}
+                className="text-xs text-gray-400 hover:text-gray-600 min-h-tap">
+                {t('cancel') || 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="space-y-2">
         {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 

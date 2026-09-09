@@ -788,6 +788,7 @@ const HELP = {
       shortcuts: [],
       mistakes: [
         'Not setting start/end dates — revenue projections will be empty.',
+        'Changing the client name on a contract now asks first: it can also rename that client on accounts, deals and other contracts. Choose "Only this contract" to keep the change local.',
         'Forgetting to update status after contract renewal — keeps pipeline metrics accurate.',
         'Creating SLAs without linking to a client — they will not roll up to client analytics.',
         'Not adding product line items — total value may be manually entered instead of computed.',
@@ -822,6 +823,7 @@ const HELP = {
       shortcuts: [],
       mistakes: [
         'No configurar fechas de inicio/fin — las proyecciones de ingresos estaran vacias.',
+        'Cambiar el nombre del cliente en un contrato ahora pregunta antes: puede renombrar tambien cuentas, oportunidades y otros contratos. Elige "Solo este contrato" para mantener el cambio local.',
         'Olvidar actualizar el estado tras la renovacion.',
         'Crear SLAs sin vincular a un cliente.',
       ],
@@ -855,6 +857,7 @@ const HELP = {
       shortcuts: [],
       mistakes: [
         'Nao configurar datas de inicio/fim — as projecoes de receita ficarao vazias.',
+        'Alterar o nome do cliente num contrato passa a pedir confirmacao: pode renomear tambem contas, negocios e outros contratos. Escolhe "Apenas este contrato" para manter a alteracao local.',
         'Esquecer de atualizar o estado apos renovacao.',
         'Criar SLAs sem ligar a um cliente.',
       ],

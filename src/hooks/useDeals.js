@@ -96,12 +96,22 @@ export async function upsertDeal(deal) {
   return { data, error }
 }
 
+// Deleting a deal also deletes its intercompany mirror in the other BU.
+// The confirm dialog must disclose this off `linked_deal_id` — NOT off
+// `intercompany_value`, which can be 0/null on a deal that still has a mirror.
 export async function deleteDeal(id) {
-  // Also delete linked mirror deal if exists
-  const { data } = await supabase
+  const { data, error: readErr } = await supabase
     .from('deals').select('linked_deal_id').eq('id', id).single()
+  if (readErr) { logger.error('Failed to read deal before delete', { id, error: readErr.message }); return { error: readErr } }
+
   if (data?.linked_deal_id) {
-    await supabase.from('deals').delete().eq('id', data.linked_deal_id)
+    const { error: mirrorErr } = await supabase
+      .from('deals').delete().eq('id', data.linked_deal_id)
+    // Stop rather than orphan the mirror by deleting only one side.
+    if (mirrorErr) {
+      logger.error('Failed to delete mirror deal', { id, mirrorId: data.linked_deal_id, error: mirrorErr.message })
+      return { error: mirrorErr }
+    }
   }
   return supabase.from('deals').delete().eq('id', id)
 }

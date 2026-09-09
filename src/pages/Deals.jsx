@@ -12,6 +12,7 @@ import { STAGES, WEIGHTS, REGIONS, BUS, MONTHS, MONTHS_K, FORECAST_CATEGORIES, r
 import { canTransition, getAllowedTransitions } from '../lib/stateMachine'
 import DealCard from '../components/deals/DealCard'
 import DealsMapView from '../components/deals/DealsMapView'
+import { useToast } from '../components/Toast'
 
 function exportToCSV(deals) {
   const MONTHS = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
@@ -52,6 +53,7 @@ const PERIOD_KEYS = [
 
 export default function Deals() {
   const { canEdit, isAdmin, editOwnOnly, profile, perms } = useAuth()
+  const { showToast } = useToast()
   const canDelete = perms?.canDelete ?? false
   const canEditDeal = (deal) => {
     if (!canEdit) return false
@@ -286,7 +288,11 @@ export default function Deals() {
   }
 
   async function confirmDelete() {
-    await deleteDeal(confirmDel.id)
+    const { error } = await deleteDeal(confirmDel.id)
+    if (error) {
+      showToast(t("deals_delete_failed") || 'Could not delete the deal — please retry', 'error')
+      return
+    }
     setConfirmDel(null); refetch()
   }
 
@@ -708,7 +714,9 @@ export default function Deals() {
             <p className="text-sm text-gray-500 mb-1">
               <strong>{confirmDel.client}</strong> {t("deals_will_be_removed")}
             </p>
-            {confirmDel.intercompany_value > 0 && (
+            {/* Gate on linked_deal_id — that is what deleteDeal() cascades on.
+                intercompany_value can be 0 on a deal that still has a mirror. */}
+            {confirmDel.linked_deal_id && (
               <p className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded mb-3">
                 {t("deals_ic_also_deleted")}
               </p>
