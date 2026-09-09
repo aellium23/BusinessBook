@@ -385,7 +385,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
         <div className={`grid ${isDistributor ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3'} gap-2`}>
           {!isDistributor && (
           <div>
-            <label className="label">{t("df_bu")} *</label>
+            <label className="label">{t("df_bu")} <span className="text-red-500">*</span></label>
             <select className={`select ${fieldErrors.bu ? 'border-red-400' : ''}`} value={form.bu} onChange={e => set('bu', e.target.value)} disabled={!isAdmin}>
               <option value="">—</option>
               <option value="VGT">VGT</option>
@@ -421,7 +421,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
           </div>
           )}
           <div>
-            <label className="label">{t("df_stage")} *</label>
+            <label className="label">{t("df_stage")} <span className="text-red-500">*</span></label>
             <select className={`select ${fieldErrors.stage ? 'border-red-400' : ''}`} value={form.stage} onChange={e => {
               const newStage = e.target.value
               // For existing deals, validate the transition
@@ -450,7 +450,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
 
         {/* Client / Account */}
         <div>
-          <label className="label">{t("df_client")} *</label>
+          <label className="label">{t("df_client")} <span className="text-red-500">*</span></label>
           <div className={fieldErrors.client ? 'ring-1 ring-red-400 rounded-lg' : ''}>
             <SearchableSelect
               value={form.account_id || ''}
@@ -599,7 +599,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
         {/* Lost reason */}
         {form.stage === 'Lost' && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-            <label className="label text-red-600">{t("df_reason_lost")} *</label>
+            <label className="label text-red-600">{t("df_reason_lost")} <span className="text-red-500">*</span></label>
             <select className={`select bg-white ${fieldErrors.lost_reason ? 'border-red-400' : ''}`} value={form.lost_reason} onChange={e => set('lost_reason', e.target.value)}>
               <option value="">{t("df_select_reason")}</option>
               <option>Price too high</option>
