@@ -137,6 +137,7 @@ const HELP = {
       title: 'Deals',
       description: 'Manage your sales pipeline from lead to invoice. View deals as a list, Kanban board, or on a map.',
       features: [
+        'Quick quote: the fastest path to a priced opportunity. Pick the client, type the annual study volume, tap the products \u2014 the study volume selects the tier on every product at once, and cost, margin, gross margin in euros and sell price appear immediately. Adjust the margin per line; the sell price follows. Margin is gross margin on the sell price, the same definition as the deal GM% and the Budget.',
         'Use the view switcher (List / Kanban / Map) to change how deals are displayed.',
         'Drag deals between columns in Kanban view to update their stage.',
         'Click "+ Deal" to create a new deal with the quick form.',
@@ -195,6 +196,7 @@ const HELP = {
       title: 'Oportunidades',
       description: 'Gestiona tu pipeline de ventas desde el lead hasta la factura. Visualiza deals como lista, Kanban o en mapa.',
       features: [
+        'Cotizacion rapida: la via mas rapida a una oportunidad valorada. Elige el cliente, escribe el volumen anual de estudios y pulsa los productos \u2014 el volumen selecciona el tramo de todos a la vez, y aparecen coste, margen, margen bruto en euros y precio de venta. Ajusta el margen por linea y el precio le sigue. El margen es margen bruto sobre la venta, la misma definicion que el GM% del deal y del presupuesto.',
         'Usa el selector de vista (Lista / Kanban / Mapa) para cambiar la visualizacion.',
         'Arrastra deals entre columnas en la vista Kanban para actualizar su etapa.',
         'Haz clic en "+ Deal" para crear una nueva oportunidad con el formulario rapido.',
@@ -252,6 +254,7 @@ const HELP = {
       title: 'Negocios',
       description: 'Gere o teu pipeline de vendas do lead a fatura. Visualiza deals como lista, Kanban ou no mapa.',
       features: [
+        'Proposta rapida: o caminho mais curto para uma oportunidade com preco. Escolhe o cliente, escreve o volume anual de estudos e toca nos produtos \u2014 o volume seleciona o escalao de todos de uma vez, e aparecem custo, margem, margem bruta em euros e preco de venda. Ajusta a margem por linha e o preco acompanha. A margem e margem bruta sobre a venda, a mesma definicao do GM% do negocio e do orcamento.',
         'Usa o seletor de vista (Lista / Kanban / Mapa) para mudar a visualizacao.',
         'Arrasta deals entre colunas na vista Kanban para atualizar a fase.',
         'Clica em "+ Deal" para criar um novo negocio com o formulario rapido.',

@@ -90,6 +90,42 @@ export function resolvePrice({ product, tiers, discountPct, quantity, tierLabel 
   }
 }
 
+/**
+ * Line economics for a quote.
+ *
+ * Margin here is GROSS MARGIN ON THE SELL PRICE — (pvp - cost) / pvp — which is
+ * what `deals.gm_pct` and the Budget page's Gross Margin line both mean, and
+ * what gets reported. It is NOT a markup on cost: at a 12,000 cost, a 35% markup
+ * gives 16,200 while a 35% gross margin gives 18,462. ProductLineItems still
+ * computes the markup form; these helpers are the reported definition.
+ */
+export function lineEconomics(cost, pvp) {
+  const c = num(cost) ?? 0
+  const p = num(pvp) ?? 0
+  const gm = p - c
+  return {
+    cost: round(c, 2),
+    pvp: round(p, 2),
+    grossMargin: round(gm, 2),
+    marginPct: p > 0 ? round((gm / p) * 100, 1) : 0,
+  }
+}
+
+/** Sell price that yields a given gross margin on a given cost. */
+export function pvpForMargin(cost, marginPct) {
+  const c = num(cost) ?? 0
+  const m = num(marginPct) ?? 0
+  if (m >= 100) return null          // 100% margin implies zero cost; undefined
+  return round(c / (1 - m / 100), 2)
+}
+
+/** Roll a set of lines into the quote total, with the blended margin. */
+export function quoteTotals(lines) {
+  const cost = lines.reduce((s, l) => s + (num(l.cost) ?? 0), 0)
+  const pvp = lines.reduce((s, l) => s + (num(l.pvp) ?? 0), 0)
+  return lineEconomics(cost, pvp)
+}
+
 /** Prepaid subscription: the annual price times an annuity-due factor at 8%.
  *  This is time value of money, not a negotiated concession — which is why it
  *  can be published. Do NOT stack the 5% prepayment discount on top of it. */
