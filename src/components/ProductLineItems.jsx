@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react'
-import { Plus, X, Package } from 'lucide-react'
+import { Plus, X, Package, Tag } from 'lucide-react'
 import { formatK } from './ui'
+import { usePricing } from '../hooks/usePricing'
+import { resolvePrice, pricingRegionForCountry } from '../lib/pricing'
 
 const LICENSE_TYPES = [
   { id: 'per_equipment', label: 'Per Equipment' },
@@ -10,10 +12,68 @@ const LICENSE_TYPES = [
   { id: 'flat',          label: 'Flat Fee' },
 ]
 
-export default function ProductLineItems({ lines, onChange, products, businessModel, t, onTotalChange, onBusinessModelInfer, userRole }) {
+/**
+ * CWM FY26 price for one line, shown next to the manual fields rather than
+ * replacing them: the rep sees the working — region, tier, and whether the
+ * minimum or the site cap bound the figure — and applies it deliberately.
+ * Renders nothing for products still on the legacy license_fee model.
+ */
+function CwmPrice({ product, tiers, regionCode, regionName, discountPct, quantity, currentPrice, onApply }) {
+  const priced = resolvePrice({ product, tiers, discountPct, quantity })
+  if (!priced) return null
+
+  const perUnit = product.price_basis === 'per_unit'
+  const matches = Math.abs((parseFloat(currentPrice) || 0) - priced.net) < 0.01
+
+  return (
+    <div className="mx-2 mb-2 rounded-lg border border-indigo-200 bg-indigo-50/60 px-2.5 py-2 space-y-1">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-micro font-semibold uppercase tracking-wide text-indigo-700 flex items-center gap-1">
+          <Tag size={9}/> {regionCode} · {regionName}
+        </span>
+        <span className="text-micro text-indigo-500">−{discountPct}% off global list</span>
+      </div>
+
+      <p className="text-micro text-gray-500">{priced.tierLabel}</p>
+
+      <div className="flex items-baseline gap-2 flex-wrap">
+        <span className="text-sm font-bold text-indigo-800">{formatK(priced.net)}<span className="text-micro font-normal text-indigo-500">/yr</span></span>
+        {perUnit && (
+          <span className="text-micro text-gray-500">
+            {priced.unitPrice} × {quantity || 0} {product.price_unit?.replace('_', ' ')}
+          </span>
+        )}
+        {priced.boundBy !== 'tier' && (
+          <span className="text-micro font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
+            {priced.boundBy === 'minimum' ? 'annual minimum applied' : 'site cap applied'}
+          </span>
+        )}
+      </div>
+
+      {priced.boundBy === 'site cap' && (
+        <p className="text-micro text-gray-500">
+          Rate would give {formatK(priced.gross)} — capped at {formatK(priced.cap)}.
+        </p>
+      )}
+
+      {matches
+        ? <p className="text-micro text-green-700">Applied to this line.</p>
+        : <button type="button" onClick={() => onApply(priced)}
+            className="text-micro font-semibold text-indigo-700 hover:text-indigo-900 underline min-h-tap">
+            Apply {formatK(priced.net)} to this line
+          </button>}
+    </div>
+  )
+}
+
+export default function ProductLineItems({ lines, onChange, products, businessModel, t, onTotalChange, onBusinessModelInfer, userRole, country }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [expandedIdx, setExpandedIdx] = useState(null)
   const [showSearch, setShowSearch] = useState(false)
+  const { regions, countryMap, tiersByProduct, error: pricingError } = usePricing()
+
+  const regionCode = pricingRegionForCountry(countryMap, country)
+  const region = regionCode ? regions[regionCode] : null
 
   const isCapex = ['capex', 'financed_project', 'one_shot'].includes(businessModel)
   const isDistributor = userRole === 'distributor'
@@ -213,6 +273,14 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
         </div>
       </div>
 
+      {/* A failed price-list load must not read as "these products have no
+          list price" — that is indistinguishable from the legacy model. */}
+      {pricingError && (
+        <p className="text-micro text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+          Could not load the CWM price list — list prices are not shown. Enter prices manually or retry.
+        </p>
+      )}
+
       {lines.map((line, idx) => {
         const isVolume = ['per_volume', 'per_package'].includes(line.license_type)
         const qtyLabel = line.license_type === 'per_ccu' ? 'CCUs'
@@ -297,6 +365,36 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
               <X size={12}/>
             </button>
           </div>
+
+          {region && (() => {
+            const prod = (products || []).find(p => p.id === line.product_id)
+            const tiers = tiersByProduct[line.product_id]
+            if (!prod || !tiers) return null
+            return (
+              <CwmPrice
+                product={prod}
+                tiers={tiers}
+                regionCode={regionCode}
+                regionName={region.name}
+                discountPct={region.discountPct}
+                quantity={parseFloat(line.quantity) || 0}
+                currentPrice={line.net_price}
+                onApply={priced => {
+                  const updated = [...lines]
+                  updated[idx] = {
+                    ...updated[idx],
+                    unit_price: priced.unitPrice,
+                    net_price:  priced.net,
+                    annual_fee: priced.net,
+                    notes: [updated[idx].notes, `CWM ${regionCode} · ${priced.tierLabel}`]
+                      .filter(Boolean).join(' · '),
+                  }
+                  onChange(updated)
+                  notifyTotal(updated)
+                }}
+              />
+            )
+          })()}
 
           {/* Expanded: full pricing detail */}
           {expandedIdx === idx && (
