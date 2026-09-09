@@ -16,6 +16,11 @@ const ALL_COUNTRIES = Object.values(COUNTRY_MAP).flat().sort()
 // one-tap chips; everything else in the catalogue sits behind "more".
 const HEADLINE_SKUS = ['SYN-PACS', 'CWM-RISBI', 'CWM-DOSE']
 
+// Where a product has no published list price, the sell price starts at cost
+// carried to this margin. It is the middle of the standard band the HCUS price
+// list itself quotes (15 / 20 / 25 / 30 %), and the rep overrides it per line.
+const DEFAULT_MARGIN_PCT = 25
+
 /**
  * Create a deal and price it in one screen.
  *
@@ -55,30 +60,47 @@ export default function QuickQuote({ onCancel, onCreated }) {
   const regionCode = pricingRegionForCountry(countryMap, country)
   const region = regionCode ? regions[regionCode] : null
 
-  const priced = useMemo(() => products.filter(p => tiersByProduct[p.id]), [products, tiersByProduct])
   const headline = useMemo(
-    () => HEADLINE_SKUS.map(sku => priced.find(p => p.sku === sku)).filter(Boolean),
-    [priced]
+    () => HEADLINE_SKUS.map(sku => products.find(p => p.sku === sku)).filter(Boolean),
+    [products]
   )
   const rest = useMemo(
-    () => priced.filter(p => !HEADLINE_SKUS.includes(p.sku)),
-    [priced]
+    () => products.filter(p => !HEADLINE_SKUS.includes(p.sku)),
+    [products]
   )
 
   // One volume figure selects the tier on every picked product at once.
+  //
+  // Only the CWM products have a published price list. Everything bought in —
+  // Synapse PACS, VNA, the partner AI — has a cost and no list price at all, so
+  // its sell price is the cost carried up to a target margin, which is exactly
+  // the number the rep is here to set. Both kinds have to be quotable in the
+  // same screen or the 90% case (PACS + RIS + Dose) cannot be quoted.
   const lines = useMemo(() => {
     const qty = parseFloat(studies) || 0
-    if (!region || !qty) return []
     return picked.map(id => {
       const product = products.find(p => p.id === id)
+      if (!product) return null
+
       const tiers = tiersByProduct[id]
-      if (!product || !tiers) return null
-      const r = resolvePrice({ product, tiers, discountPct: region.discountPct, quantity: qty })
-      if (!r) return null
+      const listed = tiers && region && qty
+        ? resolvePrice({ product, tiers, discountPct: region.discountPct, quantity: qty })
+        : null
+
       const o = overrides[id] || {}
       const cost = o.cost !== undefined ? o.cost : (Number(product.license_fee) || 0)
-      const pvp = o.pvp !== undefined ? o.pvp : r.net
-      return { id, product, listNet: r.net, tierLabel: r.tierLabel, boundBy: r.boundBy, ...lineEconomics(cost, pvp) }
+      const pvp = o.pvp !== undefined ? o.pvp
+        : listed ? listed.net
+        : pvpForMargin(cost, DEFAULT_MARGIN_PCT) ?? 0
+
+      return {
+        id, product,
+        listNet: listed?.net ?? null,
+        tierLabel: listed?.tierLabel ?? '—',
+        boundBy: listed?.boundBy ?? 'tier',
+        priced: Boolean(listed),
+        ...lineEconomics(cost, pvp),
+      }
     }).filter(Boolean)
   }, [picked, products, tiersByProduct, region, studies, overrides])
 
@@ -97,7 +119,7 @@ export default function QuickQuote({ onCancel, onCreated }) {
 
   async function create() {
     if (!client.trim()) { setError('Pick or type a client first.'); return }
-    if (!lines.length)  { setError('Add at least one product with a study volume.'); return }
+    if (!lines.length)  { setError('Pick at least one product.'); return }
     setSaving(true); setError(null)
 
     const { data, error: e } = await supabase.from('deals').insert({
@@ -125,7 +147,7 @@ export default function QuickQuote({ onCancel, onCreated }) {
       unit_price: l.pvp,
       net_price: l.pvp,
       annual_fee: l.pvp,
-      notes: `${regionCode} · ${l.tierLabel}`,
+      notes: l.priced ? `${regionCode} · ${l.tierLabel}` : 'cost + margin',
     })))
     setSaving(false)
     if (lineErr) { setError(`Deal created, but the product lines failed: ${lineErr.message}`); return }
@@ -222,8 +244,8 @@ export default function QuickQuote({ onCancel, onCreated }) {
                 <tr key={l.id} className="border-t border-gray-100">
                   <td className="px-3 py-2 font-medium text-gray-800">{l.product.name}</td>
                   <td className="px-3 py-2 text-gray-500">
-                    {l.tierLabel}
-                    {l.boundBy !== 'tier' && (
+                    {l.priced ? l.tierLabel : <span className="text-gray-400">cost + margin</span>}
+                    {l.priced && l.boundBy !== 'tier' && (
                       <span className="ml-1 text-micro font-semibold text-amber-700">
                         {l.boundBy === 'minimum' ? 'min' : 'cap'}
                       </span>
