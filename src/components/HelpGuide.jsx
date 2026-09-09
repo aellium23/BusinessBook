@@ -137,6 +137,7 @@ const HELP = {
       title: 'Deals',
       description: 'Manage your sales pipeline from lead to invoice. View deals as a list, Kanban board, or on a map.',
       features: [
+        'Quick quote: pick the client, type the annual study volume, tap the products. The volume selects the tier on every product at once, and cost, margin, gross margin in euros and sell price appear immediately. Margin is gross margin on the sell price, the same definition as the deal GM% and the Budget.',
         'Use the view switcher (List / Kanban / Map) to change how deals are displayed.',
         'Drag deals between columns in Kanban view to update their stage.',
         'Click "+ Deal" to create a new deal with the quick form.',
@@ -195,6 +196,7 @@ const HELP = {
       title: 'Oportunidades',
       description: 'Gestiona tu pipeline de ventas desde el lead hasta la factura. Visualiza deals como lista, Kanban o en mapa.',
       features: [
+        'Cotizacion rapida: elige el cliente, escribe el volumen anual de estudios y pulsa los productos. El volumen selecciona el tramo de todos a la vez, y aparecen coste, margen, margen bruto en euros y precio de venta. El margen es margen bruto sobre la venta, la misma definicion que el GM% del deal.',
         'Usa el selector de vista (Lista / Kanban / Mapa) para cambiar la visualizacion.',
         'Arrastra deals entre columnas en la vista Kanban para actualizar su etapa.',
         'Haz clic en "+ Deal" para crear una nueva oportunidad con el formulario rapido.',
@@ -252,6 +254,7 @@ const HELP = {
       title: 'Negocios',
       description: 'Gere o teu pipeline de vendas do lead a fatura. Visualiza deals como lista, Kanban ou no mapa.',
       features: [
+        'Proposta rapida: escolhe o cliente, escreve o volume anual de estudos e toca nos produtos. O volume seleciona o escalao de todos de uma vez, e aparecem custo, margem, margem bruta em euros e preco de venda. A margem e margem bruta sobre a venda, a mesma definicao do GM% do negocio.',
         'Usa o seletor de vista (Lista / Kanban / Mapa) para mudar a visualizacao.',
         'Arrasta deals entre colunas na vista Kanban para atualizar a fase.',
         'Clica em "+ Deal" para criar um novo negocio com o formulario rapido.',

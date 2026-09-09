@@ -6,13 +6,15 @@ import { useAuth } from '../hooks/useAuth'
 import { Spinner, EmptyState, formatK } from '../components/ui'
 import DealForm from '../components/DealForm'
 import KanbanBoard from '../components/KanbanBoard'
-import { Plus, Search, Download, RefreshCw, LayoutGrid, List, Globe } from 'lucide-react'
+import { Plus, Search, Download, RefreshCw, LayoutGrid, List, Globe, Zap } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 import { STAGES, WEIGHTS, REGIONS, BUS, MONTHS, MONTHS_K, FORECAST_CATEGORIES, resolveForecastCategory } from '../constants'
 import { canTransition, getAllowedTransitions } from '../lib/stateMachine'
 import DealCard from '../components/deals/DealCard'
 import DealsMapView from '../components/deals/DealsMapView'
 import { useToast } from '../components/Toast'
+import QuickQuote from '../components/deals/QuickQuote'
+import { Modal } from '../components/ui'
 
 function exportToCSV(deals) {
   const MONTHS = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
@@ -102,6 +104,7 @@ export default function Deals() {
   // Modal states
   const [editDeal, setEditDeal] = useState(null)
   const [formOpen, setFormOpen] = useState(false)
+  const [quoteOpen, setQuoteOpen] = useState(false)
   const [confirmDel, setConfirmDel] = useState(null)
   const [showFilters, setShowFilters] = useState(false)
 
@@ -416,7 +419,12 @@ export default function Deals() {
             )}
           </button>
           {canEdit && (
-            <button onClick={() => { setEditDeal(null); setFormOpen(true) }} className="btn-primary">
+            <button onClick={() => setQuoteOpen(true)} className="btn-primary" title={t("deals_quick_quote")}>
+              <Zap size={16}/> <span className="hidden sm:inline">{t("deals_quick_quote")}</span>
+            </button>
+          )}
+          {canEdit && (
+            <button onClick={() => { setEditDeal(null); setFormOpen(true) }} className="btn-secondary">
               <Plus size={16}/> <span className="hidden sm:inline">{t("deals_new")}</span>
             </button>
           )}
@@ -699,6 +707,14 @@ export default function Deals() {
             )}
           </>
       }
+
+      {quoteOpen && (
+        <Modal open title={t("deals_quick_quote")} onClose={() => setQuoteOpen(false)}>
+          <QuickQuote
+            onCancel={() => setQuoteOpen(false)}
+            onCreated={() => { setQuoteOpen(false); refetch() }}/>
+        </Modal>
+      )}
 
       {formOpen && (
         <DealForm deal={editDeal}
