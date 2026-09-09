@@ -2,6 +2,20 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { logger } from '../lib/logger'
 
+// Every column of `products` except `transfer_price`.
+//
+// SELECT on that one column is revoked, so a wildcard fails for everyone — and
+// Supabase runs every signed-in user as the same Postgres role, so "everyone"
+// includes admins. That is why this list exists and why insert/update below
+// name it too: PostgREST returns the changed row, and returning it with `*`
+// would ask for the column we just took away.
+export const PRODUCT_COLUMNS =
+  'id, category, sku, name, description, license_fee, annual_fee, brand, ' +
+  'pricing_model, bu, active, distributor_visible, sort_order, ' +
+  'allowed_license_types, allowed_pricing_models, ' +
+  'price_basis, price_unit, min_annual_commitment, site_cap_annual, ' +
+  'list_currency, supplier_code, created_at, updated_at'
+
 export function useProducts(filters = {}) {
   const [products, setProducts] = useState([])
   const [loading, setLoading]   = useState(true)
@@ -9,17 +23,7 @@ export function useProducts(filters = {}) {
 
   const fetch = useCallback(async () => {
     setLoading(true)
-    // Columns are listed explicitly, never select('*'): `transfer_price` is
-    // what we pay the manufacturer, and SELECT on it is revoked for everyone
-    // below manager — a wildcard here would fail for them, and would have
-    // shipped our cost to a distributor's browser.
-    let q = supabase.from('products').select(
-      'id, category, sku, name, description, license_fee, annual_fee, brand, ' +
-      'pricing_model, bu, active, distributor_visible, sort_order, ' +
-      'allowed_license_types, allowed_pricing_models, ' +
-      'price_basis, price_unit, min_annual_commitment, site_cap_annual, ' +
-      'list_currency, supplier_code, created_at, updated_at'
-    )
+    let q = supabase.from('products').select(PRODUCT_COLUMNS)
       .order('sort_order', { ascending: true })
       .order('name', { ascending: true })
     if (filters.category) q = q.eq('category', filters.category)
@@ -50,17 +54,52 @@ export function useProducts(filters = {}) {
 
 export async function createProduct(product) {
   const { data, error } = await supabase
-    .from('products').insert(product).select().single()
+    .from('products').insert(product).select(PRODUCT_COLUMNS).single()
   return { data, error }
 }
 
 export async function updateProduct(id, updates) {
   const { data, error } = await supabase
-    .from('products').update(updates).eq('id', id).select().single()
+    .from('products').update(updates).eq('id', id).select(PRODUCT_COLUMNS).single()
   return { data, error }
 }
 
 export async function deleteProduct(id) {
   const { error } = await supabase.from('products').delete().eq('id', id)
+  return { error }
+}
+
+/**
+ * What we pay for each product, for the people allowed to know.
+ *
+ * Read through `products_cost`, a view that runs as its owner and gates itself
+ * on the caller's profile role, because the column privilege it reads has been
+ * taken away from the role the browser connects as. A member quoting a deal
+ * gets an empty map here and sees no cost on the Products screen.
+ */
+export async function fetchProductCosts() {
+  const { data, error } = await supabase
+    .from('products_cost').select('id, transfer_price')
+  if (error) {
+    logger.error('Failed to load product costs', { error: error.message })
+    return { costs: {}, error }
+  }
+  return {
+    costs: Object.fromEntries((data || []).map(r => [r.id, Number(r.transfer_price)])),
+    error: null,
+  }
+}
+
+/**
+ * Writing the cost is a separate call from saving the product, and stays that
+ * way: UPDATE on the column is still granted, but the changed row must not be
+ * returned, since reading it back is exactly what is forbidden.
+ */
+export async function updateProductCost(id, transferPrice) {
+  const value = transferPrice === '' || transferPrice === null || transferPrice === undefined
+    ? null
+    : Number(transferPrice)
+  const { error } = await supabase
+    .from('products').update({ transfer_price: value }).eq('id', id)
   return { error }
 }

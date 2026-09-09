@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import { useProducts, createProduct, updateProduct, deleteProduct } from '../hooks/useProducts'
+import { useProducts, createProduct, updateProduct, deleteProduct,
+         fetchProductCosts, updateProductCost } from '../hooks/useProducts'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useTranslation } from '../hooks/useTranslation'
@@ -215,6 +216,8 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
     license_fee:    product?.license_fee    || 0,
     annual_fee:     product?.annual_fee     || 0,
     brand:          product?.brand          || 'Fujifilm',
+    supplier_code:  product?.supplier_code  || '',
+    transfer_price: '',
     allowed_pricing_models: ensureArray(
       product?.allowed_pricing_models || product?.pricing_model,
       ['license_plus_annual']
@@ -228,6 +231,30 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState(null)
   const [tab, setTab]       = useState('details')
+  const [suppliers, setSuppliers] = useState([])
+  const [costLoaded, setCostLoaded] = useState(false)
+  const [canSeeCost, setCanSeeCost] = useState(false)
+
+  useEffect(() => {
+    supabase.from('suppliers').select('code, name, kind, request_channel')
+      .eq('active', true).order('name')
+      .then(({ data }) => setSuppliers(data || []))
+  }, [])
+
+  // The cost view returns nothing at all to anyone below manager, which is how
+  // the field knows to stay hidden rather than showing a misleading blank.
+  useEffect(() => {
+    let alive = true
+    fetchProductCosts().then(({ costs, error: e }) => {
+      if (!alive) return
+      setCanSeeCost(!e && Object.keys(costs).length > 0)
+      if (product?.id && costs[product.id] !== undefined) {
+        setForm(f => ({ ...f, transfer_price: costs[product.id] }))
+      }
+      setCostLoaded(true)
+    })
+    return () => { alive = false }
+  }, [product?.id])
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
@@ -242,8 +269,10 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
       return
     }
     setSaving(true); setError(null)
+    const { transfer_price, ...rest } = form
     const payload = {
-      ...form,
+      ...rest,
+      supplier_code: form.supplier_code || null,
       license_fee: parseFloat(form.license_fee) || 0,
       annual_fee:  parseFloat(form.annual_fee)  || 0,
       brand:       (form.brand || 'Fujifilm').trim(),
@@ -256,8 +285,15 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
     const result = isEdit
       ? await updateProduct(product.id, payload)
       : await createProduct(payload)
+    if (result.error) { setSaving(false); setError(result.error.message); return }
+
+    // Cost goes in its own statement. Folding it into the row above would make
+    // PostgREST return it, which is precisely what the column privilege forbids.
+    if (transfer_price !== '' && result.data?.id) {
+      const { error: costErr } = await updateProductCost(result.data.id, transfer_price)
+      if (costErr) { setSaving(false); setError(`Saved, but the cost failed: ${costErr.message}`); return }
+    }
     setSaving(false)
-    if (result.error) { setError(result.error.message); return }
     onSaved()
   }
 
@@ -339,6 +375,36 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
                     </datalist>
                     <p className="text-micro text-gray-400 mt-0.5">Routes discount approvals to the brand's approver</p>
                   </div>
+                </div>
+                {/* Brand is who MAKES it; supplier is who we BUY it from, and
+                    that is what decides where a discount request goes — the
+                    Approvals module for VGT, Salesforce for HCUS, email for
+                    Medsky. Synapse PACS is a Fujifilm product bought from HCUS,
+                    so the two answers differ. */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label">Supplier</label>
+                    <select className="select" value={form.supplier_code}
+                      onChange={e => set('supplier_code', e.target.value)}>
+                      <option value="">— not set</option>
+                      {suppliers.map(sup => (
+                        <option key={sup.code} value={sup.code}>
+                          {sup.name} · {sup.request_channel || sup.kind}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-micro text-gray-400 mt-0.5">Who we buy from, and where cost discounts are requested</p>
+                  </div>
+                  {canSeeCost && (
+                    <div>
+                      <label className="label">Transfer price (€)</label>
+                      <input className="input" type="number" min="0" step="0.01"
+                        value={form.transfer_price}
+                        placeholder={costLoaded ? '0.00' : '…'}
+                        onChange={e => set('transfer_price', e.target.value)}/>
+                      <p className="text-micro text-gray-400 mt-0.5">What we pay the supplier. Never shown to distributors.</p>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="label">{t('products_desc')}</label>
