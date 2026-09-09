@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   resolvePrice, resolveTier, pricingRegionForCountry,
   prepaidTotal, PREPAY_FACTORS,
+  lineEconomics, pvpForMargin, quoteTotals,
 } from '../pricing'
 
 // Regional discounts off the Global List Price, as published in the FY26 list.
@@ -151,5 +152,39 @@ describe('prepaid subscription', () => {
 
   it('refuses a term with no published factor', () => {
     expect(prepaidTotal(10000, 4)).toBeNull()
+  })
+})
+
+describe('quote economics — gross margin, not markup', () => {
+  it('reports margin on the sell price', () => {
+    const e = lineEconomics(12000, 18462)
+    expect(e.grossMargin).toBe(6462)
+    expect(e.marginPct).toBe(35)
+  })
+
+  it('derives the sell price from a target gross margin', () => {
+    expect(pvpForMargin(12000, 35)).toBe(18461.54)
+    // A 35% markup would give 16,200 — materially different, and wrong here.
+    expect(pvpForMargin(12000, 35)).not.toBe(16200)
+  })
+
+  it('refuses 100% margin, which implies zero cost', () => {
+    expect(pvpForMargin(12000, 100)).toBeNull()
+  })
+
+  it('blends the margin across lines by value, not by average', () => {
+    // 30% on a large line and 40% on a small one blend nearer to 30%.
+    const t = quoteTotals([
+      { cost: 70000, pvp: 100000 },   // 30%
+      { cost: 6000,  pvp: 10000 },    // 40%
+    ])
+    expect(t.cost).toBe(76000)
+    expect(t.pvp).toBe(110000)
+    expect(t.grossMargin).toBe(34000)
+    expect(t.marginPct).toBe(30.9)
+  })
+
+  it('handles a zero sell price without dividing by zero', () => {
+    expect(lineEconomics(0, 0).marginPct).toBe(0)
   })
 })

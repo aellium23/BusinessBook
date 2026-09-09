@@ -1263,7 +1263,7 @@ const translations = {
     // Deals
     deals_title:      'Oportunidades',
     deals_add:        'Añadir',
-    deals_quick_quote: 'Cotizacion rapida',
+    deals_quick_quote: 'Cotización rápida',
     deals_new:        'Nueva',
     deals_delete:     'Eliminar',
     deals_delete_q:   '¿Eliminar oportunidad?',
@@ -2169,7 +2169,7 @@ const translations = {
     // Deals
     deals_title:      'Negócios',
     deals_add:        'Adicionar',
-    deals_quick_quote: 'Proposta rapida',
+    deals_quick_quote: 'Proposta rápida',
     deals_new:        'Novo',
     deals_delete:     'Eliminar',
     deals_delete_q:   'Eliminar negócio?',
