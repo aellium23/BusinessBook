@@ -3,6 +3,8 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { useProducts } from '../../hooks/useProducts'
 import { usePricing } from '../../hooks/usePricing'
+import { useProductItems } from '../../hooks/useProductItems'
+import FamilyItems, { familyCost } from './FamilyItems'
 import { saveDealProducts } from '../../hooks/useDealProducts'
 import { resolvePrice, pricingRegionForCountry, lineEconomics, pvpForMargin, quoteTotals } from '../../lib/pricing'
 import { COUNTRY_MAP, regionForCountry } from '../../constants'
@@ -43,6 +45,7 @@ export default function QuickQuote({ onCancel, onCreated }) {
   const [studies, setStudies] = useState('')
   const [picked, setPicked]   = useState([])        // product ids
   const [overrides, setOver]  = useState({})        // productId -> { cost, pvp }
+  const [famSel, setFamSel]   = useState({})        // productId -> { users, itemIds }
   const [showAll, setShowAll] = useState(false)
   const [saving, setSaving]   = useState(false)
   const [error, setError]     = useState(null)
@@ -59,6 +62,9 @@ export default function QuickQuote({ onCancel, onCreated }) {
 
   const regionCode = pricingRegionForCountry(countryMap, country)
   const region = regionCode ? regions[regionCode] : null
+
+  // The supplier SKUs under whichever families are on the quote.
+  const { itemsByProduct } = useProductItems(picked)
 
   const headline = useMemo(
     () => HEADLINE_SKUS.map(sku => products.find(p => p.sku === sku)).filter(Boolean),
@@ -88,7 +94,13 @@ export default function QuickQuote({ onCancel, onCreated }) {
         : null
 
       const o = overrides[id] || {}
-      const cost = o.cost !== undefined ? o.cost : (Number(product.license_fee) || 0)
+      // What the supplier price list says this selection costs beats the single
+      // figure on the catalogue row: the rep has picked actual SKUs, so use the
+      // sum of them and fall back to license_fee only when nothing is picked.
+      const fromItems = familyCost(itemsByProduct[id], famSel[id], qty)
+      const cost = o.cost !== undefined ? o.cost
+        : fromItems > 0 ? fromItems
+        : (Number(product.license_fee) || 0)
       const pvp = o.pvp !== undefined ? o.pvp
         : listed ? listed.net
         : pvpForMargin(cost, DEFAULT_MARGIN_PCT) ?? 0
@@ -102,7 +114,7 @@ export default function QuickQuote({ onCancel, onCreated }) {
         ...lineEconomics(cost, pvp),
       }
     }).filter(Boolean)
-  }, [picked, products, tiersByProduct, region, studies, overrides])
+  }, [picked, products, tiersByProduct, region, studies, overrides, itemsByProduct, famSel])
 
   const totals = quoteTotals(lines)
 
@@ -223,6 +235,26 @@ export default function QuickQuote({ onCancel, onCreated }) {
           )}
           {showAll && rest.map(p => <Chip key={p.id} p={p}/>)}
         </div>
+
+        {/* Families that carry a supplier price list open a drill-down: which
+            SKUs, at what cost. Families without one are quoted from the
+            catalogue row alone and show nothing here. */}
+        {picked.map(id => {
+          const items = itemsByProduct[id]
+          if (!items?.length) return null
+          const product = products.find(p => p.id === id)
+          return (
+            <div key={id} className="space-y-1.5">
+              <p className="text-xs font-semibold text-gray-700">{product?.name}</p>
+              <FamilyItems
+                items={items}
+                studies={parseFloat(studies) || 0}
+                value={famSel[id] || {}}
+                onChange={v => setFamSel(s => ({ ...s, [id]: v }))}
+              />
+            </div>
+          )
+        })}
       </div>
 
       {/* Economics */}
