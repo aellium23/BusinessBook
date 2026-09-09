@@ -10,7 +10,7 @@ export function useProducts(filters = {}) {
   const fetch = useCallback(async () => {
     setLoading(true)
     // Columns are listed explicitly, never select('*'): `transfer_price` is
-    // what we pay the manufacturer, and SELECT on it is revoked for everyone
+    // what we pay the supplier, and SELECT on it is revoked for everyone
     // below manager — a wildcard here would fail for them, and would have
     // shipped our cost to a distributor's browser.
     let q = supabase.from('products').select(
