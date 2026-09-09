@@ -787,6 +787,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
             products={resolvedProducts}
             businessModel={form.business_model}
             userRole={profile?.role}
+            country={form.country}
             t={t}
             onTotalChange={(total) => {
               if (total > 0) set('value_total', total.toFixed(2))
