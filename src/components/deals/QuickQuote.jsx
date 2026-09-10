@@ -705,6 +705,18 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       {lines.length > 0 && (
         <div className="border-2 border-navy/20 bg-navy/[0.04] rounded-xl p-3 space-y-2">
           <p className="text-xs font-bold text-navy uppercase tracking-wide">{t('qd_summary')}</p>
+
+          <div>
+            <p className="text-micro font-semibold text-navy uppercase tracking-wide">
+              {t('qd_as_quoted')}
+              {views.hasPending && (
+                <span className="ml-1 font-normal normal-case text-gray-500">
+                  · {t('qd_as_quoted_hint')}
+                </span>
+              )}
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <div>
               <p className="text-micro text-gray-500">{t('qd_total_pvp')}</p>
@@ -755,6 +767,9 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
             <div className="pt-2 border-t border-navy/10 space-y-1">
               <p className="text-micro font-semibold text-amber-800 uppercase tracking-wide">
                 {t('qd_if_granted')}
+                <span className="ml-1 font-normal normal-case text-amber-700">
+                  · {t('qd_if_granted_hint')}
+                </span>
               </p>
               {/* The same four figures, so each column reads straight down and
                   the difference is the thing the eye lands on. */}
@@ -768,7 +783,6 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                 <Metric label={t('qd_gm_pct')} value={`${granted.marginPct}%`}
                   delta={granted.marginPct - totals.marginPct} unit="pp"/>
               </div>
-              <p className="text-micro text-gray-500">{t('qd_if_granted_hint')}</p>
             </div>
           )}
           {lines.some(l => l.discountPct > 0 || l.skuDiscounts?.length) && (
