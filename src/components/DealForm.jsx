@@ -99,6 +99,10 @@ export default function DealForm({ deal, onClose, onSaved }) {
   })
   const [saving, setSaving]   = useState(false)
   const [error, setError]     = useState('')
+  // A deal whose client is a typed name rather than a linked account. Shown in
+  // the picker so the name is visible, and never selectable as an account.
+  const UNLINKED = '__unlinked__'
+  const [quoteYears, setQuoteYears] = useState(null)
   const [fieldErrors, setFieldErrors] = useState({})
   const [nextAction, setNextAction] = useState('')
   const [nextActionDate, setNextActionDate] = useState('')
@@ -184,6 +188,11 @@ export default function DealForm({ deal, onClose, onSaved }) {
       supabase.from('deal_products_v').select('*').eq('deal_id', deal.id).order('created_at')
         .then(({ data }) => { if (data) setDealLines(data.map(d => ({ ...d, _key: d.id }))) })
         .catch(() => {})
+      // The contract term lives with the quote, not on the deal, and without it
+      // a five-year project reads here as a one-year one.
+      supabase.from('deal_quote').select('state').eq('deal_id', deal.id).maybeSingle()
+        .then(({ data }) => { if (data?.state?.years) setQuoteYears(Number(data.state.years)) })
+        .catch(() => {})
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -211,6 +220,31 @@ export default function DealForm({ deal, onClose, onSaved }) {
   }, [form.is_sla, form.sla_annual_value, form.cs_month, form.cs_year,
       form.ce_month, form.ce_year, form.sla_billing_month, form.sla_billing_year,
       form.currency, form.exchange_rate])
+  /**
+   * The deal's own figures, from its saved lines.
+   *
+   * Over the term where one is known: a yearly fee on a five-year contract is
+   * five years of revenue, and reporting one year of it under a heading that
+   * says nothing about the term is how a project looks a fifth of its size.
+   * Cost comes through the security view, so it is null for anyone who may not
+   * see it and the margin half is simply not drawn.
+   */
+  const economics = useMemo(() => {
+    const years = quoteYears || 1
+    const n = v => Number(v) || 0
+    const oneOff = dealLines.reduce((s, l) => s + n(l.net_price || l.unit_price), 0)
+    const recurring = dealLines.reduce((s, l) => s + n(l.annual_fee), 0)
+    const pvp = Math.round((oneOff + recurring * years) * 100) / 100
+    const cost = dealLines.reduce((s, l) => s + n(l.cost_price), 0)
+    const gm = Math.round((pvp - cost) * 100) / 100
+    return {
+      oneOff: Math.round(oneOff * 100) / 100,
+      recurring: Math.round(recurring * 100) / 100,
+      pvp, cost, gm,
+      pct: pvp > 0 ? Math.round((gm / pvp) * 1000) / 10 : 0,
+    }
+  }, [dealLines, quoteYears])
+
   const resolvedProducts = useMemo(() => {
     if (!isDistributor) return catalogProducts
     const country = form.country || ''
@@ -453,13 +487,23 @@ export default function DealForm({ deal, onClose, onSaved }) {
           <label className="label">{t("df_client")} <span className="text-red-500">*</span></label>
           <div className={fieldErrors.client ? 'ring-1 ring-red-400 rounded-lg' : ''}>
             <SearchableSelect
-              value={form.account_id || ''}
+              value={form.account_id || (form.client ? UNLINKED : '')}
               onChange={v => {
+                if (v === UNLINKED) return
                 set('account_id', v || null)
                 const acc = accounts.find(a => a.id === v)
                 if (acc) set('client', acc.name)
               }}
-              options={accountsForBU.map(a => ({ value: a.id, label: a.name, hint: a.country || a.bu }))}
+              /* A deal quoted with a client that is not an account — every deal
+                 from the quick deal, until one is linked — had nothing to show
+                 here, and an empty field reads as a lost name rather than as an
+                 unlinked one. */
+              options={[
+                ...(form.client && !form.account_id
+                  ? [{ value: UNLINKED, label: form.client, hint: t('df_custom_client') }]
+                  : []),
+                ...accountsForBU.map(a => ({ value: a.id, label: a.name, hint: a.country || a.bu })),
+              ]}
               placeholder={t("df_search_accounts")}
               emptyLabel={t("df_select_account")}
               onCreateNew={async (query) => {
@@ -479,7 +523,15 @@ export default function DealForm({ deal, onClose, onSaved }) {
                     .select('id').eq('company_id', company.id).limit(1).single()
                   if (dist) payload.distributor_id = dist.id
                 }
-                const { data: acc } = await supabase.from('accounts').insert(payload).select().single()
+                const { data: acc, error: accErr } = await supabase
+                  .from('accounts').insert(payload).select().single()
+                if (accErr) {
+                  // It used to fail here in silence, which looked like a button
+                  // that did nothing. The deal keeps the typed name either way.
+                  logger.error('Could not create account', { error: accErr.message, name })
+                  setError(`${t('df_err_account')} ${accErr.message}`)
+                  return
+                }
                 if (acc) {
                   set('account_id', acc.id)
                   setAccounts(prev => [...prev, acc])
@@ -778,6 +830,52 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 ? `No product authorizations found for your company. Contact your account manager.`
                 : `${t("df_no_products_auth")} ${form.country}. ${t("df_contact_am")}`}
             </p>
+          )}
+
+          {/* The economics of the project, which this form has never shown: it
+              edits the parts and reports no total, so a five-year contract read
+              here as a list of yearly prices with no term attached. */}
+          {dealLines.length > 0 && (
+            <div className="rounded-xl border-2 border-navy/20 bg-navy/[0.04] p-3 space-y-1.5">
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="text-xs font-bold text-navy uppercase tracking-wide">{t('df_economics')}</p>
+                <p className="text-micro text-gray-500">
+                  {quoteYears ? `${t('qd_contract_duration')} (${quoteYears}${t('qd_years_short')})` : t('df_no_term')}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-micro text-gray-600">
+                {economics.oneOff > 0 && (
+                  <span>{t('qd_one_off')}: <strong className="tabular-nums">{formatK(economics.oneOff)}</strong></span>
+                )}
+                {economics.recurring > 0 && (
+                  <span>{t('qd_recurring')}: <strong className="tabular-nums">{formatK(economics.recurring)}</strong>{t('df_per_year')}</span>
+                )}
+                <span>{dealLines.length} {t('qd_n_products')}</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-navy/10">
+                <div>
+                  <p className="text-micro text-gray-500">{t('qd_col_price')}</p>
+                  <p className="text-base font-bold text-navy tabular-nums">{formatK(economics.pvp)}</p>
+                </div>
+                {!isDistributor && economics.cost > 0 && (
+                  <>
+                    <div>
+                      <p className="text-micro text-gray-500">{t('qd_col_cost')}</p>
+                      <p className="text-base font-semibold text-gray-700 tabular-nums">{formatK(economics.cost)}</p>
+                    </div>
+                    <div>
+                      <p className="text-micro text-gray-500">{t('qd_col_gm')}</p>
+                      <p className="text-base font-bold text-green-700 tabular-nums">{formatK(economics.gm)}</p>
+                    </div>
+                    <div>
+                      <p className="text-micro text-gray-500">{t('qd_gm_pct')}</p>
+                      <p className="text-base font-bold text-green-700 tabular-nums">{economics.pct}%</p>
+                    </div>
+                  </>
+                )}
+              </div>
+              <p className="text-micro text-gray-400">{t('df_economics_hint')}</p>
+            </div>
           )}
 
           <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{t("df_product_lbl")}</p>

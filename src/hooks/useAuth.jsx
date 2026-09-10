@@ -35,7 +35,10 @@ export const ROLE_PERMISSIONS = {
     manageUsers: false,
   },
   distributor: {
-    pages:    ['dashboard','deals','tasks','tenders','clients','contacts','history','quotas','quotations'],
+    // `approvals` reads from the other end for them: the answers to their own
+    // requests, not a queue of somebody else's. A partner who can ask for a
+    // discount and cannot see the reply is being asked to phone somebody.
+    pages:    ['dashboard','deals','tasks','tenders','clients','contacts','history','quotas','quotations','approvals'],
     canEdit:  true,
     canDelete: false,
     editOwn:  true,

@@ -23,13 +23,17 @@ export default function Approvals() {
   const [channel, setChannel] = useState({})
 
   const myBrands = Array.isArray(profile?.approves_brands) ? profile.approves_brands : []
+  // Somebody who approves nothing but asks for plenty: a partner. The same
+  // screen, read from the other end — they see the answers to their own
+  // requests instead of a queue of other people's.
+  const asRequester = myBrands.length === 0
 
   async function load() {
-    if (myBrands.length === 0) { setLoading(false); return }
-    const { data } = await supabase.from('deal_discount_requests')
+    let q = supabase.from('deal_discount_requests')
       .select('*, deal:deal_id(id, client, value_total, currency, bu, country)')
-      .in('brand', myBrands)
       .order('created_at', { ascending: false })
+    q = asRequester ? q.eq('requested_by', profile?.id) : q.in('brand', myBrands)
+    const { data } = await q
     setRequests(data || [])
 
     // What the partner pays us and what their customer pays. Without the
@@ -96,7 +100,7 @@ export default function Approvals() {
           <ShieldCheck size={20} className="text-navy"/> Discount Approvals
         </h1>
         <p className="text-sm text-gray-400">
-          {myBrands.join(', ')} · {counts.pending} pending
+          {asRequester ? 'Your requests' : myBrands.join(', ')} · {counts.pending} pending
         </p>
       </div>
 
@@ -121,7 +125,8 @@ export default function Approvals() {
       ) : (
         <div className="space-y-3">
           {filtered.map(req => (
-            <ApprovalCard key={req.id} req={req} channel={channel[req.deal_id]} onRespond={respond}/>
+            <ApprovalCard key={req.id} req={req} channel={channel[req.deal_id]}
+              readOnly={asRequester} onRespond={respond}/>
           ))}
         </div>
       )}
@@ -129,7 +134,7 @@ export default function Approvals() {
   )
 }
 
-function ApprovalCard({ req, onRespond, channel }) {
+function ApprovalCard({ req, onRespond, channel, readOnly }) {
   const [open, setOpen] = useState(false)
   const [status, setStatus] = useState('approved')
   const [pct, setPct] = useState(String(req.requested_pct))
@@ -226,7 +231,7 @@ function ApprovalCard({ req, onRespond, channel }) {
         </div>
       )}
 
-      {(req.status === 'pending' || req.status === 'counter') && (
+      {!readOnly && (req.status === 'pending' || req.status === 'counter') && (
         open ? (
           <div className="border-t pt-2 space-y-2">
             <div className="grid grid-cols-2 gap-2">
