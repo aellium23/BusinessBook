@@ -697,6 +697,10 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
 
   async function createDeal({ then = 'close' } = {}) {
     if (!client.trim()) { setError(t('qd_err_client')); return false }
+    // Their deals are scoped to their company, in the database and on the deal
+    // list. Without one the insert is refused, and the refusal reads as a
+    // permissions fault rather than as a profile with a field missing.
+    if (!internal && !profile?.company_id) { setError(t('qd_err_no_company')); return false }
     // A migration or a training week with no software on it is still a deal.
     if (!lines.length && !quotable) { setError(t('qd_err_product')); return false }
     // A discount nobody explained is refused rather than saved and chased
@@ -1294,7 +1298,12 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
                   <div className="grid grid-cols-[4.2rem_1fr] gap-2 items-end">
                     <div>
                       <label className="label">{t('qd_discount')}</label>
-                      {l.routing.appliesTo === 'cost'
+                      {/* The per-SKU note belongs to OUR supplier lines, where
+                          the drill-down exists to set them in. A partner has no
+                          such panel — their ask is one percentage off the line —
+                          so pointing them at it left the row with no way to ask
+                          for anything at all. */}
+                      {internal && l.routing.appliesTo === 'cost'
                         ? <p className="text-micro text-gray-400 py-2">{t('qd_disc_per_sku')}</p>
                         : <input className="input text-right" type="number" min="0" max="99"
                             value={l.discountPct}
