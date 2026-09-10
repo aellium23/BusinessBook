@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   routeFor, applyDiscount, isOpen, daysWaiting,
   ROUTE_INTERNAL, ROUTE_EXTERNAL, EXTERNAL_FLOW, discountViews,
-  fiscalQuarter, riskSummary,
+  fiscalQuarter, riskSummary, internalApproval,
 } from '../discountRouting'
 
 const VGT    = { code: 'VGT',    kind: 'internal', request_channel: 'Approvals' }
@@ -193,5 +193,47 @@ describe('riskSummary', () => {
   it('is all zeroes with nothing open', () => {
     expect(riskSummary([])).toMatchObject({ total: 0, unfiled: 0, awaiting: 0, deals: 0, oldestDays: 0 })
     expect(riskSummary(null).total).toBe(0)
+  })
+})
+
+describe('internalApproval', () => {
+  const list = 106070   // the 200,000-exam Iberian list price
+
+  it('needs nobody at the standard target', () => {
+    const r = internalApproval({ listPrice: list, quotedPrice: 95463 })
+    expect(r.pctOfList).toBe(90)
+    expect(r.rung.key).toBe('target')
+    expect(r.needsRequest).toBe(false)
+  })
+
+  it('sends the country manager floor to the country manager', () => {
+    const r = internalApproval({ listPrice: list, quotedPrice: 84856 })
+    expect(r.pctOfList).toBe(80)
+    // 20% off is the top of the Country Manager band, and the bound is
+    // inclusive: 20 is theirs, 20.1 is the P&L owner's.
+    expect(r.level).toBe('country_manager')
+    expect(internalApproval({ listPrice: list, quotedPrice: 84800 }).level).toBe('pnl_owner')  // 20.1%
+    expect(r.needsRequest).toBe(true)
+  })
+
+  it('puts the closed Portuguese deal with the P&L owner, inside the cap', () => {
+    const r = internalApproval({ listPrice: list, quotedPrice: 76000 })
+    expect(r.pctOfList).toBe(71.7)
+    expect(r.rung.key).toBe('strategic_floor')
+    expect(r.level).toBe('pnl_owner')
+    expect(r.overCap).toBeUndefined()
+  })
+
+  it('calls anything below the floor a named programme', () => {
+    const r = internalApproval({ listPrice: list, quotedPrice: 50000 })
+    expect(r.level).toBe('named_programme')
+    expect(r.overCap).toBe(true)
+    expect(r.rung.key).toBe('below_floor')
+  })
+
+  it('raises nothing at list price', () => {
+    const r = internalApproval({ listPrice: list, quotedPrice: list })
+    expect(r.pctOfList).toBe(100)
+    expect(r.needsRequest).toBe(false)
   })
 })

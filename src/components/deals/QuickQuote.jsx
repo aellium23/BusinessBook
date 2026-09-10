@@ -10,7 +10,8 @@ import { familyEconomics, defaultItemIds } from '../../lib/familyEconomics'
 import { saveDealProducts } from '../../hooks/useDealProducts'
 import { resolvePrice, pricingRegionForCountry, pvpForMargin } from '../../lib/pricing'
 import { recommendedCapexPvp, recommendedSlaPvp, belowFloor, lineOverTerm } from '../../lib/margins'
-import { routeFor, applyDiscount, discountViews } from '../../lib/discountRouting'
+import { routeFor, applyDiscount, discountViews, internalApproval } from '../../lib/discountRouting'
+import { priceAtRung } from '../../lib/discountLadder'
 import { unitsNeeded, quantityFor } from '../../lib/volumeUnits'
 import { toEur, rateLabel } from '../../lib/fx'
 import { useFxRates } from '../../hooks/useFxRates'
@@ -233,6 +234,15 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       const dCapex = applyDiscount({ ...routing, pct: discountPct, cost: capexCost, pvp: capexPvp })
       const dAnnual = applyDiscount({ ...routing, pct: discountPct, cost: annualCost, pvp: annualPvp })
 
+      // On a CWM line the control is the price, not the cost: how far below the
+      // published regional list it has fallen decides who signs. Measured from
+      // the price itself, because a rep can type over it and leave the discount
+      // box reading zero.
+      const listRef = routing.appliesTo === 'price' && listed ? listed.net : null
+      const ladder = listRef
+        ? internalApproval({ listPrice: listRef, quotedPrice: isSub ? dAnnual.pvp : dCapex.pvp })
+        : null
+
       const term = lineOverTerm({
         capexCost: dCapex.cost, capexPvp: dCapex.pvp,
         annualCost: dAnnual.cost, annualPvp: dAnnual.pvp, years,
@@ -247,7 +257,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         listed,
         capexCost: dCapex.cost, capexPvp: dCapex.pvp,
         annualCost: dAnnual.cost, annualPvp: dAnnual.pvp,
-        discountPct, routing,
+        discountPct, routing, ladder,
         speculative: dCapex.speculative || dAnnual.speculative,
         pendingCostRelief: dCapex.speculative
           ? round2((capexCost + annualCost * years) * (discountPct / 100))
@@ -333,14 +343,18 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
     // Discounts become worklist entries only now, because they hang off a deal
     // that did not exist a moment ago. A failure here must not read as a failed
     // deal — the deal is saved; the rep is told what did not get raised.
-    const discounted = lines.filter(l => l.discountPct > 0)
+    // Nothing to raise where nobody signs. A request approved by default would
+    // bury the ones that need a decision.
+    const discounted = lines.filter(l =>
+      l.routing.appliesTo === 'cost' ? l.discountPct > 0 : l.ladder?.needsRequest)
     if (discounted.length) {
       const { error: reqErr } = await supabase.from('deal_discount_requests').insert(
         discounted.map(l => ({
           deal_id: data.id,
           product_id: l.id,
           requested_by: profile?.id || null,
-          requested_pct: l.discountPct,
+          requested_pct: l.ladder ? l.ladder.pctOff : l.discountPct,
+          approval_level: l.ladder?.level || null,
           brand: l.product.brand || null,
           supplier_code: l.product.supplier_code || null,
           route: l.routing.route,
@@ -568,7 +582,17 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                 </div>
                 <p className="col-span-2 text-micro text-gray-500 pb-2">
                   {l.routing.appliesTo === 'price'
-                    ? t('qd_disc_price')
+                    ? (l.ladder
+                        ? <>
+                            <strong className={l.ladder.overCap ? 'text-red-700' : 'text-navy'}>
+                              {l.ladder.pctOfList}% {t('dl_of_list')}
+                            </strong>
+                            {' · '}{t(`dl_rung_${l.ladder.rung.key}`)}
+                            <span className={`block ${l.ladder.overCap ? 'text-red-700 font-semibold' : 'text-gray-500'}`}>
+                              {t(`dl_${l.ladder.level}`)}
+                            </span>
+                          </>
+                        : t('qd_disc_price'))
                     : <>{t('qd_disc_cost')} <strong>{l.routing.channel}</strong>
                         {l.speculative && <span className="block text-amber-700">{t('qd_disc_pending')}</span>}</>}
                 </p>
