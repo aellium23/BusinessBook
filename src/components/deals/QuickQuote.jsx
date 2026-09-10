@@ -74,7 +74,6 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   const [overrides, setOver]  = useState({})        // productId -> { cost, pvp }
   const [famSel, setFamSel]   = useState({})        // productId -> { users, itemIds }
   const [years, setYears]     = useState(DEFAULT_TERM)
-  const [ifApproved, setIfApproved] = useState(false)
   const [manDays, setManDays] = useState('')
 
   // A quote carries several volumes and they are not interchangeable. The exam
@@ -296,8 +295,19 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
     servicesPvp: lines.reduce((n, l) => n + l.servicesPvp, 0),
   }), [manDays, settings.man_day_cost, lines])
 
+  // Services effort is a cost either way, so it lands on both scenarios.
+  const withServices = (v) => {
+    const cost = round2(v.cost + services.cost)
+    const gm = round2(v.pvp - cost)
+    return {
+      ...v, cost, grossMargin: gm,
+      marginPct: v.pvp > 0 ? Math.round((gm / v.pvp) * 1000) / 10 : 0,
+    }
+  }
+  const granted = useMemo(() => withServices(views.ifApproved), [views, services])
+
   const totals = useMemo(() => {
-    const v = ifApproved ? views.ifApproved : views.actual
+    const v = views.actual
     const cost = round2(v.cost + services.cost)
     const gm = round2(v.pvp - cost)
     return {
@@ -308,7 +318,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       capexPvp: round2(lines.reduce((n, l) => n + l.capexPvp + l.servicesPvp, 0)),
       annualPvp: round2(lines.reduce((n, l) => n + l.annualPvp, 0)),
     }
-  }, [views, ifApproved, lines, services])
+  }, [views, lines, services])
 
   function setField(id, key, v) {
     setOver(o => ({ ...o, [id]: { ...(o[id] || {}), [key]: parseFloat(v) || 0 } }))
@@ -412,6 +422,25 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
     setSaving(false)
     if (lineErr) { setError(`${t('qd_err_lines')} ${lineErr.message}`); return }
     onCreated?.(data)
+  }
+
+  /** One figure of the summary, with how far it moves if the discounts land. */
+  const Metric = ({ label, value, delta, unit = '', lowerIsBetter = false }) => {
+    const moved = Math.abs(delta) >= 0.05
+    const good = lowerIsBetter ? delta < 0 : delta > 0
+    return (
+      <div>
+        <p className="text-micro text-gray-500">{label}</p>
+        <p className="text-base font-bold text-amber-900 tabular-nums">{value}</p>
+        {moved && (
+          <p className={`text-micro tabular-nums font-semibold ${good ? 'text-green-700' : 'text-red-700'}`}>
+            {delta > 0 ? '+' : '−'}{unit === 'pp'
+              ? `${Math.abs(Math.round(delta * 10) / 10)} pp`
+              : formatK(Math.abs(delta))}
+          </p>
+        )}
+      </div>
+    )
   }
 
   const Chip = ({ p }) => {
@@ -723,15 +752,23 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
           )}
 
           {views.hasPending && (
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-navy/10">
-              <label className="flex items-center gap-1.5 text-micro text-gray-700 min-h-tap cursor-pointer">
-                <input type="checkbox" checked={ifApproved}
-                  onChange={e => setIfApproved(e.target.checked)}/>
-                {t('qd_view_if_approved')}
-              </label>
-              <span className="text-micro text-amber-800">
-                {t('qd_at_risk')} <strong className="tabular-nums">{formatK(views.atRisk)}</strong>
-              </span>
+            <div className="pt-2 border-t border-navy/10 space-y-1">
+              <p className="text-micro font-semibold text-amber-800 uppercase tracking-wide">
+                {t('qd_if_granted')}
+              </p>
+              {/* The same four figures, so each column reads straight down and
+                  the difference is the thing the eye lands on. */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <Metric label={t('qd_total_pvp')} value={formatK(granted.pvp)}
+                  delta={granted.pvp - totals.pvp}/>
+                <Metric label={t('qd_total_cost')} value={formatK(granted.cost)}
+                  delta={granted.cost - totals.cost} lowerIsBetter/>
+                <Metric label={t('qd_col_gm')} value={formatK(granted.grossMargin)}
+                  delta={granted.grossMargin - totals.grossMargin}/>
+                <Metric label={t('qd_gm_pct')} value={`${granted.marginPct}%`}
+                  delta={granted.marginPct - totals.marginPct} unit="pp"/>
+              </div>
+              <p className="text-micro text-gray-500">{t('qd_if_granted_hint')}</p>
             </div>
           )}
           {lines.some(l => l.discountPct > 0 || l.skuDiscounts?.length) && (
