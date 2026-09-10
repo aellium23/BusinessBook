@@ -10,16 +10,30 @@ const R1 = 8, R2 = 20, R3 = 36, R4 = 48
 
 // Fixtures mirror the seeded rows, including Supabase's habit of returning
 // numerics as strings — that coercion is part of what these tests cover.
+// CWM Dose, as corrected on 10 September 2026. The unit is the exam, never the
+// study, and there is NO site cap — the $28,000 one was withdrawn entirely. It
+// was the most damaging figure in the price list: it flattened every deal above
+// roughly 140,000 exams to the same number, so a 200,000-exam hospital and an
+// 8,000,000-exam network were quoted alike.
 const DOSE = {
-  price_basis: 'per_unit', price_unit: 'study',
-  min_annual_commitment: '8000.00', site_cap_annual: '28000.00',
+  price_basis: 'per_unit', price_unit: 'exam',
+  min_annual_commitment: '9500.00', site_cap_annual: null,
 }
 const DOSE_TIERS = [
-  { tier_label: 'Up to 15,000 studies', tier_from: '0',       tier_to: '15000',   global_list_price: '0.8000' },
-  { tier_label: '15,001 – 30,000',      tier_from: '15001',   tier_to: '30000',   global_list_price: '0.6000' },
-  { tier_label: '125,001 – 250,000',    tier_from: '125001',  tier_to: '250000',  global_list_price: '0.2000' },
-  { tier_label: 'Over 1,000,000',       tier_from: '1000001', tier_to: null,      global_list_price: '0.0900' },
+  { tier_label: 'Up to 15,000 exams',          tier_from: '0',       tier_to: '15000',   global_list_price: '1.3000' },
+  { tier_label: '15,001 – 30,000 exams',       tier_from: '15001',   tier_to: '30000',   global_list_price: '1.1900' },
+  { tier_label: '30,001 – 60,000 exams',       tier_from: '30001',   tier_to: '60000',   global_list_price: '1.0600' },
+  { tier_label: '60,001 – 100,000 exams',      tier_from: '60001',   tier_to: '100000',  global_list_price: '0.9200' },
+  { tier_label: '100,001 – 250,000 exams',     tier_from: '100001',  tier_to: '250000',  global_list_price: '0.7700' },
+  { tier_label: '250,001 – 500,000 exams',     tier_from: '250001',  tier_to: '500000',  global_list_price: '0.7000' },
+  { tier_label: '500,001 – 1,000,000 exams',   tier_from: '500001',  tier_to: '1000000', global_list_price: '0.6200' },
+  { tier_label: '1,000,001 – 5,000,000 exams', tier_from: '1000001', tier_to: '5000000', global_list_price: '0.5500' },
+  { tier_label: 'Over 5,000,000 exams',        tier_from: '5000001', tier_to: null,      global_list_price: '0.4600' },
 ]
+
+// A product that legitimately has a cap, so the mechanism stays covered after
+// CWM Dose stopped using it.
+const CAPPED = { price_basis: 'per_unit', price_unit: 'exam', min_annual_commitment: null, site_cap_annual: '28000.00' }
 
 const ES = { price_basis: 'per_unit', price_unit: 'procedure_room', min_annual_commitment: null, site_cap_annual: null }
 const ES_TIERS = [
@@ -47,10 +61,15 @@ describe('published price list', () => {
     expect(resolvePrice({ product: ES, tiers: ES_TIERS, discountPct: R2, quantity: 25 }).unitPrice).toBe(2800)
   })
 
-  it('reproduces the Dose rate card in R2 and R3', () => {
-    expect(resolvePrice({ product: DOSE, tiers: DOSE_TIERS, discountPct: R2, quantity: 10000 }).unitPrice).toBe(0.64)
-    expect(resolvePrice({ product: DOSE, tiers: DOSE_TIERS, discountPct: R3, quantity: 10000 }).unitPrice).toBe(0.512)
-    expect(resolvePrice({ product: DOSE, tiers: DOSE_TIERS, discountPct: R3, quantity: 2_000_000 }).unitPrice).toBe(0.0576)
+  it('reproduces the published Dose rate card in R2 and R3', () => {
+    const at = (q, d) => resolvePrice({ product: DOSE, tiers: DOSE_TIERS, discountPct: d, quantity: q }).unitPrice
+    // The R2 and R3 columns of the price list, derived from one global list.
+    expect(at(10000, R2)).toBe(1.04)        // $1.30 band
+    expect(at(10000, R3)).toBe(0.832)
+    expect(at(200000, R2)).toBe(0.616)      // the anchor band, $0.77
+    expect(at(200000, R3)).toBe(0.4928)     // published as 0.493, rounded to 3dp
+    expect(at(2_000_000, R3)).toBe(0.352)   // $0.55 band
+    expect(at(9_000_000, R2)).toBe(0.368)   // $0.46, the band that did not exist
   })
 
   it('reproduces the RIS/BI band price in R3', () => {
@@ -68,26 +87,50 @@ describe('the three-room Iberian unit', () => {
   })
 })
 
-describe('minimum commitment and site cap', () => {
+describe('the anchor — the deal that set the list', () => {
+  // Two Portuguese deals of 200,000 exams a year. EUR 0.53 was PRESENTED and
+  // the customer engaged with it; EUR 0.38 was the close, 71.7% of list and
+  // inside the 30% cap. The list price is the ask, not the close.
+  it('reconstructs EUR 0.53 per exam in Iberia', () => {
+    const r = resolvePrice({ product: DOSE, tiers: DOSE_TIERS, discountPct: R2, quantity: 200000 })
+    expect(r.tierLabel).toBe('100,001 – 250,000 exams')
+    expect(r.unitPrice).toBe(0.616)              // $0.77 less 20%
+    expect(r.net).toBe(123200)                   // = EUR 106,070 at 1.1615
+    expect(r.boundBy).toBe('tier')
+  })
+
+  it('is 71.7% of list at the price the deals actually closed at', () => {
+    const list = resolvePrice({ product: DOSE, tiers: DOSE_TIERS, discountPct: R2, quantity: 200000 }).net
+    const closed = 200000 * 0.38 * 1.1615        // EUR 0.38 back into USD
+    expect(Math.round((closed / list) * 1000) / 10).toBe(71.7)
+  })
+})
+
+describe('minimum commitment', () => {
   it('lifts a small site to the regional minimum', () => {
-    // 5,000 studies x 0.512 = 2,560, below the R3 minimum of 8,000 x 0.64.
+    // 5,000 exams x 1.30 x 0.64 = 4,160, below the R3 minimum of 9,500 x 0.64.
     const r = resolvePrice({ product: DOSE, tiers: DOSE_TIERS, discountPct: R3, quantity: 5000 })
-    expect(r.gross).toBe(2560)
-    expect(r.net).toBe(5120)
+    expect(r.gross).toBe(4160)
+    expect(r.net).toBe(6080)
     expect(r.boundBy).toBe('minimum')
   })
+})
 
-  it('caps a large site — the answer to "per-study costs more than a site licence"', () => {
-    // 250,000 x 0.160 = 40,000 gross, capped at 28,000 x 0.80.
-    const r = resolvePrice({ product: DOSE, tiers: DOSE_TIERS, discountPct: R2, quantity: 250000 })
-    expect(r.gross).toBe(40000)
-    expect(r.net).toBe(22400)
-    expect(r.boundBy).toBe('site cap')
+describe('CWM Dose has no site cap', () => {
+  it('lets the largest network price on volume, not on a ceiling', () => {
+    // The withdrawn $28,000 cap would have returned 22,400 here — 131x less.
+    const r = resolvePrice({ product: DOSE, tiers: DOSE_TIERS, discountPct: R2, quantity: 8000000 })
+    expect(r.net).toBe(2944000)                  // = EUR 2,534,653 at 1.1615
+    expect(r.cap).toBeNull()
+    expect(r.boundBy).toBe('tier')
   })
 
-  it('scales the cap with the region', () => {
-    const r = resolvePrice({ product: DOSE, tiers: DOSE_TIERS, discountPct: R3, quantity: 250000 })
-    expect(r.cap).toBe(17920)   // 28,000 x 0.64, as published
+  it('still caps a product that genuinely has one', () => {
+    // The mechanism stays in pricing.js for products that carry a cap; only
+    // CWM Dose stopped carrying a value.
+    const r = resolvePrice({ product: CAPPED, tiers: DOSE_TIERS, discountPct: R2, quantity: 8000000 })
+    expect(r.net).toBe(22400)
+    expect(r.boundBy).toBe('site cap')
   })
 })
 
