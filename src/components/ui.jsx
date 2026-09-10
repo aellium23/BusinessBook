@@ -107,8 +107,13 @@ export function formatK(n, currency) {
   const sym = currency
     ? ({ USD: '$', GBP: '£', CHF: 'CHF ', BRL: 'R$', CLP: 'CLP ', MXN: 'MXN ' }[currency] || '€')
     : '€'
-  if (Math.abs(n) >= 1000000) return `${sym}${(n/1000000).toFixed(1)}M`
-  if (Math.abs(n) >= 1000) return `${sym}${(n/1000).toFixed(1)}K`
+  // Promote on what will be PRINTED, not on the raw number: 999,960 is under a
+  // million and still rounds to "1000.0K", which is wider than "€1.0M" and
+  // reads as a thousand thousands. Same one step down, so 999.6 never prints
+  // as "1000".
+  const abs = Math.abs(n)
+  if (abs >= 999950) return `${sym}${(n/1000000).toFixed(1)}M`
+  if (abs >= 999.5) return `${sym}${(n/1000).toFixed(1)}K`
   return `${sym}${Math.round(n)}`
 }
 

@@ -25,7 +25,8 @@ describe('formatK', () => {
     expect(formatK(1000)).toBe('€1.0K')
     expect(formatK(1500)).toBe('€1.5K')
     expect(formatK(25000)).toBe('€25.0K')
-    expect(formatK(999999)).toBe('€1000.0K')
+    // 999,999 used to print as €1000.0K here. It is a million to a reader.
+    expect(formatK(999999)).toBe('€1.0M')
   })
 
   it('formats millions with M suffix', () => {
@@ -94,5 +95,29 @@ describe('currencySymbol', () => {
   it('returns euro sign for unknown currencies', () => {
     expect(currencySymbol('CHF')).toBe('€')
     expect(currencySymbol(null)).toBe('€')
+  })
+})
+
+describe('formatK — where the unit changes', () => {
+  it('switches to M on what would print as a thousand K', () => {
+    // 999,960 is under a million and still rounds to 1000.0K, which is wider
+    // than €1.0M and reads as a thousand thousands.
+    expect(formatK(999960)).toBe('€1.0M')
+    expect(formatK(1000000)).toBe('€1.0M')
+    expect(formatK(2450000)).toBe('€2.5M')
+  })
+
+  it('stays in K just below that', () => {
+    expect(formatK(999000)).toBe('€999.0K')
+    expect(formatK(999900)).toBe('€999.9K')
+  })
+
+  it('applies the same rule one step down', () => {
+    expect(formatK(999.6)).toBe('€1.0K')
+    expect(formatK(999)).toBe('€999')
+  })
+
+  it('does it in both directions', () => {
+    expect(formatK(-999960)).toBe('€-1.0M')
   })
 })
