@@ -176,11 +176,18 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
     if (countries.length && !countries.includes(country)) setCountry(countries[0])
   }, [internal, authMap])
 
-  // The catalogue this quote is written from: ours, or theirs.
-  const catalogue = useMemo(
-    () => (internal ? products : authorisedProducts(products, authMap, country)),
-    [internal, products, authMap, country]
-  )
+  /**
+   * The catalogue this quote is written from: ours, or theirs.
+   *
+   * A product switched off in Products has been withdrawn from sale, and it was
+   * still on offer here — the screen never filtered on it. One already on a
+   * quote stays visible, because a deal that was priced with it does not lose a
+   * line the day somebody retires the product.
+   */
+  const catalogue = useMemo(() => {
+    const all = internal ? products : authorisedProducts(products, authMap, country)
+    return all.filter(p => p.active !== false || picked.includes(p.id))
+  }, [internal, products, authMap, country, picked])
 
   // A quote carries several volumes and they are not interchangeable. The exam
   // count is always asked; the rest appear only when something picked is priced
@@ -1193,6 +1200,9 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
               <div className="flex items-start justify-between gap-2">
                 <p className="text-xs font-semibold text-gray-800 leading-tight">{l.product.name}</p>
                 <span className="text-micro text-gray-400 flex-shrink-0 text-right">
+                  {l.product.active === false && (
+                    <span className="text-gray-400 font-semibold mr-1">{t('qd_withdrawn')}</span>
+                  )}
                   {!l.costKnown && (
                     <span className="text-amber-700 font-semibold mr-1">
                       {internal ? t('qd_cost_unknown') : t('qd_no_partner_price')}
