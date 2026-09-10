@@ -186,10 +186,13 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   // How many of the products on this quote are ours, counted from the picks
   // rather than from the priced lines — the bundle discount feeds the line
   // prices, so reading it back off them would be circular.
-  const cwmCount = useMemo(
-    () => pickedProducts.filter(p => routeFor(suppliers[p.supplier_code]).appliesTo === 'price').length,
+  const cwmNames = useMemo(
+    () => pickedProducts
+      .filter(p => routeFor(suppliers[p.supplier_code]).appliesTo === 'price')
+      .map(p => p.name),
     [pickedProducts, suppliers]
   )
+  const cwmCount = cwmNames.length
 
   // What this deal has earned, reason by reason. A reason with no proof
   // attached is worth nothing here, which is the whole control: since CWM funds
@@ -666,7 +669,8 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
           discount comes off our cost and the supplier's own answer is the
           control, so there is nothing here for a rep to justify. */}
       {cwmCount > 0 && (
-        <DiscountReasons value={reasons} onChange={setReasons} plan={plan} years={years}/>
+        <DiscountReasons value={reasons} onChange={setReasons} plan={plan} years={years}
+          bundleProducts={cwmNames}/>
       )}
 
       {/* One card per product, on every screen. The table this replaced could

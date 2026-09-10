@@ -64,10 +64,34 @@ describe('discountPlan — evidence is the control', () => {
     expect(p.justifiedPct).toBe(15)
   })
 
-  it('proves the bundle from the order form rather than asking for a note', () => {
-    const p = discountPlan({ bundle: { on: true } }, { productCount: 3 })
-    expect(p.justifiedPct).toBe(15)
-    expect(p.stop).toBe(false)
+  it('asks the bundle to name its products like every other reason', () => {
+    const bare = discountPlan({ bundle: { on: true } }, { productCount: 3 })
+    expect(bare.justifiedPct).toBe(0)
+    expect(bare.stop).toBe(true)
+
+    const named = discountPlan(
+      { bundle: evid('CWM VR + CWM Dose + CWM AI Reporting') }, { productCount: 3 })
+    expect(named.justifiedPct).toBe(15)
+    expect(named.stop).toBe(false)
+  })
+
+  it('holds a reason to what the deal entitles it to, not what was typed', () => {
+    // Two products is a 10% bundle, whatever gets typed in the box.
+    const p = discountPlan({ bundle: { on: true, pct: 20, evidence: 'two products' } },
+      { productCount: 2 })
+    expect(p.rows.find(r => r.key === 'bundle').ceiling).toBe(10)
+    expect(p.justifiedPct).toBe(10)
+  })
+
+  it('lets a rep claim less than the ceiling', () => {
+    // Ten points are available on the tender; five are enough to win it.
+    const p = discountPlan({ tender: { on: true, pct: 5, evidence: 'CP 12/2026', bidders: 4 } })
+    expect(p.justifiedPct).toBe(5)
+  })
+
+  it('reads an empty box as the whole entitlement, which is what ticking it means', () => {
+    const p = discountPlan({ term5: evid('order form clause 3') }, { years: 5 })
+    expect(p.justifiedPct).toBe(8)
   })
 
   it('stops a five-year discount on a three-year deal', () => {
@@ -103,12 +127,39 @@ describe('discountPlan — the cap', () => {
     expect(p.capped).toBe(true)
   })
 
-  it('adds the bundle in from the products themselves', () => {
+  it('adds the bundle in at what the products entitle it to', () => {
     const p = discountPlan({
-      bundle: { on: true },
+      bundle: evid('CWM VR + CWM Dose'),
       lighthouse: evid('reference clause, Dr X'),
     }, { productCount: 2, years: 5 })
     expect(p.justifiedPct).toBe(20)
+  })
+})
+
+describe('the verdict under the total', () => {
+  it('is ok when everything is evidenced and inside the cap', () => {
+    const p = discountPlan({ tender: { on: true, evidence: 'CP 12/2026', bidders: 3 } })
+    expect(p.verdict).toBe('ok')
+  })
+
+  it('is capped when the reasons are real but add up past 30', () => {
+    const p = discountPlan({
+      displacement: { on: true, evidence: 'incumbent contract' },
+      tender: { on: true, evidence: 'CP 12/2026', bidders: 4 },
+      term5: evid('order form'),
+      prepay: evid('payment terms'),
+    }, { years: 5 })
+    expect(p.verdict).toBe('capped')
+  })
+
+  it('is stop the moment one evidence cell is empty', () => {
+    const p = discountPlan({
+      tender: { on: true, evidence: 'CP 12/2026', bidders: 3 },
+      prepay: { on: true },
+    })
+    expect(p.verdict).toBe('stop')
+    expect(p.rows.find(r => r.key === 'prepay').status).toBe('no_evidence')
+    expect(p.rows.find(r => r.key === 'tender').status).toBe('valid')
   })
 })
 

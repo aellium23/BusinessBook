@@ -16,12 +16,27 @@ import { ChevronDown, ChevronRight } from 'lucide-react'
  * those are the sentences that actually get offered, and a rep who reads
  * "they are a strategic customer" here recognises it in their own draft.
  */
-export default function DiscountReasons({ value, onChange, plan, years }) {
+export default function DiscountReasons({ value, onChange, plan, years, bundleProducts = [] }) {
   const { t } = useTranslation()
   const [openNot, setOpenNot] = useState(false)
 
   const set = (key, patch) =>
     onChange({ ...(value || {}), [key]: { ...((value || {})[key] || {}), ...patch } })
+
+  /**
+   * Ticking a row asks for its proof. The bundle is the one proof this screen
+   * already holds — the products are on this order form, in front of us — so it
+   * is written into the cell rather than demanded from the rep, and stays
+   * editable like any other.
+   */
+  function toggle(key, on) {
+    const current = (value || {})[key] || {}
+    const patch = { on }
+    if (on && key === 'bundle' && !String(current.evidence || '').trim() && bundleProducts.length) {
+      patch.evidence = bundleProducts.join(' + ')
+    }
+    set(key, patch)
+  }
 
   return (
     <div className="border border-gray-200 rounded-xl p-3 space-y-2 bg-white">
@@ -43,23 +58,21 @@ export default function DiscountReasons({ value, onChange, plan, years }) {
               <div className="flex items-center gap-2">
                 <label className="flex items-center gap-2 flex-1 min-w-0 min-h-tap cursor-pointer">
                   <input type="checkbox" checked={Boolean(row.on)}
-                    onChange={e => set(row.key, { on: e.target.checked })}/>
+                    onChange={e => toggle(row.key, e.target.checked)}/>
                   <span className="text-xs text-gray-800 truncate">{t(`dd_r_${row.key}`)}</span>
                 </label>
 
-                {/* Displacement is proposed, not fixed: up to fifteen points,
-                    and how far depends on what the incumbent actually charges. */}
-                {r.maxPct !== undefined ? (
-                  <input className="input text-xs py-1 text-right w-14" type="number"
-                    min="0" max={r.maxPct} style={{ fontSize: '16px' }}
-                    value={(value?.[row.key]?.pct) ?? ''} placeholder={String(r.maxPct)}
-                    disabled={!row.on}
-                    onChange={e => set(row.key, { pct: e.target.value })}/>
-                ) : (
-                  <span className={`text-xs font-bold tabular-nums w-14 text-right ${
-                    row.counts ? 'text-green-700' : 'text-gray-400'
-                  }`}>{row.pct}%</span>
-                )}
+                {/* Every reason is a ceiling, not a fixed price: a tender is
+                    worth up to ten points and a rep who needs five quotes five.
+                    An empty box asks for the whole entitlement. */}
+                <input className="input text-xs py-1 text-right w-14" type="number"
+                  min="0" max={row.ceiling} style={{ fontSize: '16px' }}
+                  value={(value?.[row.key]?.pct) ?? ''} placeholder={String(row.ceiling)}
+                  disabled={!row.on}
+                  onChange={e => set(row.key, { pct: e.target.value })}/>
+                <span className="text-micro text-gray-400 italic w-12 flex-shrink-0">
+                  {t('dd_max')} {row.ceiling}%
+                </span>
               </div>
 
               {row.on && r.requiresBidders && (
@@ -81,15 +94,19 @@ export default function DiscountReasons({ value, onChange, plan, years }) {
                 </p>
               )}
 
-              {row.on && !r.computed && row.available && (
+              {row.on && row.available && (
                 <div className="mt-1 pl-6">
-                  <input className={`input text-xs py-1 w-full ${row.hasEvidence ? '' : 'border-red-300'}`}
+                  <input className={`input text-xs py-1 w-full ${row.hasEvidence ? '' : 'border-red-300 bg-yellow-50'}`}
                     style={{ fontSize: '16px' }} value={value?.[row.key]?.evidence || ''}
                     placeholder={t(`dd_e_${row.key}`)}
                     onChange={e => set(row.key, { evidence: e.target.value })}/>
-                  {!row.hasEvidence && (
-                    <p className="text-micro text-red-700 font-semibold mt-0.5">{t('dd_no_evidence')}</p>
-                  )}
+                  <p className={`text-micro font-semibold mt-0.5 ${
+                    row.hasEvidence ? 'text-green-700' : 'text-red-700'
+                  }`}>
+                    {row.hasEvidence
+                      ? `${row.pct}% · ${t('dd_evidenced')}`
+                      : t('dd_no_evidence')}
+                  </p>
                 </div>
               )}
 
@@ -102,17 +119,20 @@ export default function DiscountReasons({ value, onChange, plan, years }) {
       </div>
 
       <div className="flex items-baseline justify-between gap-2 pt-2 border-t border-gray-200">
-        <span className="text-xs font-semibold text-gray-700">{t('dd_justified')}</span>
+        <span className="text-xs font-bold text-navy uppercase tracking-wide">{t('dd_total')}</span>
         <span className={`text-base font-bold tabular-nums ${plan.stop ? 'text-red-700' : 'text-navy'}`}>
           {plan.justifiedPct}%
         </span>
       </div>
+      <p className={`text-micro font-semibold ${
+        plan.verdict === 'stop' ? 'text-red-700'
+          : plan.verdict === 'capped' ? 'text-amber-800' : 'text-green-700'
+      }`}>
+        {plan.verdict === 'capped'
+          ? t('dd_capped').replace('{earned}', plan.earnedPct).replace('{cap}', DEAL_DISCOUNT_CAP_PCT)
+          : t(`dd_verdict_${plan.verdict}`)}
+      </p>
 
-      {plan.capped && (
-        <p className="text-micro text-amber-800">
-          {t('dd_capped').replace('{earned}', plan.earnedPct).replace('{cap}', DEAL_DISCOUNT_CAP_PCT)}
-        </p>
-      )}
       {plan.stop && (
         <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-2 py-1.5">
           {t('dd_stop')}

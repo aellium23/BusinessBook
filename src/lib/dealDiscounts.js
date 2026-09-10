@@ -52,11 +52,11 @@ export const SUITE_MIN_YEARS = 5
  */
 export const DISCOUNT_REASONS = [
   { key: 'displacement', maxPct: 15 },
-  { key: 'bundle', computed: true },
-  { key: 'term5', pct: 8, requiresYears: 5 },
-  { key: 'prepay', pct: 5 },
-  { key: 'tender', pct: 10, requiresBidders: 3 },
-  { key: 'lighthouse', pct: 10, clawbackMonths: 12 },
+  { key: 'bundle', maxPct: 20, computed: true },
+  { key: 'term5', maxPct: 8, requiresYears: 5 },
+  { key: 'prepay', maxPct: 5 },
+  { key: 'tender', maxPct: 10, requiresBidders: 3 },
+  { key: 'lighthouse', maxPct: 10, clawbackMonths: 12 },
 ]
 
 /** The reasons that will be offered instead of evidence, and are not evidence. */
@@ -89,6 +89,18 @@ export function reasonAvailable(reason, { years = 0, bidders = 0 } = {}) {
 }
 
 /**
+ * The most this deal could claim for a reason, before the rep proposes a figure.
+ *
+ * Every reason is a ceiling, not a fixed price — a tender is worth up to ten
+ * points, and a rep who only needs five should quote five. The bundle is the
+ * one whose ceiling the deal itself sets: two products cannot claim the Suite
+ * rate however anybody feels about it.
+ */
+export function entitlementFor(reason, { productCount = 0, years = 0 } = {}) {
+  return reason.computed ? bundlePct(productCount, { years }) : reason.maxPct
+}
+
+/**
  * The discount this deal has actually earned, reason by reason.
  *
  * @param selected  { [key]: { on, pct, evidence, bidders } }
@@ -108,27 +120,32 @@ export function discountPlan(selected, { productCount = 0, years = 0 } = {}) {
     const bidders = num(s.bidders) ?? 0
     const available = reasonAvailable(reason, { years, bidders })
 
-    const value = reason.computed
-      ? bundlePct(productCount, { years })
-      : reason.maxPct !== undefined
-        ? Math.min(reason.maxPct, Math.max(0, num(s.pct) ?? 0))
-        : reason.pct
+    // Proposed, then held to the ceiling. An empty box asks for the whole
+    // entitlement, which is what a rep ticking the row means by ticking it.
+    const ceiling = entitlementFor(reason, { productCount, years })
+    const asked = num(s.pct)
+    const value = Math.min(ceiling, Math.max(0, asked === null ? ceiling : asked))
 
+    // Every discount names its proof, the bundle included: the products on THIS
+    // order form, not an intention to buy them later.
     const evidence = String(s.evidence || '').trim()
-    // The bundle proves itself: the products are on this order form, on this
-    // screen, and asking a rep to type that back is theatre.
-    const hasEvidence = reason.computed ? value > 0 : evidence.length > 0
+    const hasEvidence = evidence.length > 0
 
     return {
       key: reason.key,
       reason,
       on,
       available,
+      ceiling,
       pct: value,
       evidence,
       bidders,
       hasEvidence,
       counts: on && available && hasEvidence && value > 0,
+      status: !on ? 'off'
+        : !available ? 'not_available'
+        : !hasEvidence ? 'no_evidence'
+        : value > 0 ? 'valid' : 'zero',
     }
   })
 
@@ -136,18 +153,22 @@ export function discountPlan(selected, { productCount = 0, years = 0 } = {}) {
   const earned = round(rows.filter(r => r.counts).reduce((s, r) => s + r.pct, 0))
   const justifiedPct = Math.min(DEAL_DISCOUNT_CAP_PCT, earned)
 
+  const stop = rows.some(r => r.on && (!r.available || !r.hasEvidence))
+
   return {
     rows,
     claimedPct,
     earnedPct: earned,
     justifiedPct,
+    // The one-line verdict the quote builder prints under the total.
+    verdict: stop ? 'stop' : earned > DEAL_DISCOUNT_CAP_PCT ? 'capped' : 'ok',
     // The reasons add up to more than the cap allows: real, but not all of it
     // can be given here.
     capped: earned > DEAL_DISCOUNT_CAP_PCT,
     overCap: claimedPct > DEAL_DISCOUNT_CAP_PCT,
     missingEvidence: rows.filter(r => r.on && r.available && !r.hasEvidence).map(r => r.key),
     unavailable: rows.filter(r => r.on && !r.available).map(r => r.key),
-    stop: rows.some(r => r.on && (!r.available || !r.hasEvidence)),
+    stop,
   }
 }
 
