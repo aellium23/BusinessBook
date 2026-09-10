@@ -102,6 +102,32 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   const [channelRole, setChannelRole] = useState('direct')
   const [programme, setProgramme] = useState('')   // named programme, above cap
 
+  // What this partner may sell, and where. Set by an admin in Permissions →
+  // Companies, one row per product per country.
+  const [auths, setAuths] = useState([])
+  useEffect(() => {
+    if (internal || !profile?.company_id) return
+    supabase.from('company_product_authorizations')
+      .select('product_id, country, price, active')
+      .eq('company_id', profile.company_id)
+      .then(({ data }) => setAuths(data || []))
+  }, [internal, profile?.company_id])
+  const authMap = useMemo(() => authMapOf(auths), [auths])
+
+  // A partner sells from their own country. Picking somebody else's is not a
+  // freedom they are missing — it is a deal that cannot be authorised.
+  useEffect(() => {
+    if (internal) return
+    const countries = authorisedCountries(authMap)
+    if (countries.length && !countries.includes(country)) setCountry(countries[0])
+  }, [internal, authMap])
+
+  // The catalogue this quote is written from: ours, or theirs.
+  const catalogue = useMemo(
+    () => (internal ? products : authorisedProducts(products, authMap, country)),
+    [internal, products, authMap, country]
+  )
+
   // A quote carries several volumes and they are not interchangeable. The exam
   // count is always asked; the rest appear only when something picked is priced
   // on them. See src/lib/volumeUnits.js for why this is not one field.
@@ -159,26 +185,6 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   const [productCosts, setProductCosts] = useState({})
   const [suppliers, setSuppliers] = useState({})
 
-  // What this partner may sell, and where. Set by an admin in Permissions →
-  // Companies, one row per product per country.
-  const [auths, setAuths] = useState([])
-  useEffect(() => {
-    if (internal || !profile?.company_id) return
-    supabase.from('company_product_authorizations')
-      .select('product_id, country, price, active')
-      .eq('company_id', profile.company_id)
-      .then(({ data }) => setAuths(data || []))
-  }, [internal, profile?.company_id])
-  const authMap = useMemo(() => authMapOf(auths), [auths])
-
-  // A partner sells from their own country. Picking somebody else's is not a
-  // freedom they are missing — it is a deal that cannot be authorised.
-  useEffect(() => {
-    if (internal) return
-    const countries = authorisedCountries(authMap)
-    if (countries.length && !countries.includes(country)) setCountry(countries[0])
-  }, [internal, authMap])
-
   useEffect(() => {
     if (!internal) return
     supabase.from('suppliers').select('code, name, kind, request_channel')
@@ -190,12 +196,6 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
     fetchProductCosts().then(({ costs }) => { if (alive) setProductCosts(costs) })
     return () => { alive = false }
   }, [internal])
-
-  // The catalogue this quote is written from: ours, or theirs.
-  const catalogue = useMemo(
-    () => (internal ? products : authorisedProducts(products, authMap, country)),
-    [internal, products, authMap, country]
-  )
 
   const headline = useMemo(
     () => (internal
@@ -643,10 +643,10 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       l.routing.appliesTo === 'cost'
         ? (l.skuDiscounts || []).map(d => ({ line: l, sku: d }))
         : [])
-    const internal = lines
+    const forApproval = lines
       .filter(l => l.routing.appliesTo === 'price' && l.ladder?.needsRequest)
       .map(l => ({ line: l, sku: null }))
-    const discounted = [...external, ...internal]
+    const discounted = [...external, ...forApproval]
     if (discounted.length) {
       const { error: reqErr } = await supabase.from('deal_discount_requests').insert(
         discounted.map(({ line: l, sku }) => ({
