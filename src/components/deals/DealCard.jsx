@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { BUBadge, StageBadge, SalesTypeBadge, ForecastBadge, formatK, CurrencyBadge } from '../ui'
+import { canPrice } from '../../lib/roles'
+import { useAuth } from '../../hooks/useAuth'
 import { Trash2, Pencil, ChevronDown, ChevronUp, Link, AlertTriangle, Clock, RefreshCw } from 'lucide-react'
 import { useTranslation } from '../../hooks/useTranslation'
 import { WEIGHTS, MONTHS, MONTHS_K } from '../../constants'
@@ -88,6 +90,8 @@ function DiscountChip({ deal }) {
 // distribution chain, monthly breakdown). Keeps the Monthly toggle as a
 // subset of the full details — one chevron, one state.
 export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete, brands, openDiscounts }) {
+  const { profile } = useAuth()
+  const seesMargin = canPrice(profile?.role)
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const fy26 = MONTHS_K.reduce((s, m) => s + (Number(deal[m]) || 0), 0)
@@ -188,7 +192,10 @@ export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete, b
               {openDiscounts.unfiled} {t('dc_unfiled')}
             </p>
           )}
-          {deal.gm_pct > 0 && (
+          {/* Our margin, on a card a partner can open. RLS filters rows, not
+              columns, so a distributor reading their own deals reads gm_pct
+              with them — the screen must be the one that declines to print it. */}
+          {seesMargin && deal.gm_pct > 0 && (
             <p className="text-micro text-green-600 font-semibold">GM {(deal.gm_pct * 100).toFixed(0)}%</p>
           )}
         </div>
@@ -320,7 +327,7 @@ export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete, b
             {deal.end_customer_value && (
               <span className="text-gray-500">Project: {formatK(deal.end_customer_value)}</span>
             )}
-            {hasIC && (
+            {seesMargin && hasIC && (
               <span className="text-amber-600 font-medium">VGT cost: {formatK(deal.intercompany_value)}</span>
             )}
           </div>
