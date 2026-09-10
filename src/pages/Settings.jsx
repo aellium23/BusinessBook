@@ -186,6 +186,7 @@ function SalesOwnersSection() {
 }
 
 function AppSettingsSection() {
+  const { t } = useTranslation()
   const { settings, updateSettings } = useSettings()
   const [form, setForm] = useState({})
   const [saving, setSaving] = useState(false)
@@ -198,6 +199,7 @@ function AppSettingsSection() {
       primary_color: settings.primary_color || '#0D2137',
       fy_start_month: settings.fy_start_month || 4,
       default_currency: settings.default_currency || 'EUR',
+      man_day_cost: settings.man_day_cost ?? '',
       budget_cycles: (settings.budget_cycles || ['BUD','EST1','EST2']).join(', '),
       bus: JSON.stringify(settings.business_units || [], null, 0),
     })
@@ -211,6 +213,10 @@ function AppSettingsSection() {
       primary_color: form.primary_color,
       fy_start_month: parseInt(form.fy_start_month) || 4,
       default_currency: form.default_currency,
+      // Empty means unknown, not zero: the quote then says so instead of
+      // costing effort at nothing.
+      man_day_cost: form.man_day_cost === '' || form.man_day_cost === null
+        ? null : parseFloat(form.man_day_cost),
       budget_cycles: form.budget_cycles.split(',').map(s => s.trim()).filter(Boolean),
     })
     setSaving(false); setSaved(true)
@@ -270,6 +276,13 @@ function AppSettingsSection() {
               <option value="GBP">GBP £</option>
             </select>
           </div>
+        </div>
+        <div>
+          <label className="label">{t('set_man_day_cost')}</label>
+          <input className="input w-40" type="number" min="0" step="0.01"
+            value={form.man_day_cost ?? ''} placeholder="—"
+            onChange={e => setForm(f => ({ ...f, man_day_cost: e.target.value }))}/>
+          <p className="text-micro text-gray-400 mt-0.5">{t('set_man_day_hint')}</p>
         </div>
         <div>
           <label className="label">Budget Cycles (comma-separated)</label>
