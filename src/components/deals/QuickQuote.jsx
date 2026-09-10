@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
+import { useTranslation } from '../../hooks/useTranslation'
 import { useProducts } from '../../hooks/useProducts'
 import { usePricing } from '../../hooks/usePricing'
 import { useProductItems } from '../../hooks/useProductItems'
@@ -43,6 +44,7 @@ const DEFAULT_MARGIN_PCT = 25
  */
 export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   const { profile } = useAuth()
+  const { t } = useTranslation()
   const { products } = useProducts()
   const { regions, countryMap, tiersByProduct, error: pricingError } = usePricing()
 
@@ -63,10 +65,10 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   useEffect(() => {
     supabase.from('deals').select('client')
       .then(({ data, error: e }) => {
-        if (e) { setError('Could not load the client list — you can still type a new name.'); return }
+        if (e) { setError(t('qd_err_clients')); return }
         setClients([...new Set((data || []).map(d => d.client).filter(Boolean))].sort())
       })
-      .catch(() => setError('Could not load the client list — you can still type a new name.'))
+      .catch(() => setError(t('qd_err_clients')))
   }, [])
 
   // The BU's own market first, then its neighbours, then the rest alphabetically.
@@ -163,8 +165,8 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   }
 
   async function create() {
-    if (!client.trim()) { setError('Pick or type a client first.'); return }
-    if (!lines.length)  { setError('Pick at least one product.'); return }
+    if (!client.trim()) { setError(t('qd_err_client')); return }
+    if (!lines.length)  { setError(t('qd_err_product')); return }
     setSaving(true); setError(null)
 
     const { data, error: e } = await supabase.from('deals').insert({
@@ -179,7 +181,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       created_by: profile?.id || null,
     }).select('id, client, bu, country').single()
 
-    if (e) { setSaving(false); setError(`Could not create the deal: ${e.message}`); return }
+    if (e) { setSaving(false); setError(`${t('qd_err_create')} ${e.message}`); return }
 
     const { error: lineErr } = await saveDealProducts(data.id, lines.map(l => ({
       product_id: l.id,
@@ -195,7 +197,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       notes: l.priced ? `${regionCode} · ${l.tierLabel}` : 'cost + margin',
     })))
     setSaving(false)
-    if (lineErr) { setError(`Deal created, but the product lines failed: ${lineErr.message}`); return }
+    if (lineErr) { setError(`${t('qd_err_lines')} ${lineErr.message}`); return }
     onCreated?.(data)
   }
 
@@ -216,34 +218,34 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
     <div className="space-y-4">
       {(error || pricingError) && (
         <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-          {error || 'Could not load the price list — list prices are unavailable.'}
+          {error || t('qd_err_prices')}
         </p>
       )}
 
       {/* The three inputs that drive everything. */}
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-end">
         <div>
-          <label className="label">Client <span className="text-red-500">*</span></label>
+          <label className="label">{t('qd_client')} <span className="text-red-500">*</span></label>
           <SearchableSelect
             value={client} onChange={setClient}
             options={clients.map(c => ({ value: c, label: c }))}
-            placeholder="Search or type a new client…"
-            emptyLabel="— Client"
+            placeholder={t('qd_client_ph')}
+            emptyLabel={t('qd_client_empty')}
             onCreateNew={q => q && setClient(q)}
-            createLabel="New client"
+            createLabel={t('qd_client_new')}
           />
         </div>
         <div>
-          <label className="label">Country <span className="text-red-500">*</span></label>
+          <label className="label">{t('qd_country')} <span className="text-red-500">*</span></label>
           <SearchableSelect
             value={country} onChange={setCountry}
             options={countryOptions}
-            placeholder="Search a country…"
-            emptyLabel="— Country"
+            placeholder={t('qd_country_ph')}
+            emptyLabel={t('qd_country_empty')}
           />
         </div>
         <div>
-          <label className="label">Studies / year <span className="text-red-500">*</span></label>
+          <label className="label">{t('qd_studies')} <span className="text-red-500">*</span></label>
           <input className="input w-36" type="number" min="0" inputMode="numeric"
             value={studies} onChange={e => setStudies(e.target.value)}
             placeholder="45000" style={{ fontSize: '16px' }}/>
@@ -252,21 +254,21 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
 
       {region
         ? <p className="text-micro text-gray-500">
-            Pricing region <strong className="text-navy">{regionCode} · {region.name}</strong> — {region.discountPct}% off global list
+            {t('qd_region_is')} <strong className="text-navy">{regionCode} · {region.name}</strong> — {region.discountPct}% {t('qd_region_off')}
           </p>
         : <p className="text-micro text-amber-700">
-            {country} has no pricing region mapped, so list prices cannot be shown.
+            {country} {t('qd_no_region')}
           </p>}
 
       {/* Products */}
       <div className="space-y-2">
-        <label className="label">Products</label>
+        <label className="label">{t('qd_products')}</label>
         <div className="flex flex-wrap gap-1.5">
           {headline.map(p => <Chip key={p.id} p={p}/>)}
           {!showAll && restCount > 0 && (
             <button type="button" onClick={() => setShowAll(true)}
               className="min-h-tap px-3 py-1.5 rounded-lg border border-dashed border-gray-300 text-xs text-gray-500">
-              + {restCount} more
+              + {restCount} {t('qd_more')}
             </button>
           )}
         </div>
@@ -319,44 +321,44 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
               <div className="flex items-start justify-between gap-2">
                 <p className="text-xs font-semibold text-gray-800 leading-tight">{l.product.name}</p>
                 <span className="text-micro text-gray-400 flex-shrink-0">
-                  {l.priced ? l.tierLabel : 'cost + margin'}
+                  {l.priced ? l.tierLabel : t('qd_cost_margin')}
                   {l.priced && l.boundBy !== 'tier' && (
                     <span className="ml-1 font-semibold text-amber-700">
-                      {l.boundBy === 'minimum' ? 'min' : 'cap'}
+                      {l.boundBy === 'minimum' ? t('qd_bound_min') : t('qd_bound_cap')}
                     </span>
                   )}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="label">Cost (€)</label>
+                  <label className="label">{t('qd_cost_eur')}</label>
                   <input className="input text-right" type="number" min="0"
                     value={l.cost} onChange={e => setCost(l.id, e.target.value)}
                     style={{ fontSize: '16px' }}/>
                 </div>
                 <div>
-                  <label className="label">Margin (%)</label>
+                  <label className="label">{t('qd_margin_pct')}</label>
                   <input className="input text-right border-green-200" type="number" min="0" max="99"
                     value={l.marginPct} onChange={e => setMargin(l.id, e.target.value)}
                     style={{ fontSize: '16px' }}/>
                 </div>
               </div>
               <div className="flex justify-between items-baseline pt-1 border-t border-gray-100">
-                <span className="text-xs text-green-700 font-semibold">GM {formatK(l.grossMargin)}</span>
+                <span className="text-xs text-green-700 font-semibold">{t('qd_gm')} {formatK(l.grossMargin)}</span>
                 <span className="text-sm font-bold text-gray-900">{formatK(l.pvp)}</span>
               </div>
             </div>
           ))}
           <div className="border-2 border-navy/20 bg-navy/[0.04] rounded-xl p-3 space-y-1">
             <div className="flex justify-between text-xs text-navy">
-              <span>Cost</span><span className="tabular-nums font-semibold">{formatK(totals.cost)}</span>
+              <span>{t('qd_col_cost')}</span><span className="tabular-nums font-semibold">{formatK(totals.cost)}</span>
             </div>
             <div className="flex justify-between text-xs text-green-700">
-              <span>Gross margin · {totals.marginPct}%</span>
+              <span>{t('qd_gross_margin')} · {totals.marginPct}%</span>
               <span className="tabular-nums font-semibold">{formatK(totals.grossMargin)}</span>
             </div>
             <div className="flex justify-between items-baseline pt-1 border-t border-navy/15">
-              <span className="text-xs font-semibold text-navy">Sell</span>
+              <span className="text-xs font-semibold text-navy">{t('qd_sell')}</span>
               <span className="text-base font-bold text-navy tabular-nums">{formatK(totals.pvp)}</span>
             </div>
           </div>
@@ -368,12 +370,12 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
           <table className="w-full text-xs">
             <thead className="bg-gray-50 text-gray-500">
               <tr>
-                <th className="text-left px-3 py-2 font-semibold">Product</th>
-                <th className="text-left px-3 py-2 font-semibold">Tier</th>
-                <th className="text-right px-2 py-2 font-semibold w-24">Cost</th>
-                <th className="text-right px-2 py-2 font-semibold w-20">Margin</th>
-                <th className="text-right px-2 py-2 font-semibold w-24">GM €</th>
-                <th className="text-right px-3 py-2 font-semibold w-24">Sell</th>
+                <th className="text-left px-3 py-2 font-semibold">{t('qd_col_product')}</th>
+                <th className="text-left px-3 py-2 font-semibold">{t('qd_col_tier')}</th>
+                <th className="text-right px-2 py-2 font-semibold w-24">{t('qd_col_cost')}</th>
+                <th className="text-right px-2 py-2 font-semibold w-20">{t('qd_col_margin')}</th>
+                <th className="text-right px-2 py-2 font-semibold w-24">{t('qd_col_gm')}</th>
+                <th className="text-right px-3 py-2 font-semibold w-24">{t('qd_col_sell')}</th>
               </tr>
             </thead>
             <tbody>
@@ -384,7 +386,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                     {l.priced ? l.tierLabel : <span className="text-gray-400">cost + margin</span>}
                     {l.priced && l.boundBy !== 'tier' && (
                       <span className="ml-1 text-micro font-semibold text-amber-700">
-                        {l.boundBy === 'minimum' ? 'min' : 'cap'}
+                        {l.boundBy === 'minimum' ? t('qd_bound_min') : t('qd_bound_cap')}
                       </span>
                     )}
                   </td>
@@ -403,7 +405,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                 </tr>
               ))}
               <tr className="border-t-2 border-navy/20 bg-navy/[0.04] font-bold">
-                <td className="px-3 py-2 text-navy" colSpan={2}>Total</td>
+                <td className="px-3 py-2 text-navy" colSpan={2}>{t('qd_total')}</td>
                 <td className="px-2 py-2 text-right text-navy">{formatK(totals.cost)}</td>
                 <td className="px-2 py-2 text-right text-navy">{totals.marginPct}%</td>
                 <td className="px-2 py-2 text-right text-green-700">{formatK(totals.grossMargin)}</td>
@@ -417,15 +419,15 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       {onFullForm && (
         <button type="button" onClick={onFullForm}
           className="text-xs text-gray-500 underline underline-offset-2 min-h-tap">
-          Need every field, or a deal with no products? Open the full form
+          {t('qd_full_form')}
         </button>
       )}
 
       <div className="flex gap-2">
-        <button type="button" onClick={onCancel} className="btn-secondary flex-1">Cancel</button>
+        <button type="button" onClick={onCancel} className="btn-secondary flex-1">{t('qd_cancel')}</button>
         <button type="button" onClick={create} disabled={saving || !lines.length}
           className="btn-primary flex-1">
-          {saving ? 'Creating…' : `Create deal · ${formatK(totals.pvp)}`}
+          {saving ? t('qd_creating') : `${t('qd_create')} · ${formatK(totals.pvp)}`}
         </button>
       </div>
     </div>
