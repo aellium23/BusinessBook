@@ -23,16 +23,25 @@ export default function Approvals() {
   const [channel, setChannel] = useState({})
 
   const myBrands = Array.isArray(profile?.approves_brands) ? profile.approves_brands : []
-  // Somebody who approves nothing but asks for plenty: a partner. The same
-  // screen, read from the other end — they see the answers to their own
-  // requests instead of a queue of other people's.
-  const asRequester = myBrands.length === 0
+  // Three ways to arrive here, and only one of them is a queue.
+  //
+  // An admin or manager answers for everything — the RPC already lets them, and
+  // a page that showed them nothing because no brand was ticked was hiding work
+  // they are responsible for.
+  //
+  // A brand approver answers for their brands.
+  //
+  // Everybody else asks rather than answers: a partner sees the replies to
+  // their own requests, and no button to decide them.
+  const canApproveAll = ['admin', 'manager'].includes(profile?.role)
+  const asRequester = !canApproveAll && myBrands.length === 0
 
   async function load() {
     let q = supabase.from('deal_discount_requests')
       .select('*, deal:deal_id(id, client, value_total, currency, bu, country)')
       .order('created_at', { ascending: false })
-    q = asRequester ? q.eq('requested_by', profile?.id) : q.in('brand', myBrands)
+    if (asRequester) q = q.eq('requested_by', profile?.id)
+    else if (myBrands.length) q = q.in('brand', myBrands)
     const { data } = await q
     setRequests(data || [])
 
@@ -100,7 +109,9 @@ export default function Approvals() {
           <ShieldCheck size={20} className="text-navy"/> Discount Approvals
         </h1>
         <p className="text-sm text-gray-400">
-          {asRequester ? 'Your requests' : myBrands.join(', ')} · {counts.pending} pending
+          {asRequester ? 'Your requests'
+            : myBrands.length ? myBrands.join(', ')
+            : 'All brands'} · {counts.pending} pending
         </p>
       </div>
 
