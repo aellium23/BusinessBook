@@ -86,6 +86,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   const [view, setView] = useState('quoted')       // which reading is on screen
   const [discOpen, setDiscOpen] = useState({})     // line id -> discount asked
   const [servicesOn, setServicesOn] = useState(false)
+  const [servicesTouched, setTouched] = useState(false)
   const [servicesPvp, setServicesPvp] = useState('')   // '' = the default price
   const [channelRole, setChannelRole] = useState('direct')
   const [programme, setProgramme] = useState('')   // named programme, above cap
@@ -357,14 +358,23 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   const dayRateIsDefault = !(Number(settings.man_day_cost) > 0)
   const manDayCost = dayRateIsDefault ? DEFAULT_MAN_DAY_COST : Number(settings.man_day_cost)
 
-  useEffect(() => { if (warrantyServicesPvp > 0) setServicesOn(true) }, [warrantyServicesPvp])
+  // Switched on by the deals that cannot go without it: where a warranty year
+  // replaces the first year's SLA, quoting no services leaves a year of our own
+  // team unpaid. Everywhere else implementation is a judgement about the project
+  // as a whole, so the rep picks the chip — and once they have touched it, it
+  // stays where they put it.
+  useEffect(() => {
+    if (!servicesTouched && warrantyServicesPvp > 0) setServicesOn(true)
+  }, [warrantyServicesPvp, servicesTouched])
 
   const services = useMemo(() => {
     const effort = servicesEconomics({ manDays, manDayCost })
     const target = recommendedServicesPvp(effort.cost)
+    // Priced off the effort, full stop. A figure that appears before anybody has
+    // estimated anything is a figure nobody owns.
     const pvp = servicesPvp !== '' && servicesPvp !== undefined
       ? Number(servicesPvp) || 0
-      : Math.max(warrantyServicesPvp, target)
+      : target
     const gm = round2(pvp - effort.cost)
     return {
       ...effort,
@@ -373,7 +383,10 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       grossMargin: gm,
       marginPct: pvp > 0 ? Math.round((gm / pvp) * 1000) / 10 : 0,
       belowTarget: pvp > 0 && effort.cost > 0 && pvp < target - 0.005,
-      fromWarranty: warrantyServicesPvp > 0 && pvp <= warrantyServicesPvp + 0.005,
+      // The warranty year bills the customer nothing on the support line, so
+      // whatever is quoted here is all we get for a year of our own team.
+      warrantyPvp: warrantyServicesPvp,
+      underWarranty: warrantyServicesPvp > 0 && pvp < warrantyServicesPvp - 0.005,
     }
   }, [manDays, manDayCost, servicesPvp, warrantyServicesPvp])
 
@@ -685,7 +698,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
           {/* Services sit with the favourites because they are on most deals
               and were previously reachable only as a side effect of a warranty
               year — which meant a PACS-less project could not quote them. */}
-          <button type="button" onClick={() => setServicesOn(v => !v)}
+          <button type="button" onClick={() => { setTouched(true); setServicesOn(v => !v) }}
             className={`min-h-tap px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
               servicesOn ? 'border-navy bg-navy text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
             }`}>
@@ -1035,7 +1048,11 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
 
           <p className="text-micro text-gray-500">
             {services.days} × {formatK(services.rate)} = <strong className="tabular-nums">{formatK(services.cost)}</strong>
-            {services.fromWarranty && <span className="block text-gray-400">{t('qd_services_warranty')}</span>}
+            {services.underWarranty && (
+              <span className="block text-amber-700">
+                {t('qd_services_warranty_gap').replace('{pvp}', formatK(services.warrantyPvp))}
+              </span>
+            )}
             {services.belowTarget && (
               <span className="block text-red-700 font-semibold">
                 {t('qd_services_below').replace('{pct}', SERVICES_TARGET_MARGIN_PCT).replace('{pvp}', formatK(services.target))}
