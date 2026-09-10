@@ -14,13 +14,15 @@ import { recommendedCapexPvp, recommendedSlaPvp, belowFloor, lineOverTerm,
          servicesEconomics } from '../../lib/margins'
 import { routeFor, applyDiscount, discountViews, internalApproval } from '../../lib/discountRouting'
 import { priceAtRung } from '../../lib/discountLadder'
+import { discountPlan, unjustifiedPp } from '../../lib/dealDiscounts'
+import DiscountReasons, { earnedRows } from './DiscountReasons'
 import { unitsNeeded, quantityFor } from '../../lib/volumeUnits'
 import { toEur, rateLabel } from '../../lib/fx'
 import { useFxRates } from '../../hooks/useFxRates'
 import { COUNTRY_MAP, regionForCountry } from '../../constants'
 import SearchableSelect from '../SearchableSelect'
 import { formatK } from '../ui'
-import { X, Check } from 'lucide-react'
+import { X, Check, ChevronDown, ChevronRight } from 'lucide-react'
 
 const ALL_COUNTRIES = Object.values(COUNTRY_MAP).flat().sort()
 
@@ -75,6 +77,8 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   const [famSel, setFamSel]   = useState({})        // productId -> { users, itemIds }
   const [years, setYears]     = useState(DEFAULT_TERM)
   const [manDays, setManDays] = useState('')
+  const [reasons, setReasons] = useState({})       // discount reason -> evidence
+  const [byProduct, setByProduct] = useState(true) // per-product detail, open
 
   // A quote carries several volumes and they are not interchangeable. The exam
   // count is always asked; the rest appear only when something picked is priced
@@ -179,6 +183,22 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   )
   const selectionFor = id => ({ bundle: pacsInQuote, ...(famSel[id] || {}) })
 
+  // How many of the products on this quote are ours, counted from the picks
+  // rather than from the priced lines — the bundle discount feeds the line
+  // prices, so reading it back off them would be circular.
+  const cwmCount = useMemo(
+    () => pickedProducts.filter(p => routeFor(suppliers[p.supplier_code]).appliesTo === 'price').length,
+    [pickedProducts, suppliers]
+  )
+
+  // What this deal has earned, reason by reason. A reason with no proof
+  // attached is worth nothing here, which is the whole control: since CWM funds
+  // the discount, asking for one costs the person asking nothing at all.
+  const plan = useMemo(
+    () => discountPlan(reasons, { productCount: cwmCount, years }),
+    [reasons, cwmCount, years]
+  )
+
   // Every line has two economics in it and they are kept apart end to end.
   //
   // CAPEX is the licence, bought once, floor 35 %. The annual fee is support,
@@ -233,7 +253,12 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       // buy it comes off our cost, but only once the supplier has said yes, so
       // until then it changes nothing on screen and merely marks the line.
       const routing = routeFor(suppliers[product.supplier_code])
-      const discountPct = Number(o.discountPct) || 0
+      // On our own products the discount starts at what the reasons justify, so
+      // the rep quotes the earned number by default and has to type over it to
+      // give away more. Typing over it is allowed — and then reported.
+      const discountPct = o.discountPct !== undefined
+        ? Number(o.discountPct) || 0
+        : (routing.appliesTo === 'price' ? plan.justifiedPct : 0)
       const dCapex = applyDiscount({ ...routing, pct: discountPct, cost: capexCost, pvp: capexPvp })
       const dAnnual = applyDiscount({ ...routing, pct: discountPct, cost: annualCost, pvp: annualPvp })
 
@@ -263,6 +288,10 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         capexCost: dCapex.cost, capexPvp: dCapex.pvp,
         annualCost: dAnnual.cost, annualPvp: dAnnual.pvp,
         discountPct, routing, ladder,
+        // Points of price given away that no reason accounts for.
+        unjustifiedPp: routing.appliesTo === 'price'
+          ? unjustifiedPp(discountPct, plan.justifiedPct)
+          : 0,
         speculative: dCapex.speculative || dAnnual.speculative,
         // Per-SKU relief, summed. The support side counts once per contract
         // year, the licence once.
@@ -277,7 +306,8 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       }
     }).filter(Boolean)
   }, [picked, products, tiersByProduct, region, studies, overrides, itemsByProduct,
-      famSel, productCosts, years, pacsInQuote, suppliers, volumes, rates])
+      famSel, productCosts, years, pacsInQuote, suppliers, volumes, rates,
+      plan.justifiedPct])
 
   // The quote seen both ways: what we have, and what we have if the supplier
   // discounts land. The gap between them is the number worth naming.
@@ -339,6 +369,10 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   async function create() {
     if (!client.trim()) { setError(t('qd_err_client')); return }
     if (!lines.length)  { setError(t('qd_err_product')); return }
+    // A discount whose reason has no proof attached is refused, not saved and
+    // chased later: once the quote exists the figure is what everyone works
+    // from, and the paperwork never catches up with it.
+    if (plan.stop)      { setError(t('dd_stop')); return }
     setSaving(true); setError(null)
 
     const { data, error: e } = await supabase.from('deals').insert({
@@ -359,6 +393,30 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
     }).select('id, client, bu, country').single()
 
     if (e) { setSaving(false); setError(`${t('qd_err_create')} ${e.message}`); return }
+
+    // The evidence is kept with the deal, not just checked at the door. Renewal
+    // re-tests each reason from the regional list — the tender is over, an
+    // incumbent can only be displaced once — and the lighthouse discount is
+    // clawed back if the reference never arrives. None of that is possible
+    // against a discount stored as a bare percentage.
+    const earned = earnedRows(plan)
+    if (earned.length) {
+      const { error: rErr } = await supabase.from('deal_discount_reasons').insert(
+        earned.map(r => ({
+          deal_id: data.id,
+          reason: r.reason,
+          pct: r.pct,
+          evidence: r.evidence,
+          bidder_count: r.bidders,
+          created_by: profile?.id || null,
+        }))
+      )
+      if (rErr) {
+        setSaving(false)
+        setError(`${t('qd_err_reasons')} ${rErr.message}`)
+        return
+      }
+    }
 
     const { error: lineErr } = await saveDealProducts(data.id, lines.map(l => ({
       product_id: l.id,
@@ -409,7 +467,10 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
           // into the supplier's system.
           justification: sku
             ? `${client.trim()} · ${sku.item.supplier_sku || ''} ${sku.item.description || sku.item.name}`.trim()
-            : `${client.trim()} · ${l.product.name}`,
+            // The approver reads why before they read how much.
+            : [client.trim(), l.product.name,
+               earned.map(r => `${t(`dd_r_${r.reason}`)} ${r.pct}%`).join(' + ')]
+                .filter(Boolean).join(' · '),
         }))
       )
       if (reqErr) {
@@ -443,6 +504,35 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
     )
   }
 
+  /** One product's economics if its pending supplier discounts all land. */
+  function grantedLine(l) {
+    const cost = round2(Math.max(0, l.cost - (l.pendingCostRelief || 0)))
+    const gm = round2(l.pvp - cost)
+    return {
+      pvp: l.pvp, cost, grossMargin: gm,
+      marginPct: l.pvp > 0 ? Math.round((gm / l.pvp) * 1000) / 10 : 0,
+    }
+  }
+
+  /** One scenario of one product, on one line. */
+  const Row = ({ label, v, tone, from }) => {
+    const dGm = from ? v.grossMargin - from.grossMargin : 0
+    return (
+      <div className="mt-0.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-micro tabular-nums">
+        <span className={`font-semibold uppercase tracking-wide w-20 flex-shrink-0 ${
+          tone === 'amber' ? 'text-amber-800' : 'text-navy'
+        }`}>{label}</span>
+        <span className="text-gray-600">{t('qd_total_pvp')} <strong className="text-gray-900">{formatK(v.pvp)}</strong></span>
+        <span className="text-gray-600">{t('qd_total_cost')} <strong className="text-gray-900">{formatK(v.cost)}</strong></span>
+        <span className="text-gray-600">
+          {t('qd_gm')} <strong className="text-green-700">{formatK(v.grossMargin)} · {v.marginPct}%</strong>
+          {Math.abs(dGm) >= 0.05 && (
+            <span className="ml-1 font-semibold text-green-700">+{formatK(Math.abs(dGm))}</span>
+          )}
+        </span>
+      </div>
+    )
+  }
   const Chip = ({ p }) => {
     const on = picked.includes(p.id)
     return (
@@ -572,6 +662,13 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         })}
       </div>
 
+      {/* Why the CWM lines are discounted. Only ours: on a supplier product the
+          discount comes off our cost and the supplier's own answer is the
+          control, so there is nothing here for a rep to justify. */}
+      {cwmCount > 0 && (
+        <DiscountReasons value={reasons} onChange={setReasons} plan={plan} years={years}/>
+      )}
+
       {/* One card per product, on every screen. The table this replaced could
           not carry two sets of economics without becoming ten columns wide, and
           it was already unreadable on a phone at six. */}
@@ -665,6 +762,14 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                         {l.speculative && <span className="block text-amber-700">{t('qd_disc_pending')}</span>}</>}
                 </p>
               </div>
+
+              {l.unjustifiedPp > 0 && (
+                <p className="text-micro text-red-700 font-semibold">
+                  {t('qd_unjustified')
+                    .replace('{pp}', l.unjustifiedPp)
+                    .replace('{just}', plan.justifiedPct)}
+                </p>
+              )}
 
               {(l.capexBelow || l.annualBelow) && (
                 <p className="text-micro text-red-700">
@@ -785,6 +890,41 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
               </div>
             </div>
           )}
+          {/* The same two scenarios, product by product. With four products in
+              a project the total answers "is this deal any good?" and hides
+              which line is carrying it — and the line that is carrying it is
+              usually the one being discounted. */}
+          {lines.length > 1 && (
+            <div className="pt-2 border-t border-navy/10 space-y-1.5">
+              <button type="button" onClick={() => setByProduct(o => !o)}
+                className="flex items-center gap-1 text-micro font-semibold text-navy uppercase tracking-wide min-h-tap">
+                {byProduct ? <ChevronDown size={12}/> : <ChevronRight size={12}/>}
+                {t('qd_by_product')}
+              </button>
+
+              {byProduct && lines.map(l => {
+                const g = grantedLine(l)
+                return (
+                  <div key={l.id} className="rounded-lg bg-white/70 border border-navy/10 px-2 py-1.5">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="text-xs font-semibold text-gray-800 truncate">{l.product.name}</p>
+                      <span className="text-micro text-gray-400 flex-shrink-0">
+                        {l.years} {t('qd_years')}
+                      </span>
+                    </div>
+                    <Row label={t('qd_as_quoted')} v={l} tone="navy"/>
+                    {l.pendingCostRelief > 0 && (
+                      <Row label={t('qd_if_granted_short')} v={g} tone="amber" from={l}/>
+                    )}
+                  </div>
+                )
+              })}
+              {byProduct && services.pvp > 0 && (
+                <p className="text-micro text-gray-400">{t('qd_by_product_services')}</p>
+              )}
+            </div>
+          )}
+
           {lines.some(l => l.discountPct > 0 || l.skuDiscounts?.length) && (
             <p className="text-micro text-gray-500">{t('qd_worklist_note')}</p>
           )}
