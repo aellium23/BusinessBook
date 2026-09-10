@@ -429,7 +429,7 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
                         </label>
                         <input className="input" type="number" min="0" step="0.01" value={form.license_fee} onChange={e => set('license_fee', e.target.value)}/>
                         {models.includes('pay_per_study') && (
-                          <p className="text-micro text-purple-500 mt-0.5">e.g. 0.53 = €0.53 per study</p>
+                          <p className="text-micro text-purple-500 mt-0.5">e.g. 0.53 = €0.53 per exam</p>
                         )}
                       </div>
                       {/* Annual fee only applies to CAPEX (recurring maintenance on equipment) */}
