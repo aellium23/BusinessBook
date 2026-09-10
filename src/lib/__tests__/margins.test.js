@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   CAPEX_MIN_MARGIN_PCT, SLA_MIN_ANNUAL_PVP, SLA_MARGIN_BANDS,
   slaBandFor, recommendedCapexPvp, recommendedSlaPvp, belowFloor, lineOverTerm,
+  servicesEconomics,
 } from '../margins'
 
 describe('the two policy anchors', () => {
@@ -170,3 +171,40 @@ describe('lineOverTerm', () => {
 })
 
 function round(n) { return Math.round((n + Number.EPSILON) * 100) / 100 }
+
+describe('servicesEconomics', () => {
+  it('costs the effort the rep estimated at the company day rate', () => {
+    const r = servicesEconomics({ manDays: 12, manDayCost: 450, servicesPvp: 10000 })
+    expect(r.cost).toBe(5400)
+    expect(r.grossMargin).toBe(4600)
+    expect(r.marginPct).toBe(46)
+  })
+
+  it('says when no day rate is configured rather than costing it at zero silently', () => {
+    // An unpriced services line reads as pure margin — the same trap as a
+    // licence with no cost.
+    const r = servicesEconomics({ manDays: 12, manDayCost: null, servicesPvp: 10000 })
+    expect(r.rateKnown).toBe(false)
+    expect(r.cost).toBe(0)
+    expect(r.rate).toBeNull()
+  })
+
+  it('treats a zero or negative rate as unconfigured', () => {
+    expect(servicesEconomics({ manDays: 5, manDayCost: 0 }).rateKnown).toBe(false)
+    expect(servicesEconomics({ manDays: 5, manDayCost: -100 }).rateKnown).toBe(false)
+  })
+
+  it('is zero-cost at no effort, whatever the rate', () => {
+    const r = servicesEconomics({ manDays: 0, manDayCost: 450, servicesPvp: 10000 })
+    expect(r.cost).toBe(0)
+    expect(r.marginPct).toBe(100)
+  })
+
+  it('never takes negative days', () => {
+    expect(servicesEconomics({ manDays: -5, manDayCost: 450 }).days).toBe(0)
+  })
+
+  it('coerces the string numerics a form produces', () => {
+    expect(servicesEconomics({ manDays: '12', manDayCost: '450', servicesPvp: '10000' }).cost).toBe(5400)
+  })
+})

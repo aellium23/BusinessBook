@@ -127,6 +127,40 @@ export function lineOverTerm({
   }
 }
 
+/**
+ * The implementation effort, costed.
+ *
+ * Effort varies by project in a way no percentage captures: two PACS of the
+ * same value can be a fortnight apart in work. So the rep enters man-days —
+ * which is the thing they can actually estimate — and the cost comes from the
+ * company's own day rate.
+ *
+ * This is a real, causal, per-project cost and belongs in gross margin, which
+ * is exactly what separates it from an allocation of R&D or rent: those exist
+ * whether or not this deal happens, and these days do not.
+ *
+ * `rateKnown` is false when no day rate is configured. The cost is then zero
+ * and the caller is expected to say so — an unpriced services line reads as
+ * pure margin, which is the same trap as a licence with no cost.
+ */
+export function servicesEconomics({ manDays = 0, manDayCost = null, servicesPvp = 0 }) {
+  const days = Math.max(0, num(manDays) ?? 0)
+  const rate = num(manDayCost)
+  const rateKnown = rate !== null && rate > 0
+  const cost = rateKnown ? round(days * rate) : 0
+  const pvp = round(num(servicesPvp) ?? 0)
+  const gm = round(pvp - cost)
+  return {
+    days,
+    rate: rateKnown ? rate : null,
+    rateKnown,
+    cost,
+    pvp,
+    grossMargin: gm,
+    marginPct: pvp > 0 ? Math.round((gm / pvp) * 1000) / 10 : 0,
+  }
+}
+
 function round(n) {
   return Math.round((n + Number.EPSILON) * 100) / 100
 }

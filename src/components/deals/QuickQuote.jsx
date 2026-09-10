@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
+import { useSettings } from '../../hooks/useSettings'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useProducts, fetchProductCosts } from '../../hooks/useProducts'
 import { usePricing } from '../../hooks/usePricing'
@@ -9,7 +10,8 @@ import FamilyItems from './FamilyItems'
 import { familyEconomics, defaultItemIds } from '../../lib/familyEconomics'
 import { saveDealProducts } from '../../hooks/useDealProducts'
 import { resolvePrice, pricingRegionForCountry, pvpForMargin } from '../../lib/pricing'
-import { recommendedCapexPvp, recommendedSlaPvp, belowFloor, lineOverTerm } from '../../lib/margins'
+import { recommendedCapexPvp, recommendedSlaPvp, belowFloor, lineOverTerm,
+         servicesEconomics } from '../../lib/margins'
 import { routeFor, applyDiscount, discountViews, internalApproval } from '../../lib/discountRouting'
 import { priceAtRung } from '../../lib/discountLadder'
 import { unitsNeeded, quantityFor } from '../../lib/volumeUnits'
@@ -57,6 +59,7 @@ const SUBSCRIPTION_MODELS = ['subscription', 'pay_per_study', 'saas']
 export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   const { profile } = useAuth()
   const { t } = useTranslation()
+  const { settings } = useSettings()
   const { products } = useProducts()
   const { regions, countryMap, tiersByProduct, error: pricingError } = usePricing()
   const { rates } = useFxRates()
@@ -72,6 +75,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   const [famSel, setFamSel]   = useState({})        // productId -> { users, itemIds }
   const [years, setYears]     = useState(DEFAULT_TERM)
   const [ifApproved, setIfApproved] = useState(false)
+  const [manDays, setManDays] = useState('')
 
   // A quote carries several volumes and they are not interchangeable. The exam
   // count is always asked; the rest appear only when something picked is priced
@@ -286,12 +290,25 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
     return l ? rateLabel(l.listed.fx.currency, l.listed.fx.rate) : null
   }, [lines])
 
-  const totals = useMemo(() => ({
-    ...(ifApproved ? views.ifApproved : views.actual),
-    capexPvp: round2(lines.reduce((n, l) => n + l.capexPvp + l.servicesPvp, 0)),
-    annualPvp: round2(lines.reduce((n, l) => n + l.annualPvp, 0)),
-    servicesPvp: round2(lines.reduce((n, l) => n + l.servicesPvp, 0)),
-  }), [views, ifApproved, lines])
+  const services = useMemo(() => servicesEconomics({
+    manDays,
+    manDayCost: settings.man_day_cost,
+    servicesPvp: lines.reduce((n, l) => n + l.servicesPvp, 0),
+  }), [manDays, settings.man_day_cost, lines])
+
+  const totals = useMemo(() => {
+    const v = ifApproved ? views.ifApproved : views.actual
+    const cost = round2(v.cost + services.cost)
+    const gm = round2(v.pvp - cost)
+    return {
+      ...v,
+      cost,
+      grossMargin: gm,
+      marginPct: v.pvp > 0 ? Math.round((gm / v.pvp) * 1000) / 10 : 0,
+      capexPvp: round2(lines.reduce((n, l) => n + l.capexPvp + l.servicesPvp, 0)),
+      annualPvp: round2(lines.reduce((n, l) => n + l.annualPvp, 0)),
+    }
+  }, [views, ifApproved, lines, services])
 
   function setField(id, key, v) {
     setOver(o => ({ ...o, [id]: { ...(o[id] || {}), [key]: parseFloat(v) || 0 } }))
@@ -686,6 +703,25 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
             )}
             <span>{lines.length} {t('qd_n_products')}</span>
           </div>
+          {services.pvp > 0 && (
+            <div className="flex flex-wrap items-end gap-3 pt-1 border-t border-navy/10">
+              <div>
+                <label className="label">{t('qd_man_days')}</label>
+                <input className="input w-20 text-right" type="number" min="0" step="0.5"
+                  value={manDays} placeholder="0" style={{ fontSize: '16px' }}
+                  onChange={e => setManDays(e.target.value)}/>
+              </div>
+              <p className="text-micro text-gray-600 flex-1 min-w-[10rem] pb-2">
+                {t('qd_services')}: <strong className="tabular-nums">{formatK(services.pvp)}</strong>
+                {services.rateKnown
+                  ? <> · {services.days} × {formatK(services.rate)} = <strong className="tabular-nums">{formatK(services.cost)}</strong>
+                      · <span className="text-green-700 font-semibold">{services.marginPct}%</span></>
+                  : <span className="block text-amber-700">{t('qd_no_day_rate')}</span>}
+                <span className="block text-gray-400">{t('qd_man_days_hint')}</span>
+              </p>
+            </div>
+          )}
+
           {views.hasPending && (
             <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-navy/10">
               <label className="flex items-center gap-1.5 text-micro text-gray-700 min-h-tap cursor-pointer">

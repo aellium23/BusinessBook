@@ -15,6 +15,10 @@ const DEFAULTS = {
   ],
   budget_cycles: ['BUD', 'EST1', 'EST2'],
   default_currency: 'EUR',
+  // Our internal cost of one person for one day. Null rather than a guessed
+  // figure: a quote that costs effort at an invented rate reports a margin
+  // nobody can defend.
+  man_day_cost: null,
   available_currencies: ['EUR', 'USD', 'GBP'],
 }
 
