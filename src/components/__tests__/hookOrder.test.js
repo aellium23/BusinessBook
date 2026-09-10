@@ -78,6 +78,48 @@ function forwardRefsInBody(source) {
   return [...new Set(bad)]
 }
 
+/**
+ * A local const that shadows a component-level name AND is referenced above
+ * itself in the same function.
+ *
+ * `const discounted = [...]` inside create(), where `discounted` is also a
+ * predicate defined in the component and called four lines earlier, puts that
+ * call in the temporal dead zone. It throws at click time — nowhere near where
+ * it was written, under a minified name, and only for the person who clicks.
+ *
+ * Shadowing on its own is common enough in this codebase to be noise; shadowing
+ * a name that was already used in the same function is always a fault.
+ */
+function shadowHazards(wholeFile) {
+  return [...new Set(componentBodies(wholeFile).flatMap(shadowHazardsInBody))]
+}
+
+function shadowHazardsInBody(source) {
+  const outer = new Set()
+  let m
+  const outerDecl = /^ {2}(?:const|let) (?:\[\s*)?([A-Za-z_$][\w$]*)/gm
+  while ((m = outerDecl.exec(source))) outer.add(m[1])
+
+  // Where each top-level function or arrow in the component body begins.
+  const blockStarts = []
+  const block = /^ {2}(?:async )?function |^ {2}const [A-Za-z_$][\w$]* = /gm
+  while ((m = block.exec(source))) blockStarts.push(m.index)
+
+  const bad = []
+  // Exactly one level in: the direct body of a component-level function. A
+  // deeper one is inside a callback with its own scope, where shadowing is
+  // ordinary and harmless — and where this check would otherwise cry wolf.
+  const innerDecl = /^ {4}(?:const|let) (?:\[\s*)?([A-Za-z_$][\w$]*)/gm
+  while ((m = innerDecl.exec(source))) {
+    const name = m[1]
+    if (!outer.has(name)) continue
+    const from = [...blockStarts].reverse().find(i => i < m.index) ?? 0
+    const before = source.slice(from, m.index)
+    if (new RegExp(`\\b${name}\\b`).test(before)) bad.push(name)
+  }
+  return bad
+}
+
 describe('no hook names something that does not exist yet', () => {
   const files = ROOTS.flatMap(r => jsxFiles(r))
 
@@ -92,6 +134,16 @@ describe('no hook names something that does not exist yet', () => {
   }
 })
 
+describe('no local shadows a name its own function already used', () => {
+  const files = ROOTS.flatMap(r => jsxFiles(r))
+
+  for (const file of files) {
+    it(`${file} has no shadow that reaches back`, () => {
+      expect(shadowHazards(readFileSync(file, 'utf8'))).toEqual([])
+    })
+  }
+})
+
 describe('the check itself', () => {
   it('catches the bug it was written for', () => {
     const broken = `
@@ -99,6 +151,30 @@ describe('the check itself', () => {
   const authMap = useMemo(() => map(rows), [rows])
 `
     expect(forwardRefs(broken)).toEqual(['authMap'])
+  })
+
+  it('catches the shadow that reaches back', () => {
+    const broken = `
+  const discounted = l => l.pct > 0
+
+  async function create() {
+    const some = lines.filter(l => discounted(l))
+    const discounted = [...a, ...b]
+  }
+`
+    expect(shadowHazards(broken)).toEqual(['discounted'])
+  })
+
+  it('leaves a shadow that never looks back alone', () => {
+    const fine = `
+  const total = 1
+
+  function draw() {
+    const total = 2
+    return total
+  }
+`
+    expect(shadowHazards(fine)).toEqual([])
   })
 
   it('is quiet when the order is right', () => {
