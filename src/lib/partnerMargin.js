@@ -79,6 +79,24 @@ export const NAMED_PROGRAMMES = [
   { key: 'lighthouse',      netPctOfList: 65, transferPctOfList: 45 },
 ]
 
+/**
+ * The price that puts a partner on the target margin.
+ *
+ * The same 35% the transfer price protects on our own deals, used here as the
+ * starting point for theirs: a quote that opens at the number they should be
+ * landing on is one less decision on a screen meant to take seconds, and it is
+ * a target rather than a rule — the price is theirs to change.
+ *
+ * Gross margin on the sell price, like every other margin in this app, not a
+ * markup on cost: 9,180 of cost is a 14,124 price, not 12,393.
+ */
+export function partnerTargetPrice(cost, marginPct = PROTECTED_MARGIN.target) {
+  const c = num(cost) ?? 0
+  const m = num(marginPct) ?? 0
+  if (c <= 0 || m >= 100) return 0
+  return money(c / (1 - m / 100))
+}
+
 export function roleFor(key) {
   return CHANNEL_ROLES.find(r => r.key === key) || CHANNEL_ROLES[0]
 }
