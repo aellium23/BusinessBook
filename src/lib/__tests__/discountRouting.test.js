@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   routeFor, applyDiscount, isOpen, daysWaiting,
   ROUTE_INTERNAL, ROUTE_EXTERNAL, EXTERNAL_FLOW, discountViews,
+  fiscalQuarter, riskSummary,
 } from '../discountRouting'
 
 const VGT    = { code: 'VGT',    kind: 'internal', request_channel: 'Approvals' }
@@ -135,5 +136,62 @@ describe('discountViews', () => {
   it('handles an empty quote', () => {
     expect(discountViews([]).actual).toEqual({ cost: 0, pvp: 0, grossMargin: 0, marginPct: 0 })
     expect(discountViews(null).atRisk).toBe(0)
+  })
+})
+
+describe('fiscalQuarter', () => {
+  it('starts the year in April', () => {
+    expect(fiscalQuarter('apr')).toBe(1)
+    expect(fiscalQuarter('jun')).toBe(1)
+    expect(fiscalQuarter('jul')).toBe(2)
+    expect(fiscalQuarter('oct')).toBe(3)
+    expect(fiscalQuarter('jan')).toBe(4)
+    expect(fiscalQuarter('mar')).toBe(4)
+  })
+
+  it('accepts a longer month name and any case', () => {
+    expect(fiscalQuarter('April')).toBe(1)
+    expect(fiscalQuarter('DEC')).toBe(3)
+  })
+
+  it('is null for anything that is not a month', () => {
+    expect(fiscalQuarter('')).toBeNull()
+    expect(fiscalQuarter(null)).toBeNull()
+    expect(fiscalQuarter('xyz')).toBeNull()
+  })
+})
+
+describe('riskSummary', () => {
+  const rows = [
+    { deal_id: 'a', bu: 'VGT', value_at_risk: 6000, unfiled: 1, oldest_days: 12, rec_month: 'may' },
+    { deal_id: 'b', bu: 'VGT', value_at_risk: 4000, unfiled: 0, oldest_days: 3,  rec_month: 'nov' },
+    { deal_id: 'c', bu: 'ECT', value_at_risk: 1000, unfiled: 0, oldest_days: 1,  rec_month: null },
+  ]
+
+  it('separates what we have not asked for from what we are waiting on', () => {
+    const r = riskSummary(rows)
+    expect(r.total).toBe(11000)
+    expect(r.unfiled).toBe(6000)     // ours to fix
+    expect(r.awaiting).toBe(5000)    // theirs to answer
+    expect(r.unfiledDeals).toBe(1)
+  })
+
+  it('respects the dashboard business-unit filter', () => {
+    expect(riskSummary(rows, { bu: 'ECT' }).total).toBe(1000)
+    expect(riskSummary(rows, { bu: 'VGT' }).deals).toBe(2)
+  })
+
+  it('buckets by fiscal quarter and keeps the undated apart', () => {
+    const r = riskSummary(rows)
+    expect(r.byQuarter).toEqual({ Q1: 6000, Q3: 4000, unscheduled: 1000 })
+  })
+
+  it('reports the longest wait, which is the one worth chasing', () => {
+    expect(riskSummary(rows).oldestDays).toBe(12)
+  })
+
+  it('is all zeroes with nothing open', () => {
+    expect(riskSummary([])).toMatchObject({ total: 0, unfiled: 0, awaiting: 0, deals: 0, oldestDays: 0 })
+    expect(riskSummary(null).total).toBe(0)
   })
 })

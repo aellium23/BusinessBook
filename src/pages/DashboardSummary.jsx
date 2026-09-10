@@ -7,6 +7,7 @@ import { Spinner, formatK } from '../components/ui'
 import Gauge from '../components/Gauge'
 import { MONTHS_K } from '../constants'
 import { TrendingUp, Target, AlertCircle, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
+import DiscountRisk from '../components/dashboard/DiscountRisk'
 
 function CollapsibleSection({ id, title, icon, children, defaultOpen = true }) {
   const key = `bb_dash_${id}`
@@ -496,6 +497,9 @@ export default function DashboardSummary({ selectedBU = '' }) {
 
   return (
     <div className="space-y-6">
+      {/* Margin that is not ours yet. Silent unless something is open. */}
+      <DiscountRisk selectedBU={selectedBU}/>
+
       {/* Sales vs Budget */}
       {(
       <div>

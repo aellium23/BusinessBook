@@ -125,6 +125,49 @@ function totals(cost, pvp) {
   }
 }
 
+// The fiscal year runs April to March, so Q1 is Apr-Jun and Q4 is Jan-Mar.
+const FY_MONTHS = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
+
+/** Fiscal quarter (1-4) for a month key, or null if it is not a month. */
+export function fiscalQuarter(monthKey) {
+  const i = FY_MONTHS.indexOf(String(monthKey || '').slice(0, 3).toLowerCase())
+  return i < 0 ? null : Math.floor(i / 3) + 1
+}
+
+/**
+ * Margin waiting on somebody else, grouped so it can be acted on.
+ *
+ * Split by who has the ball, because the two halves need different things from
+ * whoever reads this. `unfiled` is ours: a discount promised to a customer that
+ * nobody has asked the supplier for, and every day it sits there is a day of
+ * our own making. `awaiting` is theirs, and all we can do is chase.
+ *
+ * @param rows  from the deal_open_discounts view
+ */
+export function riskSummary(rows, { bu = '' } = {}) {
+  const list = (rows || []).filter(r => !bu || r.bu === bu)
+  const sum = (f) => r2(list.filter(f).reduce((s, x) => s + (num(x.value_at_risk) ?? 0), 0))
+
+  const byQuarter = {}
+  for (const row of list) {
+    const q = fiscalQuarter(row.rec_month)
+    const key = q ? `Q${q}` : 'unscheduled'
+    byQuarter[key] = r2((byQuarter[key] || 0) + (num(row.value_at_risk) ?? 0))
+  }
+
+  return {
+    total: sum(() => true),
+    unfiled: sum(r => Number(r.unfiled) > 0),
+    awaiting: sum(r => !(Number(r.unfiled) > 0)),
+    deals: list.length,
+    unfiledDeals: list.filter(r => Number(r.unfiled) > 0).length,
+    oldestDays: list.reduce((m, r) => Math.max(m, Number(r.oldest_days) || 0), 0),
+    byQuarter,
+  }
+}
+
+function r2(n) { return Math.round((n + Number.EPSILON) * 100) / 100 }
+
 function r(n) {
   return Math.round((n + Number.EPSILON) * 100) / 100
 }

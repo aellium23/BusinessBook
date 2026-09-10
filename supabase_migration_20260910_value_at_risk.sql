@@ -32,16 +32,20 @@ revoke all on public.discount_worklist from anon;
 grant select on public.discount_worklist to authenticated;
 
 -- Per deal, what is still open. Read by the deal list to badge a card.
+-- Per deal, what is still open. The deal's own BU and recognition month come
+-- along so the dashboard can filter and bucket without a second query.
 drop view if exists public.deal_open_discounts;
 create view public.deal_open_discounts as
-  select deal_id,
+  select r.deal_id,
+         d.bu, d.stage, d.client, d.rec_month, d.rec_year,
          count(*) as open_requests,
-         count(*) filter (where route = 'external' and status = 'to_request') as unfiled,
-         coalesce(sum(value_at_risk), 0)::numeric(14,2) as value_at_risk,
-         max(greatest(0, extract(day from now() - created_at)::int)) as oldest_days
-  from public.deal_discount_requests
-  where status in ('pending','counter','to_request','requested')
-  group by deal_id;
+         count(*) filter (where r.route = 'external' and r.status = 'to_request') as unfiled,
+         coalesce(sum(r.value_at_risk), 0)::numeric(14,2) as value_at_risk,
+         max(greatest(0, extract(day from now() - r.created_at)::int)) as oldest_days
+  from public.deal_discount_requests r
+  join public.deals d on d.id = r.deal_id
+  where r.status in ('pending','counter','to_request','requested')
+  group by r.deal_id, d.bu, d.stage, d.client, d.rec_month, d.rec_year;
 
 revoke all on public.deal_open_discounts from anon;
 grant select on public.deal_open_discounts to authenticated;
