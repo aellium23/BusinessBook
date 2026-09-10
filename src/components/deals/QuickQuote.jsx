@@ -9,8 +9,8 @@ import FamilyItems from './FamilyItems'
 import { familyEconomics, defaultItemIds } from '../../lib/familyEconomics'
 import { saveDealProducts } from '../../hooks/useDealProducts'
 import { resolvePrice, pricingRegionForCountry, pvpForMargin } from '../../lib/pricing'
-import { recommendedCapexPvp, recommendedSlaPvp, belowFloor, lineOverTerm,
-         CAPEX_MIN_MARGIN_PCT } from '../../lib/margins'
+import { recommendedCapexPvp, recommendedSlaPvp, belowFloor, lineOverTerm } from '../../lib/margins'
+import { routeFor, applyDiscount } from '../../lib/discountRouting'
 import { COUNTRY_MAP, regionForCountry } from '../../constants'
 import SearchableSelect from '../SearchableSelect'
 import { formatK } from '../ui'
@@ -101,6 +101,12 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   // (the Products screen labels it "Price per Unit / Study"), so using it as a
   // cost made the margin on any CWM line meaningless.
   const [productCosts, setProductCosts] = useState({})
+  const [suppliers, setSuppliers] = useState({})
+
+  useEffect(() => {
+    supabase.from('suppliers').select('code, name, kind, request_channel')
+      .then(({ data }) => setSuppliers(Object.fromEntries((data || []).map(s => [s.code, s]))))
+  }, [])
   useEffect(() => {
     let alive = true
     fetchProductCosts().then(({ costs }) => { if (alive) setProductCosts(costs) })
@@ -194,7 +200,19 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         : isSub && listed ? listed.net
         : recommendedSlaPvp(annualCost)
 
-      const term = lineOverTerm({ capexCost, capexPvp, annualCost, annualPvp, years })
+      // A discount goes one of two ways and the supplier decides which. On what
+      // we make it comes off the customer price and needs approving; on what we
+      // buy it comes off our cost, but only once the supplier has said yes, so
+      // until then it changes nothing on screen and merely marks the line.
+      const routing = routeFor(suppliers[product.supplier_code])
+      const discountPct = Number(o.discountPct) || 0
+      const dCapex = applyDiscount({ ...routing, pct: discountPct, cost: capexCost, pvp: capexPvp })
+      const dAnnual = applyDiscount({ ...routing, pct: discountPct, cost: annualCost, pvp: annualPvp })
+
+      const term = lineOverTerm({
+        capexCost: dCapex.cost, capexPvp: dCapex.pvp,
+        annualCost: dAnnual.cost, annualPvp: dAnnual.pvp, years,
+      })
 
       return {
         id, product, isSub,
@@ -202,15 +220,18 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         tierLabel: listed?.tierLabel ?? '—',
         boundBy: listed?.boundBy ?? 'tier',
         priced: Boolean(listed),
-        capexCost, capexPvp, annualCost, annualPvp,
-        capexBelow: belowFloor({ kind: 'capex', cost: capexCost, pvp: capexPvp }),
-        annualBelow: belowFloor({ kind: 'sla', cost: annualCost, pvp: annualPvp }),
+        capexCost: dCapex.cost, capexPvp: dCapex.pvp,
+        annualCost: dAnnual.cost, annualPvp: dAnnual.pvp,
+        discountPct, routing,
+        speculative: dCapex.speculative || dAnnual.speculative,
+        capexBelow: belowFloor({ kind: 'capex', cost: dCapex.cost, pvp: dCapex.pvp }),
+        annualBelow: belowFloor({ kind: 'sla', cost: dAnnual.cost, pvp: dAnnual.pvp }),
         costKnown: capexCost > 0 || annualCost > 0,
         ...term,
       }
     }).filter(Boolean)
   }, [picked, products, tiersByProduct, region, studies, overrides, itemsByProduct,
-      famSel, productCosts, years, pacsInQuote])
+      famSel, productCosts, years, pacsInQuote, suppliers])
 
   const totals = useMemo(() => {
     const cost = lines.reduce((n, l) => n + l.cost, 0)
@@ -272,6 +293,33 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       annual_fee: l.annualPvp,
       notes: l.priced ? `${regionCode} · ${l.tierLabel}` : 'cost + margin',
     })))
+    // Discounts become worklist entries only now, because they hang off a deal
+    // that did not exist a moment ago. A failure here must not read as a failed
+    // deal — the deal is saved; the rep is told what did not get raised.
+    const discounted = lines.filter(l => l.discountPct > 0)
+    if (discounted.length) {
+      const { error: reqErr } = await supabase.from('deal_discount_requests').insert(
+        discounted.map(l => ({
+          deal_id: data.id,
+          product_id: l.id,
+          requested_by: profile?.id || null,
+          requested_pct: l.discountPct,
+          brand: l.product.brand || null,
+          supplier_code: l.product.supplier_code || null,
+          route: l.routing.route,
+          channel: l.routing.channel,
+          status: l.routing.initialStatus,
+          scope: 'both',
+          justification: `${client.trim()} · ${l.product.name}`,
+        }))
+      )
+      if (reqErr) {
+        setSaving(false)
+        setError(`${t('qd_err_discounts')} ${reqErr.message}`)
+        return
+      }
+    }
+
     setSaving(false)
     if (lineErr) { setError(`${t('qd_err_lines')} ${lineErr.message}`); return }
     onCreated?.(data)
@@ -459,6 +507,22 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                 </div>
               </div>
 
+              <div className="grid grid-cols-3 gap-2 items-end">
+                <div>
+                  <label className="label">{t('qd_discount')}</label>
+                  <input className="input text-right" type="number" min="0" max="99"
+                    value={l.discountPct}
+                    onChange={e => setField(l.id, 'discountPct', e.target.value)}
+                    style={{ fontSize: '16px' }}/>
+                </div>
+                <p className="col-span-2 text-micro text-gray-500 pb-2">
+                  {l.routing.appliesTo === 'price'
+                    ? t('qd_disc_price')
+                    : <>{t('qd_disc_cost')} <strong>{l.routing.channel}</strong>
+                        {l.speculative && <span className="block text-amber-700">{t('qd_disc_pending')}</span>}</>}
+                </p>
+              </div>
+
               {(l.capexBelow || l.annualBelow) && (
                 <p className="text-micro text-red-700">
                   {t('qd_below_floor')}{' '}
@@ -509,6 +573,9 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
             <span>{t('qd_recurring')}: <strong className="tabular-nums">{formatK(totals.annualPvp)}</strong>/{t('qd_years')} × {years}</span>
             <span>{lines.length} {t('qd_n_products')}</span>
           </div>
+          {lines.some(l => l.discountPct > 0) && (
+            <p className="text-micro text-gray-500">{t('qd_worklist_note')}</p>
+          )}
           {lines.some(l => !l.costKnown) && (
             <p className="text-micro text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
               {t('qd_cost_warning')}
