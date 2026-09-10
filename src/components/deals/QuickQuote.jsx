@@ -15,6 +15,7 @@ import { recommendedCapexPvp, recommendedSlaPvp, belowFloor, lineOverTerm,
 import { routeFor, applyDiscount, discountViews, internalApproval } from '../../lib/discountRouting'
 import { priceAtRung } from '../../lib/discountLadder'
 import { discountPlan, unjustifiedPp } from '../../lib/dealDiscounts'
+import { partnerEconomics, CHANNEL_ROLES, NAMED_PROGRAMMES } from '../../lib/partnerMargin'
 import DiscountReasons, { earnedRows } from './DiscountReasons'
 import { unitsNeeded, quantityFor } from '../../lib/volumeUnits'
 import { toEur, rateLabel } from '../../lib/fx'
@@ -79,6 +80,8 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   const [manDays, setManDays] = useState('')
   const [reasons, setReasons] = useState({})       // discount reason -> evidence
   const [byProduct, setByProduct] = useState(true) // per-product detail, open
+  const [channelRole, setChannelRole] = useState('direct')
+  const [programme, setProgramme] = useState('')   // named programme, above cap
 
   // A quote carries several volumes and they are not interchangeable. The exam
   // count is always asked; the rest appear only when something picked is priced
@@ -322,6 +325,27 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
     return l ? rateLabel(l.listed.fx.currency, l.listed.fx.rate) : null
   }, [lines])
 
+  // The partner side of the same quote.
+  //
+  // Measured on the products that have a published regional list — ours — and
+  // over the whole term, because a five-year subscription discounted once is
+  // five years of concession. A licence's support fee has no list price of its
+  // own and stays out of both sides rather than being counted on one.
+  const channel = useMemo(() => {
+    const rows = lines.filter(l => l.routing.appliesTo === 'price' && l.listNet > 0)
+    const listTotal = rows.reduce((s, l) => s + (l.isSub ? l.listNet * years : l.listNet), 0)
+    const netTotal = rows.reduce((s, l) => s + (l.isSub ? l.annualPvp * years : l.capexPvp), 0)
+    return {
+      rows: rows.length,
+      ...partnerEconomics({
+        listPrice: round2(listTotal), netPrice: round2(netTotal),
+        role: channelRole, programme: programme || null,
+      }),
+      listTotal: round2(listTotal),
+      netTotal: round2(netTotal),
+    }
+  }, [lines, years, channelRole, programme])
+
   const services = useMemo(() => servicesEconomics({
     manDays,
     manDayCost: settings.man_day_cost,
@@ -393,6 +417,18 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       exchange_rate: lines.find(l => l.listed?.fx?.converted && l.listed.fx.rate !== 1)?.listed.fx.rate ?? null,
       company_id: profile?.company_id || null,
       created_by: profile?.id || null,
+      // The channel side of the deal, stored rather than derived: the protected
+      // margin depends on the list price and the role on the day it was quoted,
+      // and both move. value_total stays the customer price — what a deal is
+      // worth to us is a forecasting decision, not a display one.
+      ...(channel.applies ? {
+        partner_role: channel.role,
+        partner_programme: channel.programme,
+        partner_transfer: channel.transfer,
+        partner_margin_pct: channel.partnerMarginPct,
+        cwm_given_up: channel.givenUp,
+        end_customer_price: channel.netTotal,
+      } : {}),
     }).select('id, client, bu, country').single()
 
     if (e) { setSaving(false); setError(`${t('qd_err_create')} ${e.message}`); return }
@@ -671,6 +707,94 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       {cwmCount > 0 && (
         <DiscountReasons value={reasons} onChange={setReasons} plan={plan} years={years}
           bundleProducts={cwmNames}/>
+      )}
+
+      {/* Who sells this, and what protecting their margin costs us.
+          Only where there is a published list to measure a concession against. */}
+      {channel.rows > 0 && (
+        <div className="border border-gray-200 rounded-xl p-3 space-y-2 bg-white">
+          <div className="flex items-end gap-2 flex-wrap">
+            <div>
+              <label className="label">{t('pm_sold_through')}</label>
+              <select className="select w-44" value={channelRole}
+                onChange={e => setChannelRole(e.target.value)}>
+                {CHANNEL_ROLES.map(r => (
+                  <option key={r.key} value={r.key}>
+                    {t(`pm_role_${r.key}`)}{r.channelPct > 0 ? ` · ${r.channelPct}%` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {/* Above the cap the deal is already an exception, and the two named
+                programmes carry their own negotiated transfer prices. */}
+            {channel.applies && channel.overCap && (
+              <div>
+                <label className="label">{t('pm_programme')}</label>
+                <select className="select w-44" value={programme}
+                  onChange={e => setProgramme(e.target.value)}>
+                  <option value="">{t('pm_programme_none')}</option>
+                  {NAMED_PROGRAMMES.map(p => (
+                    <option key={p.key} value={p.key}>{t(`pm_prog_${p.key}`)}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
+          {channel.applies && (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-gray-100">
+                <div>
+                  <p className="text-micro text-gray-500">{t('pm_customer_pays')}</p>
+                  <p className="text-sm font-bold text-navy tabular-nums">{formatK(channel.netTotal)}</p>
+                  <p className="text-micro text-gray-400">{100 - channel.discountPct}% {t('dl_of_list')}</p>
+                </div>
+                <div>
+                  <p className="text-micro text-gray-500">{t('pm_transfer')}</p>
+                  <p className="text-sm font-bold text-gray-800 tabular-nums">{formatK(channel.transfer)}</p>
+                  <p className="text-micro text-gray-400">{t('pm_our_revenue')}</p>
+                </div>
+                <div>
+                  <p className="text-micro text-gray-500">{t('pm_partner_margin')}</p>
+                  <p className="text-sm font-bold text-green-700 tabular-nums">
+                    {formatK(channel.partnerMargin)} · {channel.partnerMarginPct}%
+                  </p>
+                  <p className="text-micro text-gray-400">
+                    {channel.programme ? t('pm_programme_rate') : `${t('pm_protected')} ${channel.protectedPct}%`}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-micro text-gray-500">{t('pm_given_up')}</p>
+                  <p className={`text-sm font-bold tabular-nums ${channel.givenUp > 0 ? 'text-amber-800' : 'text-gray-400'}`}>
+                    {formatK(channel.givenUp)}
+                  </p>
+                  <p className="text-micro text-gray-400">
+                    {t('pm_at_list')} {formatK(channel.cwmRevenueAtList)}
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-micro text-gray-500">{t('pm_why')}</p>
+
+              {channel.overCap && !channel.programme && (
+                <p className="text-micro text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
+                  {t('pm_over_cap').replace('{pct}', channel.protectedPct)}
+                </p>
+              )}
+
+              {/* The pipeline still carries the customer price. Changing what a
+                  deal is worth to us is not a display decision — it re-runs the
+                  forecast — so the difference is named and left for a decision. */}
+              {channel.transfer > 0 && (
+                <p className="text-micro text-gray-500 border-t border-gray-100 pt-1.5">
+                  {t('pm_pipeline_note')
+                    .replace('{value}', formatK(totals.pvp))
+                    .replace('{transfer}', formatK(channel.transfer))}
+                </p>
+              )}
+            </>
+          )}
+        </div>
       )}
 
       {/* One card per product, on every screen. The table this replaced could
