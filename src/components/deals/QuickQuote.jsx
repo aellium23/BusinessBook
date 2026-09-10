@@ -846,6 +846,9 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
           channel: l.routing.channel,
           status: status || l.routing.initialStatus,
           scope: 'both',
+          // What this ask is worth in money, at the percentage being asked for.
+          // The approval reads it back to take exactly that off what the
+          // partner pays us — and scales it if it grants less than was asked.
           value_at_risk: sku
             ? round2(sku.reliefCapex + sku.reliefAnnual * years)
             : (l.pendingCostRelief || null),
