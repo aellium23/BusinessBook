@@ -22,6 +22,7 @@ import { toEur, rateLabel } from '../../lib/fx'
 import { useFxRates } from '../../hooks/useFxRates'
 import { COUNTRY_MAP, regionForCountry } from '../../constants'
 import { canPrice } from '../../lib/roles'
+import { toQuoteState, fromQuoteState, rebuildFrom } from '../../lib/quoteState'
 import { authMapOf, authorisedProducts, authorisedCountries,
          hasAuthorisations } from '../../lib/partnerCatalogue'
 import SearchableSelect from '../SearchableSelect'
@@ -70,7 +71,7 @@ const DEFAULT_MAN_DAY_COST = 450
  * Margin is gross margin on the sell price — the definition used by deals.gm_pct
  * and the Budget's Gross Margin line — not a markup on cost.
  */
-export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
+export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
   const { profile } = useAuth()
   const { t } = useTranslation()
   const { settings } = useSettings()
@@ -102,6 +103,46 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   const [servicesPvp, setServicesPvp] = useState('')   // '' = the default price
   const [channelRole, setChannelRole] = useState('direct')
   const [programme, setProgramme] = useState('')   // named programme, above cap
+
+  // Editing an existing deal: the inputs it was quoted from, read back exactly.
+  // A deal from before those were stored is rebuilt from its product lines and
+  // says so, because an approximation presented as the original is how a quote
+  // that went to a customer gets quietly rewritten.
+  const [rebuilt, setRebuilt] = useState(false)
+  const [loadingQuote, setLoadingQuote] = useState(Boolean(deal?.id))
+
+  useEffect(() => {
+    if (!deal?.id) return
+    let alive = true
+    setClient(deal.client || '')
+    if (deal.country) setCountry(deal.country)
+
+    supabase.from('deal_quote').select('state').eq('deal_id', deal.id).maybeSingle()
+      .then(async ({ data }) => {
+        let state = fromQuoteState(data?.state)
+        if (!state) {
+          const { data: rows } = await supabase.from('deal_products_v')
+            .select('product_id, volume, unit_price, net_price, annual_fee, cost_price')
+            .eq('deal_id', deal.id)
+          state = rebuildFrom(rows || [])
+        }
+        if (!alive) return
+        setPicked(state.picked)
+        setVolumes(state.volumes)
+        setOver(state.overrides)
+        setFamSel(state.famSel)
+        setYears(state.years)
+        setManDays(state.manDays)
+        setServicesOn(state.servicesOn)
+        setServicesPvp(state.servicesPvp)
+        setChannelRole(state.channelRole)
+        setProgramme(state.programme)
+        if (state.country) setCountry(state.country)
+        setRebuilt(Boolean(state.rebuilt))
+        setLoadingQuote(false)
+      })
+    return () => { alive = false }
+  }, [deal?.id])
 
   // What this partner may sell, and where. Set by an admin in Permissions →
   // Companies, one row per product per country.
@@ -587,12 +628,11 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
     }
     setSaving(true); setError(null)
 
-    const { data, error: e } = await supabase.from('deals').insert({
+    const fields = {
       client: client.trim(),
       bu: defaultBU,
       country,
       region: regionForCountry(country) || 'Europe',
-      stage: 'Lead',
       value_total: totals.pvp,
       // A partner quote has no margin of ours in it — the figures on their
       // screen are the customer's price. Writing a margin here would be writing
@@ -603,15 +643,40 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       // it, so a rate change tomorrow cannot silently reprice a quote sent
       // today.
       exchange_rate: lines.find(l => l.listed?.fx?.converted && l.listed.fx.rate !== 1)?.listed.fx.rate ?? null,
-      company_id: profile?.company_id || null,
-      created_by: profile?.id || null,
       ...(internal ? {} : {
         sales_type: 'External',
         sales_owner: profile?.full_name || profile?.email || null,
       }),
-    }).select('id, client, bu, country').single()
+    }
+
+    // Editing keeps the deal's own identity and everything the quick deal does
+    // not own — stage, forecast, the monthly spread, whoever it is assigned to.
+    // Only the priced part is rewritten.
+    const { data, error: e } = deal?.id
+      ? await supabase.from('deals').update(fields).eq('id', deal.id)
+          .select('id, client, bu, country').single()
+      : await supabase.from('deals').insert({
+          ...fields,
+          stage: 'Lead',
+          company_id: profile?.company_id || null,
+          created_by: profile?.id || null,
+        }).select('id, client, bu, country').single()
 
     if (e) { setSaving(false); setError(`${t('qd_err_create')} ${e.message}`); return }
+
+    // How it was quoted, so it opens again as it was written rather than as
+    // somebody's reconstruction of it.
+    const { error: qErr } = await supabase.from('deal_quote').upsert({
+      deal_id: data.id,
+      state: toQuoteState({
+        picked, volumes, overrides, famSel, years, manDays,
+        servicesOn, servicesPvp, channelRole, programme, country,
+      }),
+      version: 1,
+      created_by: profile?.id || null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'deal_id' })
+    if (qErr) logger.error('Quote state not stored', { error: qErr.message })
 
     // The channel side of the deal, stored rather than derived: the protected
     // margin depends on the list price and the role on the day it was quoted,
@@ -653,11 +718,13 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
     // bury the ones that need a decision.
     // One row per SKU on the supplier side: HCUS opens a case per part number,
     // and "Synapse licence 70%" and "Oracle 20%" are two different asks.
-    const external = lines.flatMap(l =>
+    // Only on the first quote. Re-raising on every edit would file the same ask
+    // with the supplier again and bury the ones waiting for an answer.
+    const external = deal?.id ? [] : lines.flatMap(l =>
       l.routing.appliesTo === 'cost'
         ? (l.skuDiscounts || []).map(d => ({ line: l, sku: d }))
         : [])
-    const forApproval = lines
+    const forApproval = deal?.id ? [] : lines
       .filter(l => l.routing.appliesTo === 'price' && l.ladder?.needsRequest)
       .map(l => ({ line: l, sku: null }))
     // Named for what it is, not for the helper one scope up: `discounted` is a
@@ -726,6 +793,12 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
 
   return (
     <div className="space-y-4">
+      {rebuilt && (
+        <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          {t('qd_rebuilt')}
+        </p>
+      )}
+
       {(error || pricingError) && (
         <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
           {error || t('qd_err_prices')}
@@ -1309,7 +1382,9 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       {onFullForm && (
         <button type="button" onClick={onFullForm}
           className="text-xs text-gray-500 underline underline-offset-2 min-h-tap">
-          {t('qd_full_form')}
+          {/* On an existing deal this is the other view of the same thing, not
+              an escape hatch for fields the quote cannot express. */}
+          {deal?.id ? t('qd_full_detail') : t('qd_full_form')}
         </button>
       )}
 
@@ -1326,7 +1401,8 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         <button type="button" onClick={onCancel} className="btn-secondary flex-1">{t('qd_cancel')}</button>
         <button type="button" onClick={create} disabled={saving || (!lines.length && !quotable)}
           className="btn-primary flex-1">
-          {saving ? t('qd_creating') : `${t('qd_create')} · ${formatK(totals.pvp)}`}
+          {saving ? t('qd_creating')
+            : `${deal?.id ? t('qd_save') : t('qd_create')} · ${formatK(totals.pvp)}`}
         </button>
       </div>
       {!lines.length && !quotable && (
