@@ -25,7 +25,7 @@ import { getAllowedTransitions } from '../../lib/stateMachine'
 import { canPrice } from '../../lib/roles'
 import { toQuoteState, fromQuoteState, rebuildFrom } from '../../lib/quoteState'
 import { authMapOf, authorisedProducts, authorisedCountries,
-         hasAuthorisations } from '../../lib/partnerCatalogue'
+         hasAuthorisations, authKey } from '../../lib/partnerCatalogue'
 import SearchableSelect from '../SearchableSelect'
 import { formatK } from '../ui'
 import { X, Check, ChevronDown, ChevronRight } from 'lucide-react'
@@ -346,10 +346,22 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
       const fam = familyEconomics(itemsByProduct[id], famSel[id] ? selectionFor(id) : null, qty)
       const o = overrides[id] || {}
 
+      // What this line costs the person quoting it. For us that is the transfer
+      // price we pay a supplier. For a partner it is OUR price list to them —
+      // the price an admin authorised for their company, in their country — and
+      // their margin is what they add on top of it.
+      const authRow = internal ? null : authMap[authKey(product.id, country)]
+      const partnerUnit = Number(authRow?.price) || 0
+      const partnerCost = product.price_basis === 'per_unit'
+        ? round2(partnerUnit * productQty)
+        : partnerUnit
+
       const capexCost = o.capexCost !== undefined ? Number(o.capexCost) || 0
+        : !internal ? (isSub ? 0 : partnerCost)
         : isSub ? 0
         : (fam.capex > 0 ? fam.capex : (Number(productCosts[id]) || 0))
       const annualCost = o.annualCost !== undefined ? Number(o.annualCost) || 0
+        : !internal ? (isSub ? partnerCost : 0)
         : isSub ? (fam.annual > 0 ? fam.annual : (Number(productCosts[id]) || 0))
         : fam.annual
 
@@ -366,7 +378,13 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
       // we make it comes off the customer price and needs approving; on what we
       // buy it comes off our cost, but only once the supplier has said yes, so
       // until then it changes nothing on screen and merely marks the line.
-      const routing = routeFor(suppliers[product.supplier_code])
+      // A partner asks US for a discount, and it comes off what they pay us —
+      // exactly the shape of our own supplier requests, so it uses the same
+      // machinery: it is a request, it does not improve their margin until it
+      // is granted, and the quote shows both readings.
+      const routing = internal
+        ? routeFor(suppliers[product.supplier_code])
+        : { route: 'external', channel: 'VGT', initialStatus: 'to_request', appliesTo: 'cost' }
       const discountPct = Number(o.discountPct) || 0
       // Why the discount was given, in the rep's own words. One box, because a
       // discount nobody can explain in a sentence is one nobody should give.
@@ -387,7 +405,7 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
       // fee in year one, and the first year of SLA is sold to the customer all
       // the same. A subscription has no licence and no warranty year — its tier
       // price IS the annual fee, and there is no first year to include.
-      const warrantyYears = routing.route === 'external' && !isSub ? 1 : 0
+      const warrantyYears = internal && routing.route === 'external' && !isSub ? 1 : 0
       const term = lineOverTerm({
         capexCost: dCapex.cost, capexPvp: dCapex.pvp,
         annualCost: dAnnual.cost, annualPvp: dAnnual.pvp,
@@ -412,9 +430,11 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
         speculative: dCapex.speculative || dAnnual.speculative,
         // Per-SKU relief, summed. The support side counts once per contract
         // year, the licence once.
-        pendingCostRelief: routing.appliesTo === 'cost'
-          ? round2(fam.reliefCapex + fam.reliefAnnual * Math.max(0, years - warrantyYears))
-          : 0,
+        pendingCostRelief: !internal
+          ? round2((capexCost + annualCost * Math.max(0, years - warrantyYears)) * discountPct / 100)
+          : routing.appliesTo === 'cost'
+            ? round2(fam.reliefCapex + fam.reliefAnnual * Math.max(0, years - warrantyYears))
+            : 0,
         skuDiscounts: fam.discounted,
         capexBelow: belowFloor({ kind: 'capex', cost: dCapex.cost, pvp: dCapex.pvp }),
         annualBelow: belowFloor({ kind: 'sla', cost: dAnnual.cost, pvp: dAnnual.pvp }),
@@ -424,7 +444,8 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
       }
     }).filter(Boolean)
   }, [picked, catalogue, tiersByProduct, region, studies, overrides, itemsByProduct,
-      famSel, productCosts, years, pacsInQuote, suppliers, volumes, rates])
+      famSel, productCosts, years, pacsInQuote, suppliers, volumes, rates,
+      internal, authMap, country])
 
   // The quote seen both ways: what we have, and what we have if the supplier
   // discounts land. The gap between them is the number worth naming.
@@ -741,6 +762,20 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
     // columns, and a distributor reads every column of their own deals —
     // including, until this moved, our transfer price. value_total stays the
     // customer price: what a deal is worth to us is a forecasting decision.
+    // A partner's quote records both sides of it, because the person approving
+    // their discount has to see what we make AND what they make — and their
+    // margin cannot be worked out later from a price list that moves.
+    if (!internal) {
+      const { error: pErr } = await supabase.from('deal_channel').upsert({
+        deal_id: data.id,
+        partner_transfer: totals.cost,      // what they pay us
+        end_customer_price: totals.pvp,     // what their customer pays
+        created_by: profile?.id || null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'deal_id' })
+      if (pErr) logger.error('Partner economics not stored', { error: pErr.message })
+    }
+
     if (channel.applies) {
       const { error: cErr } = await supabase.from('deal_channel').insert({
         deal_id: data.id,
@@ -1130,7 +1165,11 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
               <div className="flex items-start justify-between gap-2">
                 <p className="text-xs font-semibold text-gray-800 leading-tight">{l.product.name}</p>
                 <span className="text-micro text-gray-400 flex-shrink-0 text-right">
-                  {internal && !l.costKnown && <span className="text-amber-700 font-semibold mr-1">{t('qd_cost_unknown')}</span>}
+                  {!l.costKnown && (
+                    <span className="text-amber-700 font-semibold mr-1">
+                      {internal ? t('qd_cost_unknown') : t('qd_no_partner_price')}
+                    </span>
+                  )}
                   {l.priced ? l.tierLabel : t('qd_cost_margin')}
                   {l.priced && l.boundBy !== 'tier' && (
                     <span className="ml-1 font-semibold text-amber-700">
@@ -1187,21 +1226,29 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
                 </div>
               </div>
               ) : (
-                // A partner prices what the customer pays, and nothing else.
-                <div className="grid grid-cols-2 gap-2 items-end">
-                  {!l.isSub && (
-                    <div>
-                      <label className="label">{t('qd_capex_pvp')}</label>
-                      <input className="input text-right font-semibold" type="number" min="0"
-                        value={l.capexPvp} style={{ fontSize: '16px' }}
-                        onChange={e => setField(l.id, 'capexPvp', e.target.value)}/>
-                    </div>
-                  )}
+                // Their cost is our price list to them and is not theirs to
+                // type over; the customer's price is, and the margin between
+                // the two is the number they are actually deciding.
+                <div className="grid grid-cols-[1fr_4.2rem_1fr] gap-2 items-end">
                   <div>
-                    <label className="label">{t('qd_annual_pvp')}</label>
+                    <label className="label">{t('qd_your_cost')}</label>
+                    <p className="input text-right bg-gray-50 text-gray-600 tabular-nums">
+                      {formatK(l.isSub ? l.annualCost : l.capexCost)}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="label">{t('qd_margin_pct')}</label>
+                    <input className="input text-right border-green-200" type="number" min="0" max="99"
+                      value={marginOf(l.isSub ? l.annualCost : l.capexCost,
+                                      l.isSub ? l.annualPvp : l.capexPvp)}
+                      style={{ fontSize: '16px' }}
+                      onChange={e => setMargin(l.id, l.isSub ? 'sla' : 'capex', e.target.value)}/>
+                  </div>
+                  <div>
+                    <label className="label">{t('qd_customer_price')}</label>
                     <input className="input text-right font-semibold" type="number" min="0"
-                      value={l.annualPvp} style={{ fontSize: '16px' }}
-                      onChange={e => setField(l.id, 'annualPvp', e.target.value)}/>
+                      value={l.isSub ? l.annualPvp : l.capexPvp} style={{ fontSize: '16px' }}
+                      onChange={e => setField(l.id, l.isSub ? 'annualPvp' : 'capexPvp', e.target.value)}/>
                   </div>
                 </div>
               )}
@@ -1285,9 +1332,7 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
                   )}
                 </span>
                 <span className="flex gap-3">
-                  {internal && (
-                    <span className="text-green-700 font-semibold">{t('qd_gm')} {formatK(l.grossMargin)} · {l.marginPct}%</span>
-                  )}
+                  <span className="text-green-700 font-semibold">{t('qd_gm')} {formatK(l.grossMargin)} · {l.marginPct}%</span>
                   <span className="font-bold text-gray-900">{formatK(l.pvp)}</span>
                 </span>
               </div>
@@ -1375,31 +1420,24 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
                   size itself off the longest product name, which is what pushed
                   the figures into two lines on a phone. */}
               <colgroup>
-                {internal ? <>
-                  <col style={{ width: '30%' }}/>
-                  <col style={{ width: '19%' }}/>
-                  <col style={{ width: '19%' }}/>
-                  <col style={{ width: '19%' }}/>
-                  <col style={{ width: '13%' }}/>
-                </> : <>
-                  <col style={{ width: '34%' }}/>
-                  <col style={{ width: '24%' }}/>
-                  <col style={{ width: '18%' }}/>
-                  <col style={{ width: '24%' }}/>
-                </>}
+                <col style={{ width: '30%' }}/>
+                <col style={{ width: '19%' }}/>
+                <col style={{ width: '19%' }}/>
+                <col style={{ width: '19%' }}/>
+                <col style={{ width: '13%' }}/>
               </colgroup>
               <thead>
                 <tr className="text-micro text-gray-500 uppercase tracking-wide">
                   <th className="text-left font-semibold py-1 px-1">{t('qd_col_desc')}</th>
-                  {internal && <th className="text-right font-semibold py-1 px-1">{t('qd_col_cost')}</th>}
-                  {/* A partner's economics is the customer's side of the line:
-                      what it lists at, what came off, what is being asked. Ours
-                      is the other side, and neither is the whole picture. */}
-                  {!internal && <th className="text-right font-semibold py-1 px-1">{t('qd_col_list')}</th>}
-                  {!internal && <th className="text-right font-semibold py-1 px-1">{t('qd_col_disc')}</th>}
+                  {/* "Cost" is whatever the person quoting pays: our transfer
+                      price, or our price list to them. Same table, same
+                      arithmetic, and each side sees only their own half. */}
+                  <th className="text-right font-semibold py-1 px-1">
+                    {internal ? t('qd_col_cost') : t('qd_col_your_cost')}
+                  </th>
                   <th className="text-right font-semibold py-1 px-1">{t('qd_col_price')}</th>
-                  {internal && <th className="text-right font-semibold py-1 px-1">{t('qd_col_gm')}</th>}
-                  {internal && <th className="text-right font-semibold py-1 px-1">{t('qd_gm_pct')}</th>}
+                  <th className="text-right font-semibold py-1 px-1">{t('qd_col_gm')}</th>
+                  <th className="text-right font-semibold py-1 px-1">{t('qd_gm_pct')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1408,38 +1446,22 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
                     <td className={`text-left py-1 px-1 truncate ${
                       r.services ? 'text-gray-500 italic' : 'text-gray-800'
                     }`}>{r.name}</td>
-                    {internal && (
-                      <td className="text-right py-1 px-1 text-red-700">
-                        {r.cost > 0 ? `−${formatK(r.cost)}` : '—'}
-                      </td>
-                    )}
-                    {!internal && (
-                      <td className="text-right py-1 px-1 text-gray-500">{formatK(r.list)}</td>
-                    )}
-                    {!internal && (
-                      <td className="text-right py-1 px-1 text-amber-800">
-                        {r.discountPct > 0 ? `−${r.discountPct}%` : '—'}
-                      </td>
-                    )}
+                    <td className="text-right py-1 px-1 text-red-700">
+                      {r.cost > 0 ? `−${formatK(r.cost)}` : '—'}
+                    </td>
                     <td className="text-right py-1 px-1 text-gray-900">{formatK(r.pvp)}</td>
-                    {internal && <td className="text-right py-1 px-1 text-green-700">{formatK(r.gm)}</td>}
-                    {internal && <td className="text-right py-1 px-1 text-green-700">{r.pct}%</td>}
+                    <td className="text-right py-1 px-1 text-green-700">{formatK(r.gm)}</td>
+                    <td className="text-right py-1 px-1 text-green-700">{r.pct}%</td>
                   </tr>
                 ))}
                 <tr className="border-t-2 border-navy/25 font-bold">
                   <td className="text-left py-1.5 px-1 text-navy uppercase text-micro tracking-wide">
                     {t('qd_total')}
                   </td>
-                  {internal && <td className="text-right py-1.5 px-1 text-red-700">−{formatK(table.total.cost)}</td>}
-                  {!internal && <td className="text-right py-1.5 px-1 text-gray-500">{formatK(table.total.list)}</td>}
-                  {!internal && (
-                    <td className="text-right py-1.5 px-1 text-amber-800">
-                      {table.total.given > 0 ? `−${formatK(table.total.given)}` : '—'}
-                    </td>
-                  )}
+                  <td className="text-right py-1.5 px-1 text-red-700">−{formatK(table.total.cost)}</td>
                   <td className="text-right py-1.5 px-1 text-navy">{formatK(table.total.pvp)}</td>
-                  {internal && <td className="text-right py-1.5 px-1 text-green-700">{formatK(table.total.gm)}</td>}
-                  {internal && <td className="text-right py-1.5 px-1 text-green-700">{table.total.pct}%</td>}
+                  <td className="text-right py-1.5 px-1 text-green-700">{formatK(table.total.gm)}</td>
+                  <td className="text-right py-1.5 px-1 text-green-700">{table.total.pct}%</td>
                 </tr>
               </tbody>
             </table>
