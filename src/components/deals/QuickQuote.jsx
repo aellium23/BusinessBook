@@ -21,6 +21,8 @@ import { toEur, rateLabel } from '../../lib/fx'
 import { useFxRates } from '../../hooks/useFxRates'
 import { COUNTRY_MAP, regionForCountry } from '../../constants'
 import { canPrice } from '../../lib/roles'
+import { authMapOf, authorisedProducts, authorisedCountries,
+         hasAuthorisations } from '../../lib/partnerCatalogue'
 import SearchableSelect from '../SearchableSelect'
 import { formatK } from '../ui'
 import { X, Check, ChevronDown, ChevronRight } from 'lucide-react'
@@ -75,6 +77,12 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   const { regions, countryMap, tiersByProduct, error: pricingError } = usePricing()
   const { rates } = useFxRates()
 
+  // Two modes, one screen. Internal is our own sales: cost, margin, channel
+  // economics, the whole pricing surface. A partner gets the same three inputs
+  // and the same speed, over their own authorised catalogue at their own
+  // prices, with nothing of our cost anywhere on it.
+  const internal = canPrice(profile?.role)
+
   // Everything the rep's own account already tells us is filled in up front.
   const defaultBU = ['VGT', 'ECT'].includes(profile?.bu) ? profile.bu : 'VGT'
 
@@ -98,8 +106,8 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   // count is always asked; the rest appear only when something picked is priced
   // on them. See src/lib/volumeUnits.js for why this is not one field.
   const pickedProducts = useMemo(
-    () => picked.map(id => products.find(p => p.id === id)).filter(Boolean),
-    [picked, products]
+    () => picked.map(id => catalogue.find(p => p.id === id)).filter(Boolean),
+    [picked, catalogue]
   )
   const needed = useMemo(() => unitsNeeded(pickedProducts), [pickedProducts])
   const studies = volumes.exam || ''
@@ -119,13 +127,18 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
 
   // The BU's own market first, then its neighbours, then the rest alphabetically.
   const countryOptions = useMemo(() => {
+    // A partner sells where they are authorised. Anywhere else is a deal that
+    // cannot be authorised, not a freedom they are missing.
+    if (!internal) {
+      return authorisedCountries(authMap).map(c => ({ value: c, label: c }))
+    }
     const home = HOME_COUNTRY[defaultBU]
     const top = [home, ...NEARBY.filter(c => c !== home)].filter(Boolean)
     return [
       ...top.map(c => ({ value: c, label: c })),
       ...ALL_COUNTRIES.filter(c => !top.includes(c)).map(c => ({ value: c, label: c })),
     ]
-  }, [defaultBU])
+  }, [defaultBU, internal, authMap])
 
   // Latin America is sold through the partner, never direct. The role itself is
   // the partner's own — a Full VAR and a Reseller earn different rates — so the
@@ -146,26 +159,58 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   const [productCosts, setProductCosts] = useState({})
   const [suppliers, setSuppliers] = useState({})
 
+  // What this partner may sell, and where. Set by an admin in Permissions →
+  // Companies, one row per product per country.
+  const [auths, setAuths] = useState([])
   useEffect(() => {
+    if (internal || !profile?.company_id) return
+    supabase.from('company_product_authorizations')
+      .select('product_id, country, price, active')
+      .eq('company_id', profile.company_id)
+      .then(({ data }) => setAuths(data || []))
+  }, [internal, profile?.company_id])
+  const authMap = useMemo(() => authMapOf(auths), [auths])
+
+  // A partner sells from their own country. Picking somebody else's is not a
+  // freedom they are missing — it is a deal that cannot be authorised.
+  useEffect(() => {
+    if (internal) return
+    const countries = authorisedCountries(authMap)
+    if (countries.length && !countries.includes(country)) setCountry(countries[0])
+  }, [internal, authMap])
+
+  useEffect(() => {
+    if (!internal) return
     supabase.from('suppliers').select('code, name, kind, request_channel')
       .then(({ data }) => setSuppliers(Object.fromEntries((data || []).map(s => [s.code, s]))))
   }, [])
   useEffect(() => {
+    if (!internal) return
     let alive = true
     fetchProductCosts().then(({ costs }) => { if (alive) setProductCosts(costs) })
     return () => { alive = false }
-  }, [])
+  }, [internal])
+
+  // The catalogue this quote is written from: ours, or theirs.
+  const catalogue = useMemo(
+    () => (internal ? products : authorisedProducts(products, authMap, country)),
+    [internal, products, authMap, country]
+  )
 
   const headline = useMemo(
-    () => HEADLINE_SKUS.map(sku => products.find(p => p.sku === sku)).filter(Boolean),
-    [products]
+    () => (internal
+      ? HEADLINE_SKUS.map(sku => catalogue.find(p => p.sku === sku)).filter(Boolean)
+      // A partner's list is short enough to be the whole of it: four products
+      // behind a "+ 2 more" would be a fold for nothing.
+      : catalogue),
+    [internal, catalogue]
   )
   // Expanding "more" used to dump the whole catalogue as one unbroken run of
   // chips. Grouped by category it reads as a handful of short lists.
   const restGroups = useMemo(() => {
     const by = new Map()
-    for (const p of products) {
-      if (HEADLINE_SKUS.includes(p.sku)) continue
+    for (const p of catalogue) {
+      if (!internal || HEADLINE_SKUS.includes(p.sku)) continue
       const key = p.category || 'Other'
       if (!by.has(key)) by.set(key, [])
       by.get(key).push(p)
@@ -173,7 +218,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
     return [...by.entries()]
       .map(([category, items]) => ({ category, items }))
       .sort((a, b) => a.category.localeCompare(b.category))
-  }, [products])
+  }, [catalogue, internal])
   const restCount = useMemo(
     () => restGroups.reduce((n, g) => n + g.items.length, 0),
     [restGroups]
@@ -198,8 +243,8 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   // A VNA bought alongside Synapse PACS is licensed at about half the price.
   // If PACS is on this quote the answer is known; otherwise the rep is asked.
   const pacsInQuote = useMemo(
-    () => picked.some(id => products.find(p => p.id === id)?.sku === 'SYN-PACS'),
-    [picked, products]
+    () => picked.some(id => catalogue.find(p => p.id === id)?.sku === 'SYN-PACS'),
+    [picked, catalogue]
   )
   const selectionFor = id => ({ bundle: pacsInQuote, ...(famSel[id] || {}) })
 
@@ -219,7 +264,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   const lines = useMemo(() => {
     const qty = parseFloat(studies) || 0
     return picked.map(id => {
-      const product = products.find(p => p.id === id)
+      const product = catalogue.find(p => p.id === id)
       if (!product) return null
 
       const tiers = tiersByProduct[id]
@@ -317,7 +362,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         ...term,
       }
     }).filter(Boolean)
-  }, [picked, products, tiersByProduct, region, studies, overrides, itemsByProduct,
+  }, [picked, catalogue, tiersByProduct, region, studies, overrides, itemsByProduct,
       famSel, productCosts, years, pacsInQuote, suppliers, volumes, rates])
 
   // The quote seen both ways: what we have, and what we have if the supplier
@@ -535,7 +580,10 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       region: regionForCountry(country) || 'Europe',
       stage: 'Lead',
       value_total: totals.pvp,
-      gm_pct: totals.marginPct,
+      // A partner quote has no margin of ours in it — the figures on their
+      // screen are the customer's price. Writing a margin here would be writing
+      // a number nobody computed.
+      gm_pct: internal ? totals.marginPct : null,
       currency: 'EUR',
       // A rate is a snapshot. The project's rule for deals applies here: store
       // it, so a rate change tomorrow cannot silently reprice a quote sent
@@ -543,6 +591,10 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       exchange_rate: lines.find(l => l.listed?.fx?.converted && l.listed.fx.rate !== 1)?.listed.fx.rate ?? null,
       company_id: profile?.company_id || null,
       created_by: profile?.id || null,
+      ...(internal ? {} : {
+        sales_type: 'External',
+        sales_owner: profile?.full_name || profile?.email || null,
+      }),
     }).select('id, client, bu, country').single()
 
     if (e) { setSaving(false); setError(`${t('qd_err_create')} ${e.message}`); return }
@@ -573,8 +625,8 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       license_type: l.product.price_unit === 'study' ? 'per_volume' : 'flat',
       quantity: 1,
       volume: parseFloat(studies) || null,
-      cost_price: l.cost,
-      margin_pct: l.marginPct,
+      cost_price: internal ? l.cost : null,
+      margin_pct: internal ? l.marginPct : null,
       unit_price: l.capexPvp || l.pvp,
       net_price: l.capexPvp || l.pvp,
       annual_fee: l.annualPvp,
@@ -649,20 +701,10 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
     )
   }
 
-  // Defence in depth. The Deals page does not offer this screen to a
-  // distributor, and if some future route does, it must still not open: every
-  // figure on it is our cost, our margin or our channel economics.
-  if (!canPrice(profile?.role)) {
-    return (
-      <div className="space-y-3">
-        <p className="text-sm text-gray-700">{t('qd_internal_only')}</p>
-        {onFullForm && (
-          <button type="button" onClick={onFullForm} className="btn-primary">
-            {t('qd_full_form')}
-          </button>
-        )}
-      </div>
-    )
+  // A partner with nothing authorised has nothing to quote, and saying so is
+  // more use than an empty catalogue they cannot explain.
+  if (!internal && !hasAuthorisations(authMap)) {
+    return <p className="text-sm text-gray-700">{t('qd_no_auth')}</p>
   }
 
   return (
@@ -736,6 +778,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         <label className="label">{t('qd_products')}</label>
         <div className="flex flex-wrap gap-1.5">
           {headline.map(p => <Chip key={p.id} p={p}/>)}
+          {internal && (<>
           {/* Services sit with the favourites because they are on most deals
               and were previously reachable only as a side effect of a warranty
               year — which meant a PACS-less project could not quote them. */}
@@ -745,7 +788,8 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
             }`}>
             {servicesOn && <Check size={11} className="inline mr-1 -mt-0.5"/>}{t('qd_services_short')}
           </button>
-          {!showAll && restCount > 0 && (
+          </>)}
+          {internal && !showAll && restCount > 0 && (
             <button type="button" onClick={() => setShowAll(true)}
               className="min-h-tap px-3 py-1.5 rounded-lg border border-dashed border-gray-300 text-xs text-gray-500">
               + {restCount} {t('qd_more')}
@@ -753,7 +797,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
           )}
         </div>
 
-        {showAll && (
+        {internal && showAll && (
           <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
             {restGroups.map(g => (
               <div key={g.category}>
@@ -771,7 +815,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         {/* Families that carry a supplier price list open a drill-down: which
             SKUs, at what cost. Families without one are quoted from the
             catalogue row alone and show nothing here. */}
-        {picked.map(id => {
+        {internal && picked.map(id => {
           const items = itemsByProduct[id]
           if (!items?.length) return null
           const product = products.find(p => p.id === id)
@@ -792,7 +836,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
 
       {/* Who sells this, and what protecting their margin costs us.
           Only where there is a published list to measure a concession against. */}
-      {channel.rows > 0 && (
+      {internal && channel.rows > 0 && (
         <div className="border border-gray-200 rounded-xl p-3 space-y-2 bg-white">
           <div className="flex items-end gap-2 flex-wrap">
             <div>
@@ -918,7 +962,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
               <div className="flex items-start justify-between gap-2">
                 <p className="text-xs font-semibold text-gray-800 leading-tight">{l.product.name}</p>
                 <span className="text-micro text-gray-400 flex-shrink-0 text-right">
-                  {!l.costKnown && <span className="text-amber-700 font-semibold mr-1">{t('qd_cost_unknown')}</span>}
+                  {internal && !l.costKnown && <span className="text-amber-700 font-semibold mr-1">{t('qd_cost_unknown')}</span>}
                   {l.priced ? l.tierLabel : t('qd_cost_margin')}
                   {l.priced && l.boundBy !== 'tier' && (
                     <span className="ml-1 font-semibold text-amber-700">
@@ -928,7 +972,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                 </span>
               </div>
 
-              {!l.isSub && (
+              {internal && !l.isSub && (
                 <div className="grid grid-cols-[1fr_4.2rem_1fr] gap-2 items-end">
                   <div>
                     <label className="label">{t('qd_capex_cost')}</label>
@@ -952,6 +996,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                 </div>
               )}
 
+              {internal ? (
               <div className="grid grid-cols-[1fr_4.2rem_1fr] gap-2 items-end">
                 <div>
                   <label className="label">{t('qd_annual_cost')}</label>
@@ -973,6 +1018,25 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                     style={{ fontSize: '16px' }}/>
                 </div>
               </div>
+              ) : (
+                // A partner prices what the customer pays, and nothing else.
+                <div className="grid grid-cols-2 gap-2 items-end">
+                  {!l.isSub && (
+                    <div>
+                      <label className="label">{t('qd_capex_pvp')}</label>
+                      <input className="input text-right font-semibold" type="number" min="0"
+                        value={l.capexPvp} style={{ fontSize: '16px' }}
+                        onChange={e => setField(l.id, 'capexPvp', e.target.value)}/>
+                    </div>
+                  )}
+                  <div>
+                    <label className="label">{t('qd_annual_pvp')}</label>
+                    <input className="input text-right font-semibold" type="number" min="0"
+                      value={l.annualPvp} style={{ fontSize: '16px' }}
+                      onChange={e => setField(l.id, 'annualPvp', e.target.value)}/>
+                  </div>
+                </div>
+              )}
 
               {/* The discount is opt-in. Most quotes do not carry one, and a
                   percentage box with a reason box under it, on every line, was
@@ -1030,7 +1094,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                 </div>
               )}
 
-              {(l.capexBelow || l.annualBelow) && (
+              {internal && (l.capexBelow || l.annualBelow) && (
                 <p className="text-micro text-red-700">
                   {t('qd_below_floor')}{' '}
                   {l.capexBelow && `${t('qd_capex_pvp')} ≥ ${formatK(recommendedCapexPvp(l.capexCost))}`}
@@ -1051,7 +1115,9 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                   )}
                 </span>
                 <span className="flex gap-3">
-                  <span className="text-green-700 font-semibold">{t('qd_gm')} {formatK(l.grossMargin)} · {l.marginPct}%</span>
+                  {internal && (
+                    <span className="text-green-700 font-semibold">{t('qd_gm')} {formatK(l.grossMargin)} · {l.marginPct}%</span>
+                  )}
                   <span className="font-bold text-gray-900">{formatK(l.pvp)}</span>
                 </span>
               </div>
@@ -1062,7 +1128,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
 
       {/* Implementation services, priced like everything else on this screen:
           effort in, cost from the day rate, margin, price. */}
-      {servicesOn && (
+      {internal && servicesOn && (
         <div className="border border-gray-200 rounded-xl p-3 space-y-2">
           <div className="flex items-start justify-between gap-2">
             <p className="text-xs font-semibold text-gray-800">{t('qd_services')}</p>
@@ -1139,19 +1205,24 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                   size itself off the longest product name, which is what pushed
                   the figures into two lines on a phone. */}
               <colgroup>
-                <col style={{ width: '30%' }}/>
-                <col style={{ width: '19%' }}/>
-                <col style={{ width: '19%' }}/>
-                <col style={{ width: '19%' }}/>
-                <col style={{ width: '13%' }}/>
+                {internal ? <>
+                  <col style={{ width: '30%' }}/>
+                  <col style={{ width: '19%' }}/>
+                  <col style={{ width: '19%' }}/>
+                  <col style={{ width: '19%' }}/>
+                  <col style={{ width: '13%' }}/>
+                </> : <>
+                  <col style={{ width: '60%' }}/>
+                  <col style={{ width: '40%' }}/>
+                </>}
               </colgroup>
               <thead>
                 <tr className="text-micro text-gray-500 uppercase tracking-wide">
                   <th className="text-left font-semibold py-1 px-1">{t('qd_col_desc')}</th>
-                  <th className="text-right font-semibold py-1 px-1">{t('qd_col_cost')}</th>
+                  {internal && <th className="text-right font-semibold py-1 px-1">{t('qd_col_cost')}</th>}
                   <th className="text-right font-semibold py-1 px-1">{t('qd_col_price')}</th>
-                  <th className="text-right font-semibold py-1 px-1">{t('qd_col_gm')}</th>
-                  <th className="text-right font-semibold py-1 px-1">{t('qd_gm_pct')}</th>
+                  {internal && <th className="text-right font-semibold py-1 px-1">{t('qd_col_gm')}</th>}
+                  {internal && <th className="text-right font-semibold py-1 px-1">{t('qd_gm_pct')}</th>}
                 </tr>
               </thead>
               <tbody>
@@ -1160,22 +1231,24 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                     <td className={`text-left py-1 px-1 truncate ${
                       r.services ? 'text-gray-500 italic' : 'text-gray-800'
                     }`}>{r.name}</td>
-                    <td className="text-right py-1 px-1 text-red-700">
-                      {r.cost > 0 ? `−${formatK(r.cost)}` : '—'}
-                    </td>
+                    {internal && (
+                      <td className="text-right py-1 px-1 text-red-700">
+                        {r.cost > 0 ? `−${formatK(r.cost)}` : '—'}
+                      </td>
+                    )}
                     <td className="text-right py-1 px-1 text-gray-900">{formatK(r.pvp)}</td>
-                    <td className="text-right py-1 px-1 text-green-700">{formatK(r.gm)}</td>
-                    <td className="text-right py-1 px-1 text-green-700">{r.pct}%</td>
+                    {internal && <td className="text-right py-1 px-1 text-green-700">{formatK(r.gm)}</td>}
+                    {internal && <td className="text-right py-1 px-1 text-green-700">{r.pct}%</td>}
                   </tr>
                 ))}
                 <tr className="border-t-2 border-navy/25 font-bold">
                   <td className="text-left py-1.5 px-1 text-navy uppercase text-micro tracking-wide">
                     {t('qd_total')}
                   </td>
-                  <td className="text-right py-1.5 px-1 text-red-700">−{formatK(table.total.cost)}</td>
+                  {internal && <td className="text-right py-1.5 px-1 text-red-700">−{formatK(table.total.cost)}</td>}
                   <td className="text-right py-1.5 px-1 text-navy">{formatK(table.total.pvp)}</td>
-                  <td className="text-right py-1.5 px-1 text-green-700">{formatK(table.total.gm)}</td>
-                  <td className="text-right py-1.5 px-1 text-green-700">{table.total.pct}%</td>
+                  {internal && <td className="text-right py-1.5 px-1 text-green-700">{formatK(table.total.gm)}</td>}
+                  {internal && <td className="text-right py-1.5 px-1 text-green-700">{table.total.pct}%</td>}
                 </tr>
               </tbody>
             </table>

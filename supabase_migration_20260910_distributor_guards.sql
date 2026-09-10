@@ -247,6 +247,19 @@ drop policy if exists "ddreasons select" on public.deal_discount_reasons;
 create policy "ddreasons select" on public.deal_discount_reasons
   for select using (public.sees_internal_economics());
 
+-- ── 4. A partner's authorised catalogue is their own ───────────────────────
+-- The old policy was "any active profile", so one distributor could read every
+-- other distributor's product list AND the prices agreed with them. With the
+-- quick deal now reading this table to build a partner's catalogue, that is
+-- both a competitor leak and a bigger surface than before.
+--
+-- Our own people still see all of it: an account manager sets these rows.
+drop policy if exists "cpa read" on public.company_product_authorizations;
+create policy "cpa read" on public.company_product_authorizations for select using (
+  public.sees_internal_economics()
+  or company_id = (select company_id from public.profiles where id = auth.uid())
+);
+
 -- ── Prove it ───────────────────────────────────────────────────────────────
 -- Run as a distributor, every one of these must come back empty. Run as
 -- yourself, they come back as before.
@@ -255,3 +268,6 @@ union all select 'deal_open_discounts', count(*) from public.deal_open_discounts
 union all select 'clawbacks', count(*) from public.discount_reason_clawbacks
 union all select 'reason_summary', count(*) from public.discount_reason_summary
 union all select 'partner_summary', count(*) from public.partner_margin_summary;
+
+-- And this one, run as a distributor, must return only their own company.
+select company_id, count(*) from public.company_product_authorizations group by 1;
