@@ -39,6 +39,40 @@ describe('a quote reopens exactly as it was written', () => {
     expect(state.overrides.p2).toBeUndefined()
   })
 
+  it('carries the per-SKU discounts and the family picks, which live nowhere else', () => {
+    // A discount on the Synapse licence or the Oracle compute is not on the
+    // deal line and not in a discount request either — it exists only here.
+    const withSkus = {
+      ...INPUTS,
+      famSel: {
+        p1: { line: 'base', users: '13', itemIds: ['syn-lic', 'oracle'],
+              discounts: { 'syn-lic': '70', oracle: '20' }, bundle: true },
+      },
+    }
+    const back = fromQuoteState(toQuoteState(withSkus))
+    expect(back.famSel.p1.discounts).toEqual({ 'syn-lic': '70', oracle: '20' })
+    expect(back.famSel.p1.itemIds).toEqual(['syn-lic', 'oracle'])
+    expect(back.famSel.p1.bundle).toBe(true)
+    expect(back.famSel.p1.users).toBe('13')
+  })
+
+  it('carries the implementation services line', () => {
+    const back = fromQuoteState(toQuoteState({
+      ...INPUTS, servicesOn: true, manDays: '12', servicesPvp: '15000',
+    }))
+    expect(back.servicesOn).toBe(true)
+    expect(back.manDays).toBe('12')
+    expect(back.servicesPvp).toBe('15000')
+  })
+
+  it('carries a line discount and the reason written beside it', () => {
+    const back = fromQuoteState(toQuoteState({
+      ...INPUTS,
+      overrides: { p1: { discountPct: 15, discountNote: 'Nuance contract at 0.40' } },
+    }))
+    expect(back.overrides.p1).toEqual({ discountPct: 15, discountNote: 'Nuance contract at 0.40' })
+  })
+
   it('stores no figures, only inputs', () => {
     const state = toQuoteState(INPUTS)
     for (const key of ['total', 'pvp', 'cost', 'grossMargin', 'marginPct']) {
