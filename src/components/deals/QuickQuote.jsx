@@ -5,7 +5,8 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { useProducts, fetchProductCosts } from '../../hooks/useProducts'
 import { usePricing } from '../../hooks/usePricing'
 import { useProductItems } from '../../hooks/useProductItems'
-import FamilyItems, { familyEconomics, defaultItemIds } from './FamilyItems'
+import FamilyItems from './FamilyItems'
+import { familyEconomics, defaultItemIds } from '../../lib/familyEconomics'
 import { saveDealProducts } from '../../hooks/useDealProducts'
 import { resolvePrice, pricingRegionForCountry, pvpForMargin } from '../../lib/pricing'
 import { recommendedCapexPvp, recommendedSlaPvp, belowFloor, lineOverTerm,
@@ -145,6 +146,14 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
     })
   }, [picked, itemsByProduct])
 
+  // A VNA bought alongside Synapse PACS is licensed at about half the price.
+  // If PACS is on this quote the answer is known; otherwise the rep is asked.
+  const pacsInQuote = useMemo(
+    () => picked.some(id => products.find(p => p.id === id)?.sku === 'SYN-PACS'),
+    [picked, products]
+  )
+  const selectionFor = id => ({ bundle: pacsInQuote, ...(famSel[id] || {}) })
+
   // Every line has two economics in it and they are kept apart end to end.
   //
   // CAPEX is the licence, bought once, floor 35 %. The annual fee is support,
@@ -166,7 +175,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         : null
       const isSub = SUBSCRIPTION_MODELS.includes(product.pricing_model)
 
-      const fam = familyEconomics(itemsByProduct[id], famSel[id], qty)
+      const fam = familyEconomics(itemsByProduct[id], famSel[id] ? selectionFor(id) : null, qty)
       const o = overrides[id] || {}
 
       const capexCost = o.capexCost !== undefined ? Number(o.capexCost) || 0
@@ -201,7 +210,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       }
     }).filter(Boolean)
   }, [picked, products, tiersByProduct, region, studies, overrides, itemsByProduct,
-      famSel, productCosts, years])
+      famSel, productCosts, years, pacsInQuote])
 
   const totals = useMemo(() => {
     const cost = lines.reduce((n, l) => n + l.cost, 0)
@@ -376,6 +385,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                 items={items}
                 studies={parseFloat(studies) || 0}
                 value={famSel[id] || {}}
+                bundleDefault={pacsInQuote}
                 onChange={v => setFamSel(s => ({ ...s, [id]: v }))}
               />
             </div>

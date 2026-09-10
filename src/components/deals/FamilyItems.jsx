@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { cheapestCcuCombination, groupItems, packageLines } from '../../lib/ccu'
+import { resolveVariant, hasBundleVariant } from '../../lib/familyEconomics'
 import { itemCost } from '../../lib/itemPricing'
 import { formatK } from '../ui'
 import { useTranslation } from '../../hooks/useTranslation'
@@ -28,10 +29,14 @@ const KIND_KEYS = {
  * Only cost is shown here. The sell price is the line's margin applied on top,
  * set one level up in the quote.
  */
-export default function FamilyItems({ items, studies, value, onChange }) {
+export default function FamilyItems({ items, studies, value, onChange, bundleDefault = false }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const groups = useMemo(() => groupItems(items || []), [items])
+
+  // Buying Synapse PACS in the same quote answers the bundle question by
+  // itself; the checkbox is for the site that already owns one.
+  const bundle = value.bundle ?? bundleDefault
 
   // Each package line is its own capacity ladder; combinations stay inside one.
   const lines = useMemo(() => packageLines(items || []), [items])
@@ -106,6 +111,17 @@ export default function FamilyItems({ items, studies, value, onChange }) {
         </div>
       )}
 
+      {hasBundleVariant(items) && (
+        <label className="flex items-start gap-2 text-xs text-gray-700 min-h-tap cursor-pointer">
+          <input type="checkbox" className="mt-0.5" checked={Boolean(bundle)}
+            onChange={e => onChange({ ...value, bundle: e.target.checked })}/>
+          <span>
+            {t('fi_bundle_q')}
+            <span className="block text-micro text-gray-400">{t('fi_bundle_hint')}</span>
+          </span>
+        </label>
+      )}
+
       <button type="button" onClick={() => setOpen(o => !o)}
         className="flex items-center gap-1 text-xs font-semibold text-gray-600 min-h-tap">
         {open ? <ChevronDown size={14}/> : <ChevronRight size={14}/>}
@@ -126,9 +142,10 @@ export default function FamilyItems({ items, studies, value, onChange }) {
                   {t(KIND_KEYS[kind])}
                 </p>
                 <div className="space-y-0.5">
-                  {rows.map(i => {
+                  {rows.filter(i => !i.variant || i.variant === 'standalone').map(i => {
                     const on = picked.includes(i.id)
-                    const c = itemCost(i, { studies, quantity: 1 })
+                    const shown = resolveVariant(items, i, bundle)
+                    const c = itemCost(shown, { studies, quantity: 1 })
                     return (
                       <button key={i.id} type="button" onClick={() => toggle(i.id)}
                         className={`w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg text-left text-xs min-h-tap ${
@@ -163,36 +180,3 @@ export default function FamilyItems({ items, studies, value, onChange }) {
     </div>
   )
 }
-
-/**
- * What a family selection costs, split the way it is sold.
- *
- * `capex` is bought once — the licence, the packages, the hardware. `annual` is
- * the support fee, owed every year the contract runs. They carry different
- * margin floors and land in different places in the forecast, so they are never
- * added together here.
- */
-export function familyEconomics(items, selection, studies) {
-  const empty = { capex: 0, annual: 0 }
-  if (!items?.length || !selection) return empty
-  const lines = packageLines(items)
-  const line = lines.find(l => l.key === selection.line) || (lines.length === 1 ? lines[0] : null)
-  const combo = line
-    ? cheapestCcuCombination(line.packages, parseFloat(selection.users) || 0)
-    : null
-  const manual = (selection.itemIds || [])
-    .map(id => items.find(i => i.id === id))
-    .filter(Boolean)
-    .map(i => itemCost(i, { studies, quantity: 1 }))
-  return {
-    capex: round2((combo?.cost || 0) + manual.reduce((s, l) => s + l.cost, 0)),
-    annual: round2((combo?.annualSupport || 0) + manual.reduce((s, l) => s + l.annualSupport, 0)),
-  }
-}
-
-/** The SKUs a family quotes by default, so a cost appears without hunting. */
-export function defaultItemIds(items) {
-  return (items || []).filter(i => i.is_default).map(i => i.id)
-}
-
-function round2(n) { return Math.round((n + Number.EPSILON) * 100) / 100 }

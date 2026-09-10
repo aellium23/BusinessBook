@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { cheapestCcuCombination, groupItems, packageLines } from '../ccu'
+import { resolveVariant, hasBundleVariant, familyEconomics } from '../familyEconomics'
 
 // The real Synapse 3D base packages, transfer price to FEN, from the HCUS
 // "MI Product Price List SUB 2026 V7.5" price list.
@@ -138,5 +139,59 @@ describe('packageLines', () => {
   it('returns nothing for a family with no capacity packages', () => {
     expect(packageLines([{ kind: 'module', ccu: null }])).toEqual([])
     expect(packageLines([])).toEqual([])
+  })
+})
+
+// The VNA licence at both its prices, as the HCUS list publishes them.
+const VNA = [
+  { id: 'v1', name: 'VNA DICOM LIC 10K STUDIES',  kind: 'module', unit: 'block_10k',
+    variant_group: 'VNA-DICOM-10K', variant: 'standalone', transfer_price: 4168.75, annual_support: 417.45 },
+  { id: 'v2', name: 'VNA DICOM LIC FOR 10K PACS', kind: 'package', unit: 'block_10k',
+    variant_group: 'VNA-DICOM-10K', variant: 'bundle', transfer_price: 2084.95, annual_support: 208.15 },
+  { id: 'x',  name: 'VNA NON-DICOM LIC PER DEPARTMENT', kind: 'module', unit: 'unit',
+    transfer_price: 2518.5, annual_support: 417.45 },
+]
+
+describe('resolveVariant', () => {
+  it('swaps the standalone licence for the bundled one', () => {
+    expect(resolveVariant(VNA, VNA[0], true).id).toBe('v2')
+    expect(resolveVariant(VNA, VNA[0], false).id).toBe('v1')
+  })
+
+  it('swaps back, so unticking the box restores the standalone price', () => {
+    expect(resolveVariant(VNA, VNA[1], false).id).toBe('v1')
+  })
+
+  it('leaves an item with no conditional price alone', () => {
+    expect(resolveVariant(VNA, VNA[2], true).id).toBe('x')
+  })
+
+  it('keeps the item when the group has no such variant', () => {
+    const orphan = { id: 'o', variant_group: 'NOPE', variant: 'standalone' }
+    expect(resolveVariant(VNA, orphan, true).id).toBe('o')
+  })
+
+  it('recognises a family that has a bundle price at all', () => {
+    expect(hasBundleVariant(VNA)).toBe(true)
+    expect(hasBundleVariant([VNA[2]])).toBe(false)
+    expect(hasBundleVariant([])).toBe(false)
+  })
+})
+
+describe('familyEconomics with the bundle', () => {
+  it('halves the VNA cost when Synapse PACS is present', () => {
+    const sel = { itemIds: ['v1'] }
+    const alone = familyEconomics(VNA, { ...sel, bundle: false }, 45000)
+    const withPacs = familyEconomics(VNA, { ...sel, bundle: true }, 45000)
+    // Five 10k blocks either way; only the rate changes.
+    expect(alone.capex).toBe(4168.75 * 5)
+    expect(withPacs.capex).toBe(2084.95 * 5)
+    expect(alone.annual).toBe(417.45 * 5)
+    expect(withPacs.annual).toBe(208.15 * 5)
+  })
+
+  it('keeps capex and annual support apart', () => {
+    const r = familyEconomics(VNA, { itemIds: ['x'] }, 45000)
+    expect(r).toEqual({ capex: 2518.5, annual: 417.45 })
   })
 })
