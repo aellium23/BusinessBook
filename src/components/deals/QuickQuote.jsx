@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { useTranslation } from '../../hooks/useTranslation'
-import { useProducts } from '../../hooks/useProducts'
+import { useProducts, fetchProductCosts } from '../../hooks/useProducts'
 import { usePricing } from '../../hooks/usePricing'
 import { useProductItems } from '../../hooks/useProductItems'
 import FamilyItems, { familyCost } from './FamilyItems'
@@ -87,6 +87,17 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   // The supplier SKUs under whichever families are on the quote.
   const { itemsByProduct } = useProductItems(picked)
 
+  // What we pay for each catalogue product, read through the cost view. It is
+  // the only honest source for a line's cost: `license_fee` is a SELLING price
+  // (the Products screen labels it "Price per Unit / Study"), so using it as a
+  // cost made the margin on any CWM line meaningless.
+  const [productCosts, setProductCosts] = useState({})
+  useEffect(() => {
+    let alive = true
+    fetchProductCosts().then(({ costs }) => { if (alive) setProductCosts(costs) })
+    return () => { alive = false }
+  }, [])
+
   const headline = useMemo(
     () => HEADLINE_SKUS.map(sku => products.find(p => p.sku === sku)).filter(Boolean),
     [products]
@@ -133,9 +144,8 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       // figure on the catalogue row: the rep has picked actual SKUs, so use the
       // sum of them and fall back to license_fee only when nothing is picked.
       const fromItems = familyCost(itemsByProduct[id], famSel[id], qty)
-      const cost = o.cost !== undefined ? o.cost
-        : fromItems > 0 ? fromItems
-        : (Number(product.license_fee) || 0)
+      const known = fromItems > 0 ? fromItems : (Number(productCosts[id]) || 0)
+      const cost = o.cost !== undefined ? Number(o.cost) || 0 : known
       const pvp = o.pvp !== undefined ? o.pvp
         : listed ? listed.net
         : pvpForMargin(cost, DEFAULT_MARGIN_PCT) ?? 0
@@ -146,10 +156,11 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         tierLabel: listed?.tierLabel ?? '—',
         boundBy: listed?.boundBy ?? 'tier',
         priced: Boolean(listed),
+        costKnown: cost > 0,
         ...lineEconomics(cost, pvp),
       }
     }).filter(Boolean)
-  }, [picked, products, tiersByProduct, region, studies, overrides, itemsByProduct, famSel])
+  }, [picked, products, tiersByProduct, region, studies, overrides, itemsByProduct, famSel, productCosts])
 
   const totals = quoteTotals(lines)
 
@@ -321,6 +332,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
               <div className="flex items-start justify-between gap-2">
                 <p className="text-xs font-semibold text-gray-800 leading-tight">{l.product.name}</p>
                 <span className="text-micro text-gray-400 flex-shrink-0">
+                  {!l.costKnown && <span className="text-amber-700 font-semibold mr-1">{t('qd_cost_unknown')}</span>}
                   {l.priced ? l.tierLabel : t('qd_cost_margin')}
                   {l.priced && l.boundBy !== 'tier' && (
                     <span className="ml-1 font-semibold text-amber-700">
@@ -383,7 +395,8 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                 <tr key={l.id} className="border-t border-gray-100">
                   <td className="px-3 py-2 font-medium text-gray-800">{l.product.name}</td>
                   <td className="px-3 py-2 text-gray-500">
-                    {l.priced ? l.tierLabel : <span className="text-gray-400">cost + margin</span>}
+                    {!l.costKnown && <span className="text-amber-700 font-semibold mr-1">{t('qd_cost_unknown')}</span>}
+                    {l.priced ? l.tierLabel : <span className="text-gray-400">{t('qd_cost_margin')}</span>}
                     {l.priced && l.boundBy !== 'tier' && (
                       <span className="ml-1 text-micro font-semibold text-amber-700">
                         {l.boundBy === 'minimum' ? t('qd_bound_min') : t('qd_bound_cap')}
@@ -413,6 +426,39 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
               </tr>
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* The proposal summary. The per-line table answers "what did I price?";
+          this answers "what is this project worth, and what do we make on it?",
+          which is the question the rep is actually asked. */}
+      {lines.length > 0 && (
+        <div className="border-2 border-navy/20 bg-navy/[0.04] rounded-xl p-3 space-y-2">
+          <p className="text-xs font-bold text-navy uppercase tracking-wide">{t('qd_summary')}</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div>
+              <p className="text-micro text-gray-500">{t('qd_total_pvp')}</p>
+              <p className="text-base font-bold text-navy tabular-nums">{formatK(totals.pvp)}</p>
+            </div>
+            <div>
+              <p className="text-micro text-gray-500">{t('qd_total_cost')}</p>
+              <p className="text-base font-semibold text-gray-700 tabular-nums">{formatK(totals.cost)}</p>
+            </div>
+            <div>
+              <p className="text-micro text-gray-500">{t('qd_col_gm')}</p>
+              <p className="text-base font-bold text-green-700 tabular-nums">{formatK(totals.grossMargin)}</p>
+            </div>
+            <div>
+              <p className="text-micro text-gray-500">{t('qd_gm_pct')}</p>
+              <p className="text-base font-bold text-green-700 tabular-nums">{totals.marginPct}%</p>
+            </div>
+          </div>
+          <p className="text-micro text-gray-500">{lines.length} {t('qd_n_products')}</p>
+          {lines.some(l => !l.costKnown) && (
+            <p className="text-micro text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
+              {t('qd_cost_warning')}
+            </p>
+          )}
         </div>
       )}
 
