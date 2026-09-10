@@ -65,12 +65,14 @@ begin
       add constraint ddreasons_tender_check
       check (reason <> 'tender' or coalesce(bidder_count, 0) >= 3);
   end if;
-  -- Everything except the bundle has to carry something.
-  if not exists (select 1 from pg_constraint where conname = 'ddreasons_evidence_check') then
-    alter table public.deal_discount_reasons
-      add constraint ddreasons_evidence_check
-      check (reason = 'bundle' or length(coalesce(evidence, '')) > 0);
-  end if;
+  -- Every reason carries something, the bundle included: a discount with an
+  -- empty evidence cell is not a discount, it is an opinion. The bundle's cell
+  -- is filled from the products on the order form, so this costs nobody
+  -- anything and closes the door to a row that arrives without one.
+  alter table public.deal_discount_reasons drop constraint if exists ddreasons_evidence_check;
+  alter table public.deal_discount_reasons
+    add constraint ddreasons_evidence_check
+    check (length(coalesce(evidence, '')) > 0);
 end $$;
 
 create index if not exists ddreasons_deal_idx on public.deal_discount_reasons(deal_id);
