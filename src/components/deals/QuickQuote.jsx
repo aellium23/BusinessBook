@@ -660,10 +660,13 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
     const forApproval = lines
       .filter(l => l.routing.appliesTo === 'price' && l.ladder?.needsRequest)
       .map(l => ({ line: l, sku: null }))
-    const discounted = [...external, ...forApproval]
-    if (discounted.length) {
+    // Named for what it is, not for the helper one scope up: `discounted` is a
+    // predicate this function calls before this line, and a const shadowing it
+    // here put that call in the temporal dead zone.
+    const toRaise = [...external, ...forApproval]
+    if (toRaise.length) {
       const { error: reqErr } = await supabase.from('deal_discount_requests').insert(
-        discounted.map(({ line: l, sku }) => ({
+        toRaise.map(({ line: l, sku }) => ({
           deal_id: data.id,
           product_id: l.id,
           requested_by: profile?.id || null,
