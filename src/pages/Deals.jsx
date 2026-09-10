@@ -736,7 +736,14 @@ export default function Deals() {
           <QuickQuote deal={editDeal}
             onCancel={() => { setQuoteOpen(false); setEditDeal(null) }}
             onCreated={() => { setQuoteOpen(false); setEditDeal(null); refetch() }}
-            onFullForm={() => { setQuoteOpen(false); setFormOpen(true) }}/>
+            onFullForm={(saved) => {
+              // A new quote saves itself on the way across and hands the deal
+              // it just created to the form, so nothing typed is lost.
+
+              if (saved?.id) setEditDeal(saved)
+              setQuoteOpen(false); setFormOpen(true)
+              if (saved?.id) refetch()
+            }}/>
         </Modal>
       )}
 

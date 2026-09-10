@@ -20,7 +20,8 @@ import { partnerEconomics, CHANNEL_ROLES, NAMED_PROGRAMMES } from '../../lib/par
 import { unitsNeeded, quantityFor } from '../../lib/volumeUnits'
 import { toEur, rateLabel } from '../../lib/fx'
 import { useFxRates } from '../../hooks/useFxRates'
-import { COUNTRY_MAP, regionForCountry } from '../../constants'
+import { COUNTRY_MAP, regionForCountry, STAGES } from '../../constants'
+import { getAllowedTransitions } from '../../lib/stateMachine'
 import { canPrice } from '../../lib/roles'
 import { toQuoteState, fromQuoteState, rebuildFrom } from '../../lib/quoteState'
 import { authMapOf, authorisedProducts, authorisedCountries,
@@ -97,6 +98,7 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
   const [years, setYears]     = useState(DEFAULT_TERM)
   const [manDays, setManDays] = useState('')
   const [view, setView] = useState('quoted')       // which reading is on screen
+  const [stage, setStage] = useState('Lead')
   const [discOpen, setDiscOpen] = useState({})     // line id -> discount asked
   const [servicesOn, setServicesOn] = useState(false)
   const [servicesTouched, setTouched] = useState(false)
@@ -116,6 +118,7 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
     if (!deal?.id) return
     let alive = true
     setClient(deal.client || '')
+    if (deal.stage) setStage(deal.stage)
     if (deal.country) setCountry(deal.country)
 
     supabase.from('deal_quote').select('state').eq('deal_id', deal.id).maybeSingle()
@@ -221,6 +224,14 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
   // screen asks rather than assuming one, and says why it is asking.
   const salesRegion = regionForCountry(country)
   const partnerTerritory = salesRegion === 'LATAM'
+
+  // On an existing deal the stage may only move where the state machine allows.
+  // A quote screen is not the place to invent a transition the pipeline forbids.
+  const stageOptions = useMemo(() => {
+    if (!deal?.id) return STAGES
+    const allowed = getAllowedTransitions('deal', deal.stage)
+    return STAGES.filter(x => allowed.includes(x))
+  }, [deal?.id, deal?.stage])
 
   const regionCode = pricingRegionForCountry(countryMap, country)
   const region = regionCode ? regions[regionCode] : null
@@ -575,6 +586,10 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
       return {
         id: l.id, name: l.product.name, cost, pvp, gm,
         pct: pvp > 0 ? Math.round((gm / pvp) * 1000) / 10 : 0,
+        // The customer's side of the line, which is a partner's whole economics
+        // and worth showing our own people too: what it lists at, what came off.
+        list: round2(l.undiscounted.pvp),
+        discountPct: l.discountPct,
       }
     })
 
@@ -583,15 +598,22 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
         id: 'services', name: t('qd_services_short'), services: true,
         cost: round2(services.cost), pvp: round2(services.pvp),
         gm: round2(services.grossMargin), pct: services.marginPct,
+        list: round2(services.pvp), discountPct: 0,
       })
     }
 
     const cost = round2(rows.reduce((n, r) => n + r.cost, 0))
     const pvp = round2(rows.reduce((n, r) => n + r.pvp, 0))
+    const list = round2(rows.reduce((n, r) => n + (r.list || 0), 0))
     const gm = round2(pvp - cost)
     return {
       rows,
-      total: { cost, pvp, gm, pct: pvp > 0 ? Math.round((gm / pvp) * 1000) / 10 : 0 },
+      total: {
+        cost, pvp, gm, list,
+        pct: pvp > 0 ? Math.round((gm / pvp) * 1000) / 10 : 0,
+        // What the discount cost, in money rather than in percent.
+        given: round2(Math.max(0, list - pvp)),
+      },
     }
   }, [lines, mode, services, servicesOn, t])
 
@@ -611,28 +633,46 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
 
   const marginOf = (cost, pvp) => (pvp > 0 ? Math.round(((pvp - cost) / pvp) * 1000) / 10 : 0)
 
-  async function create() {
-    try { await createDeal() } catch (err) {
+  /**
+   * The other view of the same deal.
+   *
+   * A quote that has not been saved has nowhere to switch TO: the full form
+   * reads a deal from the database. So it is saved first — at whatever stage
+   * the rep chose, Lead by default — and the form opens on it. Nothing typed is
+   * lost, which is what "two views" has to mean.
+   */
+  async function switchToFullForm() {
+    if (!deal?.id && (lines.length || quotable)) {
+      const saved = await create({ then: 'form' })
+      if (!saved) return
+      return
+    }
+    onFullForm?.()
+  }
+
+  async function create({ then = 'close' } = {}) {
+    try { return await createDeal({ then }) } catch (err) {
       // A throw here used to reach nobody: the click did nothing, the button
       // did not even go into its saving state, and the screen said as much as
       // it would have if the button were not wired up at all.
       logger.error('Quick deal failed', { error: err?.message })
       setSaving(false)
       setError(`${t('qd_err_create')} ${err?.message || err}`)
+      return false
     }
   }
 
-  async function createDeal() {
-    if (!client.trim()) { setError(t('qd_err_client')); return }
+  async function createDeal({ then = 'close' } = {}) {
+    if (!client.trim()) { setError(t('qd_err_client')); return false }
     // A migration or a training week with no software on it is still a deal.
-    if (!lines.length && !quotable) { setError(t('qd_err_product')); return }
+    if (!lines.length && !quotable) { setError(t('qd_err_product')); return false }
     // A discount nobody explained is refused rather than saved and chased
     // later: once the quote exists the figure is what everyone works from, and
     // the explanation never catches up with it.
     const unexplained = lines.filter(l => discounted(l) && !l.discountNote)
     if (unexplained.length) {
       setError(`${t('qd_err_reason')} ${unexplained.map(l => l.product.name).join(', ')}`)
-      return
+      return false
     }
     setSaving(true); setError(null)
 
@@ -651,6 +691,7 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
       // it, so a rate change tomorrow cannot silently reprice a quote sent
       // today.
       exchange_rate: lines.find(l => l.listed?.fx?.converted && l.listed.fx.rate !== 1)?.listed.fx.rate ?? null,
+      stage,
       ...(internal ? {} : {
         sales_type: 'External',
         sales_owner: profile?.full_name || profile?.email || null,
@@ -665,12 +706,11 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
           .select('id, client, bu, country').single()
       : await supabase.from('deals').insert({
           ...fields,
-          stage: 'Lead',
           company_id: profile?.company_id || null,
           created_by: profile?.id || null,
         }).select('id, client, bu, country').single()
 
-    if (e) { setSaving(false); setError(`${t('qd_err_create')} ${e.message}`); return }
+    if (e) { setSaving(false); setError(`${t('qd_err_create')} ${e.message}`); return false }
 
     // How it was quoted, so it opens again as it was written rather than as
     // somebody's reconstruction of it.
@@ -692,7 +732,7 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
       setQuoteStoreError(qErr.message)
       setSaving(false)
       setError(`${t('qd_err_quote_state')} ${qErr.message}`)
-      return
+      return false
     }
 
     // The channel side of the deal, stored rather than derived: the protected
@@ -712,7 +752,7 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
         end_customer_price: channel.netTotal,
         created_by: profile?.id || null,
       })
-      if (cErr) { setSaving(false); setError(`${t('qd_err_channel')} ${cErr.message}`); return }
+      if (cErr) { setSaving(false); setError(`${t('qd_err_channel')} ${cErr.message}`); return false }
     }
 
     const { error: lineErr } = await saveDealProducts(data.id, lines.map(l => ({
@@ -780,13 +820,16 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
       if (reqErr) {
         setSaving(false)
         setError(`${t('qd_err_discounts')} ${reqErr.message}`)
-        return
+        return false
       }
     }
 
     setSaving(false)
-    if (lineErr) { setError(`${t('qd_err_lines')} ${lineErr.message}`); return }
-    onCreated?.(data)
+    if (lineErr) { setError(`${t('qd_err_lines')} ${lineErr.message}`); return false }
+    // Saved, and then either done or handed to the other view of the same deal.
+    if (then === 'form') onFullForm?.(data)
+    else onCreated?.(data)
+    return true
   }
 
   const Chip = ({ p }) => {
@@ -849,6 +892,18 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
             placeholder={t('qd_country_ph')}
             emptyLabel={t('qd_country_empty')}
           />
+        </div>
+        <div>
+          {/* Where the deal stands. It was only ever settable in the long form,
+              which meant every deal quoted here started as a Lead and stayed
+              one until somebody remembered to go and change it. */}
+          <label className="label">{t('qd_stage')}</label>
+          <select className="select w-32" value={stage}
+            onChange={e => setStage(e.target.value)}>
+            {stageOptions.map(sName => (
+              <option key={sName} value={sName}>{sName}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="label">{t('qd_term')}</label>
@@ -1172,7 +1227,9 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
                             style={{ fontSize: '16px' }}/>}
                     </div>
                     <p className="text-micro text-gray-500 pb-2">
-                      {l.routing.appliesTo === 'price'
+                      {!internal
+                        ? t('qd_disc_partner')
+                        : l.routing.appliesTo === 'price'
                         ? (l.ladder
                             ? <>
                                 <strong className={l.ladder.overCap ? 'text-red-700' : 'text-navy'}>
@@ -1325,14 +1382,21 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
                   <col style={{ width: '19%' }}/>
                   <col style={{ width: '13%' }}/>
                 </> : <>
-                  <col style={{ width: '60%' }}/>
-                  <col style={{ width: '40%' }}/>
+                  <col style={{ width: '34%' }}/>
+                  <col style={{ width: '24%' }}/>
+                  <col style={{ width: '18%' }}/>
+                  <col style={{ width: '24%' }}/>
                 </>}
               </colgroup>
               <thead>
                 <tr className="text-micro text-gray-500 uppercase tracking-wide">
                   <th className="text-left font-semibold py-1 px-1">{t('qd_col_desc')}</th>
                   {internal && <th className="text-right font-semibold py-1 px-1">{t('qd_col_cost')}</th>}
+                  {/* A partner's economics is the customer's side of the line:
+                      what it lists at, what came off, what is being asked. Ours
+                      is the other side, and neither is the whole picture. */}
+                  {!internal && <th className="text-right font-semibold py-1 px-1">{t('qd_col_list')}</th>}
+                  {!internal && <th className="text-right font-semibold py-1 px-1">{t('qd_col_disc')}</th>}
                   <th className="text-right font-semibold py-1 px-1">{t('qd_col_price')}</th>
                   {internal && <th className="text-right font-semibold py-1 px-1">{t('qd_col_gm')}</th>}
                   {internal && <th className="text-right font-semibold py-1 px-1">{t('qd_gm_pct')}</th>}
@@ -1349,6 +1413,14 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
                         {r.cost > 0 ? `−${formatK(r.cost)}` : '—'}
                       </td>
                     )}
+                    {!internal && (
+                      <td className="text-right py-1 px-1 text-gray-500">{formatK(r.list)}</td>
+                    )}
+                    {!internal && (
+                      <td className="text-right py-1 px-1 text-amber-800">
+                        {r.discountPct > 0 ? `−${r.discountPct}%` : '—'}
+                      </td>
+                    )}
                     <td className="text-right py-1 px-1 text-gray-900">{formatK(r.pvp)}</td>
                     {internal && <td className="text-right py-1 px-1 text-green-700">{formatK(r.gm)}</td>}
                     {internal && <td className="text-right py-1 px-1 text-green-700">{r.pct}%</td>}
@@ -1359,6 +1431,12 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
                     {t('qd_total')}
                   </td>
                   {internal && <td className="text-right py-1.5 px-1 text-red-700">−{formatK(table.total.cost)}</td>}
+                  {!internal && <td className="text-right py-1.5 px-1 text-gray-500">{formatK(table.total.list)}</td>}
+                  {!internal && (
+                    <td className="text-right py-1.5 px-1 text-amber-800">
+                      {table.total.given > 0 ? `−${formatK(table.total.given)}` : '—'}
+                    </td>
+                  )}
                   <td className="text-right py-1.5 px-1 text-navy">{formatK(table.total.pvp)}</td>
                   {internal && <td className="text-right py-1.5 px-1 text-green-700">{formatK(table.total.gm)}</td>}
                   {internal && <td className="text-right py-1.5 px-1 text-green-700">{table.total.pct}%</td>}
@@ -1403,11 +1481,13 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
       )}
 
       {onFullForm && (
-        <button type="button" onClick={onFullForm}
+        <button type="button" onClick={switchToFullForm} disabled={saving}
           className="text-xs text-gray-500 underline underline-offset-2 min-h-tap">
-          {/* On an existing deal this is the other view of the same thing, not
-              an escape hatch for fields the quote cannot express. */}
-          {deal?.id ? t('qd_full_detail') : t('qd_full_form')}
+          {/* On an existing deal this is the other view of the same thing. On a
+              new one it saves first, because opening an empty form and throwing
+              away what was typed is not a switch, it is a loss. */}
+          {deal?.id ? t('qd_full_detail')
+            : lines.length || quotable ? t('qd_full_form_save') : t('qd_full_form')}
         </button>
       )}
 
