@@ -663,8 +663,12 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
             </div>
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-micro text-gray-600 pt-1 border-t border-navy/10">
-            <span>{t('qd_one_off')}: <strong className="tabular-nums">{formatK(totals.capexPvp)}</strong></span>
-            <span>{t('qd_recurring')}: <strong className="tabular-nums">{formatK(totals.annualPvp)}</strong> {t('qd_recurring_yr')} {years}</span>
+            {totals.capexPvp > 0 && (
+              <span>{t('qd_one_off')}: <strong className="tabular-nums">{formatK(totals.capexPvp)}</strong></span>
+            )}
+            {totals.annualPvp > 0 && (
+              <span>{t('qd_recurring')}: <strong className="tabular-nums">{formatK(totals.annualPvp)}</strong> {t('qd_recurring_yr')} {years}</span>
+            )}
             <span>{lines.length} {t('qd_n_products')}</span>
           </div>
           {views.hasPending && (
