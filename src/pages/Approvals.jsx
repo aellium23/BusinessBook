@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../components/Toast'
 import { formatK, Spinner, EmptyState } from '../components/ui'
+import { approvalImpact } from '../lib/approvalImpact'
 import { CheckCircle, XCircle, RefreshCw, Clock, ShieldCheck } from 'lucide-react'
 import CostRequestWorklist from '../components/approvals/CostRequestWorklist'
 
@@ -19,6 +20,7 @@ export default function Approvals() {
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('pending')
+  const [channel, setChannel] = useState({})
 
   const myBrands = Array.isArray(profile?.approves_brands) ? profile.approves_brands : []
 
@@ -29,6 +31,17 @@ export default function Approvals() {
       .in('brand', myBrands)
       .order('created_at', { ascending: false })
     setRequests(data || [])
+
+    // What the partner pays us and what their customer pays. Without the
+    // second, an approver is looking at a percentage and guessing at whether
+    // the deal behind it is worth funding.
+    const dealIds = [...new Set((data || []).map(r => r.deal_id).filter(Boolean))]
+    if (dealIds.length) {
+      const { data: ch } = await supabase.from('deal_channel')
+        .select('deal_id, partner_transfer, end_customer_price')
+        .in('deal_id', dealIds)
+      setChannel(Object.fromEntries((ch || []).map(c => [c.deal_id, c])))
+    }
     setLoading(false)
   }
 
@@ -107,14 +120,16 @@ export default function Approvals() {
         <EmptyState icon="✅" title="Nothing here" description="No requests in this status."/>
       ) : (
         <div className="space-y-3">
-          {filtered.map(req => <ApprovalCard key={req.id} req={req} onRespond={respond}/>)}
+          {filtered.map(req => (
+            <ApprovalCard key={req.id} req={req} channel={channel[req.deal_id]} onRespond={respond}/>
+          ))}
         </div>
       )}
     </div>
   )
 }
 
-function ApprovalCard({ req, onRespond }) {
+function ApprovalCard({ req, onRespond, channel }) {
   const [open, setOpen] = useState(false)
   const [status, setStatus] = useState('approved')
   const [pct, setPct] = useState(String(req.requested_pct))
@@ -122,6 +137,14 @@ function ApprovalCard({ req, onRespond }) {
   const [saving, setSaving] = useState(false)
   const st = STATUS[req.status] || STATUS.pending
   const Icon = st.icon
+
+  // The two sides of the decision, moving with whatever is typed in the box:
+  // what it costs us, and what it does for them.
+  const impact = approvalImpact({
+    transfer: channel?.partner_transfer,
+    endCustomerPrice: channel?.end_customer_price,
+    requestedPct: open ? pct : req.requested_pct,
+  })
 
   async function submit() {
     setSaving(true)
@@ -149,6 +172,41 @@ function ApprovalCard({ req, onRespond }) {
           {req.deal?.country} · {formatK(req.deal?.value_total || 0)}
         </p>
       </div>
+
+      {impact.known && (
+        <div className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 space-y-1">
+          <div className="grid grid-cols-2 gap-2 text-micro">
+            <div>
+              <p className="text-gray-500">Our revenue</p>
+              <p className="text-sm font-bold text-navy tabular-nums">
+                {formatK(impact.ourRevenueIfGranted)}
+              </p>
+              {impact.given > 0 && (
+                <p className="text-red-700 font-semibold tabular-nums">−{formatK(impact.given)}</p>
+              )}
+            </div>
+            <div>
+              <p className="text-gray-500">Partner margin</p>
+              <p className={`text-sm font-bold tabular-nums ${
+                impact.partnerMarginIfGranted < 0 ? 'text-red-700' : 'text-green-700'
+              }`}>
+                {formatK(impact.partnerMarginIfGranted)} · {impact.partnerMarginPctIfGranted}%
+              </p>
+              {impact.pct > 0 && (
+                <p className="text-gray-400 tabular-nums">from {impact.partnerMarginPct}%</p>
+              )}
+            </div>
+          </div>
+          <p className="text-micro text-gray-400">
+            Customer pays {formatK(impact.endCustomerPrice)}
+          </p>
+          {impact.underwater && (
+            <p className="text-micro text-red-700 font-semibold">
+              The partner is quoting below what they pay us.
+            </p>
+          )}
+        </div>
+      )}
 
       {req.justification && (
         <p className="text-xs text-gray-600 bg-white rounded px-2 py-1.5 border border-gray-100">
