@@ -424,8 +424,12 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
                           const k = `${s.cycle}-${s.bu}-${s.pl_key}`
                           if (!latest[k]) latest[k] = s
                         }
+                        // The inner reduce started from `ms`, its own
+                        // accumulator, which does not exist yet when the initial
+                        // value is evaluated. It threw on every render and the
+                        // catch below turned the figure into a dash.
                         return formatK(Object.values(latest).reduce((s, r) =>
-                          MONTHS_K.reduce((ms, m) => ms + (Number(r[m]) || 0), ms), 0) * 1000)
+                          MONTHS_K.reduce((ms, m) => ms + (Number(r[m]) || 0), s), 0) * 1000)
                       } catch { return '—' }
                     })()
                   : '—'}

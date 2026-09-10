@@ -577,12 +577,12 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
   // Services alone are a deal: an implementation, a migration, a training week.
   const quotable = servicesOn && services.pvp > 0
 
+  /** Whether this line has a discount on it at all, ours or the supplier's. */
+  const discounted = l => (l.discountPct > 0 || (l.skuDiscounts?.length || 0) > 0)
+
   // A line whose discount is already set opens itself: a saved figure must
   // never sit behind a button nobody thought to press.
   const discountOpen = l => Boolean(discOpen[l.id]) || discounted(l)
-
-  /** Whether this line has a discount on it at all, ours or the supplier's. */
-  const discounted = l => (l.discountPct > 0 || (l.skuDiscounts?.length || 0) > 0)
 
   /** The discount note is prose, not a number, and must not be parsed as one. */
   function setNote(id, v) {

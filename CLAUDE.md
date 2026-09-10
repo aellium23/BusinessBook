@@ -23,6 +23,9 @@ content. New pages get a new `'/path'` entry. Do not wait to be asked.
 
 ## Git
 - Build (`npx vite build`) before every commit; keep `npm run test` green.
+  `npm run test` runs the linter first: it is the only check that sees a name
+  used before it exists or a helper called without being imported, both of which
+  compile and both of which have reached production.
 - Push to BOTH remotes: `gitlab` (Vercel deploys from here) and `origin`.
 - SQL migrations: paste the runnable SQL in chat for the user to run; include
   `DROP FUNCTION IF EXISTS` before recreating functions with changed signatures.
