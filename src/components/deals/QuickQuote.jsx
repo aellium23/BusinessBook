@@ -259,9 +259,12 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         annualCost: dAnnual.cost, annualPvp: dAnnual.pvp,
         discountPct, routing, ladder,
         speculative: dCapex.speculative || dAnnual.speculative,
-        pendingCostRelief: dCapex.speculative
-          ? round2((capexCost + annualCost * years) * (discountPct / 100))
+        // Per-SKU relief, summed. The support side counts once per contract
+        // year, the licence once.
+        pendingCostRelief: routing.appliesTo === 'cost'
+          ? round2(fam.reliefCapex + fam.reliefAnnual * years)
           : 0,
+        skuDiscounts: fam.discounted,
         capexBelow: belowFloor({ kind: 'capex', cost: dCapex.cost, pvp: dCapex.pvp }),
         annualBelow: belowFloor({ kind: 'sla', cost: dAnnual.cost, pvp: dAnnual.pvp }),
         costKnown: capexCost > 0 || annualCost > 0,
@@ -345,15 +348,23 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
     // deal — the deal is saved; the rep is told what did not get raised.
     // Nothing to raise where nobody signs. A request approved by default would
     // bury the ones that need a decision.
-    const discounted = lines.filter(l =>
-      l.routing.appliesTo === 'cost' ? l.discountPct > 0 : l.ladder?.needsRequest)
+    // One row per SKU on the supplier side: HCUS opens a case per part number,
+    // and "Synapse licence 70%" and "Oracle 20%" are two different asks.
+    const external = lines.flatMap(l =>
+      l.routing.appliesTo === 'cost'
+        ? (l.skuDiscounts || []).map(d => ({ line: l, sku: d }))
+        : [])
+    const internal = lines
+      .filter(l => l.routing.appliesTo === 'price' && l.ladder?.needsRequest)
+      .map(l => ({ line: l, sku: null }))
+    const discounted = [...external, ...internal]
     if (discounted.length) {
       const { error: reqErr } = await supabase.from('deal_discount_requests').insert(
-        discounted.map(l => ({
+        discounted.map(({ line: l, sku }) => ({
           deal_id: data.id,
           product_id: l.id,
           requested_by: profile?.id || null,
-          requested_pct: l.ladder ? l.ladder.pctOff : l.discountPct,
+          requested_pct: sku ? sku.pct : (l.ladder ? l.ladder.pctOff : l.discountPct),
           approval_level: l.ladder?.level || null,
           brand: l.product.brand || null,
           supplier_code: l.product.supplier_code || null,
@@ -361,8 +372,14 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
           channel: l.routing.channel,
           status: l.routing.initialStatus,
           scope: 'both',
-          value_at_risk: l.pendingCostRelief || null,
-          justification: `${client.trim()} · ${l.product.name}`,
+          value_at_risk: sku
+            ? round2(sku.reliefCapex + sku.reliefAnnual * years)
+            : (l.pendingCostRelief || null),
+          // The request names the part number, because that is what gets typed
+          // into the supplier's system.
+          justification: sku
+            ? `${client.trim()} · ${sku.item.supplier_sku || ''} ${sku.item.description || sku.item.name}`.trim()
+            : `${client.trim()} · ${l.product.name}`,
         }))
       )
       if (reqErr) {
@@ -399,7 +416,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       )}
 
       {/* The three inputs that drive everything. */}
-      <div className="grid grid-cols-2 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-end">
+      <div className="grid grid-cols-2 sm:grid-cols-[minmax(12rem,1fr)_auto_auto_auto] gap-2 items-end">
         <div>
           <label className="label">{t('qd_client')} <span className="text-red-500">*</span></label>
           <SearchableSelect
@@ -422,7 +439,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         </div>
         <div>
           <label className="label">{t('qd_term')}</label>
-          <select className="select w-28" value={years}
+          <select className="select w-24" value={years}
             onChange={e => setYears(parseInt(e.target.value, 10))}>
             {TERM_YEARS.map(y => <option key={y} value={y}>{y} {t('qd_years')}</option>)}
           </select>
@@ -432,7 +449,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
             <label className="label">
               {t(u.labelKey)}{u.primary && <span className="text-red-500"> *</span>}
             </label>
-            <input className="input w-36" type="number" min="0" inputMode="numeric"
+            <input className="input w-28" type="number" min="0" inputMode="numeric"
               value={volumes[u.key] || ''} placeholder={u.placeholder}
               onChange={e => setVolumes(v => ({ ...v, [u.key]: e.target.value }))}
               style={{ fontSize: '16px' }}/>
@@ -527,7 +544,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
               </div>
 
               {!l.isSub && (
-                <div className="grid grid-cols-3 gap-2 items-end">
+                <div className="grid grid-cols-[1fr_3.5rem_1fr] gap-2 items-end">
                   <div>
                     <label className="label">{t('qd_capex_cost')}</label>
                     <input className="input text-right" type="number" min="0" value={l.capexCost}
@@ -550,7 +567,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                 </div>
               )}
 
-              <div className="grid grid-cols-3 gap-2 items-end">
+              <div className="grid grid-cols-[1fr_3.5rem_1fr] gap-2 items-end">
                 <div>
                   <label className="label">{t('qd_annual_cost')}</label>
                   <input className="input text-right" type="number" min="0" value={l.annualCost}
@@ -572,15 +589,17 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 items-end">
+              <div className="grid grid-cols-[3.5rem_1fr] gap-2 items-end">
                 <div>
                   <label className="label">{t('qd_discount')}</label>
-                  <input className="input text-right" type="number" min="0" max="99"
-                    value={l.discountPct}
-                    onChange={e => setField(l.id, 'discountPct', e.target.value)}
-                    style={{ fontSize: '16px' }}/>
+                  {l.routing.appliesTo === 'cost'
+                    ? <p className="text-micro text-gray-400 py-2">{t('qd_disc_per_sku')}</p>
+                    : <input className="input text-right" type="number" min="0" max="99"
+                        value={l.discountPct}
+                        onChange={e => setField(l.id, 'discountPct', e.target.value)}
+                        style={{ fontSize: '16px' }}/>}
                 </div>
-                <p className="col-span-2 text-micro text-gray-500 pb-2">
+                <p className="text-micro text-gray-500 pb-2">
                   {l.routing.appliesTo === 'price'
                     ? (l.ladder
                         ? <>
@@ -660,7 +679,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
               </span>
             </div>
           )}
-          {lines.some(l => l.discountPct > 0) && (
+          {lines.some(l => l.discountPct > 0 || l.skuDiscounts?.length) && (
             <p className="text-micro text-gray-500">{t('qd_worklist_note')}</p>
           )}
           {lines.some(l => !l.costKnown) && (

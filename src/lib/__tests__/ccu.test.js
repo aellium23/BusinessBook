@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { cheapestCcuCombination, groupItems, packageLines } from '../ccu'
-import { resolveVariant, hasBundleVariant, familyEconomics } from '../familyEconomics'
+import { resolveVariant, hasBundleVariant, familyEconomics, discountCeiling } from '../familyEconomics'
 
 // The real Synapse 3D base packages, transfer price to FEN, from the HCUS
 // "MI Product Price List SUB 2026 V7.5" price list.
@@ -192,6 +192,71 @@ describe('familyEconomics with the bundle', () => {
 
   it('keeps capex and annual support apart', () => {
     const r = familyEconomics(VNA, { itemIds: ['x'] }, 45000)
-    expect(r).toEqual({ capex: 2518.5, annual: 417.45 })
+    expect(r).toMatchObject({ capex: 2518.5, annual: 417.45, reliefCapex: 0, reliefAnnual: 0 })
   })
 })
+
+// A Synapse PACS quote: the licence and the Oracle behind it are separate
+// negotiations with HCUS, and the price list carries what each normally allows.
+const PACS_ITEMS = [
+  { id: 'lic', name: 'PACS BASE LIC FOR EACH 10K STUDIES', kind: 'module', unit: 'block_10k',
+    transfer_price: 6320.4, annual_support: 477.25, max_discount_pct: 80 },
+  { id: 'ora', name: 'COMPUTE STD 10K LIC FTYO', kind: 'module', unit: 'block_10k',
+    transfer_price: 1150, annual_support: 184, max_discount_pct: 20 },
+]
+
+describe('familyEconomics with per-SKU discounts', () => {
+  const sel = { itemIds: ['lic', 'ora'] }
+
+  it('costs five 10k blocks of each', () => {
+    const r = familyEconomics(PACS_ITEMS, sel, 45000)
+    expect(r.capex).toBe(round2((6320.4 + 1150) * 5))
+    expect(r.annual).toBe(round2((477.25 + 184) * 5))
+  })
+
+  it('takes 70% off the licence and 20% off the Oracle, not one rate across both', () => {
+    const r = familyEconomics(PACS_ITEMS, { ...sel, discounts: { lic: 70, ora: 20 } }, 45000)
+    expect(r.reliefCapex).toBe(round2(6320.4 * 5 * 0.7 + 1150 * 5 * 0.2))
+    expect(r.discounted).toHaveLength(2)
+    expect(r.discounted.find(d => d.item.id === 'ora').pct).toBe(20)
+  })
+
+  it('never subtracts the relief from the cost — it was asked for, not granted', () => {
+    const plain = familyEconomics(PACS_ITEMS, sel, 45000)
+    const asked = familyEconomics(PACS_ITEMS, { ...sel, discounts: { lic: 70 } }, 45000)
+    expect(asked.capex).toBe(plain.capex)
+    expect(asked.reliefCapex).toBeGreaterThan(0)
+  })
+
+  it('reports relief on the support side separately', () => {
+    const r = familyEconomics(PACS_ITEMS, { ...sel, discounts: { ora: 20 } }, 45000)
+    expect(r.reliefAnnual).toBe(round2(184 * 5 * 0.2))
+    expect(r.reliefCapex).toBe(round2(1150 * 5 * 0.2))
+  })
+
+  it('lists no discount at zero, so nothing is raised needlessly', () => {
+    expect(familyEconomics(PACS_ITEMS, { ...sel, discounts: { lic: 0 } }, 45000).discounted).toEqual([])
+  })
+
+  it('clamps a nonsense percentage rather than inverting the price', () => {
+    const r = familyEconomics(PACS_ITEMS, { itemIds: ['ora'], discounts: { ora: 150 } }, 45000)
+    expect(r.reliefCapex).toBe(round2(1150 * 5))
+    const neg = familyEconomics(PACS_ITEMS, { itemIds: ['ora'], discounts: { ora: -20 } }, 45000)
+    expect(neg.reliefCapex).toBe(0)
+  })
+})
+
+describe('discountCeiling', () => {
+  it('reports what the supplier normally allows on this SKU', () => {
+    expect(discountCeiling(PACS_ITEMS[0])).toBe(80)
+    expect(discountCeiling(PACS_ITEMS[1])).toBe(20)
+  })
+
+  it('is null where nothing is known, rather than a guessed number', () => {
+    expect(discountCeiling({})).toBeNull()
+    expect(discountCeiling({ max_discount_pct: 0 })).toBeNull()
+    expect(discountCeiling(null)).toBeNull()
+  })
+})
+
+function round2(n) { return Math.round((n + Number.EPSILON) * 100) / 100 }
