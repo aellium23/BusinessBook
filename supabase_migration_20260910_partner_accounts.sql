@@ -6,35 +6,40 @@
 -- name was lost", and "New client" inserted nothing at all, silently, because
 -- the write policy refused it and nobody was checking the error.
 --
--- Scoped to their own distributor record: the accounts they created and the
--- ones assigned to them. Not every account in the country — a partner has no
--- business browsing another partner's client list.
+-- The first attempt at this scoped accounts through `distributors.company_id`.
+-- That column does not exist: `distributors` was never linked to `companies` at
+-- all. Which also explains something older — the full form looks a distributor
+-- up that way before creating a client, so that path has been failing since it
+-- was written, for everyone, in silence.
+--
+-- So the link is made where it belongs, on the account itself: an account
+-- created by a partner carries their company, and that is what the policy reads.
+-- Accounts that exist today keep a null company and stay ours — a partner
+-- should not inherit a client list they never built.
 --
 -- Safe to run more than once.
 
--- The link from a profile to its distributor, used by both policies below.
-create or replace function public.my_distributor_ids()
-returns setof uuid language sql stable security definer set search_path = public as $$
-  select d.id
-  from public.distributors d
-  join public.profiles p on p.id = auth.uid()
-  where p.active = true
-    and p.role in ('distributor', 'partner')
-    and d.company_id is not null
-    and d.company_id = p.company_id;
-$$;
+alter table public.accounts
+  add column if not exists company_id uuid references public.companies(id) on delete set null;
 
-revoke all on function public.my_distributor_ids() from anon;
-grant execute on function public.my_distributor_ids() to authenticated;
+comment on column public.accounts.company_id is
+  'The partner company this account belongs to, when a partner created it. Null = ours.';
 
+create index if not exists accounts_company_idx on public.accounts(company_id);
+
+-- Their own company's accounts, and only those.
 drop policy if exists "accounts partner read" on public.accounts;
 create policy "accounts partner read" on public.accounts for select using (
-  accounts.distributor_id in (select public.my_distributor_ids())
+  accounts.company_id is not null
+  and accounts.company_id = (select p.company_id from public.profiles p where p.id = auth.uid())
 );
 
 drop policy if exists "accounts partner insert" on public.accounts;
 create policy "accounts partner insert" on public.accounts for insert with check (
-  accounts.distributor_id in (select public.my_distributor_ids())
+  accounts.company_id is not null
+  and accounts.company_id = (select p.company_id from public.profiles p
+                             where p.id = auth.uid() and p.active = true
+                               and p.role in ('distributor','partner'))
 );
 
 -- They correct a name or a country on their own accounts. Deleting stays with
@@ -42,10 +47,17 @@ create policy "accounts partner insert" on public.accounts for insert with check
 -- history of somebody else's deal with it.
 drop policy if exists "accounts partner update" on public.accounts;
 create policy "accounts partner update" on public.accounts for update using (
-  accounts.distributor_id in (select public.my_distributor_ids())
+  accounts.company_id is not null
+  and accounts.company_id = (select p.company_id from public.profiles p
+                             where p.id = auth.uid() and p.active = true
+                               and p.role in ('distributor','partner'))
 ) with check (
-  accounts.distributor_id in (select public.my_distributor_ids())
+  accounts.company_id is not null
+  and accounts.company_id = (select p.company_id from public.profiles p
+                             where p.id = auth.uid() and p.active = true
+                               and p.role in ('distributor','partner'))
 );
 
--- Signed in as the partner, this must return their own accounts and no others.
-select id, name, bu, country, distributor_id from public.accounts order by name limit 20;
+-- Signed in as the partner, this returns their own accounts and no others.
+-- Signed in as yourself, it returns everything as before.
+select id, name, bu, country, company_id from public.accounts order by name limit 20;

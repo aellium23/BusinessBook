@@ -48,7 +48,10 @@ export default function QuotationFormModal({ quotation, onClose, onSaved, prefil
     })
     supabase.from('products').select('id, name, sku, license_fee, annual_fee').eq('active', true).order('name')
       .then(({ data }) => { if (data) setProducts(data) })
-    supabase.from('distributors').select('id, name, company_id').order('name')
+    // The distributor company itself. It used to read distributors.company_id,
+    // a column that does not exist on that table, so this list was always empty
+    // and the field could never be set.
+    supabase.from('companies').select('id, name').eq('type', 'distributor').order('name')
       .then(({ data }) => { if (data) setDistributors(data) })
   }, [])
 
@@ -195,7 +198,7 @@ export default function QuotationFormModal({ quotation, onClose, onSaved, prefil
           <label className="label">{t('quot_distributor')}</label>
           <select className="select" value={form.company_id || ''} onChange={e => set('company_id', e.target.value || null)}>
             <option value="">— {t('quot_no_distributor')} —</option>
-            {distributors.map(d => <option key={d.id} value={d.company_id}>{d.name}</option>)}
+            {distributors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
         </div>
 
