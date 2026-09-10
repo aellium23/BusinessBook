@@ -82,8 +82,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   const [famSel, setFamSel]   = useState({})        // productId -> { users, itemIds }
   const [years, setYears]     = useState(DEFAULT_TERM)
   const [manDays, setManDays] = useState('')
-  const [byProduct, setByProduct] = useState(false) // per-product detail, closed
-  const [showGranted, setShowGranted] = useState(false)
+  const [view, setView] = useState('quoted')       // which reading is on screen
   const [channelRole, setChannelRole] = useState('direct')
   const [programme, setProgramme] = useState('')   // named programme, above cap
 
@@ -270,6 +269,11 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         annualCost: dAnnual.cost, annualPvp: dAnnual.pvp,
         years, warrantyYears,
       })
+      // The same line before anybody discounted it, so the quote can show what
+      // the concession actually cost rather than only where it landed.
+      const undiscounted = lineOverTerm({
+        capexCost, capexPvp, annualCost, annualPvp, years, warrantyYears,
+      })
 
       return {
         id, product, isSub,
@@ -291,6 +295,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         capexBelow: belowFloor({ kind: 'capex', cost: dCapex.cost, pvp: dCapex.pvp }),
         annualBelow: belowFloor({ kind: 'sla', cost: dAnnual.cost, pvp: dAnnual.pvp }),
         costKnown: capexCost > 0 || annualCost > 0,
+        undiscounted,
         ...term,
       }
     }).filter(Boolean)
@@ -327,8 +332,6 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       netTotal: round2(netTotal),
     }
   }, [lines, years, channelRole, programme])
-
-  useEffect(() => { if (!views.hasPending && showGranted) setShowGranted(false) }, [views.hasPending])
 
   const services = useMemo(() => servicesEconomics({
     manDays,
@@ -372,9 +375,66 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
     setOver(o => ({ ...o, [id]: { ...(o[id] || {}), discountNote: v } }))
   }
 
-  // The figures on screen: what we are quoting, or the same quote as it would
-  // be if every unanswered supplier discount landed. Never both at once.
-  const shown = showGranted && views.hasPending ? granted : totals
+  /**
+   * The readings of this quote that exist, in the order the button cycles.
+   *
+   * Only the ones that mean something: there is no "before the discount" view
+   * on a quote nobody discounted, and no "if the supplier says yes" view when
+   * nothing has been asked of a supplier. A switch with one stop is not a
+   * switch, and the button hides itself.
+   */
+  const viewModes = useMemo(() => {
+    const modes = ['quoted']
+    if (lines.some(l => l.discountPct > 0)) modes.push('list')
+    if (views.hasPending) modes.push('granted')
+    return modes
+  }, [lines, views.hasPending])
+
+  const mode = viewModes.includes(view) ? view : 'quoted'
+  const nextMode = viewModes[(viewModes.indexOf(mode) + 1) % viewModes.length]
+
+  /**
+   * The proposal, line by line, in whichever reading is on screen.
+   *
+   * Implementation services get one row of their own. The revenue for them sits
+   * on whichever line carries the warranty year, and the cost is estimated once
+   * for the whole project — so splitting it across products would be arithmetic
+   * nobody asked for. Consolidated, the rows still add up to the total, which is
+   * the only property this table has to keep.
+   */
+  const table = useMemo(() => {
+    const rows = lines.map(l => {
+      const base = mode === 'list' ? l.undiscounted : l
+      const relief = mode === 'granted' ? (l.pendingCostRelief || 0) : 0
+      const cost = round2(Math.max(0, base.cost - relief))
+      // The services half of this line moves to its own row below.
+      const pvp = round2(base.pvp - base.servicesPvp)
+      const gm = round2(pvp - cost)
+      return {
+        id: l.id, name: l.product.name, cost, pvp, gm,
+        pct: pvp > 0 ? Math.round((gm / pvp) * 1000) / 10 : 0,
+      }
+    })
+
+    const servicesPvp = round2(lines.reduce(
+      (n, l) => n + (mode === 'list' ? l.undiscounted.servicesPvp : l.servicesPvp), 0))
+    if (servicesPvp > 0 || services.cost > 0) {
+      const gm = round2(servicesPvp - services.cost)
+      rows.push({
+        id: 'services', name: t('qd_services'), services: true,
+        cost: round2(services.cost), pvp: servicesPvp, gm,
+        pct: servicesPvp > 0 ? Math.round((gm / servicesPvp) * 1000) / 10 : 0,
+      })
+    }
+
+    const cost = round2(rows.reduce((n, r) => n + r.cost, 0))
+    const pvp = round2(rows.reduce((n, r) => n + r.pvp, 0))
+    const gm = round2(pvp - cost)
+    return {
+      rows,
+      total: { cost, pvp, gm, pct: pvp > 0 ? Math.round((gm / pvp) * 1000) / 10 : 0 },
+    }
+  }, [lines, mode, services.cost, t])
 
   function setField(id, key, v) {
     setOver(o => ({ ...o, [id]: { ...(o[id] || {}), [key]: parseFloat(v) || 0 } }))
@@ -503,35 +563,6 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
     onCreated?.(data)
   }
 
-  /** One product's economics if its pending supplier discounts all land. */
-  function grantedLine(l) {
-    const cost = round2(Math.max(0, l.cost - (l.pendingCostRelief || 0)))
-    const gm = round2(l.pvp - cost)
-    return {
-      pvp: l.pvp, cost, grossMargin: gm,
-      marginPct: l.pvp > 0 ? Math.round((gm / l.pvp) * 1000) / 10 : 0,
-    }
-  }
-
-  /** One scenario of one product, on one line. */
-  const Row = ({ label, v, tone, from }) => {
-    const dGm = from ? v.grossMargin - from.grossMargin : 0
-    return (
-      <div className="mt-0.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-micro tabular-nums">
-        <span className={`font-semibold uppercase tracking-wide w-20 flex-shrink-0 ${
-          tone === 'amber' ? 'text-amber-800' : 'text-navy'
-        }`}>{label}</span>
-        <span className="text-gray-600">{t('qd_total_pvp')} <strong className="text-gray-900">{formatK(v.pvp)}</strong></span>
-        <span className="text-gray-600">{t('qd_total_cost')} <strong className="text-gray-900">{formatK(v.cost)}</strong></span>
-        <span className="text-gray-600">
-          {t('qd_gm')} <strong className="text-green-700">{formatK(v.grossMargin)} · {v.marginPct}%</strong>
-          {Math.abs(dGm) >= 0.05 && (
-            <span className="ml-1 font-semibold text-green-700">+{formatK(Math.abs(dGm))}</span>
-          )}
-        </span>
-      </div>
-    )
-  }
   const Chip = ({ p }) => {
     const on = picked.includes(p.id)
     return (
@@ -917,61 +948,76 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
           which is the question the rep is actually asked. */}
       {lines.length > 0 && (
         <div className="border-2 border-navy/20 bg-navy/[0.04] rounded-xl p-3 space-y-2">
-          <p className="text-xs font-bold text-navy uppercase tracking-wide">{t('qd_summary')}</p>
-
-          {/* One set of figures, and a switch that says which set. Two blocks
-              at once made a rep read four numbers twice on a phone; the number
-              that matters is the one they are quoting, and the other view is a
-              question they ask occasionally. */}
+          {/* The proposal as a table: a row per product, services consolidated
+              into one, and a total that is the sum of the rows. Cost is shown
+              negative because that is what it does to the money. */}
           <div className="flex items-baseline justify-between gap-2 flex-wrap">
-            <p className={`text-micro font-semibold uppercase tracking-wide ${
-              showGranted ? 'text-amber-800' : 'text-navy'
+            <p className={`text-xs font-bold uppercase tracking-wide ${
+              mode === 'granted' ? 'text-amber-800' : 'text-navy'
             }`}>
-              {showGranted ? t('qd_view_granted') : t('qd_view_real')}
+              {/* Calling it the discounted view when nothing is discounted
+                  would be the sort of small lie that costs trust in the rest. */}
+              {mode === 'quoted' && !viewModes.includes('list')
+                ? t('qd_view_quoted')
+                : mode === 'quoted' ? t('qd_view_discounted') : t(`qd_view_${mode}`)}
             </p>
-            {views.hasPending && (
-              <button type="button" onClick={() => setShowGranted(v => !v)}
-                className="text-micro font-semibold text-navy underline underline-offset-2 min-h-tap">
-                {showGranted ? t('qd_view_back') : t('qd_view_switch')}
-              </button>
-            )}
+            <p className="text-micro text-gray-500">
+              {t('qd_contract_duration')} ({years}{t('qd_years_short')})
+            </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <div>
-              <p className="text-micro text-gray-500">{t('qd_total_pvp')}</p>
-              <p className={`text-base font-bold tabular-nums ${shown === totals ? 'text-navy' : 'text-amber-900'}`}>
-                {formatK(shown.pvp)}
-              </p>
-            </div>
-            <div>
-              <p className="text-micro text-gray-500">{t('qd_total_cost')}</p>
-              <p className="text-base font-semibold text-gray-700 tabular-nums">{formatK(shown.cost)}</p>
-              {showGranted && (
-                <p className="text-micro font-semibold text-green-700 tabular-nums">
-                  −{formatK(totals.cost - shown.cost)}
-                </p>
-              )}
-            </div>
-            <div>
-              <p className="text-micro text-gray-500">{t('qd_col_gm')}</p>
-              <p className="text-base font-bold text-green-700 tabular-nums">{formatK(shown.grossMargin)}</p>
-              {showGranted && (
-                <p className="text-micro font-semibold text-green-700 tabular-nums">
-                  +{formatK(shown.grossMargin - totals.grossMargin)}
-                </p>
-              )}
-            </div>
-            <div>
-              <p className="text-micro text-gray-500">{t('qd_gm_pct')}</p>
-              <p className="text-base font-bold text-green-700 tabular-nums">{shown.marginPct}%</p>
-              {showGranted && (
-                <p className="text-micro font-semibold text-green-700 tabular-nums">
-                  +{Math.round((shown.marginPct - totals.marginPct) * 10) / 10} pp
-                </p>
-              )}
-            </div>
+          <div className="-mx-1 overflow-x-auto">
+            <table className="w-full text-xs tabular-nums">
+              <thead>
+                <tr className="text-micro text-gray-500 uppercase tracking-wide">
+                  <th className="text-left font-semibold py-1 px-1">{t('qd_col_desc')}</th>
+                  <th className="text-right font-semibold py-1 px-1">{t('qd_col_cost')}</th>
+                  <th className="text-right font-semibold py-1 px-1">{t('qd_col_price')}</th>
+                  <th className="text-right font-semibold py-1 px-1">{t('qd_col_gm')}</th>
+                  <th className="text-right font-semibold py-1 px-1">{t('qd_gm_pct')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {table.rows.map(r => (
+                  <tr key={r.id} className="border-t border-navy/10">
+                    <td className={`text-left py-1 px-1 max-w-[8rem] truncate ${
+                      r.services ? 'text-gray-500 italic' : 'text-gray-800'
+                    }`}>{r.name}</td>
+                    <td className="text-right py-1 px-1 text-red-700">
+                      {r.cost > 0 ? `−${formatK(r.cost)}` : '—'}
+                    </td>
+                    <td className="text-right py-1 px-1 text-gray-900">{formatK(r.pvp)}</td>
+                    <td className="text-right py-1 px-1 text-green-700">{formatK(r.gm)}</td>
+                    <td className="text-right py-1 px-1 text-green-700">{r.pct}%</td>
+                  </tr>
+                ))}
+                <tr className="border-t-2 border-navy/25 font-bold">
+                  <td className="text-left py-1.5 px-1 text-navy uppercase text-micro tracking-wide">
+                    {t('qd_total')}
+                  </td>
+                  <td className="text-right py-1.5 px-1 text-red-700">−{formatK(table.total.cost)}</td>
+                  <td className="text-right py-1.5 px-1 text-navy">{formatK(table.total.pvp)}</td>
+                  <td className="text-right py-1.5 px-1 text-green-700">{formatK(table.total.gm)}</td>
+                  <td className="text-right py-1.5 px-1 text-green-700">{table.total.pct}%</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
+
+          {/* Discreet, and it names what you get rather than naming a mode. */}
+          {viewModes.length > 1 && (
+            <button type="button" onClick={() => setView(nextMode)}
+              className="text-micro font-semibold text-navy underline underline-offset-2 min-h-tap">
+              {t(`qd_view_to_${nextMode}`)}
+            </button>
+          )}
+          {mode === 'granted' && (
+            <p className="text-micro text-amber-700">{t('qd_view_granted_hint')}</p>
+          )}
+          {mode === 'list' && (
+            <p className="text-micro text-gray-500">{t('qd_view_list_hint')}</p>
+          )}
+
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-micro text-gray-600 pt-1 border-t border-navy/10">
             {totals.capexPvp > 0 && (
               <span>{t('qd_one_off')}: <strong className="tabular-nums">{formatK(totals.capexPvp)}</strong></span>
@@ -981,7 +1027,8 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
             )}
             <span>{lines.length} {t('qd_n_products')}</span>
           </div>
-          {services.pvp > 0 && (
+
+          {(services.pvp > 0 || Number(manDays) > 0) && (
             <div className="flex flex-wrap items-end gap-3 pt-1 border-t border-navy/10">
               <div>
                 <label className="label">{t('qd_man_days')}</label>
@@ -990,49 +1037,12 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                   onChange={e => setManDays(e.target.value)}/>
               </div>
               <p className="text-micro text-gray-600 flex-1 min-w-[10rem] pb-2">
-                {t('qd_services')}: <strong className="tabular-nums">{formatK(services.pvp)}</strong>
-                {' · '}{services.days} × {formatK(services.rate)} = <strong className="tabular-nums">{formatK(services.cost)}</strong>
-                {' · '}<span className="text-green-700 font-semibold">{services.marginPct}%</span>
+                {services.days} × {formatK(services.rate)} = <strong className="tabular-nums">{formatK(services.cost)}</strong>
                 <span className="block text-gray-400">
                   {t('qd_man_days_hint')}
                   {dayRateIsDefault && <> {t('qd_day_rate_default')}</>}
                 </span>
               </p>
-            </div>
-          )}
-
-          {/* The same two scenarios, product by product. With four products in
-              a project the total answers "is this deal any good?" and hides
-              which line is carrying it — and the line that is carrying it is
-              usually the one being discounted. */}
-          {lines.length > 1 && (
-            <div className="pt-2 border-t border-navy/10 space-y-1.5">
-              <button type="button" onClick={() => setByProduct(o => !o)}
-                className="flex items-center gap-1 text-micro font-semibold text-navy uppercase tracking-wide min-h-tap">
-                {byProduct ? <ChevronDown size={12}/> : <ChevronRight size={12}/>}
-                {t('qd_by_product')}
-              </button>
-
-              {byProduct && lines.map(l => {
-                const g = grantedLine(l)
-                return (
-                  <div key={l.id} className="rounded-lg bg-white/70 border border-navy/10 px-2 py-1.5">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <p className="text-xs font-semibold text-gray-800 truncate">{l.product.name}</p>
-                      <span className="text-micro text-gray-400 flex-shrink-0">
-                        {l.years} {t('qd_years')}
-                      </span>
-                    </div>
-                    <Row label={t('qd_as_quoted')} v={l} tone="navy"/>
-                    {l.pendingCostRelief > 0 && (
-                      <Row label={t('qd_if_granted_short')} v={g} tone="amber" from={l}/>
-                    )}
-                  </div>
-                )
-              })}
-              {byProduct && services.pvp > 0 && (
-                <p className="text-micro text-gray-400">{t('qd_by_product_services')}</p>
-              )}
             </div>
           )}
 
