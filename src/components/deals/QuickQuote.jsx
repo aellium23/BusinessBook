@@ -544,7 +544,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
               </div>
 
               {!l.isSub && (
-                <div className="grid grid-cols-[1fr_3.5rem_1fr] gap-2 items-end">
+                <div className="grid grid-cols-[1fr_4.2rem_1fr] gap-2 items-end">
                   <div>
                     <label className="label">{t('qd_capex_cost')}</label>
                     <input className="input text-right" type="number" min="0" value={l.capexCost}
@@ -567,7 +567,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                 </div>
               )}
 
-              <div className="grid grid-cols-[1fr_3.5rem_1fr] gap-2 items-end">
+              <div className="grid grid-cols-[1fr_4.2rem_1fr] gap-2 items-end">
                 <div>
                   <label className="label">{t('qd_annual_cost')}</label>
                   <input className="input text-right" type="number" min="0" value={l.annualCost}
@@ -589,7 +589,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-[3.5rem_1fr] gap-2 items-end">
+              <div className="grid grid-cols-[4.2rem_1fr] gap-2 items-end">
                 <div>
                   <label className="label">{t('qd_discount')}</label>
                   {l.routing.appliesTo === 'cost'
