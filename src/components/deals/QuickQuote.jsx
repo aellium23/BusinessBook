@@ -268,7 +268,11 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         ? internalApproval({ listPrice: listRef, quotedPrice: isSub ? dAnnual.pvp : dCapex.pvp })
         : null
 
-      const warrantyYears = routing.route === 'external' ? 1 : 0
+      // A licence bought from a supplier carries a year of warranty: no annual
+      // fee in year one, and the first year of SLA is sold to the customer all
+      // the same. A subscription has no licence and no warranty year — its tier
+      // price IS the annual fee, and there is no first year to include.
+      const warrantyYears = routing.route === 'external' && !isSub ? 1 : 0
       const term = lineOverTerm({
         capexCost: dCapex.cost, capexPvp: dCapex.pvp,
         annualCost: dAnnual.cost, annualPvp: dAnnual.pvp,
@@ -383,18 +387,22 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       grossMargin: gm,
       marginPct: pvp > 0 ? Math.round((gm / pvp) * 1000) / 10 : 0,
       belowTarget: pvp > 0 && effort.cost > 0 && pvp < target - 0.005,
-      // The warranty year bills the customer nothing on the support line, so
-      // whatever is quoted here is all we get for a year of our own team.
       warrantyPvp: warrantyServicesPvp,
-      underWarranty: warrantyServicesPvp > 0 && pvp < warrantyServicesPvp - 0.005,
     }
   }, [manDays, manDayCost, servicesPvp, warrantyServicesPvp])
 
-  // Services are a line in their own right: their cost and their price both
-  // replace whatever the warranty year was contributing to the product lines.
+  // Two different things, and both are billed.
+  //
+  // The first year of SLA is inside the product line already: on a licence the
+  // supplier charges us nothing in year one and the customer pays for the year
+  // regardless, which is the warranty year paying for itself.
+  //
+  // Implementation services are the project — migration, interfaces, training,
+  // going live — and they apply whether the deal is a subscription or a licence
+  // plus fee. So they are added, never substituted.
   const withServices = (v) => {
     const cost = round2(v.cost + services.cost)
-    const pvp = round2(v.pvp - warrantyServicesPvp + (servicesOn ? services.pvp : 0))
+    const pvp = round2(v.pvp + (servicesOn ? services.pvp : 0))
     const gm = round2(pvp - cost)
     return {
       ...v, cost, pvp, grossMargin: gm,
@@ -406,7 +414,8 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
 
   const totals = useMemo(() => ({
     ...withServices(views.actual),
-    capexPvp: round2(lines.reduce((n, l) => n + l.capexPvp, 0) + (servicesOn ? services.pvp : 0)),
+    capexPvp: round2(lines.reduce((n, l) => n + l.capexPvp + l.servicesPvp, 0)
+      + (servicesOn ? services.pvp : 0)),
     annualPvp: round2(lines.reduce((n, l) => n + l.annualPvp, 0)),
   }), [views, lines, services, servicesOn, warrantyServicesPvp])
 
@@ -457,8 +466,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       const base = mode === 'list' ? l.undiscounted : l
       const relief = mode === 'granted' ? (l.pendingCostRelief || 0) : 0
       const cost = round2(Math.max(0, base.cost - relief))
-      // The services half of this line moves to its own row below.
-      const pvp = round2(base.pvp - base.servicesPvp)
+      const pvp = round2(base.pvp)
       const gm = round2(pvp - cost)
       return {
         id: l.id, name: l.product.name, cost, pvp, gm,
@@ -1048,11 +1056,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
 
           <p className="text-micro text-gray-500">
             {services.days} × {formatK(services.rate)} = <strong className="tabular-nums">{formatK(services.cost)}</strong>
-            {services.underWarranty && (
-              <span className="block text-amber-700">
-                {t('qd_services_warranty_gap').replace('{pvp}', formatK(services.warrantyPvp))}
-              </span>
-            )}
+
             {services.belowTarget && (
               <span className="block text-red-700 font-semibold">
                 {t('qd_services_below').replace('{pct}', SERVICES_TARGET_MARGIN_PCT).replace('{pvp}', formatK(services.target))}
