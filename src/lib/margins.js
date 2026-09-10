@@ -23,6 +23,17 @@ const num = v => (v === null || v === undefined || v === '' ? null : Number(v))
 /** Licence, hardware, one-off services: sold once, floor of 35 %. */
 export const CAPEX_MIN_MARGIN_PCT = 35
 
+/**
+ * Implementation services: our own people, sold at a 70 % target margin.
+ *
+ * Higher than the capex floor because there is no third party in it — the cost
+ * is a day of our own engineer, and the price is what that day is worth to the
+ * customer, which is the project going live rather than a licence sitting on a
+ * server. It is a target, not a floor: the rep can quote under it, and the
+ * screen says so.
+ */
+export const SERVICES_TARGET_MARGIN_PCT = 70
+
 /** Support / SLA floors by what the annual fee costs us per year. */
 export const SLA_MARGIN_BANDS = [
   { upTo: 4000,  marginPct: 60,   source: 'policy' },
@@ -64,6 +75,13 @@ export function recommendedSlaPvp(annualCost) {
   const c = num(annualCost) ?? 0
   if (c <= 0) return 0
   return Math.max(SLA_MIN_ANNUAL_PVP, priceAtMargin(c, slaBandFor(c).marginPct) ?? 0)
+}
+
+/** Recommended services price: the effort carried to the services target. */
+export function recommendedServicesPvp(cost) {
+  const c = num(cost) ?? 0
+  if (c <= 0) return 0
+  return priceAtMargin(c, SERVICES_TARGET_MARGIN_PCT) ?? 0
 }
 
 /**

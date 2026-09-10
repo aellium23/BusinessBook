@@ -11,7 +11,8 @@ import { familyEconomics, defaultItemIds } from '../../lib/familyEconomics'
 import { saveDealProducts } from '../../hooks/useDealProducts'
 import { resolvePrice, pricingRegionForCountry, pvpForMargin } from '../../lib/pricing'
 import { recommendedCapexPvp, recommendedSlaPvp, belowFloor, lineOverTerm,
-         servicesEconomics } from '../../lib/margins'
+         servicesEconomics, recommendedServicesPvp,
+         SERVICES_TARGET_MARGIN_PCT } from '../../lib/margins'
 import { routeFor, applyDiscount, discountViews, internalApproval } from '../../lib/discountRouting'
 import { priceAtRung } from '../../lib/discountLadder'
 import { partnerEconomics, CHANNEL_ROLES, NAMED_PROGRAMMES } from '../../lib/partnerMargin'
@@ -83,6 +84,8 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   const [years, setYears]     = useState(DEFAULT_TERM)
   const [manDays, setManDays] = useState('')
   const [view, setView] = useState('quoted')       // which reading is on screen
+  const [servicesOn, setServicesOn] = useState(false)
+  const [servicesPvp, setServicesPvp] = useState('')   // '' = the default price
   const [channelRole, setChannelRole] = useState('direct')
   const [programme, setProgramme] = useState('')   // named programme, above cap
 
@@ -333,39 +336,68 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
     }
   }, [lines, years, channelRole, programme])
 
-  const services = useMemo(() => servicesEconomics({
-    manDays,
-    // A configured rate wins; anything missing, blank or nonsensical falls back
-    // to the company figure rather than costing the effort at nothing.
-    manDayCost: Number(settings.man_day_cost) > 0 ? Number(settings.man_day_cost) : DEFAULT_MAN_DAY_COST,
-    servicesPvp: lines.reduce((n, l) => n + l.servicesPvp, 0),
-  }), [manDays, settings.man_day_cost, lines])
-  const dayRateIsDefault = !(Number(settings.man_day_cost) > 0)
+  /**
+   * Implementation services, as a line of its own.
+   *
+   * The rep picks it like a product and types the effort in man-days, which is
+   * the thing they can actually estimate. The cost follows from the company day
+   * rate; the price starts at the 70 % services target, because our own people
+   * are the whole cost and the customer is buying a project that goes live.
+   *
+   * Where the deal carries a warranty year, the customer is already paying one
+   * year of the support fee as implementation — so the default price is
+   * whichever of the two is larger. Taking the smaller would either give away
+   * the warranty year or quote the effort under target, and neither is a
+   * decision anybody made on purpose.
+   */
+  const warrantyServicesPvp = useMemo(
+    () => round2(lines.reduce((n, l) => n + l.servicesPvp, 0)), [lines])
 
-  // Services effort is a cost either way, so it lands on both scenarios.
+  const dayRateIsDefault = !(Number(settings.man_day_cost) > 0)
+  const manDayCost = dayRateIsDefault ? DEFAULT_MAN_DAY_COST : Number(settings.man_day_cost)
+
+  useEffect(() => { if (warrantyServicesPvp > 0) setServicesOn(true) }, [warrantyServicesPvp])
+
+  const services = useMemo(() => {
+    const effort = servicesEconomics({ manDays, manDayCost })
+    const target = recommendedServicesPvp(effort.cost)
+    const pvp = servicesPvp !== '' && servicesPvp !== undefined
+      ? Number(servicesPvp) || 0
+      : Math.max(warrantyServicesPvp, target)
+    const gm = round2(pvp - effort.cost)
+    return {
+      ...effort,
+      pvp,
+      target,
+      grossMargin: gm,
+      marginPct: pvp > 0 ? Math.round((gm / pvp) * 1000) / 10 : 0,
+      belowTarget: pvp > 0 && effort.cost > 0 && pvp < target - 0.005,
+      fromWarranty: warrantyServicesPvp > 0 && pvp <= warrantyServicesPvp + 0.005,
+    }
+  }, [manDays, manDayCost, servicesPvp, warrantyServicesPvp])
+
+  // Services are a line in their own right: their cost and their price both
+  // replace whatever the warranty year was contributing to the product lines.
   const withServices = (v) => {
     const cost = round2(v.cost + services.cost)
-    const gm = round2(v.pvp - cost)
+    const pvp = round2(v.pvp - warrantyServicesPvp + (servicesOn ? services.pvp : 0))
+    const gm = round2(pvp - cost)
     return {
-      ...v, cost, grossMargin: gm,
-      marginPct: v.pvp > 0 ? Math.round((gm / v.pvp) * 1000) / 10 : 0,
+      ...v, cost, pvp, grossMargin: gm,
+      marginPct: pvp > 0 ? Math.round((gm / pvp) * 1000) / 10 : 0,
     }
   }
-  const granted = useMemo(() => withServices(views.ifApproved), [views, services])
+  const granted = useMemo(() => withServices(views.ifApproved),
+    [views, services, servicesOn, warrantyServicesPvp])
 
-  const totals = useMemo(() => {
-    const v = views.actual
-    const cost = round2(v.cost + services.cost)
-    const gm = round2(v.pvp - cost)
-    return {
-      ...v,
-      cost,
-      grossMargin: gm,
-      marginPct: v.pvp > 0 ? Math.round((gm / v.pvp) * 1000) / 10 : 0,
-      capexPvp: round2(lines.reduce((n, l) => n + l.capexPvp + l.servicesPvp, 0)),
-      annualPvp: round2(lines.reduce((n, l) => n + l.annualPvp, 0)),
-    }
-  }, [views, lines, services])
+  const totals = useMemo(() => ({
+    ...withServices(views.actual),
+    capexPvp: round2(lines.reduce((n, l) => n + l.capexPvp, 0) + (servicesOn ? services.pvp : 0)),
+    annualPvp: round2(lines.reduce((n, l) => n + l.annualPvp, 0)),
+  }), [views, lines, services, servicesOn, warrantyServicesPvp])
+
+  // Services alone are a deal: an implementation, a migration, a training week.
+  const quotable = servicesOn && services.pvp > 0
 
   /** Whether this line has a discount on it at all, ours or the supplier's. */
   const discounted = l => (l.discountPct > 0 || (l.skuDiscounts?.length || 0) > 0)
@@ -416,14 +448,11 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       }
     })
 
-    const servicesPvp = round2(lines.reduce(
-      (n, l) => n + (mode === 'list' ? l.undiscounted.servicesPvp : l.servicesPvp), 0))
-    if (servicesPvp > 0 || services.cost > 0) {
-      const gm = round2(servicesPvp - services.cost)
+    if (servicesOn && (services.pvp > 0 || services.cost > 0)) {
       rows.push({
         id: 'services', name: t('qd_services'), services: true,
-        cost: round2(services.cost), pvp: servicesPvp, gm,
-        pct: servicesPvp > 0 ? Math.round((gm / servicesPvp) * 1000) / 10 : 0,
+        cost: round2(services.cost), pvp: round2(services.pvp),
+        gm: round2(services.grossMargin), pct: services.marginPct,
       })
     }
 
@@ -434,7 +463,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       rows,
       total: { cost, pvp, gm, pct: pvp > 0 ? Math.round((gm / pvp) * 1000) / 10 : 0 },
     }
-  }, [lines, mode, services.cost, t])
+  }, [lines, mode, services, servicesOn, t])
 
   function setField(id, key, v) {
     setOver(o => ({ ...o, [id]: { ...(o[id] || {}), [key]: parseFloat(v) || 0 } }))
@@ -454,7 +483,8 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
 
   async function create() {
     if (!client.trim()) { setError(t('qd_err_client')); return }
-    if (!lines.length)  { setError(t('qd_err_product')); return }
+    // A migration or a training week with no software on it is still a deal.
+    if (!lines.length && !quotable) { setError(t('qd_err_product')); return }
     // A discount nobody explained is refused rather than saved and chased
     // later: once the quote exists the figure is what everyone works from, and
     // the explanation never catches up with it.
@@ -469,8 +499,8 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       country,
       region: regionForCountry(country) || 'Europe',
       stage: 'Lead',
-      value_total: views.actual.pvp,
-      gm_pct: views.actual.marginPct,
+      value_total: totals.pvp,
+      gm_pct: totals.marginPct,
       currency: 'EUR',
       // A rate is a snapshot. The project's rule for deals applies here: store
       // it, so a rate change tomorrow cannot silently reprice a quote sent
@@ -647,6 +677,15 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         <label className="label">{t('qd_products')}</label>
         <div className="flex flex-wrap gap-1.5">
           {headline.map(p => <Chip key={p.id} p={p}/>)}
+          {/* Services sit with the favourites because they are on most deals
+              and were previously reachable only as a side effect of a warranty
+              year — which meant a PACS-less project could not quote them. */}
+          <button type="button" onClick={() => setServicesOn(v => !v)}
+            className={`min-h-tap px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
+              servicesOn ? 'border-navy bg-navy text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+            }`}>
+            {servicesOn && <Check size={11} className="inline mr-1 -mt-0.5"/>}{t('qd_services')}
+          </button>
           {!showAll && restCount > 0 && (
             <button type="button" onClick={() => setShowAll(true)}
               className="min-h-tap px-3 py-1.5 rounded-lg border border-dashed border-gray-300 text-xs text-gray-500">
@@ -920,10 +959,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
               )}
 
               {l.servicesPvp > 0 && (
-                <div className="flex justify-between text-micro text-gray-500">
-                  <span>{t('qd_services')} <span className="text-gray-400">· {t('qd_warranty_note')}</span></span>
-                  <span className="tabular-nums">{formatK(l.servicesPvp)}</span>
-                </div>
+                <p className="text-micro text-gray-400">{t('qd_warranty_note')}</p>
               )}
 
               <div className="flex justify-between items-baseline pt-1.5 border-t border-gray-100 text-xs">
@@ -943,10 +979,60 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         </div>
       )}
 
+      {/* Implementation services, priced like everything else on this screen:
+          effort in, cost from the day rate, margin, price. */}
+      {servicesOn && (
+        <div className="border border-gray-200 rounded-xl p-3 space-y-2">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-xs font-semibold text-gray-800">{t('qd_services')}</p>
+            <span className="text-micro text-gray-400 text-right">
+              {formatK(manDayCost)}{t('qd_per_day')}
+              {dayRateIsDefault && <span className="text-amber-700"> · {t('qd_day_rate_default_short')}</span>}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-[1fr_4.2rem_1fr] gap-2 items-end">
+            <div>
+              <label className="label">{t('qd_man_days')}</label>
+              <input className="input text-right" type="number" min="0" step="0.5"
+                value={manDays} placeholder="0" style={{ fontSize: '16px' }}
+                onChange={e => setManDays(e.target.value)}/>
+            </div>
+            <div>
+              <label className="label">{t('qd_margin_pct')}</label>
+              <input className={`input text-right ${services.belowTarget ? 'border-red-300' : 'border-green-200'}`}
+                type="number" min="0" max="99" value={services.marginPct}
+                style={{ fontSize: '16px' }}
+                onChange={e => {
+                  const p = pvpForMargin(services.cost, e.target.value)
+                  if (p !== null) setServicesPvp(String(p))
+                }}/>
+            </div>
+            <div>
+              <label className="label">{t('qd_services_pvp')}</label>
+              <input className="input text-right font-semibold" type="number" min="0"
+                value={services.pvp} style={{ fontSize: '16px' }}
+                onChange={e => setServicesPvp(e.target.value)}/>
+            </div>
+          </div>
+
+          <p className="text-micro text-gray-500">
+            {services.days} × {formatK(services.rate)} = <strong className="tabular-nums">{formatK(services.cost)}</strong>
+            {services.fromWarranty && <span className="block text-gray-400">{t('qd_services_warranty')}</span>}
+            {services.belowTarget && (
+              <span className="block text-red-700 font-semibold">
+                {t('qd_services_below').replace('{pct}', SERVICES_TARGET_MARGIN_PCT).replace('{pvp}', formatK(services.target))}
+              </span>
+            )}
+            <span className="block text-gray-400">{t('qd_man_days_hint')}</span>
+          </p>
+        </div>
+      )}
+
       {/* The proposal summary. The per-line table answers "what did I price?";
           this answers "what is this project worth, and what do we make on it?",
           which is the question the rep is actually asked. */}
-      {lines.length > 0 && (
+      {(lines.length > 0 || quotable) && (
         <div className="border-2 border-navy/20 bg-navy/[0.04] rounded-xl p-3 space-y-2">
           {/* The proposal as a table: a row per product, services consolidated
               into one, and a total that is the sum of the rows. Cost is shown
@@ -1028,24 +1114,6 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
             <span>{lines.length} {t('qd_n_products')}</span>
           </div>
 
-          {(services.pvp > 0 || Number(manDays) > 0) && (
-            <div className="flex flex-wrap items-end gap-3 pt-1 border-t border-navy/10">
-              <div>
-                <label className="label">{t('qd_man_days')}</label>
-                <input className="input w-20 text-right" type="number" min="0" step="0.5"
-                  value={manDays} placeholder="0" style={{ fontSize: '16px' }}
-                  onChange={e => setManDays(e.target.value)}/>
-              </div>
-              <p className="text-micro text-gray-600 flex-1 min-w-[10rem] pb-2">
-                {services.days} × {formatK(services.rate)} = <strong className="tabular-nums">{formatK(services.cost)}</strong>
-                <span className="block text-gray-400">
-                  {t('qd_man_days_hint')}
-                  {dayRateIsDefault && <> {t('qd_day_rate_default')}</>}
-                </span>
-              </p>
-            </div>
-          )}
-
           {lines.some(l => l.discountPct > 0 || l.skuDiscounts?.length) && (
             <p className="text-micro text-gray-500">{t('qd_worklist_note')}</p>
           )}
@@ -1066,7 +1134,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
 
       <div className="flex gap-2">
         <button type="button" onClick={onCancel} className="btn-secondary flex-1">{t('qd_cancel')}</button>
-        <button type="button" onClick={create} disabled={saving || !lines.length}
+        <button type="button" onClick={create} disabled={saving || (!lines.length && !quotable)}
           className="btn-primary flex-1">
           {saving ? t('qd_creating') : `${t('qd_create')} · ${formatK(totals.pvp)}`}
         </button>

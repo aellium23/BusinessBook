@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   CAPEX_MIN_MARGIN_PCT, SLA_MIN_ANNUAL_PVP, SLA_MARGIN_BANDS,
   slaBandFor, recommendedCapexPvp, recommendedSlaPvp, belowFloor, lineOverTerm,
-  servicesEconomics,
+  servicesEconomics, recommendedServicesPvp, SERVICES_TARGET_MARGIN_PCT,
 } from '../margins'
 
 describe('the two policy anchors', () => {
@@ -61,6 +61,24 @@ describe('recommendedCapexPvp', () => {
 
   it('is zero for no cost', () => {
     expect(recommendedCapexPvp(0)).toBe(0)
+  })
+})
+
+describe('recommendedServicesPvp', () => {
+  it('carries our own effort to the 70% services target', () => {
+    expect(SERVICES_TARGET_MARGIN_PCT).toBe(70)
+    // Ten days at the 450 company rate: 4,500 of effort sells at 15,000.
+    expect(recommendedServicesPvp(4500)).toBe(15000)
+    expect(recommendedServicesPvp(900)).toBe(3000)
+  })
+
+  it('asks more of services than of a licence, because there is no supplier in it', () => {
+    expect(recommendedServicesPvp(10000)).toBeGreaterThan(recommendedCapexPvp(10000))
+  })
+
+  it('is zero for no effort', () => {
+    expect(recommendedServicesPvp(0)).toBe(0)
+    expect(recommendedServicesPvp(null)).toBe(0)
   })
 })
 
