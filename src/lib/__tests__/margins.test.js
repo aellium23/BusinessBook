@@ -81,8 +81,7 @@ describe('belowFloor', () => {
 })
 
 describe('lineOverTerm', () => {
-  it('counts the annual fee once per contract year', () => {
-    // A five-year PACS: licence plus five years of support, both sides.
+  it('counts the annual fee once per contract year when there is no warranty', () => {
     const r = lineOverTerm({
       capexCost: 31602, capexPvp: 48618.46,
       annualCost: 2386.25, annualPvp: 10000,
@@ -92,6 +91,66 @@ describe('lineOverTerm', () => {
     expect(r.pvp).toBe(round(48618.46 + 50000))
     expect(r.grossMargin).toBe(round(r.pvp - r.cost))
     expect(r.marginPct).toBeGreaterThan(50)
+  })
+
+  it('does not pay the supplier for the warranty year', () => {
+    // A five-year PACS with one year of warranty is four years of support cost.
+    const r = lineOverTerm({
+      capexCost: 31602, capexPvp: 48618.46,
+      annualCost: 2386.25, annualPvp: 10000,
+      years: 5, warrantyYears: 1,
+    })
+    expect(r.billedYears).toBe(4)
+    expect(r.cost).toBe(round(31602 + 2386.25 * 4))
+  })
+
+  it('sells the warranty year as implementation services at one year of the fee', () => {
+    const r = lineOverTerm({
+      capexCost: 31602, capexPvp: 48618.46,
+      annualCost: 2386.25, annualPvp: 10000,
+      years: 5, warrantyYears: 1,
+    })
+    // The customer still pays five years' worth; the first is named for what
+    // it is, and it funds the support team during the warranty.
+    expect(r.servicesPvp).toBe(10000)
+    expect(r.pvp).toBe(round(48618.46 + 10000 * 4 + 10000))
+  })
+
+  it('earns more margin than the same deal without a warranty, on the same price', () => {
+    const args = {
+      capexCost: 31602, capexPvp: 48618.46,
+      annualCost: 2386.25, annualPvp: 10000, years: 5,
+    }
+    const without = lineOverTerm(args)
+    const withWarranty = lineOverTerm({ ...args, warrantyYears: 1 })
+    expect(withWarranty.pvp).toBe(without.pvp)
+    expect(withWarranty.grossMargin).toBe(round(without.grossMargin + 2386.25))
+  })
+
+  it('handles a term no longer than the warranty', () => {
+    // A one-year PACS: the capex, the services year, and no support billed.
+    const r = lineOverTerm({
+      capexCost: 31602, capexPvp: 48618.46,
+      annualCost: 2386.25, annualPvp: 10000,
+      years: 1, warrantyYears: 1,
+    })
+    expect(r.billedYears).toBe(0)
+    expect(r.cost).toBe(31602)
+    expect(r.pvp).toBe(round(48618.46 + 10000))
+  })
+
+  it('never lets the warranty exceed the term', () => {
+    const r = lineOverTerm({ annualCost: 100, annualPvp: 300, years: 1, warrantyYears: 3 })
+    expect(r.warrantyYears).toBe(1)
+    expect(r.billedYears).toBe(0)
+  })
+
+  it('carries a services cost when one is known', () => {
+    const r = lineOverTerm({
+      annualCost: 1000, annualPvp: 5000, years: 3, warrantyYears: 1, servicesCost: 800,
+    })
+    expect(r.servicesCost).toBe(800)
+    expect(r.cost).toBe(1000 * 2 + 800)
   })
 
   it('treats a one-year term as a single annual fee', () => {

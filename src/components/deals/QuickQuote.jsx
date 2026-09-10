@@ -243,9 +243,11 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         ? internalApproval({ listPrice: listRef, quotedPrice: isSub ? dAnnual.pvp : dCapex.pvp })
         : null
 
+      const warrantyYears = routing.route === 'external' ? 1 : 0
       const term = lineOverTerm({
         capexCost: dCapex.cost, capexPvp: dCapex.pvp,
-        annualCost: dAnnual.cost, annualPvp: dAnnual.pvp, years,
+        annualCost: dAnnual.cost, annualPvp: dAnnual.pvp,
+        years, warrantyYears,
       })
 
       return {
@@ -262,7 +264,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         // Per-SKU relief, summed. The support side counts once per contract
         // year, the licence once.
         pendingCostRelief: routing.appliesTo === 'cost'
-          ? round2(fam.reliefCapex + fam.reliefAnnual * years)
+          ? round2(fam.reliefCapex + fam.reliefAnnual * Math.max(0, years - warrantyYears))
           : 0,
         skuDiscounts: fam.discounted,
         capexBelow: belowFloor({ kind: 'capex', cost: dCapex.cost, pvp: dCapex.pvp }),
@@ -286,8 +288,9 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
 
   const totals = useMemo(() => ({
     ...(ifApproved ? views.ifApproved : views.actual),
-    capexPvp: round2(lines.reduce((n, l) => n + l.capexPvp, 0)),
+    capexPvp: round2(lines.reduce((n, l) => n + l.capexPvp + l.servicesPvp, 0)),
     annualPvp: round2(lines.reduce((n, l) => n + l.annualPvp, 0)),
+    servicesPvp: round2(lines.reduce((n, l) => n + l.servicesPvp, 0)),
   }), [views, ifApproved, lines])
 
   function setField(id, key, v) {
@@ -626,8 +629,20 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                 </p>
               )}
 
+              {l.servicesPvp > 0 && (
+                <div className="flex justify-between text-micro text-gray-500">
+                  <span>{t('qd_services')} <span className="text-gray-400">· {t('qd_warranty_note')}</span></span>
+                  <span className="tabular-nums">{formatK(l.servicesPvp)}</span>
+                </div>
+              )}
+
               <div className="flex justify-between items-baseline pt-1.5 border-t border-gray-100 text-xs">
-                <span className="text-gray-500">{years} {t('qd_years')}</span>
+                <span className="text-gray-500">
+                  {years} {t('qd_years')}
+                  {l.warrantyYears > 0 && (
+                    <span className="text-gray-400"> · {l.billedYears} {t('qd_billed_years')}</span>
+                  )}
+                </span>
                 <span className="flex gap-3">
                   <span className="text-green-700 font-semibold">{t('qd_gm')} {formatK(l.grossMargin)} · {l.marginPct}%</span>
                   <span className="font-bold text-gray-900">{formatK(l.pvp)}</span>
