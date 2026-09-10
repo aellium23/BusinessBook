@@ -518,10 +518,12 @@ export default function DealForm({ deal, onClose, onSaved }) {
                   region: form.region || null,
                   client_type: 'public',
                 }
-                if (isDistributor && company?.id) {
-                  const { data: dist } = await supabase.from('distributors')
-                    .select('id').eq('company_id', company.id).limit(1).single()
-                  if (dist) payload.distributor_id = dist.id
+                // The account carries the partner's company directly. It used
+                // to look a distributor up by companies.id — a column that does
+                // not exist on that table — so this threw before it could
+                // insert, quietly, every time.
+                if (isDistributor && profile?.company_id) {
+                  payload.company_id = profile.company_id
                 }
                 const { data: acc, error: accErr } = await supabase
                   .from('accounts').insert(payload).select().single()
