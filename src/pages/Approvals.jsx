@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../components/Toast'
 import { formatK, Spinner, EmptyState } from '../components/ui'
 import { CheckCircle, XCircle, RefreshCw, Clock, ShieldCheck } from 'lucide-react'
+import CostRequestWorklist from '../components/approvals/CostRequestWorklist'
 
 const STATUS = {
   pending:  { icon: Clock,       cls: 'bg-purple-100 text-purple-800', label: 'Pending' },
@@ -65,7 +66,8 @@ export default function Approvals() {
 
   if (myBrands.length === 0) {
     return (
-      <div className="p-4 max-w-2xl mx-auto">
+      <div className="p-4 max-w-2xl mx-auto space-y-4">
+        <CostRequestWorklist/>
         <EmptyState icon="🛡️" title="No approval brands assigned"
           description="An admin must assign you as a discount approver for one or more brands."/>
       </div>
@@ -74,6 +76,8 @@ export default function Approvals() {
 
   return (
     <div className="p-4 space-y-4 max-w-2xl mx-auto">
+      <CostRequestWorklist/>
+
       <div className="pt-1">
         <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
           <ShieldCheck size={20} className="text-navy"/> Discount Approvals

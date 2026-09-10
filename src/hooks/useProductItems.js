@@ -30,7 +30,7 @@ export function useProductItems(productIds) {
 
     supabase.from('product_items')
       .select('id, product_id, family_code, supplier_sku, name, description, section, ' +
-              'kind, unit, ccu, tier_from, tier_to, transfer_price, annual_support, ' +
+              'kind, unit, ccu, tier_from, tier_to, transfer_price, annual_support, is_default, ' +
               'support_sku, remark, sort_order')
       .in('product_id', ids)
       .eq('active', true)

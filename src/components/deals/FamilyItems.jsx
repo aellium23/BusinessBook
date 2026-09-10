@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { cheapestCcuCombination, groupItems, packageLines } from '../../lib/ccu'
+import { resolveVariant, hasBundleVariant } from '../../lib/familyEconomics'
 import { itemCost } from '../../lib/itemPricing'
 import { formatK } from '../ui'
 import { useTranslation } from '../../hooks/useTranslation'
@@ -28,10 +29,14 @@ const KIND_KEYS = {
  * Only cost is shown here. The sell price is the line's margin applied on top,
  * set one level up in the quote.
  */
-export default function FamilyItems({ items, studies, value, onChange }) {
+export default function FamilyItems({ items, studies, value, onChange, bundleDefault = false }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const groups = useMemo(() => groupItems(items || []), [items])
+
+  // Buying Synapse PACS in the same quote answers the bundle question by
+  // itself; the checkbox is for the site that already owns one.
+  const bundle = value.bundle ?? bundleDefault
 
   // Each package line is its own capacity ladder; combinations stay inside one.
   const lines = useMemo(() => packageLines(items || []), [items])
@@ -106,6 +111,17 @@ export default function FamilyItems({ items, studies, value, onChange }) {
         </div>
       )}
 
+      {hasBundleVariant(items) && (
+        <label className="flex items-start gap-2 text-xs text-gray-700 min-h-tap cursor-pointer">
+          <input type="checkbox" className="mt-0.5" checked={Boolean(bundle)}
+            onChange={e => onChange({ ...value, bundle: e.target.checked })}/>
+          <span>
+            {t('fi_bundle_q')}
+            <span className="block text-micro text-gray-400">{t('fi_bundle_hint')}</span>
+          </span>
+        </label>
+      )}
+
       <button type="button" onClick={() => setOpen(o => !o)}
         className="flex items-center gap-1 text-xs font-semibold text-gray-600 min-h-tap">
         {open ? <ChevronDown size={14}/> : <ChevronRight size={14}/>}
@@ -126,9 +142,10 @@ export default function FamilyItems({ items, studies, value, onChange }) {
                   {t(KIND_KEYS[kind])}
                 </p>
                 <div className="space-y-0.5">
-                  {rows.map(i => {
+                  {rows.filter(i => !i.variant || i.variant === 'standalone').map(i => {
                     const on = picked.includes(i.id)
-                    const c = itemCost(i, { studies, quantity: 1 })
+                    const shown = resolveVariant(items, i, bundle)
+                    const c = itemCost(shown, { studies, quantity: 1 })
                     return (
                       <button key={i.id} type="button" onClick={() => toggle(i.id)}
                         className={`w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg text-left text-xs min-h-tap ${
@@ -162,19 +179,4 @@ export default function FamilyItems({ items, studies, value, onChange }) {
       )}
     </div>
   )
-}
-
-/** The cost a family selection adds to its quote line. Shared with QuickQuote. */
-export function familyCost(items, selection, studies) {
-  if (!items?.length || !selection) return 0
-  const lines = packageLines(items)
-  const line = lines.find(l => l.key === selection.line) || (lines.length === 1 ? lines[0] : null)
-  const combo = line
-    ? cheapestCcuCombination(line.packages, parseFloat(selection.users) || 0)
-    : null
-  const manual = (selection.itemIds || [])
-    .map(id => items.find(i => i.id === id))
-    .filter(Boolean)
-    .reduce((s, i) => s + itemCost(i, { studies, quantity: 1 }).cost, 0)
-  return (combo?.cost || 0) + manual
 }

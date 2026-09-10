@@ -5,9 +5,12 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { useProducts, fetchProductCosts } from '../../hooks/useProducts'
 import { usePricing } from '../../hooks/usePricing'
 import { useProductItems } from '../../hooks/useProductItems'
-import FamilyItems, { familyCost } from './FamilyItems'
+import FamilyItems from './FamilyItems'
+import { familyEconomics, defaultItemIds } from '../../lib/familyEconomics'
 import { saveDealProducts } from '../../hooks/useDealProducts'
-import { resolvePrice, pricingRegionForCountry, lineEconomics, pvpForMargin, quoteTotals } from '../../lib/pricing'
+import { resolvePrice, pricingRegionForCountry, pvpForMargin } from '../../lib/pricing'
+import { recommendedCapexPvp, recommendedSlaPvp, belowFloor, lineOverTerm } from '../../lib/margins'
+import { routeFor, applyDiscount, discountViews } from '../../lib/discountRouting'
 import { COUNTRY_MAP, regionForCountry } from '../../constants'
 import SearchableSelect from '../SearchableSelect'
 import { formatK } from '../ui'
@@ -24,12 +27,17 @@ const NEARBY = ['Portugal', 'Spain', 'France', 'Italy', 'UK', 'Germany']
 
 // The 90% case: a rep quoting imaging software for a hospital. These surface as
 // one-tap chips; everything else in the catalogue sits behind "more".
-const HEADLINE_SKUS = ['SYN-PACS', 'CWM-RISBI', 'CWM-DOSE']
+const HEADLINE_SKUS = ['CWM-DOSE', 'CWM-VR', 'CWM-AIREP', 'SYN-PACS', 'SYN-VNA']
 
-// Where a product has no published list price, the sell price starts at cost
-// carried to this margin. It is the middle of the standard band the HCUS price
-// list itself quotes (15 / 20 / 25 / 30 %), and the rep overrides it per line.
-const DEFAULT_MARGIN_PCT = 25
+// Contract terms a rep actually quotes. The term drives the support side of
+// every line: five years of PACS is five years of support revenue and five
+// years of support cost, and quoting one year of it understates both.
+const TERM_YEARS = [1, 3, 5, 7, 10]
+const DEFAULT_TERM = 5
+
+// Products sold as a subscription price their tier per YEAR, not once. Getting
+// this wrong books an annual fee as if it were a licence.
+const SUBSCRIPTION_MODELS = ['subscription', 'pay_per_study', 'saas']
 
 /**
  * Create a deal and price it in one screen.
@@ -57,6 +65,8 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   const [picked, setPicked]   = useState([])        // product ids
   const [overrides, setOver]  = useState({})        // productId -> { cost, pvp }
   const [famSel, setFamSel]   = useState({})        // productId -> { users, itemIds }
+  const [years, setYears]     = useState(DEFAULT_TERM)
+  const [ifApproved, setIfApproved] = useState(false)
   const [showAll, setShowAll] = useState(false)
   const [saving, setSaving]   = useState(false)
   const [error, setError]     = useState(null)
@@ -92,6 +102,12 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   // (the Products screen labels it "Price per Unit / Study"), so using it as a
   // cost made the margin on any CWM line meaningless.
   const [productCosts, setProductCosts] = useState({})
+  const [suppliers, setSuppliers] = useState({})
+
+  useEffect(() => {
+    supabase.from('suppliers').select('code, name, kind, request_channel')
+      .then(({ data }) => setSuppliers(Object.fromEntries((data || []).map(s => [s.code, s]))))
+  }, [])
   useEffect(() => {
     let alive = true
     fetchProductCosts().then(({ costs }) => { if (alive) setProductCosts(costs) })
@@ -121,13 +137,39 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
     [restGroups]
   )
 
-  // One volume figure selects the tier on every picked product at once.
+  // Pre-select each family's default SKUs, so a cost is on screen without the
+  // rep having to open the price list and hunt for the base licence.
+  useEffect(() => {
+    setFamSel(prev => {
+      let changed = false
+      const next = { ...prev }
+      for (const id of picked) {
+        const items = itemsByProduct[id]
+        if (!items?.length || next[id]) continue
+        const ids = defaultItemIds(items)
+        if (ids.length) { next[id] = { itemIds: ids }; changed = true }
+      }
+      return changed ? next : prev
+    })
+  }, [picked, itemsByProduct])
+
+  // A VNA bought alongside Synapse PACS is licensed at about half the price.
+  // If PACS is on this quote the answer is known; otherwise the rep is asked.
+  const pacsInQuote = useMemo(
+    () => picked.some(id => products.find(p => p.id === id)?.sku === 'SYN-PACS'),
+    [picked, products]
+  )
+  const selectionFor = id => ({ bundle: pacsInQuote, ...(famSel[id] || {}) })
+
+  // Every line has two economics in it and they are kept apart end to end.
   //
-  // Only the CWM products have a published price list. Everything bought in —
-  // Synapse PACS, VNA, the partner AI — has a cost and no list price at all, so
-  // its sell price is the cost carried up to a target margin, which is exactly
-  // the number the rep is here to set. Both kinds have to be quotable in the
-  // same screen or the 90% case (PACS + RIS + Dose) cannot be quoted.
+  // CAPEX is the licence, bought once, floor 35 %. The annual fee is support,
+  // owed every year of the term, and carries a floor that rises with its size —
+  // 60 % up to 4k of cost, 62.5 % beyond, never less than 10k a year, because a
+  // support contract consumes an engineer whatever it bills. Blending the two
+  // into one margin is what makes support quietly unprofitable.
+  //
+  // A subscription product has no licence: its tier price IS the annual fee.
   const lines = useMemo(() => {
     const qty = parseFloat(studies) || 0
     return picked.map(id => {
@@ -138,42 +180,87 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       const listed = tiers && region && qty
         ? resolvePrice({ product, tiers, discountPct: region.discountPct, quantity: qty })
         : null
+      const isSub = SUBSCRIPTION_MODELS.includes(product.pricing_model)
 
+      const fam = familyEconomics(itemsByProduct[id], famSel[id] ? selectionFor(id) : null, qty)
       const o = overrides[id] || {}
-      // What the supplier price list says this selection costs beats the single
-      // figure on the catalogue row: the rep has picked actual SKUs, so use the
-      // sum of them and fall back to license_fee only when nothing is picked.
-      const fromItems = familyCost(itemsByProduct[id], famSel[id], qty)
-      const known = fromItems > 0 ? fromItems : (Number(productCosts[id]) || 0)
-      const cost = o.cost !== undefined ? Number(o.cost) || 0 : known
-      const pvp = o.pvp !== undefined ? o.pvp
-        : listed ? listed.net
-        : pvpForMargin(cost, DEFAULT_MARGIN_PCT) ?? 0
+
+      const capexCost = o.capexCost !== undefined ? Number(o.capexCost) || 0
+        : isSub ? 0
+        : (fam.capex > 0 ? fam.capex : (Number(productCosts[id]) || 0))
+      const annualCost = o.annualCost !== undefined ? Number(o.annualCost) || 0
+        : isSub ? (fam.annual > 0 ? fam.annual : (Number(productCosts[id]) || 0))
+        : fam.annual
+
+      // A listed tier price is the sell side. For a subscription it is the
+      // yearly fee; for a licensed product it is the one-off licence.
+      const capexPvp = o.capexPvp !== undefined ? Number(o.capexPvp) || 0
+        : isSub ? 0
+        : (listed ? listed.net : recommendedCapexPvp(capexCost))
+      const annualPvp = o.annualPvp !== undefined ? Number(o.annualPvp) || 0
+        : isSub && listed ? listed.net
+        : recommendedSlaPvp(annualCost)
+
+      // A discount goes one of two ways and the supplier decides which. On what
+      // we make it comes off the customer price and needs approving; on what we
+      // buy it comes off our cost, but only once the supplier has said yes, so
+      // until then it changes nothing on screen and merely marks the line.
+      const routing = routeFor(suppliers[product.supplier_code])
+      const discountPct = Number(o.discountPct) || 0
+      const dCapex = applyDiscount({ ...routing, pct: discountPct, cost: capexCost, pvp: capexPvp })
+      const dAnnual = applyDiscount({ ...routing, pct: discountPct, cost: annualCost, pvp: annualPvp })
+
+      const term = lineOverTerm({
+        capexCost: dCapex.cost, capexPvp: dCapex.pvp,
+        annualCost: dAnnual.cost, annualPvp: dAnnual.pvp, years,
+      })
 
       return {
-        id, product,
+        id, product, isSub,
         listNet: listed?.net ?? null,
         tierLabel: listed?.tierLabel ?? '—',
         boundBy: listed?.boundBy ?? 'tier',
         priced: Boolean(listed),
-        costKnown: cost > 0,
-        ...lineEconomics(cost, pvp),
+        capexCost: dCapex.cost, capexPvp: dCapex.pvp,
+        annualCost: dAnnual.cost, annualPvp: dAnnual.pvp,
+        discountPct, routing,
+        speculative: dCapex.speculative || dAnnual.speculative,
+        pendingCostRelief: dCapex.speculative
+          ? round2((capexCost + annualCost * years) * (discountPct / 100))
+          : 0,
+        capexBelow: belowFloor({ kind: 'capex', cost: dCapex.cost, pvp: dCapex.pvp }),
+        annualBelow: belowFloor({ kind: 'sla', cost: dAnnual.cost, pvp: dAnnual.pvp }),
+        costKnown: capexCost > 0 || annualCost > 0,
+        ...term,
       }
     }).filter(Boolean)
-  }, [picked, products, tiersByProduct, region, studies, overrides, itemsByProduct, famSel, productCosts])
+  }, [picked, products, tiersByProduct, region, studies, overrides, itemsByProduct,
+      famSel, productCosts, years, pacsInQuote, suppliers])
 
-  const totals = quoteTotals(lines)
+  // The quote seen both ways: what we have, and what we have if the supplier
+  // discounts land. The gap between them is the number worth naming.
+  const views = useMemo(() => discountViews(lines), [lines])
+  const totals = useMemo(() => ({
+    ...(ifApproved ? views.ifApproved : views.actual),
+    capexPvp: round2(lines.reduce((n, l) => n + l.capexPvp, 0)),
+    annualPvp: round2(lines.reduce((n, l) => n + l.annualPvp, 0)),
+  }), [views, ifApproved, lines])
 
-  function setCost(id, v) {
-    setOver(o => ({ ...o, [id]: { ...(o[id] || {}), cost: parseFloat(v) || 0 } }))
+  function setField(id, key, v) {
+    setOver(o => ({ ...o, [id]: { ...(o[id] || {}), [key]: parseFloat(v) || 0 } }))
   }
-  function setMargin(id, v) {
+
+  /** Typing a margin sets the price that yields it, on that side of the line. */
+  function setMargin(id, side, v) {
     const line = lines.find(l => l.id === id)
     if (!line) return
-    const pvp = pvpForMargin(line.cost, v)
+    const cost = side === 'capex' ? line.capexCost : line.annualCost
+    const pvp = pvpForMargin(cost, v)
     if (pvp === null) return
-    setOver(o => ({ ...o, [id]: { ...(o[id] || {}), pvp } }))
+    setField(id, side === 'capex' ? 'capexPvp' : 'annualPvp', pvp)
   }
+
+  const marginOf = (cost, pvp) => (pvp > 0 ? Math.round(((pvp - cost) / pvp) * 1000) / 10 : 0)
 
   async function create() {
     if (!client.trim()) { setError(t('qd_err_client')); return }
@@ -186,8 +273,8 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       country,
       region: regionForCountry(country) || 'Europe',
       stage: 'Lead',
-      value_total: totals.pvp,
-      gm_pct: totals.marginPct,
+      value_total: views.actual.pvp,
+      gm_pct: views.actual.marginPct,
       company_id: profile?.company_id || null,
       created_by: profile?.id || null,
     }).select('id, client, bu, country').single()
@@ -202,11 +289,39 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       volume: parseFloat(studies) || null,
       cost_price: l.cost,
       margin_pct: l.marginPct,
-      unit_price: l.pvp,
-      net_price: l.pvp,
-      annual_fee: l.pvp,
+      unit_price: l.capexPvp || l.pvp,
+      net_price: l.capexPvp || l.pvp,
+      annual_fee: l.annualPvp,
       notes: l.priced ? `${regionCode} · ${l.tierLabel}` : 'cost + margin',
     })))
+    // Discounts become worklist entries only now, because they hang off a deal
+    // that did not exist a moment ago. A failure here must not read as a failed
+    // deal — the deal is saved; the rep is told what did not get raised.
+    const discounted = lines.filter(l => l.discountPct > 0)
+    if (discounted.length) {
+      const { error: reqErr } = await supabase.from('deal_discount_requests').insert(
+        discounted.map(l => ({
+          deal_id: data.id,
+          product_id: l.id,
+          requested_by: profile?.id || null,
+          requested_pct: l.discountPct,
+          brand: l.product.brand || null,
+          supplier_code: l.product.supplier_code || null,
+          route: l.routing.route,
+          channel: l.routing.channel,
+          status: l.routing.initialStatus,
+          scope: 'both',
+          value_at_risk: l.pendingCostRelief || null,
+          justification: `${client.trim()} · ${l.product.name}`,
+        }))
+      )
+      if (reqErr) {
+        setSaving(false)
+        setError(`${t('qd_err_discounts')} ${reqErr.message}`)
+        return
+      }
+    }
+
     setSaving(false)
     if (lineErr) { setError(`${t('qd_err_lines')} ${lineErr.message}`); return }
     onCreated?.(data)
@@ -234,7 +349,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       )}
 
       {/* The three inputs that drive everything. */}
-      <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-end">
+      <div className="grid grid-cols-2 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-end">
         <div>
           <label className="label">{t('qd_client')} <span className="text-red-500">*</span></label>
           <SearchableSelect
@@ -254,6 +369,13 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
             placeholder={t('qd_country_ph')}
             emptyLabel={t('qd_country_empty')}
           />
+        </div>
+        <div>
+          <label className="label">{t('qd_term')}</label>
+          <select className="select w-28" value={years}
+            onChange={e => setYears(parseInt(e.target.value, 10))}>
+            {TERM_YEARS.map(y => <option key={y} value={y}>{y} {t('qd_years')}</option>)}
+          </select>
         </div>
         <div>
           <label className="label">{t('qd_studies')} <span className="text-red-500">*</span></label>
@@ -313,6 +435,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                 items={items}
                 studies={parseFloat(studies) || 0}
                 value={famSel[id] || {}}
+                bundleDefault={pacsInQuote}
                 onChange={v => setFamSel(s => ({ ...s, [id]: v }))}
               />
             </div>
@@ -320,18 +443,16 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         })}
       </div>
 
-      {/* Economics */}
-      {/* On a phone the six-column table is unreadable — the sell price and the
-          margin, the two numbers the rep is here for, fall off the right edge.
-          Below `sm` each line becomes a card instead; the table returns on any
-          screen wide enough to hold it. */}
+      {/* One card per product, on every screen. The table this replaced could
+          not carry two sets of economics without becoming ten columns wide, and
+          it was already unreadable on a phone at six. */}
       {lines.length > 0 && (
-        <div className="sm:hidden space-y-2">
+        <div className="space-y-2">
           {lines.map(l => (
             <div key={l.id} className="border border-gray-200 rounded-xl p-3 space-y-2">
               <div className="flex items-start justify-between gap-2">
                 <p className="text-xs font-semibold text-gray-800 leading-tight">{l.product.name}</p>
-                <span className="text-micro text-gray-400 flex-shrink-0">
+                <span className="text-micro text-gray-400 flex-shrink-0 text-right">
                   {!l.costKnown && <span className="text-amber-700 font-semibold mr-1">{t('qd_cost_unknown')}</span>}
                   {l.priced ? l.tierLabel : t('qd_cost_margin')}
                   {l.priced && l.boundBy !== 'tier' && (
@@ -341,91 +462,87 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                   )}
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+
+              {!l.isSub && (
+                <div className="grid grid-cols-3 gap-2 items-end">
+                  <div>
+                    <label className="label">{t('qd_capex_cost')}</label>
+                    <input className="input text-right" type="number" min="0" value={l.capexCost}
+                      onChange={e => setField(l.id, 'capexCost', e.target.value)}
+                      style={{ fontSize: '16px' }}/>
+                  </div>
+                  <div>
+                    <label className="label">{t('qd_margin_pct')}</label>
+                    <input className={`input text-right ${l.capexBelow ? 'border-red-300' : 'border-green-200'}`}
+                      type="number" min="0" max="99" value={marginOf(l.capexCost, l.capexPvp)}
+                      onChange={e => setMargin(l.id, 'capex', e.target.value)}
+                      style={{ fontSize: '16px' }}/>
+                  </div>
+                  <div>
+                    <label className="label">{t('qd_capex_pvp')}</label>
+                    <input className="input text-right font-semibold" type="number" min="0" value={l.capexPvp}
+                      onChange={e => setField(l.id, 'capexPvp', e.target.value)}
+                      style={{ fontSize: '16px' }}/>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-3 gap-2 items-end">
                 <div>
-                  <label className="label">{t('qd_cost_eur')}</label>
-                  <input className="input text-right" type="number" min="0"
-                    value={l.cost} onChange={e => setCost(l.id, e.target.value)}
+                  <label className="label">{t('qd_annual_cost')}</label>
+                  <input className="input text-right" type="number" min="0" value={l.annualCost}
+                    onChange={e => setField(l.id, 'annualCost', e.target.value)}
                     style={{ fontSize: '16px' }}/>
                 </div>
                 <div>
                   <label className="label">{t('qd_margin_pct')}</label>
-                  <input className="input text-right border-green-200" type="number" min="0" max="99"
-                    value={l.marginPct} onChange={e => setMargin(l.id, e.target.value)}
+                  <input className={`input text-right ${l.annualBelow ? 'border-red-300' : 'border-green-200'}`}
+                    type="number" min="0" max="99" value={marginOf(l.annualCost, l.annualPvp)}
+                    onChange={e => setMargin(l.id, 'sla', e.target.value)}
+                    style={{ fontSize: '16px' }}/>
+                </div>
+                <div>
+                  <label className="label">{t('qd_annual_pvp')}</label>
+                  <input className="input text-right font-semibold" type="number" min="0" value={l.annualPvp}
+                    onChange={e => setField(l.id, 'annualPvp', e.target.value)}
                     style={{ fontSize: '16px' }}/>
                 </div>
               </div>
-              <div className="flex justify-between items-baseline pt-1 border-t border-gray-100">
-                <span className="text-xs text-green-700 font-semibold">{t('qd_gm')} {formatK(l.grossMargin)}</span>
-                <span className="text-sm font-bold text-gray-900">{formatK(l.pvp)}</span>
+
+              <div className="grid grid-cols-3 gap-2 items-end">
+                <div>
+                  <label className="label">{t('qd_discount')}</label>
+                  <input className="input text-right" type="number" min="0" max="99"
+                    value={l.discountPct}
+                    onChange={e => setField(l.id, 'discountPct', e.target.value)}
+                    style={{ fontSize: '16px' }}/>
+                </div>
+                <p className="col-span-2 text-micro text-gray-500 pb-2">
+                  {l.routing.appliesTo === 'price'
+                    ? t('qd_disc_price')
+                    : <>{t('qd_disc_cost')} <strong>{l.routing.channel}</strong>
+                        {l.speculative && <span className="block text-amber-700">{t('qd_disc_pending')}</span>}</>}
+                </p>
+              </div>
+
+              {(l.capexBelow || l.annualBelow) && (
+                <p className="text-micro text-red-700">
+                  {t('qd_below_floor')}{' '}
+                  {l.capexBelow && `${t('qd_capex_pvp')} ≥ ${formatK(recommendedCapexPvp(l.capexCost))}`}
+                  {l.capexBelow && l.annualBelow && ' · '}
+                  {l.annualBelow && `${t('qd_annual_pvp')} ≥ ${formatK(recommendedSlaPvp(l.annualCost))}`}
+                </p>
+              )}
+
+              <div className="flex justify-between items-baseline pt-1.5 border-t border-gray-100 text-xs">
+                <span className="text-gray-500">{years} {t('qd_years')}</span>
+                <span className="flex gap-3">
+                  <span className="text-green-700 font-semibold">{t('qd_gm')} {formatK(l.grossMargin)} · {l.marginPct}%</span>
+                  <span className="font-bold text-gray-900">{formatK(l.pvp)}</span>
+                </span>
               </div>
             </div>
           ))}
-          <div className="border-2 border-navy/20 bg-navy/[0.04] rounded-xl p-3 space-y-1">
-            <div className="flex justify-between text-xs text-navy">
-              <span>{t('qd_col_cost')}</span><span className="tabular-nums font-semibold">{formatK(totals.cost)}</span>
-            </div>
-            <div className="flex justify-between text-xs text-green-700">
-              <span>{t('qd_gross_margin')} · {totals.marginPct}%</span>
-              <span className="tabular-nums font-semibold">{formatK(totals.grossMargin)}</span>
-            </div>
-            <div className="flex justify-between items-baseline pt-1 border-t border-navy/15">
-              <span className="text-xs font-semibold text-navy">{t('qd_sell')}</span>
-              <span className="text-base font-bold text-navy tabular-nums">{formatK(totals.pvp)}</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {lines.length > 0 && (
-        <div className="hidden sm:block border border-gray-200 rounded-xl overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead className="bg-gray-50 text-gray-500">
-              <tr>
-                <th className="text-left px-3 py-2 font-semibold">{t('qd_col_product')}</th>
-                <th className="text-left px-3 py-2 font-semibold">{t('qd_col_tier')}</th>
-                <th className="text-right px-2 py-2 font-semibold w-24">{t('qd_col_cost')}</th>
-                <th className="text-right px-2 py-2 font-semibold w-20">{t('qd_col_margin')}</th>
-                <th className="text-right px-2 py-2 font-semibold w-24">{t('qd_col_gm')}</th>
-                <th className="text-right px-3 py-2 font-semibold w-24">{t('qd_col_sell')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lines.map(l => (
-                <tr key={l.id} className="border-t border-gray-100">
-                  <td className="px-3 py-2 font-medium text-gray-800">{l.product.name}</td>
-                  <td className="px-3 py-2 text-gray-500">
-                    {!l.costKnown && <span className="text-amber-700 font-semibold mr-1">{t('qd_cost_unknown')}</span>}
-                    {l.priced ? l.tierLabel : <span className="text-gray-400">{t('qd_cost_margin')}</span>}
-                    {l.priced && l.boundBy !== 'tier' && (
-                      <span className="ml-1 text-micro font-semibold text-amber-700">
-                        {l.boundBy === 'minimum' ? t('qd_bound_min') : t('qd_bound_cap')}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-2 py-1 text-right">
-                    <input className="input text-xs py-1 text-right w-full" type="number" min="0"
-                      value={l.cost} onChange={e => setCost(l.id, e.target.value)}
-                      style={{ fontSize: '16px' }}/>
-                  </td>
-                  <td className="px-2 py-1 text-right">
-                    <input className="input text-xs py-1 text-right w-full border-green-200" type="number" min="0" max="99"
-                      value={l.marginPct} onChange={e => setMargin(l.id, e.target.value)}
-                      style={{ fontSize: '16px' }}/>
-                  </td>
-                  <td className="px-2 py-2 text-right font-semibold text-green-700">{formatK(l.grossMargin)}</td>
-                  <td className="px-3 py-2 text-right font-bold text-gray-900">{formatK(l.pvp)}</td>
-                </tr>
-              ))}
-              <tr className="border-t-2 border-navy/20 bg-navy/[0.04] font-bold">
-                <td className="px-3 py-2 text-navy" colSpan={2}>{t('qd_total')}</td>
-                <td className="px-2 py-2 text-right text-navy">{formatK(totals.cost)}</td>
-                <td className="px-2 py-2 text-right text-navy">{totals.marginPct}%</td>
-                <td className="px-2 py-2 text-right text-green-700">{formatK(totals.grossMargin)}</td>
-                <td className="px-3 py-2 text-right text-navy">{formatK(totals.pvp)}</td>
-              </tr>
-            </tbody>
-          </table>
         </div>
       )}
 
@@ -453,7 +570,26 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
               <p className="text-base font-bold text-green-700 tabular-nums">{totals.marginPct}%</p>
             </div>
           </div>
-          <p className="text-micro text-gray-500">{lines.length} {t('qd_n_products')}</p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-micro text-gray-600 pt-1 border-t border-navy/10">
+            <span>{t('qd_one_off')}: <strong className="tabular-nums">{formatK(totals.capexPvp)}</strong></span>
+            <span>{t('qd_recurring')}: <strong className="tabular-nums">{formatK(totals.annualPvp)}</strong>/{t('qd_years')} × {years}</span>
+            <span>{lines.length} {t('qd_n_products')}</span>
+          </div>
+          {views.hasPending && (
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-navy/10">
+              <label className="flex items-center gap-1.5 text-micro text-gray-700 min-h-tap cursor-pointer">
+                <input type="checkbox" checked={ifApproved}
+                  onChange={e => setIfApproved(e.target.checked)}/>
+                {t('qd_view_if_approved')}
+              </label>
+              <span className="text-micro text-amber-800">
+                {t('qd_at_risk')} <strong className="tabular-nums">{formatK(views.atRisk)}</strong>
+              </span>
+            </div>
+          )}
+          {lines.some(l => l.discountPct > 0) && (
+            <p className="text-micro text-gray-500">{t('qd_worklist_note')}</p>
+          )}
           {lines.some(l => !l.costKnown) && (
             <p className="text-micro text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
               {t('qd_cost_warning')}
@@ -479,3 +615,5 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
     </div>
   )
 }
+
+function round2(n) { return Math.round((n + Number.EPSILON) * 100) / 100 }

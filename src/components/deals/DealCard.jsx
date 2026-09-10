@@ -87,7 +87,7 @@ function DiscountChip({ deal }) {
 // Compact by default; taps expand "Details" (extra badges, description,
 // distribution chain, monthly breakdown). Keeps the Monthly toggle as a
 // subset of the full details — one chevron, one state.
-export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete, brands }) {
+export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete, brands, openDiscounts }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const fy26 = MONTHS_K.reduce((s, m) => s + (Number(deal[m]) || 0), 0)
@@ -175,6 +175,19 @@ export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete, b
               </>
             )
           })()}
+          {/* The margin on the card is the one we have. Where part of it is
+              still waiting on a supplier or an approver, say so here rather
+              than let the figure read as settled. */}
+          {openDiscounts?.value_at_risk > 0 && (
+            <p className="text-micro text-amber-700 font-semibold" title={t('dc_at_risk_title')}>
+              +{formatK(openDiscounts.value_at_risk)} {t('dc_if_approved')}
+            </p>
+          )}
+          {openDiscounts?.unfiled > 0 && (
+            <p className="text-micro text-red-600 font-semibold">
+              {openDiscounts.unfiled} {t('dc_unfiled')}
+            </p>
+          )}
           {deal.gm_pct > 0 && (
             <p className="text-micro text-green-600 font-semibold">GM {(deal.gm_pct * 100).toFixed(0)}%</p>
           )}
