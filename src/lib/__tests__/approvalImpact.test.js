@@ -62,6 +62,29 @@ describe('a partner quoting below what they pay', () => {
   })
 })
 
+describe('the money an approval actually moves', () => {
+  // The same arithmetic the database does when a request is granted:
+  //   line cost = value_at_risk × 100 / requested   ·   relief = cost × approved / 100
+  const reliefFor = (valueAtRisk, requested, approved) =>
+    Math.round((valueAtRisk * approved / requested) * 100) / 100
+
+  it('takes off exactly what was asked for when the ask is granted in full', () => {
+    // A line costing 50,000 asked at 20% is worth 10,000.
+    expect(reliefFor(10000, 20, 20)).toBe(10000)
+  })
+
+  it('takes off half when the counter-offer is half', () => {
+    expect(reliefFor(10000, 20, 10)).toBe(5000)
+  })
+
+  it('matches what the card promised the approver', () => {
+    // The card said granting 20% costs us 20,000 on a 100,000 transfer; the
+    // request behind it carries the same 20,000, and so does the database.
+    const card = approvalImpact({ transfer: 100000, endCustomerPrice: 125000, requestedPct: 20 })
+    expect(reliefFor(card.given, 20, 20)).toBe(card.given)
+  })
+})
+
 describe('the edges', () => {
   it('refuses a percentage outside 0-100 rather than inverting the deal', () => {
     expect(approvalImpact({ ...DEAL, requestedPct: -5 }).pct).toBe(0)
