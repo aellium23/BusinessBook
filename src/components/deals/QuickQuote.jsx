@@ -84,6 +84,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   const [years, setYears]     = useState(DEFAULT_TERM)
   const [manDays, setManDays] = useState('')
   const [view, setView] = useState('quoted')       // which reading is on screen
+  const [discOpen, setDiscOpen] = useState({})     // line id -> discount asked
   const [servicesOn, setServicesOn] = useState(false)
   const [servicesPvp, setServicesPvp] = useState('')   // '' = the default price
   const [channelRole, setChannelRole] = useState('direct')
@@ -399,6 +400,10 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   // Services alone are a deal: an implementation, a migration, a training week.
   const quotable = servicesOn && services.pvp > 0
 
+  // A line whose discount is already set opens itself: a saved figure must
+  // never sit behind a button nobody thought to press.
+  const discountOpen = l => Boolean(discOpen[l.id]) || discounted(l)
+
   /** Whether this line has a discount on it at all, ours or the supplier's. */
   const discounted = l => (l.discountPct > 0 || (l.skuDiscounts?.length || 0) > 0)
 
@@ -450,7 +455,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
 
     if (servicesOn && (services.pvp > 0 || services.cost > 0)) {
       rows.push({
-        id: 'services', name: t('qd_services'), services: true,
+        id: 'services', name: t('qd_services_short'), services: true,
         cost: round2(services.cost), pvp: round2(services.pvp),
         gm: round2(services.grossMargin), pct: services.marginPct,
       })
@@ -684,7 +689,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
             className={`min-h-tap px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
               servicesOn ? 'border-navy bg-navy text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
             }`}>
-            {servicesOn && <Check size={11} className="inline mr-1 -mt-0.5"/>}{t('qd_services')}
+            {servicesOn && <Check size={11} className="inline mr-1 -mt-0.5"/>}{t('qd_services_short')}
           </button>
           {!showAll && restCount > 0 && (
             <button type="button" onClick={() => setShowAll(true)}
@@ -905,46 +910,58 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-[4.2rem_1fr] gap-2 items-end">
-                <div>
-                  <label className="label">{t('qd_discount')}</label>
-                  {l.routing.appliesTo === 'cost'
-                    ? <p className="text-micro text-gray-400 py-2">{t('qd_disc_per_sku')}</p>
-                    : <input className="input text-right" type="number" min="0" max="99"
-                        value={l.discountPct}
-                        onChange={e => setField(l.id, 'discountPct', e.target.value)}
-                        style={{ fontSize: '16px' }}/>}
-                </div>
-                <p className="text-micro text-gray-500 pb-2">
-                  {l.routing.appliesTo === 'price'
-                    ? (l.ladder
-                        ? <>
-                            <strong className={l.ladder.overCap ? 'text-red-700' : 'text-navy'}>
-                              {l.ladder.pctOfList}% {t('dl_of_list')}
-                            </strong>
-                            {' · '}{t(`dl_rung_${l.ladder.rung.key}`)}
-                            <span className={`block ${l.ladder.overCap ? 'text-red-700 font-semibold' : 'text-gray-500'}`}>
-                              {t(`dl_${l.ladder.level}`)}
-                            </span>
-                          </>
-                        : t('qd_disc_price'))
-                    : <>{t('qd_disc_cost')} <strong>{l.routing.channel}</strong>
-                        {l.speculative && <span className="block text-amber-700">{t('qd_disc_pending')}</span>}</>}
-                </p>
-              </div>
+              {/* The discount is opt-in. Most quotes do not carry one, and a
+                  percentage box with a reason box under it, on every line, was
+                  three fields of nothing on the way to the price. */}
+              {!discountOpen(l) ? (
+                <button type="button" onClick={() => setDiscOpen(o => ({ ...o, [l.id]: true }))}
+                  className="text-micro font-semibold text-navy underline underline-offset-2 min-h-tap">
+                  + {t('qd_disc_ask')}
+                </button>
+              ) : (
+                <div className="space-y-1.5 pt-1 border-t border-gray-100">
+                  <div className="grid grid-cols-[4.2rem_1fr] gap-2 items-end">
+                    <div>
+                      <label className="label">{t('qd_discount')}</label>
+                      {l.routing.appliesTo === 'cost'
+                        ? <p className="text-micro text-gray-400 py-2">{t('qd_disc_per_sku')}</p>
+                        : <input className="input text-right" type="number" min="0" max="99"
+                            value={l.discountPct}
+                            onChange={e => setField(l.id, 'discountPct', e.target.value)}
+                            style={{ fontSize: '16px' }}/>}
+                    </div>
+                    <p className="text-micro text-gray-500 pb-2">
+                      {l.routing.appliesTo === 'price'
+                        ? (l.ladder
+                            ? <>
+                                <strong className={l.ladder.overCap ? 'text-red-700' : 'text-navy'}>
+                                  {l.ladder.pctOfList}% {t('dl_of_list')}
+                                </strong>
+                                {' · '}{t(`dl_rung_${l.ladder.rung.key}`)}
+                                <span className={`block ${l.ladder.overCap ? 'text-red-700 font-semibold' : 'text-gray-500'}`}>
+                                  {t(`dl_${l.ladder.level}`)}
+                                </span>
+                              </>
+                            : t('qd_disc_price'))
+                        : <>{t('qd_disc_cost')} <strong>{l.routing.channel}</strong>
+                            {l.speculative && <span className="block text-amber-700">{t('qd_disc_pending')}</span>}</>}
+                    </p>
+                  </div>
 
-              {/* One sentence, whoever the discount is asked of. A discount that
-                  cannot be explained in a line is one that should not be given,
-                  and this is the same box whether it goes to an approver here or
-                  into a case with the supplier. */}
-              {discounted(l) && (
-                <div>
-                  <input className={`input text-xs py-1.5 w-full ${l.discountNote ? '' : 'border-amber-300'}`}
-                    style={{ fontSize: '16px' }} value={(overrides[l.id]?.discountNote) || ''}
-                    placeholder={t('qd_disc_why_ph')}
-                    onChange={e => setNote(l.id, e.target.value)}/>
-                  {!l.discountNote && (
-                    <p className="text-micro text-amber-700 mt-0.5">{t('qd_disc_why_hint')}</p>
+                  {/* Three lines, because one line taught people to write "price"
+                      where an approver needs the incumbent, the figure and the date. */}
+                  {discounted(l) && (
+                    <div>
+                      <label className="label">{t('qd_disc_why')}</label>
+                      <textarea rows={3}
+                        className={`input text-xs w-full leading-snug ${l.discountNote ? '' : 'border-amber-300'}`}
+                        style={{ fontSize: '16px' }} value={(overrides[l.id]?.discountNote) || ''}
+                        placeholder={t('qd_disc_why_ph')}
+                        onChange={e => setNote(l.id, e.target.value)}/>
+                      {!l.discountNote && (
+                        <p className="text-micro text-amber-700">{t('qd_disc_why_hint')}</p>
+                      )}
+                    </div>
                   )}
                 </div>
               )}
@@ -1054,6 +1071,16 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
 
           <div className="-mx-1 overflow-x-auto">
             <table className="w-full text-xs tabular-nums">
+              {/* The description column is given a share rather than left to
+                  size itself off the longest product name, which is what pushed
+                  the figures into two lines on a phone. */}
+              <colgroup>
+                <col style={{ width: '30%' }}/>
+                <col style={{ width: '19%' }}/>
+                <col style={{ width: '19%' }}/>
+                <col style={{ width: '19%' }}/>
+                <col style={{ width: '13%' }}/>
+              </colgroup>
               <thead>
                 <tr className="text-micro text-gray-500 uppercase tracking-wide">
                   <th className="text-left font-semibold py-1 px-1">{t('qd_col_desc')}</th>
@@ -1066,7 +1093,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
               <tbody>
                 {table.rows.map(r => (
                   <tr key={r.id} className="border-t border-navy/10">
-                    <td className={`text-left py-1 px-1 max-w-[8rem] truncate ${
+                    <td className={`text-left py-1 px-1 truncate ${
                       r.services ? 'text-gray-500 italic' : 'text-gray-800'
                     }`}>{r.name}</td>
                     <td className="text-right py-1 px-1 text-red-700">
