@@ -10,8 +10,11 @@ import { familyEconomics, defaultItemIds } from '../../lib/familyEconomics'
 import { saveDealProducts } from '../../hooks/useDealProducts'
 import { resolvePrice, pricingRegionForCountry, pvpForMargin } from '../../lib/pricing'
 import { recommendedCapexPvp, recommendedSlaPvp, belowFloor, lineOverTerm } from '../../lib/margins'
-import { routeFor, applyDiscount, discountViews } from '../../lib/discountRouting'
+import { routeFor, applyDiscount, discountViews, internalApproval } from '../../lib/discountRouting'
+import { priceAtRung } from '../../lib/discountLadder'
 import { unitsNeeded, quantityFor } from '../../lib/volumeUnits'
+import { toEur, rateLabel } from '../../lib/fx'
+import { useFxRates } from '../../hooks/useFxRates'
 import { COUNTRY_MAP, regionForCountry } from '../../constants'
 import SearchableSelect from '../SearchableSelect'
 import { formatK } from '../ui'
@@ -56,6 +59,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   const { t } = useTranslation()
   const { products } = useProducts()
   const { regions, countryMap, tiersByProduct, error: pricingError } = usePricing()
+  const { rates } = useFxRates()
 
   // Everything the rep's own account already tells us is filled in up front.
   const defaultBU = ['VGT', 'ECT'].includes(profile?.bu) ? profile.bu : 'VGT'
@@ -191,9 +195,15 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       // Each product is priced on the volume its own price_unit names — a VR
       // line must see the radiologist count, never the exam count.
       const productQty = quantityFor(product, volumes)
-      const listed = tiers && region && productQty
+      const rawListed = tiers && region && productQty
         ? resolvePrice({ product, tiers, discountPct: region.discountPct, quantity: productQty })
         : null
+
+      // The CWM global list is published in USD and this deal is written in
+      // euros. Without this the screen printed a dollar figure with a euro
+      // sign — 16% high, and plausible enough to go unquestioned.
+      const fx = rawListed ? toEur(rawListed.net, product.list_currency, rates) : null
+      const listed = rawListed ? { ...rawListed, net: fx.value, fx } : null
       const isSub = SUBSCRIPTION_MODELS.includes(product.pricing_model)
 
       const fam = familyEconomics(itemsByProduct[id], famSel[id] ? selectionFor(id) : null, qty)
@@ -224,6 +234,15 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       const dCapex = applyDiscount({ ...routing, pct: discountPct, cost: capexCost, pvp: capexPvp })
       const dAnnual = applyDiscount({ ...routing, pct: discountPct, cost: annualCost, pvp: annualPvp })
 
+      // On a CWM line the control is the price, not the cost: how far below the
+      // published regional list it has fallen decides who signs. Measured from
+      // the price itself, because a rep can type over it and leave the discount
+      // box reading zero.
+      const listRef = routing.appliesTo === 'price' && listed ? listed.net : null
+      const ladder = listRef
+        ? internalApproval({ listPrice: listRef, quotedPrice: isSub ? dAnnual.pvp : dCapex.pvp })
+        : null
+
       const term = lineOverTerm({
         capexCost: dCapex.cost, capexPvp: dCapex.pvp,
         annualCost: dAnnual.cost, annualPvp: dAnnual.pvp, years,
@@ -235,13 +254,17 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         tierLabel: listed?.tierLabel ?? '—',
         boundBy: listed?.boundBy ?? 'tier',
         priced: Boolean(listed),
+        listed,
         capexCost: dCapex.cost, capexPvp: dCapex.pvp,
         annualCost: dAnnual.cost, annualPvp: dAnnual.pvp,
-        discountPct, routing,
+        discountPct, routing, ladder,
         speculative: dCapex.speculative || dAnnual.speculative,
-        pendingCostRelief: dCapex.speculative
-          ? round2((capexCost + annualCost * years) * (discountPct / 100))
+        // Per-SKU relief, summed. The support side counts once per contract
+        // year, the licence once.
+        pendingCostRelief: routing.appliesTo === 'cost'
+          ? round2(fam.reliefCapex + fam.reliefAnnual * years)
           : 0,
+        skuDiscounts: fam.discounted,
         capexBelow: belowFloor({ kind: 'capex', cost: dCapex.cost, pvp: dCapex.pvp }),
         annualBelow: belowFloor({ kind: 'sla', cost: dAnnual.cost, pvp: dAnnual.pvp }),
         costKnown: capexCost > 0 || annualCost > 0,
@@ -249,11 +272,18 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       }
     }).filter(Boolean)
   }, [picked, products, tiersByProduct, region, studies, overrides, itemsByProduct,
-      famSel, productCosts, years, pacsInQuote, suppliers, volumes])
+      famSel, productCosts, years, pacsInQuote, suppliers, volumes, rates])
 
   // The quote seen both ways: what we have, and what we have if the supplier
   // discounts land. The gap between them is the number worth naming.
   const views = useMemo(() => discountViews(lines), [lines])
+  // Shown next to the region, because the pricing brief requires a conversion
+  // to carry its rate wherever it appears.
+  const fxNote = useMemo(() => {
+    const l = lines.find(x => x.listed?.fx?.converted && x.listed.fx.rate !== 1)
+    return l ? rateLabel(l.listed.fx.currency, l.listed.fx.rate) : null
+  }, [lines])
+
   const totals = useMemo(() => ({
     ...(ifApproved ? views.ifApproved : views.actual),
     capexPvp: round2(lines.reduce((n, l) => n + l.capexPvp, 0)),
@@ -289,6 +319,11 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       stage: 'Lead',
       value_total: views.actual.pvp,
       gm_pct: views.actual.marginPct,
+      currency: 'EUR',
+      // A rate is a snapshot. The project's rule for deals applies here: store
+      // it, so a rate change tomorrow cannot silently reprice a quote sent
+      // today.
+      exchange_rate: lines.find(l => l.listed?.fx?.converted && l.listed.fx.rate !== 1)?.listed.fx.rate ?? null,
       company_id: profile?.company_id || null,
       created_by: profile?.id || null,
     }).select('id, client, bu, country').single()
@@ -311,22 +346,40 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
     // Discounts become worklist entries only now, because they hang off a deal
     // that did not exist a moment ago. A failure here must not read as a failed
     // deal — the deal is saved; the rep is told what did not get raised.
-    const discounted = lines.filter(l => l.discountPct > 0)
+    // Nothing to raise where nobody signs. A request approved by default would
+    // bury the ones that need a decision.
+    // One row per SKU on the supplier side: HCUS opens a case per part number,
+    // and "Synapse licence 70%" and "Oracle 20%" are two different asks.
+    const external = lines.flatMap(l =>
+      l.routing.appliesTo === 'cost'
+        ? (l.skuDiscounts || []).map(d => ({ line: l, sku: d }))
+        : [])
+    const internal = lines
+      .filter(l => l.routing.appliesTo === 'price' && l.ladder?.needsRequest)
+      .map(l => ({ line: l, sku: null }))
+    const discounted = [...external, ...internal]
     if (discounted.length) {
       const { error: reqErr } = await supabase.from('deal_discount_requests').insert(
-        discounted.map(l => ({
+        discounted.map(({ line: l, sku }) => ({
           deal_id: data.id,
           product_id: l.id,
           requested_by: profile?.id || null,
-          requested_pct: l.discountPct,
+          requested_pct: sku ? sku.pct : (l.ladder ? l.ladder.pctOff : l.discountPct),
+          approval_level: l.ladder?.level || null,
           brand: l.product.brand || null,
           supplier_code: l.product.supplier_code || null,
           route: l.routing.route,
           channel: l.routing.channel,
           status: l.routing.initialStatus,
           scope: 'both',
-          value_at_risk: l.pendingCostRelief || null,
-          justification: `${client.trim()} · ${l.product.name}`,
+          value_at_risk: sku
+            ? round2(sku.reliefCapex + sku.reliefAnnual * years)
+            : (l.pendingCostRelief || null),
+          // The request names the part number, because that is what gets typed
+          // into the supplier's system.
+          justification: sku
+            ? `${client.trim()} · ${sku.item.supplier_sku || ''} ${sku.item.description || sku.item.name}`.trim()
+            : `${client.trim()} · ${l.product.name}`,
         }))
       )
       if (reqErr) {
@@ -363,7 +416,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       )}
 
       {/* The three inputs that drive everything. */}
-      <div className="grid grid-cols-2 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-end">
+      <div className="grid grid-cols-2 sm:grid-cols-[minmax(12rem,1fr)_auto_auto_auto] gap-2 items-end">
         <div>
           <label className="label">{t('qd_client')} <span className="text-red-500">*</span></label>
           <SearchableSelect
@@ -386,7 +439,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         </div>
         <div>
           <label className="label">{t('qd_term')}</label>
-          <select className="select w-28" value={years}
+          <select className="select w-24" value={years}
             onChange={e => setYears(parseInt(e.target.value, 10))}>
             {TERM_YEARS.map(y => <option key={y} value={y}>{y} {t('qd_years')}</option>)}
           </select>
@@ -396,7 +449,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
             <label className="label">
               {t(u.labelKey)}{u.primary && <span className="text-red-500"> *</span>}
             </label>
-            <input className="input w-36" type="number" min="0" inputMode="numeric"
+            <input className="input w-28" type="number" min="0" inputMode="numeric"
               value={volumes[u.key] || ''} placeholder={u.placeholder}
               onChange={e => setVolumes(v => ({ ...v, [u.key]: e.target.value }))}
               style={{ fontSize: '16px' }}/>
@@ -404,9 +457,17 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         ))}
       </div>
 
+      {lines.some(l => l.listed?.fx && !l.listed.fx.converted) && (
+        <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          {t('qd_fx_missing').replaceAll('{cur}',
+            lines.find(l => l.listed?.fx && !l.listed.fx.converted).listed.fx.currency)}
+        </p>
+      )}
+
       {region
         ? <p className="text-micro text-gray-500">
             {t('qd_region_is')} <strong className="text-navy">{regionCode} · {region.name}</strong> — {region.discountPct}% {t('qd_region_off')}
+            {fxNote && <span className="ml-1 text-gray-400">· {fxNote}</span>}
           </p>
         : <p className="text-micro text-amber-700">
             {country} {t('qd_no_region')}
@@ -483,7 +544,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
               </div>
 
               {!l.isSub && (
-                <div className="grid grid-cols-3 gap-2 items-end">
+                <div className="grid grid-cols-[1fr_3.5rem_1fr] gap-2 items-end">
                   <div>
                     <label className="label">{t('qd_capex_cost')}</label>
                     <input className="input text-right" type="number" min="0" value={l.capexCost}
@@ -506,7 +567,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                 </div>
               )}
 
-              <div className="grid grid-cols-3 gap-2 items-end">
+              <div className="grid grid-cols-[1fr_3.5rem_1fr] gap-2 items-end">
                 <div>
                   <label className="label">{t('qd_annual_cost')}</label>
                   <input className="input text-right" type="number" min="0" value={l.annualCost}
@@ -528,17 +589,29 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 items-end">
+              <div className="grid grid-cols-[3.5rem_1fr] gap-2 items-end">
                 <div>
                   <label className="label">{t('qd_discount')}</label>
-                  <input className="input text-right" type="number" min="0" max="99"
-                    value={l.discountPct}
-                    onChange={e => setField(l.id, 'discountPct', e.target.value)}
-                    style={{ fontSize: '16px' }}/>
+                  {l.routing.appliesTo === 'cost'
+                    ? <p className="text-micro text-gray-400 py-2">{t('qd_disc_per_sku')}</p>
+                    : <input className="input text-right" type="number" min="0" max="99"
+                        value={l.discountPct}
+                        onChange={e => setField(l.id, 'discountPct', e.target.value)}
+                        style={{ fontSize: '16px' }}/>}
                 </div>
-                <p className="col-span-2 text-micro text-gray-500 pb-2">
+                <p className="text-micro text-gray-500 pb-2">
                   {l.routing.appliesTo === 'price'
-                    ? t('qd_disc_price')
+                    ? (l.ladder
+                        ? <>
+                            <strong className={l.ladder.overCap ? 'text-red-700' : 'text-navy'}>
+                              {l.ladder.pctOfList}% {t('dl_of_list')}
+                            </strong>
+                            {' · '}{t(`dl_rung_${l.ladder.rung.key}`)}
+                            <span className={`block ${l.ladder.overCap ? 'text-red-700 font-semibold' : 'text-gray-500'}`}>
+                              {t(`dl_${l.ladder.level}`)}
+                            </span>
+                          </>
+                        : t('qd_disc_price'))
                     : <>{t('qd_disc_cost')} <strong>{l.routing.channel}</strong>
                         {l.speculative && <span className="block text-amber-700">{t('qd_disc_pending')}</span>}</>}
                 </p>
@@ -590,8 +663,12 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
             </div>
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-micro text-gray-600 pt-1 border-t border-navy/10">
-            <span>{t('qd_one_off')}: <strong className="tabular-nums">{formatK(totals.capexPvp)}</strong></span>
-            <span>{t('qd_recurring')}: <strong className="tabular-nums">{formatK(totals.annualPvp)}</strong>/{t('qd_years')} × {years}</span>
+            {totals.capexPvp > 0 && (
+              <span>{t('qd_one_off')}: <strong className="tabular-nums">{formatK(totals.capexPvp)}</strong></span>
+            )}
+            {totals.annualPvp > 0 && (
+              <span>{t('qd_recurring')}: <strong className="tabular-nums">{formatK(totals.annualPvp)}</strong> {t('qd_recurring_yr')} {years}</span>
+            )}
             <span>{lines.length} {t('qd_n_products')}</span>
           </div>
           {views.hasPending && (
@@ -606,7 +683,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
               </span>
             </div>
           )}
-          {lines.some(l => l.discountPct > 0) && (
+          {lines.some(l => l.discountPct > 0 || l.skuDiscounts?.length) && (
             <p className="text-micro text-gray-500">{t('qd_worklist_note')}</p>
           )}
           {lines.some(l => !l.costKnown) && (

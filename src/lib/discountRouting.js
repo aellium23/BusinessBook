@@ -16,6 +16,8 @@
 // Treating the second as if it were the first is how a quote comes to depend on
 // a supplier discount that no one ever asked for.
 
+import { approvalFor, pctOffList, rungFor } from './discountLadder'
+
 const num = v => (v === null || v === undefined || v === '' ? null : Number(v))
 
 export const ROUTE_INTERNAL = 'internal'
@@ -71,6 +73,28 @@ export function applyDiscount({ appliesTo, pct, cost, pvp, granted = false }) {
     }
   }
   return { cost: r(c), pvp: r(v * (1 - p / 100)), speculative: false }
+}
+
+/**
+ * Who has to sign, for a discount on a product we make.
+ *
+ * `routeFor` answers where a discount goes; this answers how far up it has to
+ * go, which is a different question and only applies internally. Up to ten
+ * points off list nobody signs at all — a rep quoting the standard target
+ * should not be queueing for permission — and past thirty it stops being a
+ * discount and becomes a named programme with its own terms.
+ */
+export function internalApproval({ listPrice, quotedPrice }) {
+  const pctOff = pctOffList(listPrice, quotedPrice)
+  const a = approvalFor(pctOff)
+  return {
+    ...a,
+    pctOfList: Math.round((100 - pctOff) * 10) / 10,
+    rung: rungFor(100 - pctOff),
+    // Nothing to raise when nobody has to sign. Creating a request that is
+    // approved by default would bury the ones that need a decision.
+    needsRequest: a.requiresApproval,
+  }
 }
 
 /** Statuses an external request moves through, in order. */

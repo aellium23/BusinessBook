@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { cheapestCcuCombination, groupItems, packageLines } from '../../lib/ccu'
-import { resolveVariant, hasBundleVariant } from '../../lib/familyEconomics'
+import { resolveVariant, hasBundleVariant, discountCeiling } from '../../lib/familyEconomics'
 import { itemCost } from '../../lib/itemPricing'
 import { formatK } from '../ui'
 import { useTranslation } from '../../hooks/useTranslation'
@@ -62,6 +62,11 @@ export default function FamilyItems({ items, studies, value, onChange, bundleDef
     onChange({ ...value, itemIds: picked.includes(id) ? picked.filter(x => x !== id) : [...picked, id] })
   }
 
+  const discounts = value.discounts || {}
+  function setDiscount(id, pct) {
+    onChange({ ...value, discounts: { ...discounts, [id]: pct } })
+  }
+
   const manualCost = pickedLines.reduce((s, l) => s + l.cost, 0)
   const total = (combo?.cost || 0) + manualCost
 
@@ -84,7 +89,7 @@ export default function FamilyItems({ items, studies, value, onChange, bundleDef
             </div>
           )}
           <label className="label">{t('fi_users')}</label>
-          <input className="input w-28" type="number" min="0" inputMode="numeric"
+          <input className="input w-20" type="number" min="0" inputMode="numeric"
             value={users} placeholder="13" style={{ fontSize: '16px' }}
             disabled={!line}
             onChange={e => onChange({ ...value, users: e.target.value })}/>
@@ -169,6 +174,44 @@ export default function FamilyItems({ items, studies, value, onChange, bundleDef
               </div>
             )
           })}
+        </div>
+      )}
+
+      {picked.length > 0 && (
+        <div className="space-y-1.5 pt-2 border-t border-gray-200">
+          <div>
+            <p className="text-xs font-semibold text-gray-700">{t('fi_disc')}</p>
+            <p className="text-micro text-gray-400">{t('fi_disc_hint')}</p>
+          </div>
+          {picked.map(id => {
+            const raw = (items || []).find(i => i.id === id)
+            if (!raw) return null
+            const shown = resolveVariant(items, raw, bundle)
+            const ceiling = discountCeiling(shown)
+            const pct = Number(discounts[id]) || 0
+            const over = ceiling !== null && pct > ceiling
+            return (
+              <div key={id} className="flex items-center gap-2">
+                <span className="text-xs text-gray-700 flex-1 min-w-0 truncate">
+                  {shown.description || shown.name}
+                </span>
+                <input className={`input text-xs py-1 text-right w-16 ${over ? 'border-red-300' : ''}`}
+                  type="number" min="0" max="100" value={discounts[id] ?? ''}
+                  placeholder="0" style={{ fontSize: '16px' }}
+                  onChange={e => setDiscount(id, e.target.value)}/>
+                <span className={`text-micro w-24 flex-shrink-0 ${over ? 'text-red-700 font-semibold' : 'text-gray-400'}`}>
+                  {ceiling !== null ? `${t('fi_ceiling')} ${ceiling}%` : '%'}
+                </span>
+              </div>
+            )
+          })}
+          {picked.some(id => {
+            const raw = (items || []).find(i => i.id === id)
+            const c = raw && discountCeiling(resolveVariant(items, raw, bundle))
+            return c !== null && c !== undefined && (Number(discounts[id]) || 0) > c
+          }) && (
+            <p className="text-micro text-red-700">{t('fi_over_ceiling')}</p>
+          )}
         </div>
       )}
 
