@@ -75,12 +75,57 @@ describe('a role entitled to less than 35% keeps its own rate', () => {
     expect(partnerEconomics({ listPrice: 100, netPrice: 80, role: 'renewal' }).partnerMarginPct).toBe(25)
   })
 
-  it('never protects below fifteen points, whatever the role', () => {
-    expect(PROTECTED_MARGIN.floor).toBe(15)
-    expect(protectedMarginPct(10)).toBe(15)
+  it('holds a target of 35, a discount floor of 20 and an absolute floor of 15', () => {
+    expect(PROTECTED_MARGIN).toEqual({ target: 35, discountFloor: 20, absoluteFloor: 15 })
     expect(protectedMarginPct(40)).toBe(35)
     expect(protectedMarginPct(40, { overCap: true })).toBe(20)
+    // Nothing reaches the absolute floor by the generic rule; it is a backstop.
+    expect(protectedMarginPct(10)).toBe(15)
+  })
+
+  it('does not pay a role more than its rate to reach the floor', () => {
+    // A Referral discounted deal that returned 20% would be worth more to them
+    // than an undiscounted one, which is not protection, it is an incentive to
+    // discount.
     expect(protectedMarginPct(15, { overCap: true })).toBe(15)
+    const r = partnerEconomics({ listPrice: 100, netPrice: 47, role: 'referral' })
+    expect(r.partnerMarginPct).toBe(15)
+    expect(r.roleUnderFloor).toBe(true)
+    expect(r.belowFloor).toBe(false)
+  })
+})
+
+describe('no discount takes a partner under 20%, and nothing goes under 15%', () => {
+  const roles = ['full_var', 'reseller', 'renewal']
+
+  it('holds every role that earns 20 or more, at every price down to half list', () => {
+    for (const role of roles) {
+      for (let net = 100; net >= 50; net -= 1) {
+        const r = partnerEconomics({ listPrice: 100, netPrice: net, role })
+        expect(r.partnerMarginPct).toBeGreaterThanOrEqual(20)
+        expect(r.belowFloor).toBe(false)
+        expect(r.belowAbsolute).toBe(false)
+      }
+    }
+  })
+
+  it('keeps a Referral above the absolute floor at every price', () => {
+    for (let net = 100; net >= 40; net -= 1) {
+      const r = partnerEconomics({ listPrice: 100, netPrice: net, role: 'referral' })
+      expect(r.partnerMarginPct).toBeGreaterThanOrEqual(15)
+      expect(r.belowAbsolute).toBe(false)
+    }
+  })
+
+  it('says when a deep discount has pulled a Full VAR off the 35% target', () => {
+    const onTarget = partnerEconomics({ listPrice: 100, netPrice: 75, role: 'full_var' })
+    expect(onTarget.onTarget).toBe(true)
+    expect(onTarget.atFloor).toBe(false)
+
+    const deep = partnerEconomics({ listPrice: 100, netPrice: 60, role: 'full_var' })
+    expect(deep.partnerMarginPct).toBe(20)
+    expect(deep.onTarget).toBe(false)
+    expect(deep.atFloor).toBe(true)
   })
 })
 
@@ -92,7 +137,7 @@ describe('the named programmes keep their own transfer', () => {
     expect(r.transfer).toBe(42)
     expect(r.partnerMarginPct).toBe(30)
     // Deliberately between the 35% target and the 20% above-cap floor.
-    expect(r.partnerMarginPct).toBeGreaterThan(PROTECTED_MARGIN.aboveCap)
+    expect(r.partnerMarginPct).toBeGreaterThan(PROTECTED_MARGIN.discountFloor)
     expect(r.partnerMarginPct).toBeLessThan(PROTECTED_MARGIN.target)
   })
 

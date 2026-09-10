@@ -756,11 +756,23 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
                 </div>
                 <div>
                   <p className="text-micro text-gray-500">{t('pm_partner_margin')}</p>
-                  <p className="text-sm font-bold text-green-700 tabular-nums">
+                  <p className={`text-sm font-bold tabular-nums ${
+                    channel.belowFloor ? 'text-red-700'
+                      : channel.atFloor ? 'text-amber-800' : 'text-green-700'
+                  }`}>
                     {formatK(channel.partnerMargin)} · {channel.partnerMarginPct}%
                   </p>
-                  <p className="text-micro text-gray-400">
-                    {channel.programme ? t('pm_programme_rate') : `${t('pm_protected')} ${channel.protectedPct}%`}
+                  {/* Against policy, not against nothing: 35 is where a partner
+                      should land, and 20 is the most a discount may cost them. */}
+                  <p className={`text-micro ${
+                    channel.belowFloor ? 'text-red-700 font-semibold'
+                      : channel.atFloor ? 'text-amber-700' : 'text-gray-400'
+                  }`}>
+                    {channel.programme ? t('pm_programme_rate')
+                      : channel.belowFloor ? t('pm_below_floor')
+                      : channel.roleUnderFloor ? t('pm_role_rate')
+                      : channel.atFloor ? t('pm_at_floor')
+                      : t('pm_on_target')}
                   </p>
                 </div>
                 <div>
