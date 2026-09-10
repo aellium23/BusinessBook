@@ -11,6 +11,7 @@ import { saveDealProducts } from '../../hooks/useDealProducts'
 import { resolvePrice, pricingRegionForCountry, pvpForMargin } from '../../lib/pricing'
 import { recommendedCapexPvp, recommendedSlaPvp, belowFloor, lineOverTerm } from '../../lib/margins'
 import { routeFor, applyDiscount, discountViews } from '../../lib/discountRouting'
+import { unitsNeeded, quantityFor } from '../../lib/volumeUnits'
 import { COUNTRY_MAP, regionForCountry } from '../../constants'
 import SearchableSelect from '../SearchableSelect'
 import { formatK } from '../ui'
@@ -61,12 +62,22 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
 
   const [client, setClient]   = useState('')
   const [country, setCountry] = useState(HOME_COUNTRY[defaultBU] || 'Portugal')
-  const [studies, setStudies] = useState('')
+  const [volumes, setVolumes] = useState({})   // volume key -> value
   const [picked, setPicked]   = useState([])        // product ids
   const [overrides, setOver]  = useState({})        // productId -> { cost, pvp }
   const [famSel, setFamSel]   = useState({})        // productId -> { users, itemIds }
   const [years, setYears]     = useState(DEFAULT_TERM)
   const [ifApproved, setIfApproved] = useState(false)
+
+  // A quote carries several volumes and they are not interchangeable. The exam
+  // count is always asked; the rest appear only when something picked is priced
+  // on them. See src/lib/volumeUnits.js for why this is not one field.
+  const pickedProducts = useMemo(
+    () => picked.map(id => products.find(p => p.id === id)).filter(Boolean),
+    [picked, products]
+  )
+  const needed = useMemo(() => unitsNeeded(pickedProducts), [pickedProducts])
+  const studies = volumes.exam || ''
   const [showAll, setShowAll] = useState(false)
   const [saving, setSaving]   = useState(false)
   const [error, setError]     = useState(null)
@@ -177,8 +188,11 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       if (!product) return null
 
       const tiers = tiersByProduct[id]
-      const listed = tiers && region && qty
-        ? resolvePrice({ product, tiers, discountPct: region.discountPct, quantity: qty })
+      // Each product is priced on the volume its own price_unit names — a VR
+      // line must see the radiologist count, never the exam count.
+      const productQty = quantityFor(product, volumes)
+      const listed = tiers && region && productQty
+        ? resolvePrice({ product, tiers, discountPct: region.discountPct, quantity: productQty })
         : null
       const isSub = SUBSCRIPTION_MODELS.includes(product.pricing_model)
 
@@ -235,7 +249,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       }
     }).filter(Boolean)
   }, [picked, products, tiersByProduct, region, studies, overrides, itemsByProduct,
-      famSel, productCosts, years, pacsInQuote, suppliers])
+      famSel, productCosts, years, pacsInQuote, suppliers, volumes])
 
   // The quote seen both ways: what we have, and what we have if the supplier
   // discounts land. The gap between them is the number worth naming.
@@ -377,12 +391,17 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
             {TERM_YEARS.map(y => <option key={y} value={y}>{y} {t('qd_years')}</option>)}
           </select>
         </div>
-        <div>
-          <label className="label">{t('qd_studies')} <span className="text-red-500">*</span></label>
-          <input className="input w-36" type="number" min="0" inputMode="numeric"
-            value={studies} onChange={e => setStudies(e.target.value)}
-            placeholder="45000" style={{ fontSize: '16px' }}/>
-        </div>
+        {needed.map(u => (
+          <div key={u.key}>
+            <label className="label">
+              {t(u.labelKey)}{u.primary && <span className="text-red-500"> *</span>}
+            </label>
+            <input className="input w-36" type="number" min="0" inputMode="numeric"
+              value={volumes[u.key] || ''} placeholder={u.placeholder}
+              onChange={e => setVolumes(v => ({ ...v, [u.key]: e.target.value }))}
+              style={{ fontSize: '16px' }}/>
+          </div>
+        ))}
       </div>
 
       {region
