@@ -432,6 +432,9 @@ export default function Deals() {
           {/* One way in. The quick deal is the front door; the long form is
               still reachable from inside it, for the deals it cannot express —
               a services deal with no product lines, or an SLA-linked one. */}
+          {/* The quick deal is the front door for everyone, partners included.
+              What it shows depends on who opens it: a partner sees their own
+              authorised products and their own prices, never our cost. */}
           {canEdit && (
             <button onClick={() => setQuoteOpen(true)} className="btn-primary" title={t("deals_quick_quote")}>
               {/* The label stays visible on a phone. It was hidden below `sm`
