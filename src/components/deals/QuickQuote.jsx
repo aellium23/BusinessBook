@@ -810,6 +810,15 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
     // bury the ones that need a decision.
     // One row per SKU on the supplier side: HCUS opens a case per part number,
     // and "Synapse licence 70%" and "Oracle 20%" are two different asks.
+    // A partner's ask goes to OUR approvers. It comes off what they pay us, so
+    // the quote treats it like any supplier request — but the supplier is us,
+    // and it belongs in the same queue as every other discount we grant.
+    // Without this it reached nobody: the cost route files against a SKU list
+    // a partner cannot read, so nothing was ever raised.
+    const partnerAsks = internal || deal?.id ? [] : lines
+      .filter(l => l.discountPct > 0)
+      .map(l => ({ line: l, sku: null, route: 'internal', status: 'pending' }))
+
     // Only on the first quote. Re-raising on every edit would file the same ask
     // with the supplier again and bury the ones waiting for an answer.
     const external = deal?.id ? [] : lines.flatMap(l =>
@@ -822,10 +831,10 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
     // Named for what it is, not for the helper one scope up: `discounted` is a
     // predicate this function calls before this line, and a const shadowing it
     // here put that call in the temporal dead zone.
-    const toRaise = [...external, ...forApproval]
+    const toRaise = [...external, ...forApproval, ...partnerAsks]
     if (toRaise.length) {
       const { error: reqErr } = await supabase.from('deal_discount_requests').insert(
-        toRaise.map(({ line: l, sku }) => ({
+        toRaise.map(({ line: l, sku, route, status }) => ({
           deal_id: data.id,
           product_id: l.id,
           requested_by: profile?.id || null,
@@ -833,9 +842,9 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
           approval_level: l.ladder?.level || null,
           brand: l.product.brand || null,
           supplier_code: l.product.supplier_code || null,
-          route: l.routing.route,
+          route: route || l.routing.route,
           channel: l.routing.channel,
-          status: l.routing.initialStatus,
+          status: status || l.routing.initialStatus,
           scope: 'both',
           value_at_risk: sku
             ? round2(sku.reliefCapex + sku.reliefAnnual * years)
