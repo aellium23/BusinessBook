@@ -436,7 +436,7 @@ export default function Deals() {
               What it shows depends on who opens it: a partner sees their own
               authorised products and their own prices, never our cost. */}
           {canEdit && (
-            <button onClick={() => setQuoteOpen(true)} className="btn-primary" title={t("deals_quick_quote")}>
+            <button onClick={() => { setEditDeal(null); setQuoteOpen(true) }} className="btn-primary" title={t("deals_quick_quote")}>
               {/* The label stays visible on a phone. It was hidden below `sm`
                   back when this sat next to a "+" button everyone recognised;
                   as the only way to create a deal, a bare lightning bolt is not
@@ -669,7 +669,7 @@ export default function Deals() {
           ? <KanbanBoard
               deals={sortedDeals}
               canEdit={canEdit}
-              onEdit={deal => { setEditDeal(deal); setFormOpen(true) }}
+              onEdit={deal => { setEditDeal(deal); setQuoteOpen(true) }}
               onDelete={setConfirmDel}
               onMove={handleStageChange}
             />
@@ -679,7 +679,7 @@ export default function Deals() {
                 <DealCard key={d.id} deal={d} openDiscounts={openDiscounts[d.id]}
                   canEdit={canEditDeal(d)} canDelete={canDelete}
                   brands={dealBrands[d.id]}
-                  onEdit={deal => { setEditDeal(deal); setFormOpen(true) }}
+                  onEdit={deal => { setEditDeal(deal); setQuoteOpen(true) }}
                   onDelete={setConfirmDel}
                 />
               ))}
@@ -726,11 +726,17 @@ export default function Deals() {
       }
 
       {quoteOpen && (
-        <Modal open title={t("deals_quick_quote")} onClose={() => setQuoteOpen(false)}>
-          <QuickQuote
-            onCancel={() => setQuoteOpen(false)}
-            onCreated={() => { setQuoteOpen(false); refetch() }}
-            onFullForm={() => { setQuoteOpen(false); setEditDeal(null); setFormOpen(true) }}/>
+        <Modal open
+          title={editDeal ? `${t("deals_quick_quote")} · ${editDeal.client}` : t("deals_quick_quote")}
+          onClose={() => { setQuoteOpen(false); setEditDeal(null) }}>
+          {/* Editing opens here rather than in the long form, because this is
+              the only screen that shows what the project is actually worth. The
+              full form is one tap away for everything this one does not hold —
+              stage, forecast, the monthly spread, SLA dates. */}
+          <QuickQuote deal={editDeal}
+            onCancel={() => { setQuoteOpen(false); setEditDeal(null) }}
+            onCreated={() => { setQuoteOpen(false); setEditDeal(null); refetch() }}
+            onFullForm={() => { setQuoteOpen(false); setFormOpen(true) }}/>
         </Modal>
       )}
 
