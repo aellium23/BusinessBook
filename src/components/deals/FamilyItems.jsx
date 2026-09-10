@@ -164,9 +164,17 @@ export default function FamilyItems({ items, studies, value, onChange }) {
   )
 }
 
-/** The cost a family selection adds to its quote line. Shared with QuickQuote. */
-export function familyCost(items, selection, studies) {
-  if (!items?.length || !selection) return 0
+/**
+ * What a family selection costs, split the way it is sold.
+ *
+ * `capex` is bought once — the licence, the packages, the hardware. `annual` is
+ * the support fee, owed every year the contract runs. They carry different
+ * margin floors and land in different places in the forecast, so they are never
+ * added together here.
+ */
+export function familyEconomics(items, selection, studies) {
+  const empty = { capex: 0, annual: 0 }
+  if (!items?.length || !selection) return empty
   const lines = packageLines(items)
   const line = lines.find(l => l.key === selection.line) || (lines.length === 1 ? lines[0] : null)
   const combo = line
@@ -175,6 +183,16 @@ export function familyCost(items, selection, studies) {
   const manual = (selection.itemIds || [])
     .map(id => items.find(i => i.id === id))
     .filter(Boolean)
-    .reduce((s, i) => s + itemCost(i, { studies, quantity: 1 }).cost, 0)
-  return (combo?.cost || 0) + manual
+    .map(i => itemCost(i, { studies, quantity: 1 }))
+  return {
+    capex: round2((combo?.cost || 0) + manual.reduce((s, l) => s + l.cost, 0)),
+    annual: round2((combo?.annualSupport || 0) + manual.reduce((s, l) => s + l.annualSupport, 0)),
+  }
 }
+
+/** The SKUs a family quotes by default, so a cost appears without hunting. */
+export function defaultItemIds(items) {
+  return (items || []).filter(i => i.is_default).map(i => i.id)
+}
+
+function round2(n) { return Math.round((n + Number.EPSILON) * 100) / 100 }
