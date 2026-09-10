@@ -788,6 +788,14 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
 
               <p className="text-micro text-gray-500">{t('pm_why')}</p>
 
+              {/* The easy thing at renewal is to open last year's quote, and
+                  doing that turns one concession into the price forever. */}
+              {channel.role === 'renewal' && (
+                <p className="text-micro text-navy bg-navy/5 border border-navy/10 rounded-lg px-2 py-1.5">
+                  {t('pm_renewal_note')}
+                </p>
+              )}
+
               {channel.overCap && !channel.programme && (
                 <p className="text-micro text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
                   {t('pm_over_cap').replace('{pct}', channel.protectedPct)}

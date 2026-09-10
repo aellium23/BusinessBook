@@ -12,6 +12,7 @@ const HELP = {
       description: 'Your central command center: two primary views (Summary, Details) plus secondary breakdowns by product, sales rep, and client.',
       features: [
         'Two primary tabs (Summary, Details) plus secondary breakdown pills (Products, Reps, Clients).',
+        'Two banners sit above the gauges and are silent unless there is something to do. The first is margin waiting on somebody else — supplier discounts promised to a customer, split into what nobody has filed yet and what has been asked and is being chased. The second is lighthouse references overdue: ten points were given for a named clinical champion, site visits and a published case study, and where the reference has not arrived within twelve months the discount is clawed back at renewal. The worst three are named, because "three deals" gets deferred and "Hospital de Braga, 92 days" gets a phone call.',
         'Summary: gauges comparing actuals vs budget with a colour legend (green/amber/red) and Actuals / Budget labels beneath each gauge. Forecast is marked with a blue diamond.',
         'Actuals source toggle (BB / SAP): BB sums invoiced deals from the CRM, SAP uses the official P&L (budget ACT cycle). The BB/SAP line under each gauge shows both, and the ▲ gap highlights sales in SAP not yet tracked as deals — useful to find missing CRM entries.',
         'All currency values are prefixed with the euro symbol (e.g. €500K, €1.2M).',
@@ -53,6 +54,7 @@ const HELP = {
       description: 'Tu centro de mando: dos vistas principales (Resumen, Detalle) mas desgloses por producto, comercial y cliente.',
       features: [
         'Dos pestanas principales (Resumen, Detalle) mas pills de desglose (Productos, Comerciales, Clientes).',
+        'Encima de los gauges hay dos avisos, callados mientras no haya nada que hacer. El primero es margen que depende de otro: descuentos de proveedor prometidos al cliente, separados entre los que nadie ha solicitado todavia y los que ya estan pedidos. El segundo son referencias lighthouse en retraso: se dieron diez puntos por un campeon clinico nombrado, visitas y un caso de exito publicado, y donde la referencia no llega en doce meses el descuento se recupera en la renovacion. Los tres peores van con nombre, porque "tres oportunidades" se aplaza y "Hospital de Braga, 92 dias" recibe una llamada.',
         'Resumen: gauges reales vs presupuesto con leyenda de color (verde/ambar/rojo) y etiquetas Reales / Presupuesto debajo de cada gauge. El forecast se marca con un diamante azul.',
         'Selector de fuente (BB / SAP): BB suma los deals facturados del CRM, SAP usa el P&L oficial (ciclo ACT del presupuesto). La linea BB/SAP bajo cada gauge muestra ambos, y el desfase ▲ resalta ventas en SAP aun no registradas como deals — util para detectar entradas que faltan en el CRM.',
         'Todos los valores monetarios llevan el simbolo del euro (ej. €500K, €1.2M).',
@@ -94,6 +96,7 @@ const HELP = {
       description: 'O teu centro de comando: duas vistas principais (Resumo, Detalhe) mais desdobramentos por produto, comercial e cliente.',
       features: [
         'Duas abas principais (Resumo, Detalhe) mais pills de desdobramento (Produtos, Comerciais, Clientes).',
+        'Por cima dos gauges ficam dois avisos, calados enquanto nao houver nada a fazer. O primeiro e margem que depende de outra pessoa: descontos de fornecedor prometidos ao cliente, separados entre os que ninguem solicitou ainda e os que ja foram pedidos. O segundo sao referencias lighthouse em atraso: foram dados dez pontos por um campeao clinico nomeado, visitas e um caso de estudo publicado, e onde a referencia nao chega em doze meses o desconto e recuperado na renovacao. Os tres piores vao com nome, porque "tres negocios" fica para depois e "Hospital de Braga, 92 dias" leva um telefonema.',
         'Resumo: gauges reais vs orcamento com legenda de cor (verde/ambar/vermelho) e etiquetas Reais / Orcamento abaixo de cada gauge. O forecast e marcado com um losango azul.',
         'Seletor de fonte (BB / SAP): BB soma os deals faturados do CRM, SAP usa o P&L oficial (ciclo ACT do orcamento). A linha BB/SAP por baixo de cada gauge mostra ambos, e o desvio ▲ realca vendas no SAP ainda nao registadas como deals — util para encontrar entradas em falta no CRM.',
         'Todos os valores monetarios apresentam o simbolo do euro (ex. €500K, €1.2M).',
