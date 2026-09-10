@@ -162,9 +162,16 @@ function ApprovalCard({ req, onRespond, channel, readOnly }) {
     requestedPct: open ? pct : req.requested_pct,
   })
 
+  // Approving less than was asked for is not approving, it is countering — and
+  // the difference matters downstream: a counter waits for the partner to
+  // accept, an approval does not. Deciding it from the figure rather than from
+  // the dropdown means nobody has to remember to change both.
+  const lowered = Number(pct) < Number(req.requested_pct)
+  const decision = status === 'approved' && lowered ? 'counter' : status
+
   async function submit() {
     setSaving(true)
-    await onRespond(req, status, pct, note)
+    await onRespond(req, decision, pct, note)
     setSaving(false)
     setOpen(false)
   }
@@ -256,18 +263,28 @@ function ApprovalCard({ req, onRespond, channel, readOnly }) {
               </div>
               {(status === 'approved' || status === 'counter') && (
                 <div>
-                  <label className="text-micro text-gray-500">{status === 'counter' ? 'Counter %' : 'Approved %'}</label>
+                  <label className="text-micro text-gray-500">
+                    {decision === 'counter' ? 'Counter %' : 'Approved %'}
+                  </label>
                   <input className="input text-xs" type="number" min="0" max="100"
                     value={pct} onChange={e => setPct(e.target.value)}/>
                 </div>
               )}
             </div>
+            {status === 'approved' && lowered && (
+              <p className="text-micro text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                {req.requested_pct}% was asked for and this grants {pct || 0}%, so it goes as a
+                counter-offer: the partner has to accept it before it is final.
+              </p>
+            )}
             <input className="input text-xs" value={note} onChange={e => setNote(e.target.value)}
               placeholder="Response note (optional)"/>
             <div className="flex gap-2">
               <button onClick={() => setOpen(false)} className="btn-secondary text-xs flex-1">Cancel</button>
               <button onClick={submit} disabled={saving} className="btn-primary text-xs flex-1">
-                {saving ? 'Saving…' : 'Submit'}
+                {saving ? 'Saving…'
+                  : decision === 'counter' ? 'Send counter-offer'
+                  : decision === 'rejected' ? 'Reject' : 'Approve'}
               </button>
             </div>
           </div>
