@@ -423,7 +423,11 @@ export default function Deals() {
               a services deal with no product lines, or an SLA-linked one. */}
           {canEdit && (
             <button onClick={() => setQuoteOpen(true)} className="btn-primary" title={t("deals_quick_quote")}>
-              <Zap size={16}/> <span className="hidden sm:inline">{t("deals_quick_quote")}</span>
+              {/* The label stays visible on a phone. It was hidden below `sm`
+                  back when this sat next to a "+" button everyone recognised;
+                  as the only way to create a deal, a bare lightning bolt is not
+                  a discoverable one. */}
+              <Zap size={16}/> <span>{t("deals_quick_quote")}</span>
             </button>
           )}
         </div>
