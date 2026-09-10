@@ -20,6 +20,7 @@ import { unitsNeeded, quantityFor } from '../../lib/volumeUnits'
 import { toEur, rateLabel } from '../../lib/fx'
 import { useFxRates } from '../../hooks/useFxRates'
 import { COUNTRY_MAP, regionForCountry } from '../../constants'
+import { canPrice } from '../../lib/roles'
 import SearchableSelect from '../SearchableSelect'
 import { formatK } from '../ui'
 import { X, Check, ChevronDown, ChevronRight } from 'lucide-react'
@@ -52,6 +53,8 @@ const SUBSCRIPTION_MODELS = ['subscription', 'pay_per_study', 'saas']
 // same trap as a licence with no cost — better a stated company figure the rep
 // can see and the P&L owner can change.
 const DEFAULT_MAN_DAY_COST = 450
+
+
 
 /**
  * Create a deal and price it in one screen.
@@ -123,6 +126,12 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       ...ALL_COUNTRIES.filter(c => !top.includes(c)).map(c => ({ value: c, label: c })),
     ]
   }, [defaultBU])
+
+  // Latin America is sold through the partner, never direct. The role itself is
+  // the partner's own — a Full VAR and a Reseller earn different rates — so the
+  // screen asks rather than assuming one, and says why it is asking.
+  const salesRegion = regionForCountry(country)
+  const partnerTerritory = salesRegion === 'LATAM'
 
   const regionCode = pricingRegionForCountry(countryMap, country)
   const region = regionCode ? regions[regionCode] : null
@@ -534,21 +543,29 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       exchange_rate: lines.find(l => l.listed?.fx?.converted && l.listed.fx.rate !== 1)?.listed.fx.rate ?? null,
       company_id: profile?.company_id || null,
       created_by: profile?.id || null,
-      // The channel side of the deal, stored rather than derived: the protected
-      // margin depends on the list price and the role on the day it was quoted,
-      // and both move. value_total stays the customer price — what a deal is
-      // worth to us is a forecasting decision, not a display one.
-      ...(channel.applies ? {
+    }).select('id, client, bu, country').single()
+
+    if (e) { setSaving(false); setError(`${t('qd_err_create')} ${e.message}`); return }
+
+    // The channel side of the deal, stored rather than derived: the protected
+    // margin depends on the list price and the role on the day it was quoted,
+    // and both move. It lives in its own table because RLS filters rows, not
+    // columns, and a distributor reads every column of their own deals —
+    // including, until this moved, our transfer price. value_total stays the
+    // customer price: what a deal is worth to us is a forecasting decision.
+    if (channel.applies) {
+      const { error: cErr } = await supabase.from('deal_channel').insert({
+        deal_id: data.id,
         partner_role: channel.role,
         partner_programme: channel.programme,
         partner_transfer: channel.transfer,
         partner_margin_pct: channel.partnerMarginPct,
         cwm_given_up: channel.givenUp,
         end_customer_price: channel.netTotal,
-      } : {}),
-    }).select('id, client, bu, country').single()
-
-    if (e) { setSaving(false); setError(`${t('qd_err_create')} ${e.message}`); return }
+        created_by: profile?.id || null,
+      })
+      if (cErr) { setSaving(false); setError(`${t('qd_err_channel')} ${cErr.message}`); return }
+    }
 
     const { error: lineErr } = await saveDealProducts(data.id, lines.map(l => ({
       product_id: l.id,
@@ -629,6 +646,22 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         }`}>
         {on && <Check size={11} className="inline mr-1 -mt-0.5"/>}{p.name}
       </button>
+    )
+  }
+
+  // Defence in depth. The Deals page does not offer this screen to a
+  // distributor, and if some future route does, it must still not open: every
+  // figure on it is our cost, our margin or our channel economics.
+  if (!canPrice(profile?.role)) {
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-gray-700">{t('qd_internal_only')}</p>
+        {onFullForm && (
+          <button type="button" onClick={onFullForm} className="btn-primary">
+            {t('qd_full_form')}
+          </button>
+        )}
+      </div>
     )
   }
 
@@ -764,7 +797,8 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
           <div className="flex items-end gap-2 flex-wrap">
             <div>
               <label className="label">{t('pm_sold_through')}</label>
-              <select className="select w-44" value={channelRole}
+              <select className={`select w-44 ${partnerTerritory && channelRole === 'direct' ? 'border-amber-300' : ''}`}
+                value={channelRole}
                 onChange={e => setChannelRole(e.target.value)}>
                 {CHANNEL_ROLES.map(r => (
                   <option key={r.key} value={r.key}>
@@ -788,6 +822,15 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
               </div>
             )}
           </div>
+
+          {partnerTerritory && channelRole === 'direct' && (
+            <p className="text-micro text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
+              {t('pm_latam_partner')}
+            </p>
+          )}
+          {partnerTerritory && (
+            <p className="text-micro text-gray-500">{t('pm_latam_arr')}</p>
+          )}
 
           {channel.applies && (
             <>

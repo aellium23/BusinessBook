@@ -3,10 +3,11 @@ import { useSearchParams } from 'react-router-dom'
 import { useDeals, deleteDeal, upsertDeal } from '../hooks/useDeals'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { canPrice } from '../lib/roles'
 import { Spinner, EmptyState, formatK } from '../components/ui'
 import DealForm from '../components/DealForm'
 import KanbanBoard from '../components/KanbanBoard'
-import { Search, Download, RefreshCw, LayoutGrid, List, Globe, Zap } from 'lucide-react'
+import { Search, Download, RefreshCw, LayoutGrid, List, Globe, Zap, Plus } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 import { STAGES, WEIGHTS, REGIONS, BUS, MONTHS, MONTHS_K, FORECAST_CATEGORIES, resolveForecastCategory } from '../constants'
 import { canTransition, getAllowedTransitions } from '../lib/stateMachine'
@@ -55,6 +56,10 @@ const PERIOD_KEYS = [
 
 export default function Deals() {
   const { canEdit, isAdmin, editOwnOnly, profile, perms } = useAuth()
+  // The quick deal is an internal pricing screen: it works in our cost, our
+  // margin and our channel economics. A distributor creates deals through the
+  // full form, which is built for them — authorised products only, no margin.
+  const isDistributor = !canPrice(profile?.role)
   const { showToast } = useToast()
   const canDelete = perms?.canDelete ?? false
   const canEditDeal = (deal) => {
@@ -432,7 +437,13 @@ export default function Deals() {
           {/* One way in. The quick deal is the front door; the long form is
               still reachable from inside it, for the deals it cannot express —
               a services deal with no product lines, or an SLA-linked one. */}
-          {canEdit && (
+          {/* A distributor still needs a way in — theirs is the full form. */}
+          {canEdit && isDistributor && (
+            <button onClick={() => { setEditDeal(null); setFormOpen(true) }} className="btn-primary">
+              <Plus size={16}/> <span>{t("deals_add")}</span>
+            </button>
+          )}
+          {canEdit && !isDistributor && (
             <button onClick={() => setQuoteOpen(true)} className="btn-primary" title={t("deals_quick_quote")}>
               {/* The label stays visible on a phone. It was hidden below `sm`
                   back when this sat next to a "+" button everyone recognised;
