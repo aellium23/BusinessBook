@@ -358,12 +358,14 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   const dayRateIsDefault = !(Number(settings.man_day_cost) > 0)
   const manDayCost = dayRateIsDefault ? DEFAULT_MAN_DAY_COST : Number(settings.man_day_cost)
 
-  // Every project needs implementing, not just the ones with an HCUS warranty
-  // year in them. Services come on with the first product picked — and stay
-  // wherever the rep put them once they have touched the chip themselves.
+  // Switched on by the deals that cannot go without it: where a warranty year
+  // replaces the first year's SLA, quoting no services leaves a year of our own
+  // team unpaid. Everywhere else implementation is a judgement about the project
+  // as a whole, so the rep picks the chip — and once they have touched it, it
+  // stays where they put it.
   useEffect(() => {
-    if (!servicesTouched && lines.length > 0) setServicesOn(true)
-  }, [lines.length, servicesTouched])
+    if (!servicesTouched && warrantyServicesPvp > 0) setServicesOn(true)
+  }, [warrantyServicesPvp, servicesTouched])
 
   const services = useMemo(() => {
     const effort = servicesEconomics({ manDays, manDayCost })
