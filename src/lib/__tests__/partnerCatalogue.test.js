@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   authKey, authMapOf, authorisedProducts, hasAuthorisations, authorisedCountries,
+  partnerLineCost,
 } from '../partnerCatalogue'
 
 // TIMED, as the user describes them: four products and nothing else.
@@ -75,6 +76,39 @@ describe('the price a partner sees', () => {
 
   it('differs by country for the same product', () => {
     expect(authorisedProducts(CATALOGUE, TIMED, 'Peru')[0].license_fee).toBe(0.52)
+  })
+})
+
+describe('what a partner pays us', () => {
+  const DOSE = { price_basis: 'per_unit' }
+  const PACS = { price_basis: 'flat' }
+
+  it('is the regional list at the tier the volume reaches', () => {
+    // R3, 20,000 exams: the ladder has already been walked, and this is it.
+    expect(partnerLineCost({ product: DOSE, pinnedUnit: 0, listedNet: 9180.32, quantity: 20000 }))
+      .toBe(9180.32)
+  })
+
+  it('is not zero just because nobody pinned a price for them', () => {
+    // The fault this replaced: a partner with no per-product authorisation
+    // price saw a cost of zero, and therefore a margin of 100%.
+    expect(partnerLineCost({ product: DOSE, pinnedUnit: null, listedNet: 9180.32, quantity: 20000 }))
+      .toBeGreaterThan(0)
+  })
+
+  it('lets a pinned price overrule the ladder, because somebody agreed it', () => {
+    expect(partnerLineCost({ product: DOSE, pinnedUnit: 0.4, listedNet: 9180.32, quantity: 20000 }))
+      .toBe(8000)
+  })
+
+  it('does not multiply a flat price by the volume', () => {
+    expect(partnerLineCost({ product: PACS, pinnedUnit: 31602, listedNet: 40000, quantity: 200000 }))
+      .toBe(31602)
+  })
+
+  it('is zero only when there is no ladder and no pinned price', () => {
+    // Which the screen has to flag rather than present as a free product.
+    expect(partnerLineCost({ product: DOSE, pinnedUnit: 0, listedNet: 0, quantity: 20000 })).toBe(0)
   })
 })
 

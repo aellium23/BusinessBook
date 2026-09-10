@@ -18,6 +18,7 @@
 // ever see.
 
 const num = v => (v === null || v === undefined || v === '' ? null : Number(v))
+const round = n => Math.round((n + Number.EPSILON) * 100) / 100
 
 /** One authorisation, keyed the way the rows are looked up. */
 export function authKey(productId, country) {
@@ -52,6 +53,35 @@ export function authorisedProducts(products, authMap, country) {
       // product. Falling back to the regional list is the safer reading.
       return price !== null && price > 0 ? { ...p, license_fee: price, partner_price: price } : p
     })
+}
+
+/**
+ * What a partner pays us for one line.
+ *
+ * The transfer price is the regional price list — R1, R2, R3 — at whatever tier
+ * the volume reaches. It is the same ladder every other price on the quote comes
+ * from, which is the point: a partner in R3 buys at R3 prices, and a bigger
+ * hospital moves them down a tier exactly as it would move anybody else.
+ *
+ * An authorisation may pin a price for one product in one country. Where one is
+ * pinned it wins, because somebody agreed it deliberately and a ladder should
+ * not quietly overrule a negotiation.
+ *
+ * @param product     the catalogue row, for its price_basis
+ * @param pinnedUnit  the authorised price per unit, or 0/null when none
+ * @param listedNet   the regional list for this volume, already converted
+ * @param quantity    the volume the line is priced on
+ */
+export function partnerLineCost({ product, pinnedUnit, listedNet, quantity }) {
+  const pinned = num(pinnedUnit) ?? 0
+  if (pinned > 0) {
+    return product?.price_basis === 'per_unit'
+      ? round(pinned * (num(quantity) ?? 0))
+      : round(pinned)
+  }
+  // No pinned price is not "free": it is the regional ladder, and where that is
+  // unknown too the caller has to say so rather than quote a zero cost.
+  return round(num(listedNet) ?? 0)
 }
 
 /** Whether this partner has any authorisation at all, anywhere. */

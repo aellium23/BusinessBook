@@ -25,7 +25,7 @@ import { getAllowedTransitions } from '../../lib/stateMachine'
 import { canPrice } from '../../lib/roles'
 import { toQuoteState, fromQuoteState, rebuildFrom } from '../../lib/quoteState'
 import { authMapOf, authorisedProducts, authorisedCountries,
-         hasAuthorisations, authKey } from '../../lib/partnerCatalogue'
+         hasAuthorisations, authKey, partnerLineCost } from '../../lib/partnerCatalogue'
 import SearchableSelect from '../SearchableSelect'
 import { formatK } from '../ui'
 import { X, Check, ChevronDown, ChevronRight } from 'lucide-react'
@@ -347,14 +347,19 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
       const o = overrides[id] || {}
 
       // What this line costs the person quoting it. For us that is the transfer
-      // price we pay a supplier. For a partner it is OUR price list to them —
-      // the price an admin authorised for their company, in their country — and
-      // their margin is what they add on top of it.
+      // price we pay a supplier. For a partner it is what they pay US, and that
+      // is the regional price list — R1, R2, R3 — at the tier the volume
+      // reaches, which is the same ladder every other price on this screen
+      // comes from. An authorisation may pin a different price for one product
+      // in one country, and where it does, the pinned price wins: somebody
+      // agreed it deliberately.
       const authRow = internal ? null : authMap[authKey(product.id, country)]
-      const partnerUnit = Number(authRow?.price) || 0
-      const partnerCost = product.price_basis === 'per_unit'
-        ? round2(partnerUnit * productQty)
-        : partnerUnit
+      const partnerCost = internal ? 0 : partnerLineCost({
+        product,
+        pinnedUnit: authRow?.price,
+        listedNet: listed?.net,
+        quantity: productQty,
+      })
 
       const capexCost = o.capexCost !== undefined ? Number(o.capexCost) || 0
         : !internal ? (isSub ? 0 : partnerCost)
@@ -369,8 +374,13 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
       // yearly fee; for a licensed product it is the one-off licence.
       const capexPvp = o.capexPvp !== undefined ? Number(o.capexPvp) || 0
         : isSub ? 0
+        // A partner's starting price is what they pay, so the margin starts at
+        // zero and is theirs to set. Filling in a markup we made up would put a
+        // number in front of a customer that nobody decided.
+        : !internal ? capexCost
         : (listed ? listed.net : recommendedCapexPvp(capexCost))
       const annualPvp = o.annualPvp !== undefined ? Number(o.annualPvp) || 0
+        : !internal ? annualCost
         : isSub && listed ? listed.net
         : recommendedSlaPvp(annualCost)
 
