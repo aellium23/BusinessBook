@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   routeFor, applyDiscount, isOpen, daysWaiting,
-  ROUTE_INTERNAL, ROUTE_EXTERNAL, EXTERNAL_FLOW,
+  ROUTE_INTERNAL, ROUTE_EXTERNAL, EXTERNAL_FLOW, discountViews,
 } from '../discountRouting'
 
 const VGT    = { code: 'VGT',    kind: 'internal', request_channel: 'Approvals' }
@@ -93,5 +93,47 @@ describe('daysWaiting', () => {
   it('is zero for a missing or unparseable date', () => {
     expect(daysWaiting(null, now)).toBe(0)
     expect(daysWaiting('not a date', now)).toBe(0)
+  })
+})
+
+describe('discountViews', () => {
+  const lines = [
+    // A PACS line: 20% asked of HCUS on a 30,000 cost, not yet granted.
+    { cost: 30000, pvp: 60000, pendingCostRelief: 6000 },
+    // A CWM line: the customer discount is already in the quoted price.
+    { cost: 4000, pvp: 12000, pendingCostRelief: 0 },
+  ]
+
+  it('reports what we have, not what we hope for', () => {
+    const v = discountViews(lines)
+    expect(v.actual).toMatchObject({ cost: 34000, pvp: 72000, grossMargin: 38000 })
+  })
+
+  it('shows the same quote with the pending discounts landed', () => {
+    const v = discountViews(lines)
+    expect(v.ifApproved).toMatchObject({ cost: 28000, pvp: 72000, grossMargin: 44000 })
+    expect(v.ifApproved.marginPct).toBeGreaterThan(v.actual.marginPct)
+  })
+
+  it('names the margin that depends on somebody else saying yes', () => {
+    expect(discountViews(lines).atRisk).toBe(6000)
+    expect(discountViews(lines).hasPending).toBe(true)
+  })
+
+  it('collapses to one view when nothing is pending', () => {
+    const v = discountViews([{ cost: 100, pvp: 300, pendingCostRelief: 0 }])
+    expect(v.actual).toEqual(v.ifApproved)
+    expect(v.hasPending).toBe(false)
+    expect(v.atRisk).toBe(0)
+  })
+
+  it('never drives a cost below zero', () => {
+    const v = discountViews([{ cost: 100, pvp: 500, pendingCostRelief: 400 }])
+    expect(v.ifApproved.cost).toBe(0)
+  })
+
+  it('handles an empty quote', () => {
+    expect(discountViews([]).actual).toEqual({ cost: 0, pvp: 0, grossMargin: 0, marginPct: 0 })
+    expect(discountViews(null).atRisk).toBe(0)
   })
 })

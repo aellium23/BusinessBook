@@ -88,6 +88,43 @@ export function daysWaiting(since, now = Date.now()) {
   return Math.max(0, Math.floor((now - t) / 86400000))
 }
 
+/**
+ * The same quote seen two ways.
+ *
+ * `actual` counts only what we have: a supplier discount that has been asked
+ * for but not granted changes nothing. `ifApproved` counts the pending ones as
+ * if they had landed. The distance between them is not decoration — it is the
+ * part of this deal's margin that depends on somebody else saying yes, and it
+ * belongs on the card next to the margin itself.
+ *
+ * A discount on our own price needs no view: it is already in the quote,
+ * because offering it is the rep's decision and they have made it.
+ *
+ * @param lines  [{ cost, pvp, pendingCostRelief }] — relief is what our cost
+ *               would fall by if every unanswered supplier discount landed.
+ */
+export function discountViews(lines) {
+  const rows = lines || []
+  const cost = rows.reduce((s, l) => s + (num(l.cost) ?? 0), 0)
+  const pvp = rows.reduce((s, l) => s + (num(l.pvp) ?? 0), 0)
+  const relief = rows.reduce((s, l) => s + (num(l.pendingCostRelief) ?? 0), 0)
+
+  return {
+    actual: totals(cost, pvp),
+    ifApproved: totals(Math.max(0, cost - relief), pvp),
+    atRisk: r(relief),
+    hasPending: relief > 0,
+  }
+}
+
+function totals(cost, pvp) {
+  const gm = pvp - cost
+  return {
+    cost: r(cost), pvp: r(pvp), grossMargin: r(gm),
+    marginPct: pvp > 0 ? Math.round((gm / pvp) * 1000) / 10 : 0,
+  }
+}
+
 function r(n) {
   return Math.round((n + Number.EPSILON) * 100) / 100
 }

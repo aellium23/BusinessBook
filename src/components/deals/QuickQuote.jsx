@@ -10,7 +10,7 @@ import { familyEconomics, defaultItemIds } from '../../lib/familyEconomics'
 import { saveDealProducts } from '../../hooks/useDealProducts'
 import { resolvePrice, pricingRegionForCountry, pvpForMargin } from '../../lib/pricing'
 import { recommendedCapexPvp, recommendedSlaPvp, belowFloor, lineOverTerm } from '../../lib/margins'
-import { routeFor, applyDiscount } from '../../lib/discountRouting'
+import { routeFor, applyDiscount, discountViews } from '../../lib/discountRouting'
 import { COUNTRY_MAP, regionForCountry } from '../../constants'
 import SearchableSelect from '../SearchableSelect'
 import { formatK } from '../ui'
@@ -66,6 +66,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   const [overrides, setOver]  = useState({})        // productId -> { cost, pvp }
   const [famSel, setFamSel]   = useState({})        // productId -> { users, itemIds }
   const [years, setYears]     = useState(DEFAULT_TERM)
+  const [ifApproved, setIfApproved] = useState(false)
   const [showAll, setShowAll] = useState(false)
   const [saving, setSaving]   = useState(false)
   const [error, setError]     = useState(null)
@@ -224,6 +225,9 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         annualCost: dAnnual.cost, annualPvp: dAnnual.pvp,
         discountPct, routing,
         speculative: dCapex.speculative || dAnnual.speculative,
+        pendingCostRelief: dCapex.speculative
+          ? round2((capexCost + annualCost * years) * (discountPct / 100))
+          : 0,
         capexBelow: belowFloor({ kind: 'capex', cost: dCapex.cost, pvp: dCapex.pvp }),
         annualBelow: belowFloor({ kind: 'sla', cost: dAnnual.cost, pvp: dAnnual.pvp }),
         costKnown: capexCost > 0 || annualCost > 0,
@@ -233,17 +237,14 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   }, [picked, products, tiersByProduct, region, studies, overrides, itemsByProduct,
       famSel, productCosts, years, pacsInQuote, suppliers])
 
-  const totals = useMemo(() => {
-    const cost = lines.reduce((n, l) => n + l.cost, 0)
-    const pvp = lines.reduce((n, l) => n + l.pvp, 0)
-    const gm = pvp - cost
-    return {
-      cost: round2(cost), pvp: round2(pvp), grossMargin: round2(gm),
-      marginPct: pvp > 0 ? Math.round((gm / pvp) * 1000) / 10 : 0,
-      capexPvp: round2(lines.reduce((n, l) => n + l.capexPvp, 0)),
-      annualPvp: round2(lines.reduce((n, l) => n + l.annualPvp, 0)),
-    }
-  }, [lines])
+  // The quote seen both ways: what we have, and what we have if the supplier
+  // discounts land. The gap between them is the number worth naming.
+  const views = useMemo(() => discountViews(lines), [lines])
+  const totals = useMemo(() => ({
+    ...(ifApproved ? views.ifApproved : views.actual),
+    capexPvp: round2(lines.reduce((n, l) => n + l.capexPvp, 0)),
+    annualPvp: round2(lines.reduce((n, l) => n + l.annualPvp, 0)),
+  }), [views, ifApproved, lines])
 
   function setField(id, key, v) {
     setOver(o => ({ ...o, [id]: { ...(o[id] || {}), [key]: parseFloat(v) || 0 } }))
@@ -272,8 +273,8 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       country,
       region: regionForCountry(country) || 'Europe',
       stage: 'Lead',
-      value_total: totals.pvp,
-      gm_pct: totals.marginPct,
+      value_total: views.actual.pvp,
+      gm_pct: views.actual.marginPct,
       company_id: profile?.company_id || null,
       created_by: profile?.id || null,
     }).select('id, client, bu, country').single()
@@ -310,6 +311,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
           channel: l.routing.channel,
           status: l.routing.initialStatus,
           scope: 'both',
+          value_at_risk: l.pendingCostRelief || null,
           justification: `${client.trim()} · ${l.product.name}`,
         }))
       )
@@ -573,6 +575,18 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
             <span>{t('qd_recurring')}: <strong className="tabular-nums">{formatK(totals.annualPvp)}</strong>/{t('qd_years')} × {years}</span>
             <span>{lines.length} {t('qd_n_products')}</span>
           </div>
+          {views.hasPending && (
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-navy/10">
+              <label className="flex items-center gap-1.5 text-micro text-gray-700 min-h-tap cursor-pointer">
+                <input type="checkbox" checked={ifApproved}
+                  onChange={e => setIfApproved(e.target.checked)}/>
+                {t('qd_view_if_approved')}
+              </label>
+              <span className="text-micro text-amber-800">
+                {t('qd_at_risk')} <strong className="tabular-nums">{formatK(views.atRisk)}</strong>
+              </span>
+            </div>
+          )}
           {lines.some(l => l.discountPct > 0) && (
             <p className="text-micro text-gray-500">{t('qd_worklist_note')}</p>
           )}

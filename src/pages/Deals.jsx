@@ -169,6 +169,17 @@ export default function Deals() {
     return d
   }, [rawDeals, slaF, discountF, ownerF, forecastF, periodF, invoicedMonthF.join(','), brandF, productF, categoryF, noProductF, deliveryF, salesTypeF, dealBrands, dealProducts, dealCategories, profile])
 
+  // How much of each deal's margin is still waiting on somebody else's answer.
+  const [openDiscounts, setOpenDiscounts] = useState({})
+  useEffect(() => {
+    if (!rawDeals.length) return
+    supabase.from('deal_open_discounts').select('*')
+      .in('deal_id', rawDeals.map(d => d.id))
+      .then(({ data }) => setOpenDiscounts(
+        Object.fromEntries((data || []).map(r => [r.deal_id, r]))
+      ))
+  }, [rawDeals])
+
   useEffect(() => {
     if (!rawDeals.length) return
     const ids = rawDeals.map(d => d.id)
@@ -662,7 +673,8 @@ export default function Deals() {
         : <>
             <div className="space-y-2">
               {paginated.map(d => (
-                <DealCard key={d.id} deal={d} canEdit={canEditDeal(d)} canDelete={canDelete}
+                <DealCard key={d.id} deal={d} openDiscounts={openDiscounts[d.id]}
+                  canEdit={canEditDeal(d)} canDelete={canDelete}
                   brands={dealBrands[d.id]}
                   onEdit={deal => { setEditDeal(deal); setFormOpen(true) }}
                   onDelete={setConfirmDel}
