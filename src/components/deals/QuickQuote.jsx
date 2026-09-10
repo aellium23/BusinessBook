@@ -12,6 +12,8 @@ import { resolvePrice, pricingRegionForCountry, pvpForMargin } from '../../lib/p
 import { recommendedCapexPvp, recommendedSlaPvp, belowFloor, lineOverTerm } from '../../lib/margins'
 import { routeFor, applyDiscount, discountViews } from '../../lib/discountRouting'
 import { unitsNeeded, quantityFor } from '../../lib/volumeUnits'
+import { toEur, rateLabel } from '../../lib/fx'
+import { useFxRates } from '../../hooks/useFxRates'
 import { COUNTRY_MAP, regionForCountry } from '../../constants'
 import SearchableSelect from '../SearchableSelect'
 import { formatK } from '../ui'
@@ -56,6 +58,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   const { t } = useTranslation()
   const { products } = useProducts()
   const { regions, countryMap, tiersByProduct, error: pricingError } = usePricing()
+  const { rates } = useFxRates()
 
   // Everything the rep's own account already tells us is filled in up front.
   const defaultBU = ['VGT', 'ECT'].includes(profile?.bu) ? profile.bu : 'VGT'
@@ -191,9 +194,15 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       // Each product is priced on the volume its own price_unit names — a VR
       // line must see the radiologist count, never the exam count.
       const productQty = quantityFor(product, volumes)
-      const listed = tiers && region && productQty
+      const rawListed = tiers && region && productQty
         ? resolvePrice({ product, tiers, discountPct: region.discountPct, quantity: productQty })
         : null
+
+      // The CWM global list is published in USD and this deal is written in
+      // euros. Without this the screen printed a dollar figure with a euro
+      // sign — 16% high, and plausible enough to go unquestioned.
+      const fx = rawListed ? toEur(rawListed.net, product.list_currency, rates) : null
+      const listed = rawListed ? { ...rawListed, net: fx.value, fx } : null
       const isSub = SUBSCRIPTION_MODELS.includes(product.pricing_model)
 
       const fam = familyEconomics(itemsByProduct[id], famSel[id] ? selectionFor(id) : null, qty)
@@ -235,6 +244,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         tierLabel: listed?.tierLabel ?? '—',
         boundBy: listed?.boundBy ?? 'tier',
         priced: Boolean(listed),
+        listed,
         capexCost: dCapex.cost, capexPvp: dCapex.pvp,
         annualCost: dAnnual.cost, annualPvp: dAnnual.pvp,
         discountPct, routing,
@@ -249,11 +259,18 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       }
     }).filter(Boolean)
   }, [picked, products, tiersByProduct, region, studies, overrides, itemsByProduct,
-      famSel, productCosts, years, pacsInQuote, suppliers, volumes])
+      famSel, productCosts, years, pacsInQuote, suppliers, volumes, rates])
 
   // The quote seen both ways: what we have, and what we have if the supplier
   // discounts land. The gap between them is the number worth naming.
   const views = useMemo(() => discountViews(lines), [lines])
+  // Shown next to the region, because the pricing brief requires a conversion
+  // to carry its rate wherever it appears.
+  const fxNote = useMemo(() => {
+    const l = lines.find(x => x.listed?.fx?.converted && x.listed.fx.rate !== 1)
+    return l ? rateLabel(l.listed.fx.currency, l.listed.fx.rate) : null
+  }, [lines])
+
   const totals = useMemo(() => ({
     ...(ifApproved ? views.ifApproved : views.actual),
     capexPvp: round2(lines.reduce((n, l) => n + l.capexPvp, 0)),
@@ -289,6 +306,11 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
       stage: 'Lead',
       value_total: views.actual.pvp,
       gm_pct: views.actual.marginPct,
+      currency: 'EUR',
+      // A rate is a snapshot. The project's rule for deals applies here: store
+      // it, so a rate change tomorrow cannot silently reprice a quote sent
+      // today.
+      exchange_rate: lines.find(l => l.listed?.fx?.converted && l.listed.fx.rate !== 1)?.listed.fx.rate ?? null,
       company_id: profile?.company_id || null,
       created_by: profile?.id || null,
     }).select('id, client, bu, country').single()
@@ -404,9 +426,17 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         ))}
       </div>
 
+      {lines.some(l => l.listed?.fx && !l.listed.fx.converted) && (
+        <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          {t('qd_fx_missing').replaceAll('{cur}',
+            lines.find(l => l.listed?.fx && !l.listed.fx.converted).listed.fx.currency)}
+        </p>
+      )}
+
       {region
         ? <p className="text-micro text-gray-500">
             {t('qd_region_is')} <strong className="text-navy">{regionCode} · {region.name}</strong> — {region.discountPct}% {t('qd_region_off')}
+            {fxNote && <span className="ml-1 text-gray-400">· {fxNote}</span>}
           </p>
         : <p className="text-micro text-amber-700">
             {country} {t('qd_no_region')}
@@ -591,7 +621,7 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-micro text-gray-600 pt-1 border-t border-navy/10">
             <span>{t('qd_one_off')}: <strong className="tabular-nums">{formatK(totals.capexPvp)}</strong></span>
-            <span>{t('qd_recurring')}: <strong className="tabular-nums">{formatK(totals.annualPvp)}</strong>/{t('qd_years')} × {years}</span>
+            <span>{t('qd_recurring')}: <strong className="tabular-nums">{formatK(totals.annualPvp)}</strong> {t('qd_recurring_yr')} {years}</span>
             <span>{lines.length} {t('qd_n_products')}</span>
           </div>
           {views.hasPending && (
