@@ -109,6 +109,7 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
   // says so, because an approximation presented as the original is how a quote
   // that went to a customer gets quietly rewritten.
   const [rebuilt, setRebuilt] = useState(false)
+  const [quoteStoreError, setQuoteStoreError] = useState(null)
   const [loadingQuote, setLoadingQuote] = useState(Boolean(deal?.id))
 
   useEffect(() => {
@@ -118,7 +119,14 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
     if (deal.country) setCountry(deal.country)
 
     supabase.from('deal_quote').select('state').eq('deal_id', deal.id).maybeSingle()
-      .then(async ({ data }) => {
+      .then(async ({ data, error: qErr }) => {
+        // "Nothing stored" and "cannot read what is stored" are different
+        // facts, and only one of them is about this deal. Reporting the second
+        // as the first tells the rep a comfortable story about their own data.
+        if (qErr) {
+          logger.error('Quote state unreadable', { error: qErr.message, deal: deal.id })
+          if (alive) setQuoteStoreError(qErr.message)
+        }
         let state = fromQuoteState(data?.state)
         if (!state) {
           const { data: rows } = await supabase.from('deal_products_v')
@@ -138,7 +146,7 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
         setChannelRole(state.channelRole)
         setProgramme(state.programme)
         if (state.country) setCountry(state.country)
-        setRebuilt(Boolean(state.rebuilt))
+        setRebuilt(Boolean(state.rebuilt) && !qErr)
         setLoadingQuote(false)
       })
     return () => { alive = false }
@@ -676,7 +684,16 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
       created_by: profile?.id || null,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'deal_id' })
-    if (qErr) logger.error('Quote state not stored', { error: qErr.message })
+    if (qErr) {
+      // The deal is saved either way, but silently losing how it was built is
+      // exactly the failure this table exists to prevent — so it is said out
+      // loud rather than left in a log nobody reads.
+      logger.error('Quote state not stored', { error: qErr.message })
+      setQuoteStoreError(qErr.message)
+      setSaving(false)
+      setError(`${t('qd_err_quote_state')} ${qErr.message}`)
+      return
+    }
 
     // The channel side of the deal, stored rather than derived: the protected
     // margin depends on the list price and the role on the day it was quoted,
@@ -793,7 +810,13 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
 
   return (
     <div className="space-y-4">
-      {rebuilt && (
+      {quoteStoreError && (
+        <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          {t('qd_quote_store_err')} <span className="text-red-600">{quoteStoreError}</span>
+        </p>
+      )}
+
+      {rebuilt && !quoteStoreError && (
         <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
           {t('qd_rebuilt')}
         </p>
