@@ -6,7 +6,8 @@ import { useAuth } from '../hooks/useAuth'
 import { useTranslation } from '../hooks/useTranslation'
 import { Modal, Spinner, EmptyState, formatK, CollapsibleSection } from '../components/ui'
 import SearchableSelect from '../components/SearchableSelect'
-import { Plus, Search, Pencil, Trash2, Package, ChevronDown, ChevronUp, X, Layers } from 'lucide-react'
+import PriceLadderEditor from '../components/products/PriceLadderEditor'
+import { Plus, Search, Pencil, Trash2, Package, ChevronDown, ChevronUp, X, Layers, Euro } from 'lucide-react'
 
 const PRICING_MODELS = [
   { id: 'license_plus_annual', labelKey: 'products_pm_license_annual' },
@@ -218,6 +219,10 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
     brand:          product?.brand          || 'Fujifilm',
     supplier_code:  product?.supplier_code  || '',
     transfer_price: '',
+    price_basis:    product?.price_basis    || '',
+    price_unit:     product?.price_unit     || '',
+    min_annual_commitment: product?.min_annual_commitment ?? '',
+    site_cap_annual:       product?.site_cap_annual ?? '',
     allowed_pricing_models: ensureArray(
       product?.allowed_pricing_models || product?.pricing_model,
       ['license_plus_annual']
@@ -273,6 +278,13 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
     const payload = {
       ...rest,
       supplier_code: form.supplier_code || null,
+      price_basis:   form.price_basis || null,
+      price_unit:    form.price_unit || null,
+      min_annual_commitment: form.min_annual_commitment === '' ? null : parseFloat(form.min_annual_commitment),
+      // Empty means no cap, and that is the common case: a cap flattens every
+      // large customer to one number, which is how CWM Dose came to quote a
+      // 200,000-exam hospital and an 8,000,000-exam network alike.
+      site_cap_annual: form.site_cap_annual === '' ? null : parseFloat(form.site_cap_annual),
       license_fee: parseFloat(form.license_fee) || 0,
       annual_fee:  parseFloat(form.annual_fee)  || 0,
       brand:       (form.brand || 'Fujifilm').trim(),
@@ -297,10 +309,12 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
     onSaved()
   }
 
+  // The ladder hangs off a product id, so it only exists once the product does.
   const tabs = isEdit
     ? [
-        { id: 'details',    label: t('products_details'),    icon: <Pencil size={13}/> },
-        { id: 'components', label: t('products_components'), icon: <Layers size={13}/> },
+        { id: 'details',    label: t('products_details'),     icon: <Pencil size={13}/> },
+        { id: 'pricing',    label: t('products_pricing_tab'), icon: <Euro size={13}/> },
+        { id: 'components', label: t('products_components'),  icon: <Layers size={13}/> },
       ]
     : [{ id: 'details', label: t('products_details'), icon: <Pencil size={13}/> }]
 
@@ -513,6 +527,55 @@ function ProductFormModal({ product, onClose, onSaved, t, allProducts }) {
         )}
 
         {/* ==================== COMPONENTS TAB ==================== */}
+        {tab === 'pricing' && isEdit && (
+          <div className="space-y-4">
+            {/* The unit is the question the price answers: exams a year for CWM
+                Dose, finalised reports for AI Reporting, radiologists for VR.
+                Changing it changes which number the quote screen asks for. */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">{t('products_price_basis')}</label>
+                <select className="select" value={form.price_basis}
+                  onChange={e => set('price_basis', e.target.value)}>
+                  <option value="">—</option>
+                  <option value="per_unit">per_unit — rate × quantity</option>
+                  <option value="flat_band">flat_band — the band price is the price</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">{t('products_price_unit')}</label>
+                <select className="select" value={form.price_unit}
+                  onChange={e => set('price_unit', e.target.value)}>
+                  <option value="">—</option>
+                  <option value="exam">exam</option>
+                  <option value="report">report</option>
+                  <option value="radiologist">radiologist</option>
+                  <option value="procedure_room">procedure_room</option>
+                  <option value="organisation">organisation</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">{t('products_min_commit')}</label>
+                <input className="input" type="number" min="0" step="0.01"
+                  value={form.min_annual_commitment}
+                  onChange={e => set('min_annual_commitment', e.target.value)}/>
+              </div>
+              <div>
+                <label className="label">{t('products_site_cap')}</label>
+                <input className="input" type="number" min="0" step="0.01"
+                  value={form.site_cap_annual} placeholder="—"
+                  onChange={e => set('site_cap_annual', e.target.value)}/>
+                <p className="text-micro text-gray-400 mt-0.5">{t('products_site_cap_hint')}</p>
+              </div>
+            </div>
+
+            <PriceLadderEditor productId={product.id} priceUnit={form.price_unit}/>
+          </div>
+        )}
+
         {tab === 'components' && isEdit && (
           <ComponentsEditor productId={product.id} allProducts={allProducts} t={t}/>
         )}
