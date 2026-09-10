@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   CHANNEL_ROLES, PROTECTED_MARGIN, NAMED_PROGRAMMES,
-  protectedMarginPct, partnerEconomics,
+  protectedMarginPct, partnerEconomics, partnerTargetPrice,
 } from '../partnerMargin'
 
 /** The published Full VAR ladder, on a list price of 100. */
@@ -126,6 +126,31 @@ describe('no discount takes a partner under 20%, and nothing goes under 15%', ()
     expect(deep.partnerMarginPct).toBe(20)
     expect(deep.onTarget).toBe(false)
     expect(deep.atFloor).toBe(true)
+  })
+})
+
+describe('the price a partner starts from', () => {
+  it('is the one that puts them on the 35% target', () => {
+    // R3 CWM Dose at 20,000 exams: 9,180.32 of cost.
+    const price = partnerTargetPrice(9180.32)
+    expect(price).toBe(14123.57)
+    expect(Math.round((price - 9180.32) / price * 100)).toBe(35)
+  })
+
+  it('is gross margin on the sell price, not a markup on cost', () => {
+    // The trap this app has to keep avoiding: 9,180 marked up 35% is 12,393,
+    // and that quote lands on 26% margin, not 35%.
+    expect(partnerTargetPrice(9180.32)).not.toBe(9180.32 * 1.35)
+  })
+
+  it('follows whatever margin is asked of it', () => {
+    expect(partnerTargetPrice(100, 20)).toBe(125)
+    expect(partnerTargetPrice(100, 0)).toBe(100)
+  })
+
+  it('is zero for no cost, rather than a price out of nowhere', () => {
+    expect(partnerTargetPrice(0)).toBe(0)
+    expect(partnerTargetPrice(null)).toBe(0)
   })
 })
 

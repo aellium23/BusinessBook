@@ -16,7 +16,8 @@ import { recommendedCapexPvp, recommendedSlaPvp, belowFloor, lineOverTerm,
          SERVICES_TARGET_MARGIN_PCT } from '../../lib/margins'
 import { routeFor, applyDiscount, discountViews, internalApproval } from '../../lib/discountRouting'
 import { priceAtRung } from '../../lib/discountLadder'
-import { partnerEconomics, CHANNEL_ROLES, NAMED_PROGRAMMES } from '../../lib/partnerMargin'
+import { partnerEconomics, partnerTargetPrice, PROTECTED_MARGIN,
+         CHANNEL_ROLES, NAMED_PROGRAMMES } from '../../lib/partnerMargin'
 import { unitsNeeded, quantityFor } from '../../lib/volumeUnits'
 import { toEur, rateLabel } from '../../lib/fx'
 import { useFxRates } from '../../hooks/useFxRates'
@@ -374,13 +375,14 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
       // yearly fee; for a licensed product it is the one-off licence.
       const capexPvp = o.capexPvp !== undefined ? Number(o.capexPvp) || 0
         : isSub ? 0
-        // A partner's starting price is what they pay, so the margin starts at
-        // zero and is theirs to set. Filling in a markup we made up would put a
-        // number in front of a customer that nobody decided.
-        : !internal ? capexCost
+        // A partner's quote opens on the margin they should be landing on —
+        // the same 35% the transfer price protects on our own deals — so the
+        // common case needs no arithmetic at all. It is a target, not a rule:
+        // the price and the margin are both editable from either end.
+        : !internal ? partnerTargetPrice(capexCost)
         : (listed ? listed.net : recommendedCapexPvp(capexCost))
       const annualPvp = o.annualPvp !== undefined ? Number(o.annualPvp) || 0
-        : !internal ? annualCost
+        : !internal ? partnerTargetPrice(annualCost)
         : isSub && listed ? listed.net
         : recommendedSlaPvp(annualCost)
 
@@ -1260,7 +1262,11 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
                   </div>
                   <div>
                     <label className="label">{t('qd_margin_pct')}</label>
-                    <input className="input text-right border-green-200" type="number" min="0" max="99"
+                    <input className={`input text-right ${
+                      marginOf(l.isSub ? l.annualCost : l.capexCost,
+                               l.isSub ? l.annualPvp : l.capexPvp) < PROTECTED_MARGIN.target
+                        ? 'border-amber-300' : 'border-green-200'
+                    }`} type="number" min="0" max="99"
                       value={marginOf(l.isSub ? l.annualCost : l.capexCost,
                                       l.isSub ? l.annualPvp : l.capexPvp)}
                       style={{ fontSize: '16px' }}
