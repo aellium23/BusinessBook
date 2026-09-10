@@ -73,6 +73,44 @@ export default function Approvals() {
     rejected: requests.filter(r => r.status === 'rejected').length,
   }), [requests])
 
+  /** The requester takes the counter-offer as it stands. */
+  async function acceptCounter(req) {
+    const { error } = await supabase.rpc('accept_counter_offer', { p_request_id: req.id })
+    if (error) { showToast(error.message, 'error'); return }
+    showToast('Counter-offer accepted', 'success')
+    load()
+  }
+
+  /**
+   * Another round: a new request rather than an edit of the old one, so the
+   * negotiation keeps its history — what was asked, what came back, what was
+   * asked next.
+   */
+  async function askAgain(req, pct, note) {
+    const asked = parseFloat(pct) || 0
+    // What the old ask was worth per point, carried to the new percentage.
+    const perPoint = req.requested_pct > 0 && req.value_at_risk
+      ? Number(req.value_at_risk) / Number(req.requested_pct)
+      : null
+    const { error } = await supabase.from('deal_discount_requests').insert({
+      deal_id: req.deal_id,
+      product_id: req.product_id,
+      requested_by: profile?.id || null,
+      requested_pct: asked,
+      brand: req.brand,
+      supplier_code: req.supplier_code,
+      route: req.route,
+      channel: req.channel,
+      status: 'pending',
+      scope: req.scope,
+      value_at_risk: perPoint ? Math.round(perPoint * asked * 100) / 100 : null,
+      justification: note,
+    })
+    if (error) { showToast(error.message, 'error'); return }
+    showToast('Request sent', 'success')
+    load()
+  }
+
   async function respond(req, status, approvedPct, note) {
     try {
       const pct = (status === 'approved' || status === 'counter') ? (parseFloat(approvedPct) || null) : null
@@ -137,7 +175,8 @@ export default function Approvals() {
         <div className="space-y-3">
           {filtered.map(req => (
             <ApprovalCard key={req.id} req={req} channel={channel[req.deal_id]}
-              readOnly={asRequester} onRespond={respond}/>
+              readOnly={asRequester} onRespond={respond}
+              onAccept={acceptCounter} onAskAgain={askAgain}/>
           ))}
         </div>
       )}
@@ -145,8 +184,11 @@ export default function Approvals() {
   )
 }
 
-function ApprovalCard({ req, onRespond, channel, readOnly }) {
+function ApprovalCard({ req, onRespond, channel, readOnly, onAccept, onAskAgain }) {
   const [open, setOpen] = useState(false)
+  const [asking, setAsking] = useState(false)
+  const [askPct, setAskPct] = useState('')
+  const [askNote, setAskNote] = useState('')
   const [status, setStatus] = useState('approved')
   const [pct, setPct] = useState(String(req.requested_pct))
   const [note, setNote] = useState('')
@@ -247,6 +289,44 @@ function ApprovalCard({ req, onRespond, channel, readOnly }) {
           )}
           {req.response_note && <p className="mt-0.5">{req.response_note}</p>}
         </div>
+      )}
+
+      {/* The requester's side of a counter-offer. The buttons existed, in the
+          discount history inside the long form — which is two screens from
+          where the answer arrives. This is where they see the reply, so this is
+          where the reply can be answered. */}
+      {readOnly && req.status === 'counter' && (
+        asking ? (
+          <div className="border-t pt-2 space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-micro text-gray-500">Ask for %</label>
+                <input className="input text-xs" type="number" min="0" max="100"
+                  value={askPct} onChange={e => setAskPct(e.target.value)}
+                  placeholder={String(req.requested_pct)}/>
+              </div>
+            </div>
+            <input className="input text-xs" value={askNote} onChange={e => setAskNote(e.target.value)}
+              placeholder="Why this time (the approver reads this)"/>
+            <div className="flex gap-2">
+              <button onClick={() => setAsking(false)} className="btn-secondary text-xs flex-1">Cancel</button>
+              <button className="btn-primary text-xs flex-1"
+                disabled={!askPct || !askNote.trim()}
+                onClick={async () => { await onAskAgain(req, askPct, askNote); setAsking(false) }}>
+                Send new request
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <button onClick={() => setAsking(true)} className="btn-secondary text-xs flex-1">
+              Ask again
+            </button>
+            <button onClick={() => onAccept(req)} className="btn-primary text-xs flex-1">
+              Accept {req.approved_pct}%
+            </button>
+          </div>
+        )
       )}
 
       {!readOnly && (req.status === 'pending' || req.status === 'counter') && (
