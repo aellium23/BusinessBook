@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import { logger } from '../../lib/logger'
 import { useAuth } from '../../hooks/useAuth'
 import { useSettings } from '../../hooks/useSettings'
 import { useTranslation } from '../../hooks/useTranslation'
@@ -562,14 +563,27 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
   const marginOf = (cost, pvp) => (pvp > 0 ? Math.round(((pvp - cost) / pvp) * 1000) / 10 : 0)
 
   async function create() {
+    try { await createDeal() } catch (err) {
+      // A throw here used to reach nobody: the click did nothing, the button
+      // did not even go into its saving state, and the screen said as much as
+      // it would have if the button were not wired up at all.
+      logger.error('Quick deal failed', { error: err?.message })
+      setSaving(false)
+      setError(`${t('qd_err_create')} ${err?.message || err}`)
+    }
+  }
+
+  async function createDeal() {
     if (!client.trim()) { setError(t('qd_err_client')); return }
     // A migration or a training week with no software on it is still a deal.
     if (!lines.length && !quotable) { setError(t('qd_err_product')); return }
     // A discount nobody explained is refused rather than saved and chased
     // later: once the quote exists the figure is what everyone works from, and
     // the explanation never catches up with it.
-    if (lines.some(l => discounted(l) && !l.discountNote)) {
-      setError(t('qd_err_reason')); return
+    const unexplained = lines.filter(l => discounted(l) && !l.discountNote)
+    if (unexplained.length) {
+      setError(`${t('qd_err_reason')} ${unexplained.map(l => l.product.name).join(', ')}`)
+      return
     }
     setSaving(true); setError(null)
 
@@ -1296,6 +1310,15 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
         </button>
       )}
 
+      {/* The same message as the top of the form, repeated where the button
+          is. A refusal shown above the fold reads exactly like a dead button,
+          which is what it looked like on a phone. */}
+      {error && (
+        <p role="alert" className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          {error}
+        </p>
+      )}
+
       <div className="flex gap-2">
         <button type="button" onClick={onCancel} className="btn-secondary flex-1">{t('qd_cancel')}</button>
         <button type="button" onClick={create} disabled={saving || (!lines.length && !quotable)}
@@ -1303,6 +1326,9 @@ export default function QuickQuote({ onCancel, onCreated, onFullForm }) {
           {saving ? t('qd_creating') : `${t('qd_create')} · ${formatK(totals.pvp)}`}
         </button>
       </div>
+      {!lines.length && !quotable && (
+        <p className="text-micro text-gray-500 text-right">{t('qd_need_product')}</p>
+      )}
     </div>
   )
 }
