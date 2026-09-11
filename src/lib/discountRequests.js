@@ -24,29 +24,22 @@ export async function acceptCounter(requestId) {
  * carries its own reason, and the approver reads the reason for THIS ask rather
  * than the one that was already answered.
  *
- * What the new ask is worth in money is carried across per point of discount,
- * so a second request at 15 % against a first at 20 % is worth three quarters
- * of it — and the approval card is right without anybody recomputing anything.
+ * It is a definer function and not an insert, for the notification. Every other
+ * step in this negotiation ends in one — an approver answers and the requester
+ * is told, a requester accepts and the approver is told — but a counter coming
+ * back the other way told nobody, and the approver found out by happening to
+ * open Approvals. A negotiation where one side has to keep checking stalls, and
+ * it stalled on our side of a partner's deal.
+ *
+ * The arithmetic went with it: what the new ask is worth is carried across per
+ * point of discount, so a second request at 15 % against a first at 20 % is
+ * worth three quarters of it.
  */
-export async function askAgain(req, pct, note, requestedBy) {
-  const asked = parseFloat(pct) || 0
-  const perPoint = Number(req.requested_pct) > 0 && req.value_at_risk
-    ? Number(req.value_at_risk) / Number(req.requested_pct)
-    : null
-
-  return supabase.from('deal_discount_requests').insert({
-    deal_id: req.deal_id,
-    product_id: req.product_id,
-    requested_by: requestedBy || null,
-    requested_pct: asked,
-    brand: req.brand,
-    supplier_code: req.supplier_code,
-    route: req.route,
-    channel: req.channel,
-    status: 'pending',
-    scope: req.scope,
-    value_at_risk: perPoint ? Math.round(perPoint * asked * 100) / 100 : null,
-    justification: note,
+export async function askAgain(req, pct, note) {
+  return supabase.rpc('ask_discount_again', {
+    p_request_id: req.id,
+    p_pct: parseFloat(pct) || 0,
+    p_note: note || null,
   })
 }
 
@@ -57,6 +50,31 @@ export async function requestsForDeal(dealId) {
             'requested_by, brand, supplier_code, route, channel, scope, value_at_risk, ' +
             'created_at, responded_at')
     .eq('deal_id', dealId)
+    .order('created_at', { ascending: false })
+}
+
+/**
+ * Everything of mine that has not finished, newest first.
+ *
+ * Two states qualify and they point in opposite directions: `counter` is
+ * waiting on the person who asked, `pending` is waiting on us. A dashboard that
+ * lumps them together tells a distributor there are four things outstanding
+ * when only one of them is theirs to move, so the caller is given both and
+ * splits them.
+ *
+ * The client comes back with each row because "a counter-offer on a deal" is
+ * not something anybody can act on, and "20% countered on Hospital de Braga"
+ * is. The embedded read is filtered by the deals policy in its own right, so a
+ * partner sees their own company's and nothing else.
+ */
+export async function openRequestsFor(userId) {
+  return supabase.from('deal_discount_requests')
+    .select('id, deal_id, requested_pct, approved_pct, status, justification, ' +
+            'response_note, brand, supplier_code, route, channel, scope, ' +
+            'value_at_risk, created_at, responded_at, requested_by, ' +
+            'deals!inner(client, stage)')
+    .in('status', ['pending', 'counter'])
+    .eq('requested_by', userId)
     .order('created_at', { ascending: false })
 }
 

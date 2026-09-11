@@ -12,6 +12,7 @@ const HELP = {
       description: 'Your central command center: two primary views (Summary, Details) plus secondary breakdowns by product, sales rep, and client.',
       features: [
         'Two primary tabs (Summary, Details) plus secondary breakdown pills (Products, Reps, Clients, Funnel).',
+        'The bell in the top bar carries your notifications on every page — it used to sit on the Tasks screen, which is why answered discount requests went unread for months. Clicking one opens what it is about: a discount answer opens that deal\'s card, where it can be accepted or countered.',
         'Funnel is what the dashboard opens on, because the first question in the morning is what is in the pipeline.',
         'Funnel: the pipeline as five instant photographs — Lead, Pipeline, Offer Presented, Backlog, Invoiced — each with its value, how many deals it holds, what it is worth weighted, and the share of the previous stage that reached it. Conversion is counted on deals rather than on money, so one large deal cannot flatter a month, and a stage whose predecessor is empty shows no rate at all rather than 0%. Tapping a frame opens Deals filtered to that stage. Lost is reported apart from the five on purpose: it is the exit from a funnel, not a step through it.',
         'Below the row, the consolidated picture, printed on a strip of 35mm film: open pipeline, weighted forecast, invoiced and lost, one to a frame. Each frame opens what it counts — open pipeline is every stage that is neither invoiced nor lost, weighted forecast goes to Forecast where the weighting is explained, and invoiced and lost open the deals behind them. A frame lights up under the pointer the way a negative does on a light table.',
@@ -50,13 +51,14 @@ const HELP = {
       admin: 'As an admin you see all business units. The Products/Reps/Clients views help analyse mix, team performance, and account concentration.',
       member: 'As a sales rep you get a personal dashboard showing your target, pipeline, and deals. Overlay credits from team-mate product rules are included automatically.',
       viewer: 'You have read-only access. Contact your admin to request edit permissions.',
-      distributor: 'You see your company\'s pipeline and targets.',
+      distributor: 'You see your company\'s pipeline and targets. Anything still open on a discount is at the top, split by whose move it is: a counter-offer waiting for your answer, named by client and showing what you asked against what came back, and below it a quieter line for the requests still sitting with us. Tap one to open the deal and accept it or come back with another number. Coming back with another number now tells the person who made the counter-offer, so the ball being in our court is something we are told rather than something you have to chase.',
     },
     es: {
       title: 'Panel',
       description: 'Tu centro de mando: dos vistas principales (Resumen, Detalle) mas desgloses por producto, comercial y cliente.',
       features: [
         'Dos pestanas principales (Resumen, Detalle) mas pills de desglose (Productos, Comerciales, Clientes, Embudo).',
+        'La campana de la barra superior lleva tus notificaciones en todas las paginas — antes vivia en la pantalla de Tareas, y por eso las respuestas a solicitudes de descuento pasaban meses sin leerse. Al pulsar una se abre aquello de lo que trata: la respuesta a un descuento abre la ficha de esa oportunidad, donde se puede aceptar o contraofertar.',
         'El Embudo es la vista con la que abre el panel, porque la primera pregunta de la manana es que hay en el pipeline.',
         'Embudo: el pipeline como cinco fotos instantaneas — Lead, Pipeline, Oferta presentada, Backlog, Facturado — cada una con su valor, cuantas oportunidades contiene, cuanto vale ponderada y que parte de la etapa anterior llego hasta ella. La conversion se cuenta en oportunidades y no en dinero, asi que una oportunidad grande no maquilla un mes, y una etapa cuya anterior esta vacia no ensena tasa alguna en vez de un 0%. Tocar una foto abre Oportunidades filtrado por esa etapa. Perdido se reporta aparte de las cinco a proposito: es la salida del embudo, no un paso dentro de el.',
         'Debajo, la foto de conjunto, impresa en una tira de pelicula de 35mm: pipeline abierto, forecast ponderado, facturado y perdido, uno por fotograma. Cada fotograma abre lo que cuenta — pipeline abierto es toda etapa que no esta facturada ni perdida, forecast ponderado lleva a Forecast donde se explica la ponderacion, y facturado y perdido abren sus oportunidades. Un fotograma se ilumina bajo el puntero como un negativo sobre una mesa de luz.',
@@ -95,13 +97,14 @@ const HELP = {
       admin: 'Como admin ves todas las unidades. Las vistas Productos/Comerciales/Clientes ayudan a analizar mix, rendimiento del equipo y concentracion de cuentas.',
       member: 'Como comercial tienes un dashboard personal con tu objetivo, pipeline y deals. Los creditos de overlay de reglas de producto de companeros se incluyen automaticamente.',
       viewer: 'Tienes acceso de solo lectura. Contacta a tu admin para solicitar permisos de edicion.',
-      distributor: 'Ves el pipeline y los objetivos de tu empresa.',
+      distributor: 'Ves el pipeline y los objetivos de tu empresa. Lo que sigue abierto en descuentos esta arriba, separado por a quien le toca mover: una contraoferta esperando tu respuesta, con el nombre del cliente y lo que pediste frente a lo que volvio, y debajo una linea mas discreta para las solicitudes que siguen con nosotros. Toca una para abrir la oportunidad y aceptarla o volver con otro numero. Volver con otro numero ahora avisa a quien hizo la contraoferta, asi que la pelota en nuestro tejado es algo que se nos dice y no algo que tengas que perseguir.',
     },
     pt: {
       title: 'Painel',
       description: 'O teu centro de comando: duas vistas principais (Resumo, Detalhe) mais desdobramentos por produto, comercial e cliente.',
       features: [
         'Duas abas principais (Resumo, Detalhe) mais pills de desdobramento (Produtos, Comerciais, Clientes, Funil).',
+        'A campainha na barra de topo leva as tuas notificacoes em todas as paginas — antes vivia no ecra das Tarefas, e foi por isso que respostas a pedidos de desconto passaram meses por ler. Tocar numa abre aquilo de que ela trata: a resposta a um desconto abre o cartao desse negocio, onde pode ser aceite ou contraposta.',
         'O Funil e a vista com que o painel abre, porque a primeira pergunta da manha e o que esta no pipeline.',
         'Funil: o pipeline como cinco fotografias instantaneas — Lead, Pipeline, Proposta apresentada, Backlog, Faturado — cada uma com o seu valor, quantos negocios tem, quanto vale ponderada e que parte da fase anterior lhe chegou. A conversao conta-se em negocios e nao em dinheiro, por isso um negocio grande nao embeleza um mes, e uma fase cuja anterior esta vazia nao mostra taxa nenhuma em vez de mostrar 0%. Tocar numa foto abre os Negocios filtrados por essa fase. O Perdido e reportado a parte das cinco de proposito: e a saida do funil e nao um passo dentro dele.',
         'Por baixo, a imagem de conjunto, impressa numa tira de pelicula de 35mm: pipeline aberto, forecast ponderado, faturado e perdido, um por fotograma. Cada fotograma abre aquilo que conta — pipeline aberto e toda a fase que nao esta faturada nem perdida, forecast ponderado leva ao Forecast onde a ponderacao e explicada, e faturado e perdido abrem os negocios respetivos. Um fotograma acende sob o ponteiro como um negativo numa mesa de luz.',
@@ -140,7 +143,7 @@ const HELP = {
       admin: 'Como admin ves todas as unidades. As vistas Produtos/Comerciais/Clientes ajudam a analisar mix, desempenho da equipa e concentracao de contas.',
       member: 'Como comercial tens um dashboard pessoal com o teu objetivo, pipeline e deals. Creditos de overlay de regras de produto de colegas sao incluidos automaticamente.',
       viewer: 'Tens acesso apenas de leitura. Contacta o teu admin para solicitar permissoes de edicao.',
-      distributor: 'Ves o pipeline e os objetivos da tua empresa.',
+      distributor: 'Ves o pipeline e os objetivos da tua empresa. O que esta em aberto nos descontos aparece no topo, separado por quem tem a jogada: uma contraproposta a espera da tua resposta, com o nome do cliente e o que pediste contra o que voltou, e por baixo uma linha mais discreta para os pedidos que continuam connosco. Toca num para abrir o negocio e aceitar ou voltar com outro numero. Voltar com outro numero avisa agora quem fez a contraproposta, por isso a bola estar do nosso lado e algo que nos e dito e nao algo que tenhas de andar a perseguir.',
     },
   },
 

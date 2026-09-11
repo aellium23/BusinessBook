@@ -332,47 +332,6 @@ function Section({ title, count, overdueCount, children, defaultOpen = true }) {
 }
 
 // ── Notifications Panel ────────────────────────────────────────────────────────
-function NotificationsPanel({ onClose, notifications, markRead, markAllRead, t }) {
-  const typeIcon = {
-    task_assigned:    '📋',
-    task_due:         '⏰',
-    task_overdue:     '🔴',
-    tender_deadline:  '📝',
-  }
-  return (
-    <div className="absolute right-0 top-10 w-[min(320px,calc(100vw-2rem))] bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-        <span className="font-semibold text-sm text-gray-800">{t('notif_title')}</span>
-        <div className="flex gap-2 items-center">
-          <button onClick={markAllRead} className="text-micro text-blue-600 hover:underline">{t('notif_mark_all')}</button>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
-        </div>
-      </div>
-      <div className="max-h-96 overflow-y-auto divide-y divide-gray-50">
-        {notifications.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-8">{t('notif_none')}</p>
-        ) : notifications.map(n => (
-          <div key={n.id}
-            onClick={() => markRead(n.id)}
-            className={`px-4 py-3 cursor-pointer hover:bg-gray-50 ${!n.read ? 'bg-blue-50/40' : ''}`}>
-            <div className="flex gap-2 items-start">
-              <span className="text-base shrink-0">{typeIcon[n.type] || '🔔'}</span>
-              <div className="flex-1 min-w-0">
-                <p className={`text-xs font-medium ${!n.read ? 'text-gray-900' : 'text-gray-500'}`}>{n.title}</p>
-                {n.body && <p className="text-tiny text-gray-400 mt-0.5 truncate">{n.body}</p>}
-                <p className="text-micro text-gray-300 mt-1">
-                  {new Date(n.created_at).toLocaleDateString('pt-PT', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}
-                </p>
-              </div>
-              {!n.read && <span className="w-2 h-2 bg-blue-500 rounded-full shrink-0 mt-1" />}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 // ── Main Tasks Page ────────────────────────────────────────────────────────────
 export default function Tasks() {
   const { user, profile, isAdmin, readOnly } = useAuth()
@@ -380,10 +339,11 @@ export default function Tasks() {
   const canAssign = (isAdmin || ['vgt_editor','ect_editor'].includes(profile?.role)) && !readOnly
 
   const { myTasks, assignedToMe, assignedByMe, loading, refetch } = useTasks()
-  const { unread, notifications, markRead, markAllRead, pushNotification } = useNotifications()
+  // The bell moved to the top bar; only the raise-a-notification side is
+  // still needed here, for assigning a task to somebody.
+  const { pushNotification } = useNotifications()
 
   const [modal, setModal]         = useState(null)  // null | task object | 'new'
-  const [showNotif, setShowNotif] = useState(false)
   const [filter, setFilter]       = useState('all') // 'all'|'open'|'done'
 
   const [users, setUsers]   = useState([])
@@ -480,19 +440,6 @@ export default function Tasks() {
           <div>
             <h1 className="text-xl font-bold text-gray-900">{t('tasks_title')}</h1>
             <p className="text-sm text-gray-400 mt-0.5">{t('tasks_subtitle')}</p>
-          </div>
-          {/* Notifications bell */}
-          <div className="relative">
-            <button onClick={() => setShowNotif(s => !s)}
-              className="relative p-2 rounded-xl border border-gray-200 text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors">
-              <Bell size={16} />
-              {unread > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-micro font-bold rounded-full flex items-center justify-center">
-                  {unread > 9 ? '9+' : unread}
-                </span>
-              )}
-            </button>
-            {showNotif && <NotificationsPanel onClose={() => setShowNotif(false)} notifications={notifications} markRead={markRead} markAllRead={markAllRead} t={t} />}
           </div>
         </div>
         {/* Status tabs + New task */}
