@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useCompanyScope } from '../hooks/useCompanyScope'
 import { formatK, Spinner, CollapsibleSection } from '../components/ui'
 import { Target, Plus, Save, Trash2, Crown, Package } from 'lucide-react'
 import SalesOverlayConfig from '../components/SalesOverlayConfig'
@@ -440,6 +441,7 @@ function DistributorQuota({ quotas, actuals, forecast, profile }) {
 
 export default function Quotas() {
   const { isAdmin, canSeeAll, profile, readOnly } = useAuth()
+  const { ids: scopeIds } = useCompanyScope()
   const canWrite = isAdmin && !readOnly
   const { t } = useTranslation()
   const [quotas, setQuotas] = useState([])
@@ -452,10 +454,10 @@ export default function Quotas() {
 
     // Filtros por role
     if (!isAdmin) {
-      if (profile?.role === 'distributor' && profile?.company_id) {
+      if (profile?.role === 'distributor' && scopeIds.length) {
         // Distribuidor: ver só o seu target e os seus deals
-        qQuery = qQuery.eq('company_id', profile.company_id)
-        dQuery = dQuery.eq('company_id', profile.company_id)
+        qQuery = qQuery.in('company_id', scopeIds)
+        dQuery = dQuery.in('company_id', scopeIds)
       } else if (profile?.bu === 'VGT') {
         dQuery = dQuery.eq('bu','VGT')
       } else if (profile?.bu === 'ECT') {

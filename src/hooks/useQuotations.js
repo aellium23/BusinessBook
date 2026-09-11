@@ -1,11 +1,13 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
+import { useCompanyScope } from './useCompanyScope'
 import { logger } from '../lib/logger'
 import { regionForCountry } from '../constants'
 
 export function useQuotations(filters = {}) {
   const { profile, isAdmin } = useAuth()
+  const { ids: scopeIds } = useCompanyScope()
   const [quotations, setQuotations] = useState([])
   const [loading, setLoading]       = useState(true)
 
@@ -21,8 +23,9 @@ export function useQuotations(filters = {}) {
       const s = String(filters.search).replace(/[%_\\]/g, m => `\\${m}`)
       q = q.or(`client.ilike.%${s}%,description.ilike.%${s}%`)
     }
-    if (profile?.role === 'distributor' && profile?.company_id) {
-      q = q.eq('company_id', profile.company_id)
+    if (profile?.role === 'distributor' && scopeIds.length) {
+      // Every company this person acts for. See hooks/useCompanyScope.
+      q = q.in('company_id', scopeIds)
     } else if (!isAdmin && profile?.bu) {
       q = q.eq('bu', profile.bu)
     }

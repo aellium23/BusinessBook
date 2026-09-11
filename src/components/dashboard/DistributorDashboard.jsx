@@ -14,7 +14,8 @@ import { ArrowLeftRight, Hourglass, ChevronRight } from 'lucide-react'
 export default function DistributorDashboard({ deals, profile }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const [quotaTarget, setQuotaTarget] = useState(0)
+  // null = nobody has set one; a number = the target. Not the same thing.
+  const [quotaTarget, setQuotaTarget] = useState(null)
   const [requests, setRequests] = useState([])
 
   // Discounts still in flight. Until now a counter-offer only appeared inside
@@ -34,18 +35,24 @@ export default function DistributorDashboard({ deals, profile }) {
   const mine = useMemo(() => requests.filter(r => r.status === 'counter'), [requests])
   const ours = useMemo(() => requests.filter(r => r.status === 'pending'), [requests])
 
-  // Carregar o target do distribuidor
+  // The target, newest year first. It used to take whichever row came back
+  // first, which is a coin toss once there is more than one year of them.
+  //
+  // `null` and `0` are kept apart on purpose: no row at all means nobody has
+  // set a target, and saying "0" for that reads as a target of zero — which the
+  // gauge below would then report as gloriously exceeded.
   useEffect(() => {
-    if (profile?.company_id) {
-      supabase.from('quotas')
-        .select('target_eur')
-        .eq('company_id', profile.company_id)
-        .limit(1)
-        .then(({ data }) => {
-          if (data && data.length > 0 && data[0].target_eur) setQuotaTarget(Number(data[0].target_eur))
-        })
-        .catch(() => {})
-    }
+    if (!profile?.company_id) return
+    supabase.from('quotas')
+      .select('target_eur, fiscal_year')
+      .eq('company_id', profile.company_id)
+      .order('fiscal_year', { ascending: false })
+      .limit(1)
+      .then(({ data }) => {
+        const row = data?.[0]
+        setQuotaTarget(row && row.target_eur != null ? Number(row.target_eur) : null)
+      })
+      .catch(() => {})
   }, [profile])
 
   // Agregados dos deals deste distribuidor
@@ -84,8 +91,9 @@ export default function DistributorDashboard({ deals, profile }) {
              totalDeals: active.length }
   }, [deals])
 
-  const quotaPct = quotaTarget > 0 ? Math.min(Math.round(stats.actuals / quotaTarget * 100), 100) : 0
-  const fcPct    = quotaTarget > 0 ? Math.min(Math.round(stats.fc / quotaTarget * 100), 100) : 0
+  const hasTarget = quotaTarget != null && quotaTarget > 0
+  const quotaPct = hasTarget ? Math.min(Math.round(stats.actuals / quotaTarget * 100), 100) : 0
+  const fcPct    = hasTarget ? Math.min(Math.round(stats.fc / quotaTarget * 100), 100) : 0
 
   // Dados mensais para o gráfico
   const monthlyData = useMemo(() => {
@@ -174,12 +182,16 @@ export default function DistributorDashboard({ deals, profile }) {
             <div>
               <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">{t('dist_actuals_target')}</p>
               <p className="text-2xl font-bold text-gray-900 mt-0.5">{formatK(stats.actuals)}</p>
-              <p className="text-sm text-gray-400">{t('dist_of_target')} {formatK(quotaTarget)}</p>
+              <p className="text-sm text-gray-400">
+                {hasTarget
+                  ? `${t('dist_of_target')} ${formatK(quotaTarget)}`
+                  : t('dist_no_target')}
+              </p>
             </div>
             <div className="text-right">
               <p className="text-xs text-gray-400">{t('dash_forecast')}</p>
               <p className="text-lg font-bold text-navy">{formatK(stats.fc)}</p>
-              <p className="text-xs text-gray-400">{fcPct}% {t('dist_of_target')}</p>
+              {hasTarget && <p className="text-xs text-gray-400">{fcPct}% {t('dist_of_target')}</p>}
             </div>
           </div>
           {/* Progress bar */}
@@ -239,7 +251,7 @@ export default function DistributorDashboard({ deals, profile }) {
             <YAxis tick={{fontSize:10}} tickLine={false} axisLine={false} width={30}/>
             <Tooltip formatter={(v) => [`${v}K€`]} contentStyle={{fontSize:11,borderRadius:8}}/>
             <Bar dataKey="actuals" fill="#1D9E75" radius={[3,3,0,0]} name="Actuals"/>
-            {quotaTarget > 0 && (
+            {hasTarget && (
               <Line dataKey="target" stroke="#185FA5" strokeWidth={1.5}
                 strokeDasharray="4 2" dot={false} name="Target"/>
             )}

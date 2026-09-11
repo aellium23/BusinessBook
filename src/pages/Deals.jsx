@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useDeals, deleteDeal, upsertDeal } from '../hooks/useDeals'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useCompanyScope } from '../hooks/useCompanyScope'
 import { Spinner, EmptyState, formatK } from '../components/ui'
 import DealForm from '../components/DealForm'
 import KanbanBoard from '../components/KanbanBoard'
@@ -10,6 +11,7 @@ import { Search, Download, RefreshCw, LayoutGrid, List, Globe, Zap } from 'lucid
 import { useTranslation } from '../hooks/useTranslation'
 import { STAGES, WEIGHTS, REGIONS, BUS, MONTHS, MONTHS_K, FORECAST_CATEGORIES, resolveForecastCategory } from '../constants'
 import { canTransition, getAllowedTransitions } from '../lib/stateMachine'
+import { canEditDeal as canEditDealRule } from '../lib/roles'
 import DealCard from '../components/deals/DealCard'
 import DealsMapView from '../components/deals/DealsMapView'
 import { useToast } from '../components/Toast'
@@ -55,14 +57,13 @@ const PERIOD_KEYS = [
 
 export default function Deals() {
   const { canEdit, isAdmin, editOwnOnly, profile, perms } = useAuth()
+  const { inScope } = useCompanyScope()
   const { showToast } = useToast()
   const canDelete = perms?.canDelete ?? false
-  const canEditDeal = (deal) => {
-    if (!canEdit) return false
-    if (isAdmin) return true
-    if (editOwnOnly) return deal?.created_by === profile?.id || deal?.sales_owner === profile?.full_name || deal?.sales_owner === profile?.sales_owner_name
-    return true
-  }
+  // The rule lives in lib/roles, beside the other answers to "who sees what",
+  // so the screen and the database cannot drift apart unnoticed again.
+  const canEditDeal = deal => canEditDealRule(profile, deal, { canEdit, isAdmin, editOwnOnly })
+
   const { t } = useTranslation()
 
   // Filtros
@@ -164,7 +165,7 @@ export default function Deals() {
   // Filtros client-side adicionais
   const deals = useMemo(() => {
     let d = profile?.role === 'distributor'
-      ? rawDeals.filter(x => x.company_id === profile?.company_id)
+      ? rawDeals.filter(x => inScope(x.company_id))
       : rawDeals
     if (openOnlyF) d = d.filter(x => x.stage !== 'Invoiced' && x.stage !== 'Lost')
     if (slaF) d = d.filter(x => x.is_sla)

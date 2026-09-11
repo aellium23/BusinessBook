@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
+import { useCompanyScope } from './useCompanyScope'
 
 // ── useTasks ──────────────────────────────────────────────────────────────────
 export function useTasks() {
@@ -116,6 +117,7 @@ export function useNotifications() {
 // ── useTenders ────────────────────────────────────────────────────────────────
 export function useTenders(dealId = null) {
   const { user, profile, isAdmin } = useAuth()
+  const { ids: scopeIds } = useCompanyScope()
   const [tenders, setTenders] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -133,8 +135,8 @@ export function useTenders(dealId = null) {
         `)
         .order('submission_deadline', { ascending: true, nullsFirst: false })
       if (dealId) q = q.eq('deal_id', dealId)
-      if (profile?.role === 'distributor' && profile?.company_id) {
-        q = q.eq('company_id', profile.company_id)
+      if (profile?.role === 'distributor' && scopeIds.length) {
+        q = q.in('company_id', scopeIds)
       } else if (!isAdmin && profile?.bu) {
         q = q.eq('bu', profile.bu)
       }

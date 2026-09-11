@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Modal, CollapsibleSection, formatK } from './ui'
 import { upsertDeal, upsertDealWithIntercompany } from '../hooks/useDeals'
 import { useAuth } from '../hooks/useAuth'
+import { useCompanyScope } from '../hooks/useCompanyScope'
 import { supabase } from '../lib/supabase'
 import { useFxRates } from '../hooks/useFxRates'
 import { logger } from '../lib/logger'
@@ -28,6 +29,7 @@ import { EMPTY_DEAL as EMPTY } from './deal/dealDefaults'
 
 export default function DealForm({ deal, onClose, onSaved }) {
   const { profile, isAdmin, canEdit, company } = useAuth()
+  const { homeId } = useCompanyScope()
   const { t } = useTranslation()
   const { getRate } = useFxRates()
   const [form, setForm] = useState(() => deal ? {
@@ -170,9 +172,13 @@ export default function DealForm({ deal, onClose, onSaved }) {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   // Load product authorizations for distributors
   useEffect(() => {
-    if (profile?.role === 'distributor' && profile?.company_id) {
+    // The deal's own company decides the catalogue, falling back to the one
+    // being acted for. Somebody who works for two distributors opens deals from
+    // both, and each is priced against its own authorisations.
+    const catalogueCompany = deal?.company_id || homeId || profile?.company_id
+    if (profile?.role === 'distributor' && catalogueCompany) {
       supabase.from('company_product_authorizations').select('product_id, country, price, active')
-        .eq('company_id', profile.company_id)
+        .eq('company_id', catalogueCompany)
         .then(({ data }) => {
           if (data) {
             const map = {}
@@ -181,7 +187,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
           }
         }).catch(() => {})
     }
-  }, [profile?.role, profile?.company_id])
+  }, [profile?.role, deal?.company_id, homeId, profile?.company_id])
   useEffect(() => {
     if (deal?.id) {
       // Use the security view so cost_price/margin_pct are nulled for non-admin/manager roles
