@@ -8,6 +8,14 @@ ficheiro). Preserve the existing object structure/keys (title, description,
 features, steps, shortcuts, mistakes, seeAlso, role notes) — only edit the
 content. New pages get a new `'/path'` entry. Do not wait to be asked.
 
+## Documentação
+`docs/` guarda o que este ficheiro não tem espaço para dizer:
+`BUSINESS_RULES.md` (numeradas, BR-xxx), `PERMISSIONS.md` (papel × página ×
+dado), `DATA_CONTRACTS.md` (**as unidades das colunas — leia-se antes de mexer
+em margens**), `DESIGN_SYSTEM.md`, `BACKLOG.md` (o que ficou aberto) e
+`RELEASE_NOTES.md`. São descritivos até serem revistos: registam o que o sistema
+faz, não o que devia fazer.
+
 ## Stack
 - React 18 + Vite 5 + Tailwind 3 + Supabase (Postgres + Auth + RLS)
 - Code-split routes via `lazyWithRetry` in `src/App.jsx`
