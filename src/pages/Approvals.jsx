@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useNavigate } from 'react-router-dom'
 import { useToast } from '../components/Toast'
 import { formatK, Spinner, EmptyState } from '../components/ui'
 import { approvalImpact } from '../lib/approvalImpact'
@@ -185,6 +186,7 @@ export default function Approvals() {
 }
 
 function ApprovalCard({ req, onRespond, channel, readOnly, onAccept, onAskAgain }) {
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [asking, setAsking] = useState(false)
   const [askPct, setAskPct] = useState('')
@@ -236,6 +238,14 @@ function ApprovalCard({ req, onRespond, channel, readOnly, onAccept, onAskAgain 
         <p className="text-micro text-gray-400">
           {req.deal?.country} · {formatK(req.deal?.value_total || 0)}
         </p>
+        {/* One line of a deal is being decided, and some deals are worth
+            reading whole first. This opens the project's own breakdown. */}
+        {req.deal?.id && (
+          <button type="button" onClick={() => navigate(`/deals?deal=${req.deal.id}`)}
+            className="text-micro font-semibold text-navy underline underline-offset-2 mt-0.5">
+            See the whole project
+          </button>
+        )}
       </div>
 
       {impact.known && (
