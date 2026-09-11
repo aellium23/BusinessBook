@@ -352,7 +352,7 @@ function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, canWri
 }
 
 // ── Sales Target do Distribuidor ─────────────────────────────────────────────
-function DistributorQuota({ quotas, actuals, forecast, profile }) {
+function DistributorQuota({ quotas, actuals, forecast }) {
   const { t } = useTranslation()
   const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
   const MONTHS_L = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
@@ -440,7 +440,7 @@ function DistributorQuota({ quotas, actuals, forecast, profile }) {
 }
 
 export default function Quotas() {
-  const { isAdmin, canSeeAll, profile, readOnly } = useAuth()
+  const { isAdmin, profile, readOnly } = useAuth()
   const { ids: scopeIds } = useCompanyScope()
   const canWrite = isAdmin && !readOnly
   const { t } = useTranslation()

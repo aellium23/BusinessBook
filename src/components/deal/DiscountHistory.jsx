@@ -112,7 +112,7 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
             }))
           )
         }
-      } catch (_) {}
+      } catch { /* the request is filed; the notification is a courtesy */ }
       setPct(''); setJustification(''); setShowForm(false)
       load()
     } catch (e) { showToast(e.message, 'error') }

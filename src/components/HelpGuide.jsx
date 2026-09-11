@@ -39,6 +39,7 @@ const HELP = {
       shortcuts: [
         'A deal carries its discount state on the card itself, in all four states: pending, counter-offer, approved, rejected. It used to show only the two still waiting for an answer, which left a settled discount to the expanded details — and left the partner who asked for it looking for the answer to their own question.',
         'Click a funnel row → opens Deals pre-filtered for that item.',
+        'Filtering invoiced deals by month sends you back to page one. It used not to, so narrowing to a single month while on page three showed an empty list — the filter worked and the page it landed on had nothing on it.',
       ],
       mistakes: [
         'Forgetting to select a BU filter — you may be looking at consolidated data instead of your unit.',
@@ -86,6 +87,7 @@ const HELP = {
       shortcuts: [
         'Una oportunidad lleva el estado de su descuento en la propia tarjeta, en los cuatro estados: pendiente, contraoferta, aprobado, rechazado. Antes solo mostraba los dos que seguian esperando respuesta, lo que dejaba un descuento ya resuelto en el detalle desplegado — y dejaba al socio que lo pidio buscando la respuesta a su propia pregunta.',
         'Clic en una fila del embudo → abre Oportunidades pre-filtradas.',
+        'Filtrar oportunidades facturadas por mes te devuelve a la primera pagina. Antes no lo hacia, asi que estrechar a un solo mes estando en la pagina tres mostraba una lista vacia — el filtro funcionaba y la pagina en la que caias no tenia nada.',
       ],
       mistakes: [
         'Olvidar seleccionar un filtro de BU — puedes estar viendo datos consolidados en vez de tu unidad.',
@@ -133,6 +135,7 @@ const HELP = {
       shortcuts: [
         'Um negocio leva o estado do seu desconto no proprio cartao, nos quatro estados: pendente, contraproposta, aprovado, recusado. Antes so mostrava os dois que ainda esperavam resposta, o que deixava um desconto ja resolvido no detalhe expandido — e deixava o parceiro que o pediu a procurar a resposta a pergunta dele.',
         'Clica numa linha do funil → abre Negocios pre-filtrados para esse item.',
+        'Filtrar negocios faturados por mes devolve-te a primeira pagina. Antes nao devolvia, por isso estreitar a um unico mes estando na pagina tres mostrava uma lista vazia — o filtro funcionava e a pagina onde aterravas nao tinha nada.'
       ],
       mistakes: [
         'Esquecer de selecionar um filtro de BU — podes estar a ver dados consolidados em vez da tua unidade.',

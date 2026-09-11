@@ -37,6 +37,7 @@ function StatusCell({ value, onChange }) {
 function ApplyTemplatesModal({ onClose, onApply, existingTitles }) {
   const [templates, setTemplates] = useState([])
   const [loading, setLoading]     = useState(true)
+  const [loadError, setLoadError] = useState(null)
   const [selected, setSelected]   = useState(new Set())
   const [search, setSearch]       = useState('')
 
@@ -46,7 +47,7 @@ function ApplyTemplatesModal({ onClose, onApply, existingTitles }) {
       .eq('active', true)
       .order('sort_order')
       .then(({ data, error }) => {
-
+        if (error) setLoadError(error.message)
         const list = data ?? []
         setTemplates(list)
         // Pre-select all templates that aren't already present by title
@@ -122,6 +123,10 @@ function ApplyTemplatesModal({ onClose, onApply, existingTitles }) {
         <div className="flex-1 overflow-y-auto px-4 py-2">
           {loading ? (
             <p className="text-sm text-gray-400 py-6 text-center">Loading…</p>
+          ) : loadError ? (
+            // "No templates match" was shown for a failed load too, which reads
+            // as an empty library rather than as a library nobody could reach.
+            <p role="alert" className="text-sm text-red-700 py-6 text-center">{loadError}</p>
           ) : filtered.length === 0 ? (
             <p className="text-sm text-gray-400 py-6 text-center">No templates match.</p>
           ) : CATEGORIES.map(cat => {

@@ -102,21 +102,25 @@ export default function Budget() {
   const [activeCycle, setActiveCycle] = useState(ACTIVE_CYCLE())
   const [focusCell, setFocusCell]     = useState(null)
   const [activePeriod, setActivePeriod] = useState('FY')
-  const [fctTab, setFctTab]           = useState('budget')
   const [fctSnapshots, setFctSnapshots] = useState([])
   const [fctForm, setFctForm]         = useState(null)
   const [fctSaving, setFctSaving]     = useState(false)
   const activeCycleDefault = ACTIVE_CYCLE()
 
+  // A budget that fails to load used to render as a page of zeros, because the
+  // error was destructured and dropped on the floor. Zeros are a number, and a
+  // number is read as an answer — this says what happened instead.
+  const [loadError, setLoadError] = useState(null)
+
   useEffect(() => {
     supabase.from('budget').select("*")
       .then(({ data, error }) => {
-
+        if (error) setLoadError(error.message)
         setRows(data || [])
         setLoading(false)
       })
       .catch(e => {
-
+        setLoadError(e.message)
         setLoading(false)
       })
     supabase.from('forecast_snapshots').select('*').order('created_at', { ascending: false })
@@ -171,6 +175,13 @@ export default function Budget() {
 
   if (!isAdmin) return <div className="p-8 text-center text-gray-400">{tr("budget_admin")}</div>
   if (loading) return <Spinner/>
+  if (loadError) return (
+    <div className="p-4 max-w-3xl mx-auto">
+      <p role="alert" className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+        {tr('bud_load_failed')} {loadError}
+      </p>
+    </div>
+  )
 
   const buCfg    = BU_CONFIG[activeBu]
   const cycleCfg = CYCLE_CONFIG[activeCycle]
@@ -248,8 +259,6 @@ export default function Budget() {
             const qMonths = PERIODS[qKey].months
             const currentMonthK = MONTHS_K[fyIdx]
             const currentMonthLabel = MONTHS[fyIdx]
-            const pastMonthsInQ = qMonths.filter((_, i) => i < fyIdx - qIdx * 3)
-            const remainingMonths = qMonths.filter((_, i) => i >= fyIdx - qIdx * 3)
 
             function getVal(cycle, bu, pk, month) {
               if (bu === 'ALL') {
@@ -273,7 +282,7 @@ export default function Budget() {
               return months.reduce((s, m) => s + lineVal(cycle, pk, m), 0)
             }
 
-            function buildGap(label, periodMonths, color) {
+            function buildGap(label, periodMonths, _color) {
               return ['ns_int', 'ns_ext', 'ns'].map(pk => {
                 const plLabel = PL_LINES.find(l => l.key === pk)?.label || pk
                 const bud = sumLine(cmp.right, pk, periodMonths)
@@ -409,7 +418,7 @@ export default function Budget() {
                       return (
                         <tr key={plKey} className={`border-b ${isTotal ? 'bg-navy/[0.06] border-t-2 border-navy/20 font-bold' : ''}`}>
                           <td className={`px-2 sm:px-4 py-1.5 sticky left-0 text-micro sm:text-xs ${isTotal ? 'bg-[#eef1f5] text-navy' : 'bg-white text-gray-600'}`}>{label}</td>
-                          {MONTHS_K.map((m, mi) => {
+                          {MONTHS_K.map((m) => {
                             const left = cellVal(cmp.left, m)
                             const right = cellVal(cmp.right, m)
                             const variance = left - right
@@ -500,7 +509,7 @@ export default function Budget() {
       {/* Period selector — above the table so mobile users narrow columns first */}
       <div className="flex items-center gap-1 flex-wrap">
         <span className="text-xs text-gray-400 mr-1">{tr("budget_period")}</span>
-        {Object.entries(PERIODS).map(([key, p]) => (
+        {Object.entries(PERIODS).map(([key]) => (
           <button key={key} onClick={() => setActivePeriod(key)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
               activePeriod === key
@@ -524,7 +533,7 @@ export default function Budget() {
                 <th className="text-left px-2 sm:px-4 py-3 font-bold w-24 sm:w-28 sticky left-0 z-30 text-micro sm:text-xs" style={{ background:buCfg.bg, color:buCfg.color }}>
                   {buCfg.label}
                 </th>
-                {PERIODS[activePeriod].display.map((m, mi) => (
+                {PERIODS[activePeriod].display.map((m) => (
                   <th key={m} className="px-0.5 sm:px-1.5 py-3 font-semibold text-gray-500 text-center w-12 sm:w-14 text-micro sm:text-xs" style={{ background: buCfg.bg }}>
                     <span className="hidden sm:inline">{m}</span>
                     <span className="sm:hidden">{MONTHS_SHORT[MONTHS.indexOf(m)]}</span>
@@ -539,10 +548,6 @@ export default function Budget() {
             <tbody>
               {PL_LINES.map(({ key, label, input, group }, lineIdx) => {
                 const isTotal = group === 'total'
-                const rowVals = Object.fromEntries(
-                  PL_LINES.filter(l=>l.input).map(l => [l.key, PERIODS[activePeriod].months.reduce((s,m)=>s+getVal(activeBu,activeCycle,l.key,m),0)])
-                )
-                const derived = calcDerived(rowVals)
                 const periodMonths = PERIODS[activePeriod].months
                 const annualVal = input
                   ? periodMonths.reduce((s,m)=>s+getVal(activeBu,activeCycle,key,m),0)
@@ -573,7 +578,7 @@ export default function Budget() {
                     </td>
 
                     {/* Monthly cells */}
-                    {PERIODS[activePeriod].months.map((mk, mi) => {
+                    {PERIODS[activePeriod].months.map((mk) => {
                       const mRowVals = Object.fromEntries(
                         PL_LINES.filter(l=>l.input).map(l=>[l.key, getVal(activeBu,activeCycle,l.key,mk)])
                       )

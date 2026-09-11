@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase'
 import { formatK } from '../ui'
 import { Plus, Trash2, BarChart3 } from 'lucide-react'
 
-export default function ProjectTCO({ dealId, dealLines, isDistributor, embedded }) {
+export default function ProjectTCO({ dealId, dealLines, isDistributor: _isDistributor, embedded }) {
   const [costs, setCosts] = useState([])
   const [loading, setLoading] = useState(true)
 

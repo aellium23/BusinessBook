@@ -459,7 +459,7 @@ const TenderCard = memo(function TenderCard({ tender, onEdit, onDelete, canEdit 
 
 // ── Main Tenders Page ──────────────────────────────────────────────────────────
 export default function Tenders() {
-  const { user, profile, isAdmin, canEdit: authCanEdit } = useAuth()
+  const { profile, canEdit: authCanEdit } = useAuth()
   const { ids: scopeIds } = useCompanyScope()
   const canEdit = authCanEdit
   const { tenders, urgentCount, loading, refetch } = useTenders()

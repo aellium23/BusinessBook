@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { useToast } from '../Toast'
 import { useTranslation } from '../../hooks/useTranslation'
-import { Spinner, formatK } from '../ui'
+import { Spinner } from '../ui'
 import { ExternalLink, Check, X } from 'lucide-react'
 
 /**

@@ -23,7 +23,7 @@ export function useTasks() {
         `)
         .order('deadline', { ascending: true, nullsFirst: false })
       if (!error) setTasks(data ?? [])
-    } catch (e) {
+    } catch {
       // tasks table not ready yet
     }
     setLoading(false)
@@ -77,7 +77,7 @@ export function useNotifications() {
         setNotifications(data ?? [])
         setUnread((data ?? []).filter(n => !n.read).length)
       }
-    } catch (e) {
+    } catch {
       // notifications table not ready yet
     }
   }, [user])
@@ -89,7 +89,7 @@ export function useNotifications() {
       await supabase.from('notifications').update({ read: true }).eq('id', id)
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
       setUnread(u => Math.max(0, u - 1))
-    } catch (e) {}
+    } catch { /* best effort */ }
   }
 
   async function markAllRead() {
@@ -97,7 +97,7 @@ export function useNotifications() {
       await supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false)
       setNotifications(prev => prev.map(n => ({ ...n, read: true })))
       setUnread(0)
-    } catch (e) {}
+    } catch { /* best effort */ }
   }
 
   async function pushNotification({ userId, type, title, body, linkType, linkId }) {
@@ -108,7 +108,7 @@ export function useNotifications() {
         link_type: linkType,
         link_id:   linkId,
       })
-    } catch (e) {}
+    } catch { /* best effort */ }
   }
 
   return { notifications, unread, loading: false, markRead, markAllRead, pushNotification, refetch: fetch }
@@ -142,7 +142,7 @@ export function useTenders(dealId = null) {
       }
       const { data, error } = await q
       if (!error) setTenders(data ?? [])
-    } catch (e) {
+    } catch {
       // tenders table not ready yet
     }
     setLoading(false)

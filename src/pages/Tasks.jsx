@@ -91,7 +91,6 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
       err = res.error
       // Notify assignee if assigned to someone else
       if (!err && form.assigned_to && form.assigned_to !== user.id) {
-        const assigneeName = users.find(u => u.id === form.assigned_to)?.full_name || 'You'
         await pushNotification({
           userId:   form.assigned_to,
           type:     'task_assigned',
@@ -225,7 +224,7 @@ function TaskModal({ task, onClose, onSaved, users, deals, tenders, canAssign, p
 }
 
 // ── Single Task Row ────────────────────────────────────────────────────────────
-function TaskRow({ task, onEdit, onDelete, currentUserId, canAssign, tenders = [] }) {
+function TaskRow({ task, onEdit, onDelete, currentUserId, tenders = [] }) {
   const { t } = useTranslation()
   const [toggling, setToggling] = useState(false)
   const isDone    = task.status === 'done'

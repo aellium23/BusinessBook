@@ -160,7 +160,7 @@ const QuotationCard = memo(function QuotationCard({ q, onEdit, onDelete, onSend,
 })
 
 export default function Quotations() {
-  const { profile, isAdmin, canEdit } = useAuth()
+  const { profile, canEdit } = useAuth()
   const { t } = useTranslation()
   const isDistributor = profile?.role === 'distributor'
   const [statusF, setStatusF] = useState('')
@@ -205,7 +205,7 @@ export default function Quotations() {
   }
 
   async function handleConvert(q) {
-    const { data, error } = await convertQuotationToDeal(q)
+    const { error } = await convertQuotationToDeal(q)
     if (error) { alert(error.message); return }
     alert(`Deal created for ${q.client}`)
     refetch()

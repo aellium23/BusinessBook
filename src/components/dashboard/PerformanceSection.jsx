@@ -27,7 +27,7 @@ function PctBadge({ value, reference, label }) {
   )
 }
 
-function BUPerformanceCard({ bu, color, label, actMTD, actYTD, actExtMTD=0, actIntMTD=0, actExtYTD=0, actIntYTD=0, fcExtYTD=0, fcIntYTD=0, planMTD, planYTD, planExtYTD=0, planIntYTD=0, pyMTD, pyYTD, cycle, mtdLabel, ytdLabel }) {
+function BUPerformanceCard({ bu: _bu, color, label, actMTD, actYTD, actExtMTD=0, actIntMTD=0, actExtYTD=0, actIntYTD=0, fcExtYTD=0, fcIntYTD=0, planMTD, planYTD, planExtYTD=0, planIntYTD=0, pyMTD, pyYTD, cycle, mtdLabel, ytdLabel }) {
   function BarChart({ value, max, c }) {
     const p = max > 0 ? Math.min(value/max*100, 140) : 0
     return (
