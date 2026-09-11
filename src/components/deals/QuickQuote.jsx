@@ -109,7 +109,44 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
   const [servicesTouched, setTouched] = useState(false)
   const [servicesPvp, setServicesPvp] = useState('')   // '' = the default price
   const [channelRole, setChannelRole] = useState('direct')
+  const [roleFromCompany, setRoleFromCompany] = useState(false)
   const [programme, setProgramme] = useState('')   // named programme, above cap
+
+  /**
+   * Whose deal this is, and therefore how it is sold.
+   *
+   * "Sold through" used to be a question with five answers and a default of
+   * Direct. On a deal belonging to TIMED Chile that default is wrong twice: it
+   * is not direct, and while it says direct the whole partner economics panel
+   * below stays hidden — so whoever approves a discount cannot see the end
+   * customer price, our transfer price, or what the partner makes.
+   *
+   * The answer is not a property of the deal. It is a property of the
+   * relationship: TIMED Chile is a Full VAR whatever they are selling this
+   * week. It is read off the company and can still be overridden here, because
+   * a one-off really can be direct and a rule that cannot be broken on purpose
+   * gets worked around by accident.
+   */
+  const [dealCompany, setDealCompany] = useState(null)
+  useEffect(() => {
+    let alive = true
+    const id = deal?.company_id || (internal ? null : profile?.company_id)
+    if (!id) { setDealCompany(null); return }
+    supabase.from('companies').select('id, name, type, country, channel_role')
+      .eq('id', id).maybeSingle()
+      .then(({ data }) => {
+        if (!alive || !data) return
+        setDealCompany(data)
+        // Only where nothing has been chosen yet. Reopening a saved quote must
+        // keep the role it was quoted at, even if the company has changed since.
+        if (data.channel_role && !deal?.id) {
+          setChannelRole(data.channel_role)
+          setRoleFromCompany(true)
+        }
+      })
+    return () => { alive = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deal?.company_id, deal?.id, internal, profile?.company_id])
 
   // Editing an existing deal: the inputs it was quoted from, read back exactly.
   // A deal from before those were stored is rebuilt from its product lines and
@@ -1189,13 +1226,23 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
               <label className="label">{t('pm_sold_through')}</label>
               <select className={`select w-44 ${partnerTerritory && channelRole === 'direct' ? 'border-amber-300' : ''}`}
                 value={channelRole}
-                onChange={e => setChannelRole(e.target.value)}>
+                onChange={e => { setChannelRole(e.target.value); setRoleFromCompany(false) }}>
                 {CHANNEL_ROLES.map(r => (
                   <option key={r.key} value={r.key}>
                     {t(`pm_role_${r.key}`)}{r.channelPct > 0 ? ` · ${r.channelPct}%` : ''}
                   </option>
                 ))}
               </select>
+              {/* Where it came from, so a figure that was not chosen is not
+                  mistaken for one that was. */}
+              {roleFromCompany && dealCompany && (
+                <p className="text-micro text-gray-500 mt-0.5">
+                  {t('pm_role_from')} {dealCompany.name}
+                </p>
+              )}
+              {dealCompany?.type === 'distributor' && !dealCompany.channel_role && (
+                <p className="text-micro text-amber-700 mt-0.5">{t('pm_role_unset')}</p>
+              )}
             </div>
             {/* Above the cap the deal is already an exception, and the two named
                 programmes carry their own negotiated transfer prices. */}
