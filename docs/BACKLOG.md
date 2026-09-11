@@ -28,11 +28,13 @@ altura foi criar a view. A view resolve o ecrã e não a API.
 
 **Correcção, em duas fases sem janela de quebra:**
 
-1. Criar `deal_products_cost` — view *não*-invoker com verificação de perfil na
-   cláusula `where`, no padrão que `products_cost` já usa. Depois, deploy do
-   código que lê o custo dessa view (`DealForm`, `QuickQuote`).
-2. Tirar as colunas de custo de `deal_products_v` e revogar
-   `select (cost_price, margin_pct)` da tabela base.
+1. ✅ **Feito em 11-09.** `deal_products_cost` criada, e `src/lib/dealLines.js`
+   junta as duas. Tolera a view não existir, portanto a ordem entre o SQL e o
+   deploy é indiferente. SQL: `supabase_migration_20260911_cost_view.sql`.
+2. ⏳ Tirar as colunas de custo de `deal_products_v` e revogar
+   `select (cost_price, margin_pct)` da tabela base. **Só depois da fase 1 estar
+   em produção e testada** — a partir daqui a consola de um parceiro devolve
+   nada.
 
 **Porque não numa fase:** a view é agora `security_invoker`, portanto lê a
 tabela como quem chama. Revogar a coluna parte a view também para os admins, e

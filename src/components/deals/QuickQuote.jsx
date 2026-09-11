@@ -26,6 +26,7 @@ import { canPrice } from '../../lib/roles'
 import { toQuoteState, fromQuoteState, rebuildFrom } from '../../lib/quoteState'
 import { requestsForDeal, acceptCounter, askAgain, requestState } from '../../lib/discountRequests'
 import { useCompanyScope } from '../../hooks/useCompanyScope'
+import { dealLines } from '../../lib/dealLines'
 import { authMapOf, authorisedProducts, authorisedCountries,
          hasAuthorisations, authKey, partnerLineCost } from '../../lib/partnerCatalogue'
 import SearchableSelect from '../SearchableSelect'
@@ -164,9 +165,8 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
         }
         let state = fromQuoteState(data?.state)
         if (!state) {
-          const { data: rows } = await supabase.from('deal_products_v')
-            .select('product_id, volume, unit_price, net_price, annual_fee, cost_price')
-            .eq('deal_id', deal.id)
+          const { data: rows } = await dealLines(deal.id,
+            'id, product_id, volume, unit_price, net_price, annual_fee, cost_price')
           state = rebuildFrom(rows || [])
         }
         if (!alive) return
