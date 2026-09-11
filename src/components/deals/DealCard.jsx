@@ -5,6 +5,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { Trash2, Pencil, ChevronDown, ChevronUp, Link, AlertTriangle, Clock, RefreshCw } from 'lucide-react'
 import { useTranslation } from '../../hooks/useTranslation'
 import { WEIGHTS, MONTHS, MONTHS_K } from '../../constants'
+import { dealValue } from '../../lib/dealValue'
 
 function agingDays(deal) {
   if (!['Lead','Pipeline','Offer Presented'].includes(deal.stage)) return null
@@ -338,11 +339,15 @@ export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete, b
 
           {/* Extra value figures */}
           <div className="flex items-center gap-3 flex-wrap text-tiny">
+            {/* Both of these used to read value_total alone, while the headline
+                figure three lines up reads the monthly columns first. Same card,
+                same deal, two different bases — and the weighted figure here
+                disagreed with the weighted figure in the funnel. */}
             {deal.currency && deal.currency !== 'EUR' && deal.exchange_rate && (
-              <span className="text-blue-500">≈ {formatK((deal.value_total||0) * (deal.exchange_rate||1))} EUR</span>
+              <span className="text-blue-500">≈ {formatK(dealValue(deal))} EUR</span>
             )}
             <span className="text-blue-600 font-medium">
-              Weighted: {formatK((deal.value_total||0) * (WEIGHTS[deal.stage]||0))}
+              Weighted: {formatK(dealValue(deal) * (WEIGHTS[deal.stage] || 0))}
             </span>
             {deal.end_customer_value && (
               <span className="text-gray-500">Project: {formatK(deal.end_customer_value)}</span>

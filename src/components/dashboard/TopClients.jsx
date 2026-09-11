@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDeals } from '../../hooks/useDeals'
 import { formatK, Spinner } from '../ui'
-import { MONTHS_K, REGIONS } from '../../constants'
+import { REGIONS } from '../../constants'
+import { dealValue } from '../../lib/dealValue'
 import { Building2, ChevronRight } from 'lucide-react'
 
 export default function TopClients({ selectedBU = '' }) {
@@ -21,12 +22,11 @@ export default function TopClients({ selectedBU = '' }) {
   const clients = useMemo(() => {
     const map = {}
     for (const d of deals) {
-      const fy26 = MONTHS_K.reduce((s, m) => s + (Number(d[m]) || 0), 0)
       const bucket = ['Lead', 'Pipeline', 'Offer Presented'].includes(d.stage) ? 'pipeline'
                    : d.stage === 'BackLog'  ? 'backlog'
                    : d.stage === 'Invoiced' ? 'invoiced' : null
       if (!bucket) continue
-      const val = fy26 || Number(d.value_total) || 0
+      const val = dealValue(d)
       if (val === 0) continue
       const rawName = (d.client || '(no client)').trim()
       const key = rawName.toLowerCase()  // case-insensitive grouping

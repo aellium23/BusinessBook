@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { formatK } from '../ui'
 import { Globe, MapPin } from 'lucide-react'
 import { REGIONS, STAGE_HEX } from '../../constants'
+import { dealValue } from '../../lib/dealValue'
 
 const REGION_COLORS = {
   Europe: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', bar: '#3B82F6' },
@@ -24,15 +25,19 @@ export default function DealsMapView({ deals }) {
       const r = d.region || 'Europe'
       if (!map[r]) map[r] = { deals: [], countries: {}, total: 0, pipeline: 0, invoiced: 0, stages: {} }
       map[r].deals.push(d)
-      map[r].total += Number(d.value_total) || 0
-      if (['Pipeline', 'Offer Presented'].includes(d.stage)) map[r].pipeline += Number(d.value_total) || 0
-      if (d.stage === 'Invoiced') map[r].invoiced += Number(d.value_total) || 0
+      // The project's rule, which this view never applied: the monthly columns
+      // falling back to the total, converted at the rate on the deal. The map
+      // used to report a dollar deal at its face value in a euro total.
+      const val = dealValue(d)
+      map[r].total += val
+      if (['Pipeline', 'Offer Presented'].includes(d.stage)) map[r].pipeline += val
+      if (d.stage === 'Invoiced') map[r].invoiced += val
       map[r].stages[d.stage] = (map[r].stages[d.stage] || 0) + 1
       const c = d.country || 'Other'
       if (!map[r].countries[c]) map[r].countries[c] = { deals: 0, value: 0, pipeline: 0 }
       map[r].countries[c].deals++
-      map[r].countries[c].value += Number(d.value_total) || 0
-      if (['Pipeline', 'Offer Presented'].includes(d.stage)) map[r].countries[c].pipeline += Number(d.value_total) || 0
+      map[r].countries[c].value += val
+      if (['Pipeline', 'Offer Presented'].includes(d.stage)) map[r].countries[c].pipeline += val
     }
     return map
   }, [deals])

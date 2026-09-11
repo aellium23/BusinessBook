@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDeals } from '../../hooks/useDeals'
 import { formatK, Spinner } from '../ui'
-import { MONTHS_K, WEIGHTS } from '../../constants'
+import { WEIGHTS } from '../../constants'
+import { dealValue } from '../../lib/dealValue'
 import { User, ChevronRight } from 'lucide-react'
 
 export default function SalesRepFunnel({ selectedBU = '' }) {
@@ -19,12 +20,14 @@ export default function SalesRepFunnel({ selectedBU = '' }) {
   const grouped = useMemo(() => {
     const map = {}
     for (const d of deals) {
-      const fy26 = MONTHS_K.reduce((s, m) => s + (Number(d[m]) || 0), 0)
       const bucket = ['Lead', 'Pipeline', 'Offer Presented'].includes(d.stage) ? 'pipeline'
                    : d.stage === 'BackLog'  ? 'backlog'
                    : d.stage === 'Invoiced' ? 'invoiced' : null
       if (!bucket) continue
-      const val = bucket === 'pipeline' ? (Number(d.value_total) || 0) : (fy26 || Number(d.value_total) || 0)
+      // One rule for all three buckets. Pipeline used to be valued at
+      // value_total alone, so the same deal was worth one number in this
+      // column and another in the next.
+      const val = dealValue(d)
       if (val === 0) continue
       const rawName = (d.sales_owner || '(unassigned)').trim()
       const key = rawName.toLowerCase()  // case-insensitive grouping
@@ -34,8 +37,7 @@ export default function SalesRepFunnel({ selectedBU = '' }) {
       g.count += 1
       // Weighted: use deal win_probability if set, else stage weight
       const w = d.win_probability != null ? (d.win_probability / 100) : (WEIGHTS[d.stage] || 0)
-      const base = bucket === 'pipeline' ? (Number(d.value_total) || 0) : (fy26 || Number(d.value_total) || 0)
-      g.weighted += base * w
+      g.weighted += val * w
     }
     const arr = Object.values(map).map(g => ({ ...g, total: g.pipeline + g.backlog + g.invoiced }))
     arr.sort((a, b) => {

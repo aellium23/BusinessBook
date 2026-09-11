@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useDeals } from '../../hooks/useDeals'
 import { supabase } from '../../lib/supabase'
 import { formatK, Spinner } from '../ui'
-import { MONTHS_K } from '../../constants'
+import { dealValue as valueOf } from '../../lib/dealValue'
 import { Package, ChevronRight } from 'lucide-react'
 
 export default function ProductFunnel({ selectedBU = '' }) {
@@ -55,15 +55,16 @@ export default function ProductFunnel({ selectedBU = '' }) {
 
     for (const d of deals) {
       // Deal value per funnel bucket — SAME logic as the Deals page totals
-      const fy26 = MONTHS_K.reduce((s, m) => s + (Number(d[m]) || 0), 0)
       const bucket = d.stage === 'Pipeline' ? 'pipeline'
                    : d.stage === 'Offer Presented' || d.stage === 'Lead' ? 'pipeline'
                    : d.stage === 'BackLog'  ? 'backlog'
                    : d.stage === 'Invoiced' ? 'invoiced' : null
       if (!bucket) continue
-      const dealValue = bucket === 'pipeline'
-        ? (Number(d.value_total) || 0)
-        : (fy26 || Number(d.value_total) || 0)
+      // One rule for all three buckets, and in euros. Pipeline used to be
+      // valued at value_total alone and nothing was converted, so a dollar deal
+      // with a schedule was worth one number here and another in the funnel
+      // beside it.
+      const dealValue = valueOf(d)
       if (dealValue === 0) continue
 
       const prodLines = linesByDeal[d.id] || []
