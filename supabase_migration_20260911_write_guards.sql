@@ -176,16 +176,20 @@ create trigger deal_products_cost_guard
   before insert or update on public.deal_products
   for each row execute function public.deal_products_cost_guard();
 
--- ── 5. What this does NOT close, said out loud ──────────────────────────────
+-- ── 5. What this leaves open — and how it was closed ────────────────────────
 --
--- `saveDealProducts` deletes every line of a deal and reinserts it. So a partner
--- saving a deal WE quoted destroys our cost on it — not by writing over it, which
--- this stops, but by deleting the row that held it. The reinserted line comes
--- back with a null cost and the trigger keeps it null.
+-- As written, this did not stop a partner destroying our cost by another route:
+-- `saveDealProducts` deleted every line of a deal and reinserted it, so the cost
+-- went with the deleted row and the reinserted line came back null.
 --
--- That is a different question and it is the one in BIZ-02: whether a partner may
--- edit a deal we created at all. It is not fixed here, because the answer changes
--- what the screen does and not only what the database permits.
+-- Closed later the same day (SEC-06), and by this very trigger. The UPDATE
+-- branch below puts the old cost back, so the fix was to stop deleting: the save
+-- now updates lines in place and deletes only what was taken off the quote. See
+-- `src/lib/reconcileLines.js`.
+--
+-- The question underneath it — whether a partner may edit a deal we created at
+-- all — was answered on 11-09: yes. Whoever runs the deal day to day is the
+-- partner, and a deal nobody on the ground can update is worse than one they can.
 
 -- ── Verification ────────────────────────────────────────────────────────────
 -- Fourteen rows, and the two triggers present. Everything else this migration

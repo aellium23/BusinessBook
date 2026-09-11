@@ -191,16 +191,35 @@ dizer.
 
 ---
 
-## SEC-06 · P2 · Uma gravação de parceiro apaga o nosso custo à mesma
+## SEC-06 · ✅ FECHADO · Uma gravação de parceiro apagava o nosso custo
 
-**O quê.** `saveDealProducts` apaga todas as linhas do negócio e reinsere-as. Um
-parceiro a gravar um negócio que **nós** cotámos destrói o nosso custo nele — não
-por escrever por cima, que o SEC-04 impede, mas por apagar a linha que o
-guardava. A linha volta com custo nulo e o trigger mantém-no nulo.
+**O quê.** `saveDealProducts` apagava todas as linhas do negócio e reinseria-as.
+Para os nossos é inofensivo — reescrevem o custo à entrada. Para um parceiro
+destruía-o: o custo é forçado a nulo no INSERT para quem não o pode ler
+(SEC-04), portanto um parceiro que abrisse um negócio **cotado por nós** e
+carregasse em gravar limpava o nosso custo de todas as linhas. Não por escrever
+por cima, que o guard impede. Por apagar a linha que o guardava.
 
-**Não se fecha sem decidir o BIZ-02:** se um parceiro pode ou não editar um
-negócio que nós criámos. A resposta muda o que o ecrã faz, e não só o que a base
-de dados permite.
+**Fechado a 11-09**, com a peça que já lá estava. O mesmo guard, no UPDATE,
+**repõe** o custo antigo:
+
+```sql
+if tg_op = 'INSERT' then new.cost_price := null;
+else                     new.cost_price := old.cost_price;
+```
+
+Portanto uma linha actualizada no sítio mantém o custo, quem quer que grave, sem
+ninguém precisar de autorização para o ler. A única coisa que tinha de mudar era
+o apagar.
+
+`reconcileLines` (`src/lib/reconcileLines.js`, com testes) decide que linha que
+chega corresponde a que linha guardada: por `id` onde quem grava o tem — o
+formulário completo lê as linhas e sabe os ids — e por `product_id` onde não,
+porque o quick deal constrói as linhas a partir dos produtos escolhidos e nunca
+vê um id de linha. Cada linha guardada é reclamada uma vez só.
+
+**Apagar fica para o fim**, e só o que saiu mesmo da proposta: de todas as
+operações aqui, apagar é a única que perde informação que ninguém recupera.
 
 ---
 
@@ -379,11 +398,17 @@ um instrumento grosseiro.
 
 ---
 
-## BIZ-02 · P2 · Pode um parceiro editar um negócio que nós criámos?
+## BIZ-02 · ✅ DECIDIDO · Um parceiro pode editar um negócio que nós criámos
 
-Hoje pode — é o que a política sempre permitiu, e o ecrã foi alinhado com ela a
-11-09. Se a resposta for não, é uma regra nova nos dois lados: uma marca de
-origem no negócio, ou comparar `created_by` com um perfil interno.
+**Decisão do dono do P&L a 11-09: pode, e a política fica como está.**
+
+Quem corre o negócio no dia a dia é o parceiro. Bloqueá-lo significaria que um
+negócio preparado por nós nunca mais podia ser actualizado por quem está no
+terreno — e a alternativa é pedir-nos por email, que é pior.
+
+Nada muda: a política `deals partner update` sempre o permitiu e o ecrã foi
+alinhado com ela a 11-09. O que a decisão desbloqueou foi o **SEC-06**, que era
+o preço a pagar por esta resposta e que está fechado.
 
 ---
 
