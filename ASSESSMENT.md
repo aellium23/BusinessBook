@@ -1,8 +1,26 @@
 # BusinessBook CRM — Full Project Assessment
 
+> ## ⚠ INSTANTÂNEO HISTÓRICO — 2 de Junho de 2026
+>
+> **Isto é o que o projecto era há três meses.** Não descreve o estado actual e
+> não deve ser lido como se descrevesse. **Seis** dos dez problemas críticos
+> estão fechados e quatro estão a meio, e a maior parte dos números aqui em
+> baixo já não é verdade — o bundle, a contagem de linhas, as chaves de i18n,
+> os testes.
+>
+> Fica por ser o único registo de onde se partiu, e porque algumas decisões
+> foram tomadas. Não é actualizado ponto por ponto de propósito: um documento de
+> auditoria reescrito deixa de ser uma auditoria.
+>
+> **Estado actual:** a tabela "TOP 10" abaixo leva uma coluna de estado,
+> verificada contra o repositório e a base de dados a 11-09-2026. Para o que
+> está aberto hoje, `docs/BACKLOG.md`. Para o que o sistema faz hoje,
+> `docs/BUSINESS_RULES.md`.
+
 **Date:** 2026-06-02
 **Auditor:** Claude Code (3 specialist agents)
 **Scope:** Complete diagnostic — no code changes
+**Estado das secções abaixo desta linha:** como estavam a 02-06. Não revistas.
 
 ---
 
@@ -29,18 +47,29 @@ A app funciona mas NÃO está production-ready como produto final. Precisa de co
 
 ## TOP 10 PROBLEMAS CRÍTICOS
 
-| # | Problema | Severidade | Impacto | Esforço | Ficheiro |
-|---|---------|-----------|---------|---------|----------|
-| 1 | **cost_price/margin_pct legíveis por distribuidores via API** | CRÍTICO | Dados comerciais sensíveis expostos | Médio | security_v2.sql, deal_products RLS |
-| 2 | **Deals RLS não filtra por company_id** — distribuidor vê TODOS os deals do BU | CRÍTICO | Data leak entre distribuidores | Médio | security.sql:24-27 |
-| 3 | **PWA inexistente** — sem manifest, service worker, ícones | CRÍTICO | Não instalável como app standalone | Alto | index.html, novo manifest.json |
-| 4 | **Bundle 1.5MB sem code-splitting** | ALTO | Carregamento lento, especialmente mobile | Médio | App.jsx (lazy imports) |
-| 5 | **Zero testes automatizados** | ALTO | Regressões frequentes, correcções cíclicas | Alto | Todo o projecto |
-| 6 | **Erros de Supabase silenciosos** — utilizador nunca vê falhas de rede | ALTO | UX degradada, dados aparentemente vazios | Médio | Todos os hooks e pages |
-| 7 | **Sem validação de transições de estado** (deals e contratos) | MÉDIO | Dados inconsistentes, bypass de workflow | Médio | DealForm.jsx, SLAs.jsx |
-| 8 | **i18n incompleto** — 762 strings hardcoded, PT falta 64 keys | MÉDIO | Experiência inconsistente em PT/ES | Alto | 28 ficheiros |
-| 9 | **Ficheiros monolíticos** — DealForm 1440 linhas, Permissions 1337 | MÉDIO | Manutenção difícil, bugs frequentes | Alto | 5 ficheiros |
-| 10 | **28 console.warn/error em produção** + dead code | BAIXO | Ruído, bundle desnecessário | Baixo | Vários |
+**Com o estado a 11-09-2026**, verificado contra o repositório e a base de dados
+e não por memória. A coluna do meio é o que se encontrou em Junho; a da direita
+é onde está hoje.
+
+| # | Problema (Junho) | Estado a 11-09 |
+|---|---|---|
+| 1 | `cost_price`/`margin_pct` legíveis por distribuidores via API | ✅ **Fechado.** O `grant select` de tabela deu lugar a um de lista de colunas, e o custo mudou-se para `deal_products_cost`, guardada por perfil. Verificado em `information_schema.column_privileges`. Ver SEC-01. Desde então, quem não as lê também não as escreve (SEC-04). |
+| 2 | `deals` RLS não filtra por `company_id` | ✅ **Fechado.** A política `deals read` só deixa um parceiro ver o que `acts_for(deals.company_id)` autoriza; o ramo por BU é só para os nossos. A pertença vive em `company_members`, o que permite uma pessoa agir por duas empresas sem ter duas contas. |
+| 3 | PWA inexistente | ✅ **Fechado.** `manifest.json` com `display: standalone`, ícones 192 e 512, `theme-color`, `apple-touch-icon` e um service worker registado no `main.jsx`. |
+| 4 | Bundle 1,5 MB sem code-splitting | ⚠️ **A meio.** 27 rotas em `lazyWithRetry`, e o bundle principal caiu de 1.517 KB para **539 KB** (224 KB gzip). O Recharts e o Supabase estão em chunks próprios. Continua acima do limite recomendado de 500 KB. |
+| 5 | Zero testes automatizados | ✅ **Fechado.** 664 testes em 28 ficheiros, e o `npm run test` corre o linter primeiro — é o único que apanha um nome usado antes de existir. |
+| 6 | Erros de Supabase silenciosos | ✅ **Fechado.** 41 sítios. E a causa não era o `.catch(() => {})`: uma query do Supabase não rejeita, resolve com `{ data: null, error }`, portanto quem engolia era o `data \|\| []`. Ver UX-01. |
+| 7 | Sem validação de transições de estado (negócios **e contratos**) | ⚠️ **Metade.** Os negócios estão fechados na base de dados: `deal_stage_transitions` mais um trigger, com as duas cópias da regra comparadas a cada `npm run test` (SEC-03). **Os contratos continuam só no browser** — o `canTransition('sla', …)` corre no `SlaFormModal` e não há trigger nenhum por trás. |
+| 8 | i18n incompleto — 762 strings hardcoded, PT a faltar 64 chaves | ⚠️ **A meio.** As chaves estão completas: **1.320 em cada uma das três línguas, zero lacunas** (verificado a 11-09; duas contagens anteriores acusaram falsas faltas por artefacto da expressão de busca, porque es/pt empacotam várias chaves por linha). As strings em código continuam: cerca de **524** em 58 ficheiros, pela mesma contagem grosseira. |
+| 9 | Ficheiros monolíticos | ⚠️ **Melhor.** `Permissions.jsx` 1.337 → **121** linhas (dividido em separadores), `SLAs.jsx` 1.065 → **577**, `DealForm.jsx` 1.439 → **1.129**. O `HelpGuide.jsx` cresceu para 2.239, e isso é conteúdo e não código. |
+| 10 | 28 `console.*` em produção + dead code | ✅ **Fechado.** Zero `console.*` fora do `lib/logger.js`. `Settings.jsx` e `Users.jsx` já não existem. |
+
+**O que a auditoria de Junho não viu, e custou caro:** as três unidades de margem
+(fracção, markup sobre custo, margem sobre preço) confundidas entre si, quatro
+maneiras diferentes de valorizar um negócio, e a `saveDealProducts` a escrever
+custo zero em todas as gravações de parceiro por causa de um `parseFloat(null)
+\|\| 0`. Nada disso aparece acima. Uma auditoria de estrutura não encontra um erro
+de aritmética — ver `docs/BACKLOG.md`, SEC-05, e `docs/BUSINESS_RULES.md` §2.
 
 ---
 

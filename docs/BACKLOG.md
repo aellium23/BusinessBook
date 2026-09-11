@@ -424,10 +424,52 @@ documento e o código é um bug do código.
 
 ---
 
-## DOC-02 · P3 · `ASSESSMENT.md` dá por fechado o que está aberto
+## DOC-02 · ✅ FECHADO · `ASSESSMENT.md` dava por fechado o que estava aberto
 
-Tem três meses e nada o marca como histórico. Sete dos dez pontos estão
-fechados; o #1 e o #7 não estão, e o documento não o diz.
+Tinha três meses e nada o marcava como histórico, portanto lia-se como o estado
+actual. **Fechado a 11-09:** cabeçalho a datá-lo como instantâneo de 2 de Junho,
+e uma coluna de estado por item no TOP 10 — verificada contra o repositório e a
+base de dados, não por memória.
 
-**Correcção:** cabeçalho a datá-lo como instantâneo, e uma linha de estado por
-item.
+O documento **não** é actualizado ponto por ponto de propósito. Uma auditoria
+reescrita deixa de ser uma auditoria; fica a valer pelo registo de onde se
+partiu, e o estado de hoje vive aqui e no `BUSINESS_RULES.md`.
+
+Seis dos dez estão fechados, quatro estão a meio, e os quatro estão em baixo.
+
+---
+
+## SEC-07 · P2 · As transições de contratos continuam só no browser
+
+**Encontrado a datar o `ASSESSMENT.md`.** O ponto #7 de Junho dizia "sem
+validação de transições de estado (negócios **e contratos**)". O SEC-03 fechou
+metade: os negócios têm `deal_stage_transitions` e um trigger. Os contratos
+ficaram por fazer e ninguém o tinha escrito.
+
+O `canTransition('sla', …)` corre no `SlaFormModal` e não há nada por trás dele.
+Uma chamada directa move um contrato de `draft` para `active` sem passar por
+`waiting_po`, e daí conta para a receita recorrente do painel e para o EST1.
+
+**Correcção.** A mesma forma do SEC-03: uma tabela `sla_status_transitions`
+semeada a partir de `SLA_TRANSITIONS`, um trigger, e o mesmo teste a comparar as
+duas cópias. As oito transições já estão escritas em `src/lib/stateMachine.js`.
+
+**Esforço:** uma migração, e o teste é uma cópia do que já existe. **Isento:**
+admin, como nos negócios.
+
+---
+
+## BIZ-06 · P3 · 524 strings em inglês no código
+
+O ponto #8 de Junho falava de 762. As chaves de i18n estão completas — 1.320 nas
+três línguas, zero lacunas — mas cerca de 524 strings continuam escritas em
+inglês directamente no JSX, em 58 ficheiros. Os piores são o `SlaFormModal`, a
+`History`, as `Settings` e a `ContactsList`.
+
+Um espanhol a abrir o formulário de contratos lê-o em inglês. Não é urgente e
+não é pouco trabalho: é ficheiro a ficheiro, e cada string precisa de uma chave e
+de três traduções.
+
+**Nota sobre a contagem:** é grosseira — texto entre tags e `placeholder`/`title`
+com palavras que começam por maiúscula. Serve para ordenar os ficheiros por
+tamanho do problema, não para reportar progresso.
