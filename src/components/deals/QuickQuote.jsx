@@ -793,7 +793,11 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
       // A partner quote has no margin of ours in it — the figures on their
       // screen are the customer's price. Writing a margin here would be writing
       // a number nobody computed.
-      gm_pct: internal ? totals.marginPct : null,
+      // A FRACTION, because that is what this column is: every other reader
+      // multiplies it by 100 to show it. The quote works in percentages, and
+      // writing one straight in stored a margin a hundred times too large —
+      // silently, because nothing validates that a margin is at most 1.
+      gm_pct: internal ? round4(totals.marginPct / 100) : null,
       currency: 'EUR',
       // A rate is a snapshot. The project's rule for deals applies here: store
       // it, so a rate change tomorrow cannot silently reprice a quote sent
@@ -887,7 +891,13 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
       quantity: 1,
       volume: parseFloat(studies) || null,
       cost_price: internal ? l.cost : null,
-      margin_pct: internal ? l.marginPct : null,
+      // A MARKUP ON COST, as a percentage, because that is what this column
+      // means to the full line editor: it recomputes unit_price as
+      // cost × (1 + margin/100). The quote's own margin is gross margin on the
+      // sell price, which is a different number for the same line — 35% margin
+      // is a 54% markup — so writing it here made the full editor drop the
+      // price the moment anybody touched the row.
+      margin_pct: internal ? markupOnCost(l.cost, l.capexPvp || l.pvp) : null,
       unit_price: l.capexPvp || l.pvp,
       net_price: l.capexPvp || l.pvp,
       annual_fee: l.annualPvp,
@@ -1749,3 +1759,24 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
 }
 
 function round2(n) { return Math.round((n + Number.EPSILON) * 100) / 100 }
+
+/** A fraction, to four places — enough for a margin read back as a percentage. */
+function round4(n) { return Math.round((n + Number.EPSILON) * 10000) / 10000 }
+
+/**
+ * The markup on cost that produces this price, as a percentage.
+ *
+ * Not the same number as the margin on the price, and the difference is not
+ * small: a line costing 65 and sold at 100 carries a 35% margin and a 53.8%
+ * markup. `deal_products.margin_pct` is the markup, because the full line
+ * editor multiplies cost by (1 + margin/100) to get back to the price.
+ *
+ * Null where cost is unknown: a markup computed from a cost of zero is
+ * infinite, and the column would rather say nothing than say that.
+ */
+function markupOnCost(cost, price) {
+  const c = Number(cost) || 0
+  const p = Number(price) || 0
+  if (c <= 0 || p <= 0) return null
+  return Math.round(((p / c) - 1) * 1000) / 10
+}

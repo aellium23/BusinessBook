@@ -14,20 +14,13 @@
 // 10 %, Pipeline 30 %, Offer 60 %, BackLog and Invoiced 100 %. It is what the
 // stage is worth to a forecast, not what it is worth if it lands.
 
-import { MONTHS_K, WEIGHTS } from '../constants'
+import { WEIGHTS } from '../constants'
+import { dealValue } from './dealValue'
 
-const num = v => (v === null || v === undefined || v === '' ? null : Number(v))
+export { dealValue }
 
 /** The five frames, in the order a deal moves through them. */
 export const FUNNEL_STAGES = ['Lead', 'Pipeline', 'Offer Presented', 'BackLog', 'Invoiced']
-
-/** What one deal is worth, in euros. */
-export function dealValue(deal) {
-  const rate = !deal.currency || deal.currency === 'EUR' ? 1 : (num(deal.exchange_rate) ?? 1)
-  const fy = MONTHS_K.reduce((s, m) => s + (num(deal[m]) ?? 0), 0)
-  const raw = fy || (num(deal.value_total) ?? 0)
-  return round(raw * rate)
-}
 
 /**
  * The funnel.
