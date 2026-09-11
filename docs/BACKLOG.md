@@ -112,9 +112,9 @@ deixar passar um valor.
 
 ---
 
-## SEC-05 · P1 · Toda a gravação de linhas escrevia custo zero
+## SEC-05 · ✅ FECHADO · Toda a gravação de linhas escrevia custo zero
 
-**Encontrado a 11-09, ao fechar o SEC-04, e é pior do que o SEC-04.**
+**Encontrado a 11-09, ao fechar o SEC-04, e era pior do que o SEC-04.**
 
 `saveDealProducts` fazia `cost_price: parseFloat(l.cost_price) || 0`. O quick
 deal manda `cost_price: null` em **todas** as gravações de parceiro — e
@@ -126,18 +126,60 @@ recusar, escrita na tabela pelo ajudante que os grava.
 **Corrigido** com `numOrNull` em `src/lib/numbers.js`, com teste. Desconhecido
 fica nulo; um zero a sério sobrevive, porque é alguém a dizer zero de propósito.
 
-**Fica por fazer:** contar quantas linhas já ficaram com `cost_price = 0` por
-causa disto e decidir o que fazer com elas. Zero e nulo já não se distinguem
-depois do facto, portanto isto precisa de um olho humano e não de um UPDATE:
+**Histórico limpo a 11-09.** 14 linhas em 13 negócios, todas com preço de venda e
+custo zero — uma combinação que dá 100% de margem, e ninguém neste negócio vende
+a 100%. Quatro da TIMED (o `null → 0` do parceiro) e o resto de Portugal (campo
+em branco no formulário completo, em linhas de revenda e de serviços, que não
+custam zero). Passaram a nulo:
 
 ```sql
-select dp.deal_id, d.client, d.company_id, count(*) as linhas
-from public.deal_products dp
-join public.deals d on d.id = dp.deal_id
-where dp.cost_price = 0
-group by 1, 2, 3
-order by linhas desc;
+update public.deal_products
+set cost_price = null, margin_pct = null
+where cost_price = 0 and net_price > 0;
 ```
+
+**Verificado contra a base de dados**, não por inferência: `ainda_a_zero = 0`,
+`agora_nulas = 14`.
+
+**As 11 linhas com preço zero E custo zero ficaram como estavam.** Ali o zero não
+afirma nada — são linhas vazias, e pertencem ao DATA-01.
+
+---
+
+## DATA-02 · P2 · Uma linha guarda três números que não podem ser todos verdade
+
+**Encontrado na limpeza do SEC-05.** A linha do `testelio23` (CWM Dose,
+297.010,56 €) tinha custo 0 e `margin_pct` 100 — e `margin_pct` é **markup sobre
+o custo** (BR-011). Custo 0 com markup 100% dá preço 0. Os três números não
+fecham.
+
+Não veio do quick deal: `markupOnCost(0, preço)` devolve nulo. Veio do editor de
+linhas completo, onde alguém escreveu 100 num campo cujo nome não diz o que
+significa.
+
+**O perigo era concreto.** Em `ProductLineItems`, mexer no custo dispara
+`if (margin > 0) unit_price = cost × (1 + margin/100)`. Com custo 0 e markup 100,
+o preço recalculava-se para **zero** — os 297 mil desapareciam a meio de uma
+edição que ninguém pediu, na maior linha da tabela.
+
+O update do SEC-05 desarmou este caso: com `margin_pct` a nulo a condição
+`margin > 0` é falsa e o preço deixa de ser recalculado. **O mecanismo continua
+lá** para qualquer linha futura em que alguém escreva um markup sobre um custo
+que não tem.
+
+---
+
+## SPEC-02 · P2 · Dois ecrãs discordam sobre uma linha sem custo
+
+**O quê.** `DealForm` soma `n(l.cost_price)` em bruto: custo zero dá margem
+**100%**. `ProductLineItems` faz `cost_price || unit_price`: o mesmo zero dá custo
+igual ao preço e margem **0%**. O mesmo negócio, dois ecrãs, duas margens
+opostas.
+
+Depois do SEC-05 as linhas afectadas dizem ambas "desconhecido", que é a resposta
+certa. A divergência em si sobrevive para qualquer linha nova, e o
+`cost_price || unit_price` é também o que preenche a caixa de custo com o preço
+de venda — que é uma maneira de sugerir a quem lá chega que a margem é zero.
 
 ---
 
