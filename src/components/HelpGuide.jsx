@@ -20,7 +20,7 @@ const HELP = {
         'Sales Funnel shows stage-to-stage conversion percentages (e.g. Lead to Pipeline: 65%).',
         'Products: sales funnel by product / category / brand.',
         'Reps: funnel per sales rep with weighted forecast.',
-        'Clients: top clients ranked by region.',
+        'Clients: invoiced sales by client over a period, and below it the pipeline funnel by client. The table answers the month-end question — who did we invoice and what did we make on them: pick a period (year to date, full year, a quarter, a half, or a single month), click a column to sort by it and again to turn it around, and open a client to see the deals behind the figure. Only invoiced deals count, each month is read from that deal in the currency it was written in at the rate it was quoted at, and intercompany mirrors never count because they exist to show one deal on both sides of the house. Gross margin is revenue times the margin on the deal, and a client percentage is the weighted blend rather than an average of percentages, so a small deal cannot move a large client. A deal with no margin recorded shows a dash rather than 0%, and stays out of the blend — 0% reads as sold at cost when it means nobody filled the field in. Margin is shown only to our own people. CSV exports exactly what is on screen.',
         'In Products/Reps/Clients, click any row to jump to its filtered deal cards.',
       ],
       steps: [
@@ -62,7 +62,7 @@ const HELP = {
         'El Embudo de Ventas muestra porcentajes de conversion etapa a etapa (ej. Lead a Pipeline: 65%).',
         'Productos: embudo de ventas por producto / categoria / marca.',
         'Comerciales: embudo por comercial con forecast ponderado.',
-        'Clientes: top clientes por region.',
+        'Clientes: ventas facturadas por cliente en un periodo, y debajo el embudo de pipeline por cliente. La tabla responde a la pregunta de cierre de mes — a quien facturamos y cuanto ganamos: elige periodo (acumulado, ano completo, un trimestre, un semestre o un solo mes), pulsa una columna para ordenar por ella y otra vez para invertirla, y abre un cliente para ver las oportunidades detras de la cifra. Solo cuentan las oportunidades facturadas, cada mes se lee en la moneda en que se escribio y al tipo al que se cotizo, y los espejos intercompania nunca cuentan porque existen para mostrar una oportunidad en los dos lados de la casa. El margen bruto es ingreso por el margen de la oportunidad, y el porcentaje de un cliente es la mezcla ponderada y no el promedio de porcentajes, asi que una oportunidad pequena no mueve a un cliente grande. Una oportunidad sin margen registrado ensena un guion en vez de 0% y queda fuera de la mezcla — 0% se lee como vendido a coste cuando significa que nadie relleno el campo. El margen solo se ensena a los nuestros. El CSV exporta exactamente lo que esta en pantalla.',
         'En Productos/Comerciales/Clientes, haz clic en una fila para ver sus deals filtrados.',
       ],
       steps: [
@@ -104,7 +104,7 @@ const HELP = {
         'O Funil de Vendas mostra percentagens de conversao fase a fase (ex. Lead para Pipeline: 65%).',
         'Produtos: funil de vendas por produto / categoria / marca.',
         'Comerciais: funil por comercial com forecast ponderado.',
-        'Clientes: top clientes por regiao.',
+        'Clientes: vendas faturadas por cliente num periodo, e por baixo o funil de pipeline por cliente. A tabela responde a pergunta do fecho do mes — a quem faturamos e quanto ganhamos: escolhe o periodo (acumulado, ano completo, um trimestre, um semestre ou um so mes), carrega numa coluna para ordenar por ela e outra vez para a inverter, e abre um cliente para veres os negocios por tras do numero. So contam os negocios faturados, cada mes e lido na moeda em que foi escrito e ao cambio a que foi orcamentado, e os espelhos intercompanhia nunca contam porque existem para mostrar um negocio dos dois lados da casa. A margem bruta e a receita vezes a margem do negocio, e a percentagem de um cliente e a mistura ponderada e nao a media das percentagens, por isso um negocio pequeno nao mexe com um cliente grande. Um negocio sem margem registada mostra um travessao em vez de 0% e fica fora da mistura — 0% le-se como vendido ao custo quando quer dizer que ninguem preencheu o campo. A margem so e mostrada aos nossos. O CSV exporta exatamente o que esta no ecra.',
         'Em Produtos/Comerciais/Clientes, clica numa linha para ver os deals filtrados.',
       ],
       steps: [
