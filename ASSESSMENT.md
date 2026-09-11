@@ -3,8 +3,8 @@
 > ## ⚠ INSTANTÂNEO HISTÓRICO — 2 de Junho de 2026
 >
 > **Isto é o que o projecto era há três meses.** Não descreve o estado actual e
-> não deve ser lido como se descrevesse. **Seis** dos dez problemas críticos
-> estão fechados e quatro estão a meio, e a maior parte dos números aqui em
+> não deve ser lido como se descrevesse. **Sete** dos dez problemas críticos
+> estão fechados e três estão a meio, e a maior parte dos números aqui em
 > baixo já não é verdade — o bundle, a contagem de linhas, as chaves de i18n,
 > os testes.
 >
@@ -59,7 +59,7 @@ e não por memória. A coluna do meio é o que se encontrou em Junho; a da direi
 | 4 | Bundle 1,5 MB sem code-splitting | ⚠️ **A meio.** 27 rotas em `lazyWithRetry`, e o bundle principal caiu de 1.517 KB para **539 KB** (224 KB gzip). O Recharts e o Supabase estão em chunks próprios. Continua acima do limite recomendado de 500 KB. |
 | 5 | Zero testes automatizados | ✅ **Fechado.** 664 testes em 28 ficheiros, e o `npm run test` corre o linter primeiro — é o único que apanha um nome usado antes de existir. |
 | 6 | Erros de Supabase silenciosos | ✅ **Fechado.** 41 sítios. E a causa não era o `.catch(() => {})`: uma query do Supabase não rejeita, resolve com `{ data: null, error }`, portanto quem engolia era o `data \|\| []`. Ver UX-01. |
-| 7 | Sem validação de transições de estado (negócios **e contratos**) | ⚠️ **Metade.** Os negócios estão fechados na base de dados: `deal_stage_transitions` mais um trigger, com as duas cópias da regra comparadas a cada `npm run test` (SEC-03). **Os contratos continuam só no browser** — o `canTransition('sla', …)` corre no `SlaFormModal` e não há trigger nenhum por trás. |
+| 7 | Sem validação de transições de estado (negócios **e contratos**) | ✅ **Fechado.** Os negócios a 11-09 (`deal_stage_transitions` + trigger, SEC-03) e os contratos no mesmo dia (`sla_status_transitions`, 17 pares + trigger, SEC-07). As duas máquinas têm a mesma forma de propósito, e as quatro cópias da regra — duas em JS, duas em SQL — são comparadas a cada `npm run test`. |
 | 8 | i18n incompleto — 762 strings hardcoded, PT a faltar 64 chaves | ⚠️ **A meio.** As chaves estão completas: **1.320 em cada uma das três línguas, zero lacunas** (verificado a 11-09; duas contagens anteriores acusaram falsas faltas por artefacto da expressão de busca, porque es/pt empacotam várias chaves por linha). As strings em código continuam: cerca de **524** em 58 ficheiros, pela mesma contagem grosseira. |
 | 9 | Ficheiros monolíticos | ⚠️ **Melhor.** `Permissions.jsx` 1.337 → **121** linhas (dividido em separadores), `SLAs.jsx` 1.065 → **577**, `DealForm.jsx` 1.439 → **1.129**. O `HelpGuide.jsx` cresceu para 2.239, e isso é conteúdo e não código. |
 | 10 | 28 `console.*` em produção + dead code | ✅ **Fechado.** Zero `console.*` fora do `lib/logger.js`. `Settings.jsx` e `Users.jsx` já não existem. |

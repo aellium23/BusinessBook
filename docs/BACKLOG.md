@@ -439,23 +439,62 @@ Seis dos dez estão fechados, quatro estão a meio, e os quatro estão em baixo.
 
 ---
 
-## SEC-07 · P2 · As transições de contratos continuam só no browser
+## SEC-07 · ✅ FECHADO · As transições de contratos só existiam no browser
 
 **Encontrado a datar o `ASSESSMENT.md`.** O ponto #7 de Junho dizia "sem
 validação de transições de estado (negócios **e contratos**)". O SEC-03 fechou
-metade: os negócios têm `deal_stage_transitions` e um trigger. Os contratos
-ficaram por fazer e ninguém o tinha escrito.
+metade; a outra ficou por fazer e ninguém a tinha escrito.
 
-O `canTransition('sla', …)` corre no `SlaFormModal` e não há nada por trás dele.
-Uma chamada directa move um contrato de `draft` para `active` sem passar por
-`waiting_po`, e daí conta para a receita recorrente do painel e para o EST1.
+O `canTransition('sla', …)` corria no `SlaFormModal` e não havia nada por trás.
+Uma chamada directa movia um contrato de `draft` para `active` sem passar por
+`waiting_po`, e daí contava para a receita recorrente do painel e para o EST1.
 
-**Correcção.** A mesma forma do SEC-03: uma tabela `sla_status_transitions`
-semeada a partir de `SLA_TRANSITIONS`, um trigger, e o mesmo teste a comparar as
-duas cópias. As oito transições já estão escritas em `src/lib/stateMachine.js`.
+**Fechado a 11-09** com `supabase_migration_20260911_sla_guards.sql`, na mesma
+forma dos negócios de propósito: a regra como dados (`sla_status_transitions`,
+17 pares), um trigger `before update of status on slas`, admin isento, INSERT
+livre. Um segundo mecanismo para o mesmo tipo de regra é um segundo mecanismo
+para correr mal.
 
-**Esforço:** uma migração, e o teste é uma cópia do que já existe. **Isento:**
-admin, como nos negócios.
+**O teste do SEC-03 ganhou o par.** Compara as duas cópias, exige que a máquina
+só nomeie estados que o `SLA_STATUSES` desenha, e que nenhum estado seja um beco
+sem saída — que foi exactamente o que aconteceu aos distribuidores no UX-02, no
+outro mecanismo.
+
+**E o extractor passou a ser imune a um detalhe que me apanhou:** um
+ponto-e-vírgula dentro de um comentário `--` terminava o `[^;]*` mais cedo, e a
+primeira versão leu 15 dos 17 pares. O teste falhou — o sistema a funcionar — mas
+quem lesse o erro ia procurar no ficheiro errado. Os comentários são retirados
+antes da extracção.
+
+---
+
+## DATA-03 · P1 · Três números do painel filtram por um estado que não existe
+
+**Encontrado a escrever o SEC-07.** `Dashboard.jsx`, `DashboardSummary.jsx` e
+`SLAs.jsx` filtram contratos por `status === 'pipeline'`. O `SLA_STATUSES` tem
+oito estados e **`pipeline` não é um deles**: draft, waiting_po, warranty,
+active, pending_renewal, renewed, expired, cancelled.
+
+O que provavelmente aconteceu: em `SLAs.jsx` existe um **separador** com o id
+`pipeline`, cujo conteúdo é `['draft','waiting_po']`. O id do separador e o
+estado do contrato foram confundidos.
+
+Se nenhuma linha carregar esse estado — e não deveria — então
+`slaRecurring.pipeline` e `slaStats.pipelineValue` são **estruturalmente zero**,
+e lêem-se como "não há pipeline recorrente" em vez de "esta conta está errada".
+
+**Confirmar antes de corrigir**, porque a base de dados pode ter estados que o
+enum não lista:
+
+```sql
+select status, count(*) as contratos, sum(annual_value) as valor
+from public.slas group by status order by contratos desc;
+```
+
+Se `pipeline` não aparecer, a correcção é trocar o filtro por
+`['draft','waiting_po']` nos três sítios — o que **faz subir um número que hoje
+está a zero** em dois painéis, e portanto é uma alteração de reporte e não de
+ecrã.
 
 ---
 

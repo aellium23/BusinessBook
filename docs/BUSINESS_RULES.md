@@ -211,6 +211,22 @@ que são mesmo qualificados antes de alguém cotar.
 Nada do que se reporta se mexe: os funis contam negócios pela fase em que estão,
 não pelo caminho que fizeram.
 
+**BR-055 — O ciclo de vida de um contrato também é imposto pela base de dados.**
+Dezassete transições em `sla_status_transitions`, e um trigger em `slas` recusa
+o resto. Mesmos isentos que os negócios: admin, e o SQL Editor. O INSERT fica de
+fora — um contrato pode chegar-nos já activo.
+
+| De | Para |
+|---|---|
+| draft | waiting_po, cancelado |
+| waiting_po | garantia, activo, cancelado |
+| garantia | activo, cancelado |
+| activo | renovação pendente, cancelado, expirado |
+| renovação pendente | renovado, expirado, cancelado |
+| renovado | activo, renovação pendente |
+| expirado | activo *(reactivação)* |
+| cancelado | draft *(recomeçar)* |
+
 **BR-051 — A tabela acima é imposta pela base de dados.**
 `deal_stage_transitions` guarda estes treze pares e um trigger em `deals` recusa
 o que lá não estiver. Deixou de ser só a caixa de selecção: uma chamada directa
