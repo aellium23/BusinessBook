@@ -37,6 +37,7 @@ const HELP = {
         '7. Click any product, rep, or client row to open its deals.',
       ],
       shortcuts: [
+        'A deal carries its discount state on the card itself, in all four states: pending, counter-offer, approved, rejected. It used to show only the two still waiting for an answer, which left a settled discount to the expanded details — and left the partner who asked for it looking for the answer to their own question.',
         'Click a funnel row → opens Deals pre-filtered for that item.',
       ],
       mistakes: [
@@ -83,6 +84,7 @@ const HELP = {
         '7. Haz clic en cualquier fila de producto, comercial o cliente para abrir sus deals.',
       ],
       shortcuts: [
+        'Una oportunidad lleva el estado de su descuento en la propia tarjeta, en los cuatro estados: pendiente, contraoferta, aprobado, rechazado. Antes solo mostraba los dos que seguian esperando respuesta, lo que dejaba un descuento ya resuelto en el detalle desplegado — y dejaba al socio que lo pidio buscando la respuesta a su propia pregunta.',
         'Clic en una fila del embudo → abre Oportunidades pre-filtradas.',
       ],
       mistakes: [
@@ -129,6 +131,7 @@ const HELP = {
         '7. Clica em qualquer linha de produto, comercial ou cliente para abrir os deals.',
       ],
       shortcuts: [
+        'Um negocio leva o estado do seu desconto no proprio cartao, nos quatro estados: pendente, contraproposta, aprovado, recusado. Antes so mostrava os dois que ainda esperavam resposta, o que deixava um desconto ja resolvido no detalhe expandido — e deixava o parceiro que o pediu a procurar a resposta a pergunta dele.',
         'Clica numa linha do funil → abre Negocios pre-filtrados para esse item.',
       ],
       mistakes: [
