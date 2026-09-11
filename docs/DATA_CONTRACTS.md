@@ -24,6 +24,8 @@ Esta secção vem primeiro porque a confusão entre estas três custou um erro d
 | `deal_products.margin_pct` | **markup sobre o custo**, percentagem | `53.8` = 53,8% |
 | `deal_products.discount_pct` | percentagem | `10.00` = 10% |
 | `deal_channel.partner_margin_pct` | percentagem | `35.00` = 35% |
+| `companies.channel_role` | enumerado, null = por definir | `full_var` |
+| `pricing_regions.default_channel_role` | enumerado, null = por definir | `full_var` |
 | `deal_discount_requests.requested_pct` · `approved_pct` | percentagem | `25.00` = 25% |
 | `deals.exchange_rate` | multiplicador para euros | `0.861` USD→EUR |
 | `deals.apr`…`mar` | euros, na moeda do negócio | numérico |

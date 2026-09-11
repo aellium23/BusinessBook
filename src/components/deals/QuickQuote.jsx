@@ -109,7 +109,7 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
   const [servicesTouched, setTouched] = useState(false)
   const [servicesPvp, setServicesPvp] = useState('')   // '' = the default price
   const [channelRole, setChannelRole] = useState('direct')
-  const [roleFromCompany, setRoleFromCompany] = useState(false)
+  const [roleFromCompany, setRoleFromCompany] = useState(null)  // 'company' | 'region'
   const [programme, setProgramme] = useState('')   // named programme, above cap
 
   /**
@@ -138,10 +138,18 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
         if (!alive || !data) return
         setDealCompany(data)
         // Only where nothing has been chosen yet. Reopening a saved quote must
-        // keep the role it was quoted at, even if the company has changed since.
-        if (data.channel_role && !deal?.id) {
+        // keep the role it was quoted at, even if the agreement has changed
+        // since — a quote that reprices itself is a quote nobody can send.
+        if (deal?.id) return
+        if (data.channel_role) {
           setChannelRole(data.channel_role)
-          setRoleFromCompany(true)
+          setRoleFromCompany('company')
+        } else if (data.type === 'distributor') {
+          // A distributor is a Full VAR: they sell, implement and carry
+          // first-line support, and that is what being a distributor means
+          // here. There is nothing to configure and nothing to remember.
+          setChannelRole('full_var')
+          setRoleFromCompany('type')
         }
       })
     return () => { alive = false }
@@ -333,6 +341,7 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
 
   const regionCode = pricingRegionForCountry(countryMap, country)
   const region = regionCode ? regions[regionCode] : null
+
 
   // The supplier SKUs under whichever families are on the quote.
   const { itemsByProduct } = useProductItems(picked)
@@ -1226,7 +1235,7 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
               <label className="label">{t('pm_sold_through')}</label>
               <select className={`select w-44 ${partnerTerritory && channelRole === 'direct' ? 'border-amber-300' : ''}`}
                 value={channelRole}
-                onChange={e => { setChannelRole(e.target.value); setRoleFromCompany(false) }}>
+                onChange={e => { setChannelRole(e.target.value); setRoleFromCompany(null) }}>
                 {CHANNEL_ROLES.map(r => (
                   <option key={r.key} value={r.key}>
                     {t(`pm_role_${r.key}`)}{r.channelPct > 0 ? ` · ${r.channelPct}%` : ''}
@@ -1235,13 +1244,15 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
               </select>
               {/* Where it came from, so a figure that was not chosen is not
                   mistaken for one that was. */}
-              {roleFromCompany && dealCompany && (
+              {roleFromCompany === 'company' && dealCompany && (
                 <p className="text-micro text-gray-500 mt-0.5">
                   {t('pm_role_from')} {dealCompany.name}
                 </p>
               )}
-              {dealCompany?.type === 'distributor' && !dealCompany.channel_role && (
-                <p className="text-micro text-amber-700 mt-0.5">{t('pm_role_unset')}</p>
+              {roleFromCompany === 'type' && dealCompany && (
+                <p className="text-micro text-gray-500 mt-0.5">
+                  {t('pm_role_from_type')} {dealCompany.name}
+                </p>
               )}
             </div>
             {/* Above the cap the deal is already an exception, and the two named

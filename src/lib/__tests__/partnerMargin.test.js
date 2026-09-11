@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   CHANNEL_ROLES, PROTECTED_MARGIN, NAMED_PROGRAMMES,
-  protectedMarginPct, partnerEconomics, partnerTargetPrice,
+  protectedMarginPct, partnerEconomics, partnerTargetPrice, roleFor,
 } from '../partnerMargin'
 
 /** The published Full VAR ladder, on a list price of 100. */
@@ -205,8 +205,23 @@ describe('a direct deal has no partner in it', () => {
     expect(partnerEconomics({ listPrice: 0, netPrice: 80, role: 'full_var' }).applies).toBe(false)
   })
 
-  it('offers direct plus the four channel roles', () => {
-    expect(CHANNEL_ROLES.map(r => r.key))
-      .toEqual(['direct', 'full_var', 'reseller', 'renewal', 'referral'])
+})
+
+describe('the two arrangements, and the three that were retired', () => {
+  it('offers only what this business actually has', () => {
+    expect(CHANNEL_ROLES.map(r => r.key)).toEqual(['direct', 'full_var'])
+  })
+
+  it('still prices a quote saved at a retired role, at the rate it was saved at', () => {
+    // A deal quoted as a reseller was quoted at 28%. Repricing it to 40%
+    // because a dropdown lost an option would move money nobody agreed to.
+    expect(roleFor('reseller').channelPct).toBe(28)
+    expect(roleFor('renewal').channelPct).toBe(25)
+    expect(roleFor('referral').channelPct).toBe(15)
+  })
+
+  it('falls back to direct for a key it has never heard of', () => {
+    expect(roleFor('something_new').key).toBe('direct')
+    expect(roleFor(null).key).toBe('direct')
   })
 })
