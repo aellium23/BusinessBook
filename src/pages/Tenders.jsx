@@ -2,6 +2,7 @@ import { useState, useEffect, memo, useMemo } from 'react'
 import { useTenders, createTender, updateTender, deleteTender } from '../hooks/useTasks'
 import { useAuth } from '../hooks/useAuth'
 import { useCompanyScope } from '../hooks/useCompanyScope'
+import { useLoadFailures, LoadFailureBanner } from '../hooks/useLoadFailures'
 import { useTranslation } from '../hooks/useTranslation'
 import { useDebounce } from '../hooks/useDebounce'
 import { supabase } from '../lib/supabase'
@@ -54,6 +55,7 @@ function DeadlineChip({ date, label }) {
 function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, canEdit: canEditProp }) {
   const { user, profile } = useAuth()
   const { t } = useTranslation()
+  const { failed, load, fail } = useLoadFailures()
   const isEdit = !!tender?.id
   const [form, setForm] = useState({
     title:               tender?.title               ?? '',
@@ -80,11 +82,14 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
 
   useEffect(() => {
     supabase.from('products').select('*').eq('active', true).order('sort_order').order('name')
-      .then(({ data }) => { if (data) setCatalogProducts(data) }).catch(() => {})
+      .then(load(t('lf_products'), data => { if (data) setCatalogProducts(data) }))
+      .catch(fail(t('lf_products')))
     if (tender?.id) {
       supabase.from('tender_products').select('*').eq('tender_id', tender.id).order('created_at')
-        .then(({ data }) => { if (data) setTenderLines(data.map(d => ({ ...d, _key: d.id }))) }).catch(() => {})
+        .then(load(t('lf_tenders'), data => { if (data) setTenderLines(data.map(d => ({ ...d, _key: d.id }))) }))
+        .catch(fail(t('lf_tenders')))
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tender?.id])
 
   function toggleCollab(userId) {
@@ -158,6 +163,8 @@ function TenderModal({ tender, onClose, onSaved, deals, users, onDealsChanged, c
   return (
     <Modal open onClose={onClose} title={isEdit ? t('tender_edit_title') : t('tender_new_title')}>
       <div className="space-y-4 p-1 max-h-[70vh] overflow-y-auto">
+
+        <LoadFailureBanner failed={failed} t={t} />
 
         {/* Tabs — hidden until the tender exists (requirements/attachments need an id) */}
         {isEdit && (
@@ -461,6 +468,10 @@ const TenderCard = memo(function TenderCard({ tender, onEdit, onDelete, canEdit 
 export default function Tenders() {
   const { profile, canEdit: authCanEdit } = useAuth()
   const { ids: scopeIds } = useCompanyScope()
+  const { t } = useTranslation()
+  // The deal picker and the collaborator picker both come from here. Empty,
+  // they read as "no deals to attach" and "nobody to collaborate with".
+  const { failed, load, fail } = useLoadFailures()
   const canEdit = authCanEdit
   const { tenders, urgentCount, loading, refetch } = useTenders()
 
@@ -478,8 +489,8 @@ export default function Tenders() {
     if (profile?.role === 'distributor' && scopeIds.length) {
       dealsQ = dealsQ.in('company_id', scopeIds)
     }
-    return dealsQ.then(({ data }) => setDeals(data ?? []))
-      .catch(() => {})
+    return dealsQ.then(load(t('lf_deals'), data => setDeals(data ?? [])))
+      .catch(fail(t('lf_deals')))
   }
 
   useEffect(() => {
@@ -502,8 +513,9 @@ export default function Tenders() {
         if (!match) return []
         return [{ id: match.id, full_name: q.sales_owner, email: match.email, bu: q.bu }]
       })
+      if (qRes.error || pRes.error) fail(t('lf_tasks'))(qRes.error || pRes.error)
       setUsers(merged)
-    }).catch(() => {})
+    }).catch(fail(t('lf_tasks')))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id, profile?.role, scopeIds.join('|')])
 
@@ -517,8 +529,6 @@ export default function Tenders() {
     return matchSearch && matchStatus
   }), [tenders, debouncedSearch, statusFilter])
 
-  const { t } = useTranslation()
-
   async function handleDelete(id) {
     if (!confirm(t('tender_delete'))) return
     await deleteTender(id)
@@ -529,6 +539,8 @@ export default function Tenders() {
 
   return (
     <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-6">
+
+      <LoadFailureBanner failed={failed} t={t} />
 
       {/* Header */}
       <div className="flex items-start justify-between">

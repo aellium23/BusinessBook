@@ -6,6 +6,8 @@ import { formatK } from '../ui'
 import { MONTHS_K, WEIGHTS, STAGE_CLASS } from '../../constants'
 import { Calendar, GripVertical, Filter, Split, X, Save, Eye, RefreshCw } from 'lucide-react'
 import DealForm from '../DealForm'
+import { useTranslation } from '../../hooks/useTranslation'
+import { useLoadFailures, LoadFailureBanner } from '../../hooks/useLoadFailures'
 
 const MONTHS_LABEL = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 const FY_YEAR = 2026
@@ -314,6 +316,10 @@ export default function ForecastCalendar() {
   const [stages, setStages] = useState(['Lead', 'Pipeline', 'Offer Presented', 'BackLog'])
   const [showArr, setShowArr] = useState(true)
   const [slas, setSlas] = useState([])
+  const { t: tr } = useTranslation()
+  // The recurring half of the forecast. Missing it does not make the forecast
+  // small, it makes it wrong — and a wrong one looks exactly like a right one.
+  const { failed, load, fail } = useLoadFailures()
 
   const STAGE_OPTIONS = ['Lead', 'Pipeline', 'Offer Presented', 'BackLog', 'Invoiced']
   const toggleStage = (s) => setStages(prev =>
@@ -324,8 +330,9 @@ export default function ForecastCalendar() {
     supabase.from('slas')
       .select('id, status, annual_value, start_date, end_date, bu, client, product, sales_type, deal:deal_id(sales_type)')
       .in('status', ['warranty', 'active', 'pending_renewal'])
-      .then(({ data }) => setSlas(data || []))
-      .catch(() => {})
+      .then(load(tr('lf_slas'), data => setSlas(data || [])))
+      .catch(fail(tr('lf_slas')))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const editable = (isAdmin || canEditPerm) && !readOnly
@@ -463,6 +470,8 @@ export default function ForecastCalendar() {
 
   return (
     <div className="space-y-4">
+      <LoadFailureBanner failed={failed} t={tr} />
+
       {/* FY Total bar */}
       <div className="bg-navy/5 border border-navy/15 rounded-xl px-4 py-3 flex items-center justify-between flex-wrap gap-3">
         <div>

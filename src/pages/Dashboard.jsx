@@ -6,6 +6,7 @@ import { formatK } from '../components/ui'
 import { logger } from '../lib/logger'
 import { ComposedChart, BarChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Cell } from 'recharts'
 import { useTranslation } from '../hooks/useTranslation'
+import { useLoadFailures, LoadFailureBanner } from '../hooks/useLoadFailures'
 import DistributorDashboard from '../components/dashboard/DistributorDashboard'
 import PerformanceSection from '../components/dashboard/PerformanceSection'
 import { STAGE_HEX } from '../constants'
@@ -40,18 +41,23 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
     }
   }, [loading, allDeals.length])
 
+  // Every figure on this page is a sum, and a sum of nothing is zero — which
+  // reads as "you invoiced nothing this quarter" rather than "we could not ask".
+  // So a failed read is named at the top instead of quietly becoming a zero.
+  const { failed, load, fail } = useLoadFailures()
+
   useEffect(() => {
     supabase.from('budget').select('*')
-      .then(({ data }) => setBudget(data || []))
-      .catch(() => {})
+      .then(load(t('lf_budget'), data => setBudget(data || [])))
+      .catch(fail(t('lf_budget')))
     supabase.from('fy25_actuals').select('*')
-      .then(({ data }) => setFy25(data || []))
-      .catch(() => {})
+      .then(load(t('lf_fy25'), data => setFy25(data || [])))
+      .catch(fail(t('lf_fy25')))
     supabase.from('forecast_snapshots').select('*').order('created_at', { ascending: false })
-      .then(({ data }) => { if (data) setFctSnapshots(data) })
-      .catch(() => {})
+      .then(load(t('lf_forecast'), data => { if (data) setFctSnapshots(data) }))
+      .catch(fail(t('lf_forecast')))
     supabase.from('slas').select('status, annual_value, bu, sales_type')
-      .then(({ data }) => {
+      .then(load(t('lf_slas'), data => {
         if (!data) return
         try {
           const active = data.filter(s => ['warranty','active','pending_renewal'].includes(s.status))
@@ -65,8 +71,11 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
             intValue: activeInt.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
             pipeline: pipeline.reduce((s, a) => s + (Number(a.annual_value) || 0), 0),
           })
-        } catch {}
-      }).catch(() => {})
+        } catch (e) {
+          fail(t('lf_slas'))(e)
+        }
+      })).catch(fail(t('lf_slas')))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Determine active cycle
@@ -277,6 +286,9 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
 
   return (
     <div className={hideHeader ? 'space-y-5' : 'p-4 space-y-5 max-w-5xl mx-auto'}>
+
+      {/* Above everything, because it changes how every figure below is read. */}
+      <LoadFailureBanner failed={failed} t={t} />
 
       {/* Header (skipped when embedded inside DashboardIndex) */}
       {!hideHeader && (

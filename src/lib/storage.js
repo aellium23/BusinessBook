@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { logger } from './logger'
 
 // ── File validation ──────────────────────────────────────────────────────────
 export const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024 // 25 MB
@@ -105,7 +106,10 @@ export async function uploadAttachment({ entityType, entityId, file }) {
 
   // If metadata insert fails, clean up the uploaded blob so we don't leak orphans.
   if (error) {
-    await supabase.storage.from('attachments').remove([path]).catch(() => {})
+    // Best effort, and the caller already has the real error. Logged because an
+    // orphaned blob nobody knows about is a bucket that grows for no reason.
+    await supabase.storage.from('attachments').remove([path])
+      .catch(e => logger.error('Orphan attachment not removed', { path, error: e?.message || String(e) }))
     return { error }
   }
   return { data }

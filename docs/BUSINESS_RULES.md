@@ -252,6 +252,16 @@ funil a falhar quando significa um funil vazio.
 Uma página de zeros e uma lista vazia são respostas. Dá-las quando a pergunta
 falhou é mentir com confiança.
 
+**Onde o erro está, e não é onde parece.** Uma query do Supabase **não rejeita**
+quando falha: resolve, com `{ data: null, error }`. Portanto `.catch(() => {})`
+quase nunca corre, e quem engole é o `data || []` — com o erro no mesmo objecto,
+por ler. Toda a leitura passa por `readResult` (`src/lib/loadFailures.js`), e
+uma falha põe uma linha âmbar no ecrã com o nome do que falta.
+
+**Uma gravação que falha diz-se ainda mais depressa.** Não se deixa o número que
+a pessoa escreveu na caixa com ar de guardado, e não se soma esse número a
+nenhum total no ecrã.
+
 ---
 
 ## Regras que ficaram por formalizar

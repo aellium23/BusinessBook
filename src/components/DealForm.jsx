@@ -19,6 +19,7 @@ import { BUSINESS_MODELS, RECURRING_MODELS, normalizeBusinessModel, REGIONS, COU
 import { saveDealProducts } from '../hooks/useDealProducts'
 import { getAllowedTransitions, canTransition } from '../lib/stateMachine'
 import { lineCostTotals, marginFromTotals } from '../lib/margins'
+import { useLoadFailures, LoadFailureBanner } from '../hooks/useLoadFailures'
 import { validateDeal } from '../lib/validation'
 import { calcSLARecognition } from './deal/RevenueRecognition'
 import IntercompanySection from './deal/IntercompanySection'
@@ -36,6 +37,10 @@ export default function DealForm({ deal, onClose, onSaved }) {
   const { homeId } = useCompanyScope()
   const { t } = useTranslation()
   const { getRate } = useFxRates()
+  // Every list on this form is a select. A select that fails to load draws
+  // itself empty, and an empty select reads as "there are none" — no accounts,
+  // no products, no owner to assign to.
+  const { failed, load, fail } = useLoadFailures()
   const [form, setForm] = useState(() => deal ? {
     ...deal,
     value_total: deal.value_total || '',
@@ -148,7 +153,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
     if (profile?.role === 'distributor' && profile?.company_id) {
       oq = oq.eq('company_id', profile.company_id)
     }
-    oq.then(({ data }) => {
+    oq.then(load(t('lf_quota'), data => {
         let names = [...new Set((data || []).map(q => q.sales_owner).filter(Boolean))].sort()
         // Fallback: a distributor with no quota owners still needs to pick themselves
         if (profile?.role === 'distributor' && names.length === 0) {
@@ -156,23 +161,23 @@ export default function DealForm({ deal, onClose, onSaved }) {
           if (self) names = [self]
         }
         setOwners(names)
-      })
-      .catch(() => {})
+      }))
+      .catch(fail(t('lf_quota')))
     // Load accounts (for the optional "Account" link). Scoped by RLS to the
     // user's BU server-side, so we don't need to filter here.
     supabase.from('accounts').select('id, name, bu').order('name')
-      .then(({ data }) => { if (data) setAccounts(data) })
-      .catch(() => {})
+      .then(load(t('lf_accounts'), data => { if (data) setAccounts(data) }))
+      .catch(fail(t('lf_accounts')))
     // Load distribution network (new in PR 5)
     supabase.from('distributors').select('id, name, country, region, hub_id, is_master_distributor').order('name')
-      .then(({ data }) => { if (data) setDistributors(data) })
-      .catch(() => {})
+      .then(load(t('lf_companies'), data => { if (data) setDistributors(data) }))
+      .catch(fail(t('lf_companies')))
     supabase.from('regional_hubs').select('id, name, region').order('name')
-      .then(({ data }) => { if (data) setHubs(data) })
-      .catch(() => {})
+      .then(load(t('lf_companies'), data => { if (data) setHubs(data) }))
+      .catch(fail(t('lf_companies')))
     supabase.from('products').select('*').eq('active', true).order('sort_order').order('name')
-      .then(({ data }) => { if (data) setCatalogProducts(data) })
-      .catch(() => {})
+      .then(load(t('lf_products'), data => { if (data) setCatalogProducts(data) }))
+      .catch(fail(t('lf_products')))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   // Load product authorizations for distributors
   useEffect(() => {
@@ -183,26 +188,26 @@ export default function DealForm({ deal, onClose, onSaved }) {
     if (profile?.role === 'distributor' && catalogueCompany) {
       supabase.from('company_product_authorizations').select('product_id, country, price, active')
         .eq('company_id', catalogueCompany)
-        .then(({ data }) => {
+        .then(load(t('lf_auths'), data => {
           if (data) {
             const map = {}
             data.filter(a => a.active !== false).forEach(a => { map[`${a.product_id}_${a.country}`] = a })
             setAuthMap(map)
           }
-        }).catch(() => {})
+        })).catch(fail(t('lf_auths')))
     }
   }, [profile?.role, deal?.company_id, homeId, profile?.company_id])
   useEffect(() => {
     if (deal?.id) {
       // Lines from the shared view, cost from the guarded one. See lib/dealLines.
       fetchDealLines(deal.id)
-        .then(({ data }) => { if (data) setDealLines(data.map(d => ({ ...d, _key: d.id }))) })
-        .catch(() => {})
+        .then(load(t('lf_lines'), data => { if (data) setDealLines(data.map(d => ({ ...d, _key: d.id }))) }))
+        .catch(fail(t('lf_lines')))
       // The contract term lives with the quote, not on the deal, and without it
       // a five-year project reads here as a one-year one.
       supabase.from('deal_quote').select('state').eq('deal_id', deal.id).maybeSingle()
-        .then(({ data }) => { if (data?.state?.years) setQuoteYears(Number(data.state.years)) })
-        .catch(() => {})
+        .then(load(t('lf_quotes'), data => { if (data?.state?.years) setQuoteYears(Number(data.state.years)) }))
+        .catch(fail(t('lf_quotes')))
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -434,6 +439,10 @@ export default function DealForm({ deal, onClose, onSaved }) {
       }>
       <div className="space-y-2">
         {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+
+        {/* A select that came back empty because the read failed looks exactly
+            like one that came back empty because there is nothing to pick. */}
+        <LoadFailureBanner failed={failed} t={t} />
 
         {/* BU + Sales Type + Stage */}
         <div className={`grid ${isDistributor ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3'} gap-2`}>

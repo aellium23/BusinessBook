@@ -6,6 +6,7 @@ import { Modal, Spinner, CollapsibleSection } from '../components/ui'
 import { validateTask } from '../lib/validation'
 import SearchableSelect from '../components/SearchableSelect'
 import QuickDealForm from '../components/QuickDealForm'
+import { useLoadFailures, LoadFailureBanner } from '../hooks/useLoadFailures'
 import { useTranslation } from '../hooks/useTranslation'
 import { Plus, CheckCircle2, Circle, Clock, User, Link2, Trash2, Edit3, Bell, ChevronDown, ChevronUp, AlertCircle, X, FileText } from 'lucide-react'
 
@@ -335,6 +336,10 @@ function Section({ title, count, overdueCount, children, defaultOpen = true }) {
 export default function Tasks() {
   const { user, profile, isAdmin, readOnly } = useAuth()
   const { t } = useTranslation()
+  // The assignee picker. An empty one reads as "there is nobody to assign to".
+  // Two reads in one Promise.all, so the errors are checked by hand there
+  // rather than through `load`.
+  const { failed, fail } = useLoadFailures()
   const canAssign = (isAdmin || ['vgt_editor','ect_editor'].includes(profile?.role)) && !readOnly
 
   const { myTasks, assignedToMe, assignedByMe, loading, refetch } = useTasks()
@@ -359,6 +364,13 @@ export default function Tasks() {
       supabase.from('quotas').select('sales_owner, bu').order('bu').order('sales_owner'),
       supabase.from('profiles').select('id, full_name, email, sales_owner_name, bu, active'),
     ]).then(([qRes, pRes]) => {
+      // Two reads, and the one that matters is the profiles: `pRes.data ?? []`
+      // on a failed read empties the picker, and an empty picker reads as
+      // "there is nobody here to assign this to".
+      if (pRes.error || qRes.error) {
+        fail(t('lf_tasks'))(pRes.error || qRes.error)
+        if (pRes.error) return
+      }
       const allProfiles = (pRes.data ?? []).filter(p => p.active !== false)
       const quotas      = qRes.data ?? []
 
@@ -403,7 +415,7 @@ export default function Tasks() {
         return (a.full_name || '').localeCompare(b.full_name || '')
       })
       setUsers(all)
-    }).catch(() => {})
+    }).catch(fail(t('lf_tasks')))
 
     supabase.from('deals').select('id, client, bu').order('client')
       .then(({ data }) => setDeals(data ?? []))
@@ -432,6 +444,8 @@ export default function Tasks() {
 
   return (
     <div className="max-w-2xl mx-auto p-4 sm:p-6 space-y-6">
+
+      <LoadFailureBanner failed={failed} t={t} />
 
       {/* Header — mobile-first: título + acções em coluna em mobile */}
       <div className="space-y-3">

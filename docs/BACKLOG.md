@@ -226,19 +226,55 @@ que reste um movimento para a frente em cada uma — desistir não conta.
 
 ---
 
-## UX-01 · P2 · Quarenta e sete erros engolidos em silêncio
+## UX-01 · ✅ FECHADO · Erros de carregamento engolidos em silêncio
 
-**O quê.** `.catch(() => {})` a carregar opções de listas. Falhar em silêncio
-mostra uma lista vazia, que se lê como "não há produtos" em vez de "não consegui
-carregar".
+**O quê.** Quarenta e um sítios liam uma tabela e, se a leitura falhasse,
+seguiam com nada. Um painel desenhava zeros e uma caixa de selecção desenhava-se
+vazia — e as duas coisas são **respostas**: "não facturaste nada este trimestre",
+"este parceiro não tem produtos". Nenhuma delas era o que tinha acontecido, e
+quem estava a olhar para o ecrã não tinha maneira de saber.
 
-**História.** Problema #6 do `ASSESSMENT.md`. Quatro corrigidos a 11-09 —
-Budget, History, matriz de requisitos, notificações. Restam 47.
+**O que estava mesmo a engolir, e não era o que parecia.**
 
-**Correcção.** Um a um: cada sítio precisa de uma decisão sobre onde mostrar a
-falha. Não é uma varredura automática.
+```js
+.then(({ data }) => setBudget(data || []))
+.catch(() => {})
+```
 
-**Esforço:** meio dia. **Risco:** baixo.
+O `.catch` é o que se lê como descuido, e é o inofensivo: **uma query do Supabase
+não rejeita quando falha** — resolve, com `{ data: null, error }` — por isso
+aquele catch quase nunca corre. Quem engolia era o `data || []`, com o erro ali
+ao lado no mesmo objecto, nunca lido, e um array vazio a ir para o ecrã no lugar
+dele.
+
+Foi por isso que a correcção não podia ser embrulhar a promessa. A unidade é a
+**resposta**, que é a única forma que consegue ver o erro.
+
+**Fechado a 11-09** com `src/lib/loadFailures.js` (a parte pura, com testes) e
+`src/hooks/useLoadFailures.jsx` (o lado React, mais o banner). Cada leitura tem
+uma etiqueta que nomeia a coisa e não a tabela — "o orçamento", não `budget` — e
+uma falha põe uma linha âmbar no topo do ecrã que a mostra. Uma segunda tentativa
+bem sucedida tira-a de lá: um aviso que continua a pedir desculpa por uma coisa
+que já chegou ensina as pessoas a ignorá-lo.
+
+**Três casos que não são leituras e foram tratados à parte:**
+
+- **`SlaFormModal`** gravava três campos ao sair da caixa com
+  `.then(() => {}).catch(() => {})` e deitava o resultado fora. Uma gravação que
+  a base de dados recusasse deixava o número que a pessoa escreveu na caixa, com
+  ar de guardado — e a da quota anual ia mais longe: somava-o ao total do
+  contrato no ecrã, portanto o contrato valia aqui mais do que na base de dados.
+  Agora diz que não guardou, e o total não se mexe quando a gravação falha.
+- **`useSettings`** não tem ecrã próprio. Fica o log; o que protege o dinheiro
+  ali é o `DEFAULTS`, onde `man_day_cost` é nulo em vez de uma diária plausível.
+- **`storage.js`** limpa um blob órfão depois de a inserção dos metadados
+  falhar. Continua best-effort — quem chamou já tem o erro a sério — mas passou
+  a registar, porque um bucket que cresce sem ninguém saber porquê é um problema
+  de outro dia.
+
+**O que ficou deliberadamente silencioso:** `localStorage` em janela privada. São
+preferências de quem está a ver, e cada um desses `catch` leva agora uma palavra
+a dizer que é de propósito.
 
 ---
 

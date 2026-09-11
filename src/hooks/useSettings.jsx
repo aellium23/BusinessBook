@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { logger } from '../lib/logger'
 
 const SettingsContext = createContext({})
 
@@ -28,13 +29,18 @@ export function SettingsProvider({ children }) {
 
   useEffect(() => {
     supabase.from('app_settings').select('*').limit(1).single()
-      .then(({ data }) => {
+      // No banner: this has no screen of its own. What protects the money here
+      // is DEFAULTS — `man_day_cost` is null rather than a plausible day rate,
+      // so a quote built while these are missing says it has no rate instead of
+      // inventing one. The failure is still logged rather than vanishing.
+      .then(({ data, error }) => {
+        if (error) { logger.error('Settings not loaded', { error: error.message }); return }
         if (data) {
           setSettings({ ...DEFAULTS, ...(data.config || {}) })
           setSettingsId(data.id)
         }
       })
-      .catch(() => {})
+      .catch(e => logger.error('Settings not loaded', { error: e?.message || String(e) }))
   }, [])
 
   async function updateSettings(updates) {
