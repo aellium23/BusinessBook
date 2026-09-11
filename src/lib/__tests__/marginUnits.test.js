@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { lineCostTotals, marginFromTotals } from '../margins'
 
 /**
  * Margins are written in three different units in this app, and two of them
@@ -72,5 +73,63 @@ describe('what deal_products.margin_pct holds', () => {
     expect(markupOnCost(0, 100)).toBeNull()
     expect(markupOnCost(null, 100)).toBeNull()
     expect(markupOnCost(65, 0)).toBeNull()
+  })
+})
+
+/**
+ * One deal, two screens, two opposite margins.
+ *
+ * `DealForm` summed the cost column raw: a line nobody had costed counted as
+ * zero, and the deal reported 100% margin. `ProductLineItems` did
+ * `cost_price || unit_price`: the same line counted at its own selling price,
+ * and the deal reported 0%. Both confident, both wrong, and the true answer —
+ * that we do not know — was the one neither of them could say.
+ */
+describe('a line nobody has costed', () => {
+  const LINES = [
+    { cost_price: 6000, net_price: 10000 },
+    { cost_price: null, net_price: 10000 },
+  ]
+
+  it('is left out of the cost, not counted as zero and not as the sell price', () => {
+    const t = lineCostTotals(LINES)
+    expect(t.cost).toBe(6000)
+    expect(t.known).toBe(1)
+    expect(t.unknown).toBe(1)
+    expect(t.complete).toBe(false)
+  })
+
+  it('makes the margin unknown rather than 100% or 0%', () => {
+    const t = lineCostTotals(LINES)
+    expect(marginFromTotals(20000, t)).toBe(null)
+    // The two readings this replaces, named so the regression is recognisable.
+    const asZero = (20000 - 6000) / 20000 * 100
+    const asSellPrice = (20000 - 16000) / 20000 * 100
+    expect(Math.round(asZero)).toBe(70)
+    expect(Math.round(asSellPrice)).toBe(20)
+  })
+
+  it('gives a real margin once every line has answered', () => {
+    const t = lineCostTotals([{ cost_price: 6000, net_price: 10000 }, { cost_price: 7000, net_price: 10000 }])
+    expect(t.complete).toBe(true)
+    expect(marginFromTotals(20000, t)).toEqual({ gm: 7000, pct: 35 })
+  })
+
+  it('keeps a zero somebody typed, because that is an answer', () => {
+    const t = lineCostTotals([{ cost_price: 0, net_price: 10000 }])
+    expect(t.complete).toBe(true)
+    expect(t.cost).toBe(0)
+    expect(marginFromTotals(10000, t)).toEqual({ gm: 10000, pct: 100 })
+  })
+
+  it('extends by quantity where the caller says the lines are per-unit', () => {
+    const t = lineCostTotals([{ cost_price: 100, quantity: 3 }], { quantityOf: l => l.quantity })
+    expect(t.cost).toBe(300)
+  })
+
+  it('has no margin to report when there are no lines at all', () => {
+    const t = lineCostTotals([])
+    expect(t.complete).toBe(false)
+    expect(marginFromTotals(1000, t)).toBe(null)
   })
 })

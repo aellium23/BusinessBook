@@ -18,6 +18,7 @@ import ProductLineItems from './ProductLineItems'
 import { BUSINESS_MODELS, RECURRING_MODELS, normalizeBusinessModel, REGIONS, COUNTRY_MAP, MONTHS, MONTHS_K, DIST_STAGES, regionForCountry } from '../constants'
 import { saveDealProducts } from '../hooks/useDealProducts'
 import { getAllowedTransitions, canTransition } from '../lib/stateMachine'
+import { lineCostTotals, marginFromTotals } from '../lib/margins'
 import { validateDeal } from '../lib/validation'
 import { calcSLARecognition } from './deal/RevenueRecognition'
 import IntercompanySection from './deal/IntercompanySection'
@@ -237,6 +238,12 @@ export default function DealForm({ deal, onClose, onSaved }) {
    * says nothing about the term is how a project looks a fifth of its size.
    * Cost comes through the security view, so it is null for anyone who may not
    * see it and the margin half is simply not drawn.
+   *
+   * It is also null for a line nobody costed, and that is a different question
+   * with the same answer: this used to sum the column raw, so an uncosted line
+   * counted as zero and the deal reported 100 % margin. `lineCostTotals` leaves
+   * those lines out and says how many, and a margin is only drawn when every
+   * line has answered.
    */
   const economics = useMemo(() => {
     const years = quoteYears || 1
@@ -244,13 +251,17 @@ export default function DealForm({ deal, onClose, onSaved }) {
     const oneOff = dealLines.reduce((s, l) => s + n(l.net_price || l.unit_price), 0)
     const recurring = dealLines.reduce((s, l) => s + n(l.annual_fee), 0)
     const pvp = Math.round((oneOff + recurring * years) * 100) / 100
-    const cost = dealLines.reduce((s, l) => s + n(l.cost_price), 0)
-    const gm = Math.round((pvp - cost) * 100) / 100
+    const totals = lineCostTotals(dealLines)
+    const margin = marginFromTotals(pvp, totals)
     return {
       oneOff: Math.round(oneOff * 100) / 100,
       recurring: Math.round(recurring * 100) / 100,
-      pvp, cost, gm,
-      pct: pvp > 0 ? Math.round((gm / pvp) * 1000) / 10 : 0,
+      pvp,
+      cost: totals.cost,
+      costKnown: totals.known > 0,
+      uncosted: totals.unknown,
+      gm: margin?.gm ?? null,
+      pct: margin?.pct ?? null,
     }
   }, [dealLines, quoteYears])
 
@@ -868,23 +879,35 @@ export default function DealForm({ deal, onClose, onSaved }) {
                   <p className="text-micro text-gray-500">{t('qd_col_price')}</p>
                   <p className="text-base font-bold text-navy tabular-nums">{formatK(economics.pvp)}</p>
                 </div>
-                {!isDistributor && economics.cost > 0 && (
+                {!isDistributor && economics.costKnown && (
                   <>
                     <div>
                       <p className="text-micro text-gray-500">{t('qd_col_cost')}</p>
                       <p className="text-base font-semibold text-gray-700 tabular-nums">{formatK(economics.cost)}</p>
                     </div>
+                    {/* A dash, not a number, while a line is still unpriced —
+                        the total above is built from only some of the lines and
+                        a margin off it would be the old 100% by another route. */}
                     <div>
                       <p className="text-micro text-gray-500">{t('qd_col_gm')}</p>
-                      <p className="text-base font-bold text-green-700 tabular-nums">{formatK(economics.gm)}</p>
+                      <p className="text-base font-bold text-green-700 tabular-nums">
+                        {economics.gm === null ? '—' : formatK(economics.gm)}
+                      </p>
                     </div>
                     <div>
                       <p className="text-micro text-gray-500">{t('qd_gm_pct')}</p>
-                      <p className="text-base font-bold text-green-700 tabular-nums">{economics.pct}%</p>
+                      <p className="text-base font-bold text-green-700 tabular-nums">
+                        {economics.pct === null ? '—' : `${economics.pct}%`}
+                      </p>
                     </div>
                   </>
                 )}
               </div>
+              {!isDistributor && economics.uncosted > 0 && (
+                <p className="text-micro text-amber-800">
+                  {t('df_uncosted_lines').replace('{n}', economics.uncosted)}
+                </p>
+              )}
               <p className="text-micro text-gray-400">{t('df_economics_hint')}</p>
             </div>
           )}

@@ -66,6 +66,10 @@ comment on table public.deal_stage_transitions is
 delete from public.deal_stage_transitions;
 insert into public.deal_stage_transitions (from_stage, to_stage) values
   ('Lead',            'Pipeline'),
+  -- Skipping Pipeline is ordinary, and a distributor has no Pipeline at all: the
+  -- form intersects their four stages with the allowed moves, and from a Lead
+  -- that intersection was "Lost" and nothing else. See stateMachine.js.
+  ('Lead',            'Offer Presented'),
   ('Lead',            'Lost'),
   ('Pipeline',        'Offer Presented'),
   ('Pipeline',        'Lead'),
