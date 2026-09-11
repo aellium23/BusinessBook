@@ -126,6 +126,35 @@ e depois de alinhar as duas fontes.
 
 ---
 
+## BIZ-05 · P1 · A arquitectura de desconto assenta numa lista que não existe
+
+**O quê.** `partnerEconomics()` modela o que foi escrito no briefing: o cliente
+paga `netPrice` sobre uma lista publicada, e a transferência desce por baixo
+dela para proteger a margem do parceiro. Todos os números dela se medem contra
+uma lista **do cliente**.
+
+Com o BR-032 estabelecido, essa lista não é a R1–R4 — e não se sabe onde vive,
+nem se existe. A função ficou desligada do quick deal a 11-09 e o ecrã passou a
+usar `channelEconomics()`, que lê o negócio do nosso lado.
+
+**O que fica órfão, e precisa de decisão tua:**
+
+- **A taxa do papel, Full VAR 40%.** Já não é um desconto sobre lista de
+  cliente. É a margem esperada do parceiro? Então porque é que a proposta dele
+  abre a 35%? Hoje a taxa é só uma etiqueta no select — não entra em conta
+  nenhuma.
+- **Os pisos de 35 / 20 / 15.** Continuam a fazer sentido como política, mas o
+  ecrã já não os pode *medir*: a margem do parceiro é uma escolha dele que não
+  vemos. Só se mede se ele gravar a proposta dele.
+- **Os programas nomeados** (60/42 e 65/45). A margem entre os dois é uma razão
+  — 30% e 30,8% — e essa sobrevive a qualquer base, por isso continua a ser
+  usada. Os dois números em separado não.
+
+**Nota:** `partnerEconomics` e os seus testes ficaram no sítio de propósito. A
+política que codificam é real e é o único registo dela.
+
+---
+
 ## BIZ-01 · P2 · Tecto de desconto do `PACS ACTIVE MONITORING FEE`
 
 Carrega 80% herdados, que foram ditos incorrectos. Falta o número real.

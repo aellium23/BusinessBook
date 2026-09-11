@@ -15,7 +15,7 @@ import { recommendedCapexPvp, recommendedSlaPvp, belowFloor, lineOverTerm,
          servicesEconomics, recommendedServicesPvp,
          SERVICES_TARGET_MARGIN_PCT } from '../../lib/margins'
 import { routeFor, applyDiscount, discountViews, internalApproval } from '../../lib/discountRouting'
-import { partnerEconomics, partnerTargetPrice, PROTECTED_MARGIN,
+import { channelEconomics, partnerTargetPrice, PROTECTED_MARGIN,
          CHANNEL_ROLES, NAMED_PROGRAMMES } from '../../lib/partnerMargin'
 import { unitsNeeded, quantityFor } from '../../lib/volumeUnits'
 import { toEur, rateLabel } from '../../lib/fx'
@@ -596,14 +596,19 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
   // over the whole term, because a five-year subscription discounted once is
   // five years of concession. A licence's support fee has no list price of its
   // own and stays out of both sides rather than being counted on one.
+  //
+  // `netTotal` is what we are quoting, and on a channel deal that is what the
+  // PARTNER pays us: R1–R4 is a transfer list. It is not the customer's price
+  // and must never be labelled as one — the customer's price is the partner's
+  // to set, and this screen only ever estimates it.
   const channel = useMemo(() => {
     const rows = lines.filter(l => l.routing.appliesTo === 'price' && l.listNet > 0)
     const listTotal = rows.reduce((s, l) => s + (l.isSub ? l.listNet * years : l.listNet), 0)
     const netTotal = rows.reduce((s, l) => s + (l.isSub ? l.annualPvp * years : l.capexPvp), 0)
     return {
       rows: rows.length,
-      ...partnerEconomics({
-        listPrice: round2(listTotal), netPrice: round2(netTotal),
+      ...channelEconomics({
+        listPrice: round2(listTotal), transferPrice: round2(netTotal),
         role: channelRole, programme: programme || null,
       }),
       listTotal: round2(listTotal),
@@ -935,17 +940,25 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
       if (pErr) logger.error('Partner economics not stored', { error: pErr.message })
     }
 
-    if (channel.applies) {
-      const { error: cErr } = await supabase.from('deal_channel').insert({
+    // Only ours: a partner's own save, above, has already written this row with
+    // the two figures it actually holds. Both running wrote the deal twice.
+    if (internal && channel.applies) {
+      const { error: cErr } = await supabase.from('deal_channel').upsert({
         deal_id: data.id,
         partner_role: channel.role,
         partner_programme: channel.programme,
         partner_transfer: channel.transfer,
-        partner_margin_pct: channel.partnerMarginPct,
+        // Left null on purpose, both of them. Quoting a partner tells us what
+        // they pay us and nothing at all about what they charge the hospital —
+        // the screen shows an estimate at the protected target and says so, and
+        // an estimate written into a column called `end_customer_price` stops
+        // being an estimate the moment somebody reports off it.
+        partner_margin_pct: null,
+        end_customer_price: null,
         cwm_given_up: channel.givenUp,
-        end_customer_price: channel.netTotal,
         created_by: profile?.id || null,
-      })
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'deal_id' })
       if (cErr) { setSaving(false); setError(`${t('qd_err_channel')} ${cErr.message}`); return false }
     }
 
@@ -1306,36 +1319,15 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
 
           {channel.applies && (
             <>
+              {/* Left to right: what we get, what it cost us to get it, and
+                  then — separated, in grey, and labelled as a guess — the two
+                  figures that are the partner's and not ours. */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-gray-100">
                 <div>
-                  <p className="text-micro text-gray-500">{t('pm_customer_pays')}</p>
-                  <p className="text-sm font-bold text-navy tabular-nums">{formatK(channel.netTotal)}</p>
-                  <p className="text-micro text-gray-400">{100 - channel.discountPct}% {t('dl_of_list')}</p>
-                </div>
-                <div>
                   <p className="text-micro text-gray-500">{t('pm_transfer')}</p>
-                  <p className="text-sm font-bold text-gray-800 tabular-nums">{formatK(channel.transfer)}</p>
-                  <p className="text-micro text-gray-400">{t('pm_our_revenue')}</p>
-                </div>
-                <div>
-                  <p className="text-micro text-gray-500">{t('pm_partner_margin')}</p>
-                  <p className={`text-sm font-bold tabular-nums ${
-                    channel.belowFloor ? 'text-red-700'
-                      : channel.atFloor ? 'text-amber-800' : 'text-green-700'
-                  }`}>
-                    {formatK(channel.partnerMargin)} · {channel.partnerMarginPct}%
-                  </p>
-                  {/* Against policy, not against nothing: 35 is where a partner
-                      should land, and 20 is the most a discount may cost them. */}
-                  <p className={`text-micro ${
-                    channel.belowFloor ? 'text-red-700 font-semibold'
-                      : channel.atFloor ? 'text-amber-700' : 'text-gray-400'
-                  }`}>
-                    {channel.programme ? t('pm_programme_rate')
-                      : channel.belowFloor ? t('pm_below_floor')
-                      : channel.roleUnderFloor ? t('pm_role_rate')
-                      : channel.atFloor ? t('pm_at_floor')
-                      : t('pm_on_target')}
+                  <p className="text-sm font-bold text-navy tabular-nums">{formatK(channel.transfer)}</p>
+                  <p className="text-micro text-gray-400">
+                    {t('pm_our_revenue')} · {100 - channel.discountPct}% {t('dl_of_list')}
                   </p>
                 </div>
                 <div>
@@ -1345,6 +1337,25 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
                   </p>
                   <p className="text-micro text-gray-400">
                     {t('pm_at_list')} {formatK(channel.cwmRevenueAtList)}
+                  </p>
+                </div>
+                {/* The customer's price is the partner's decision. We print an
+                    estimate because a blank is unhelpful, in grey because an
+                    estimate reported as fact is how a forecast gets poisoned. */}
+                <div>
+                  <p className="text-micro text-gray-500">{t('pm_customer_est')}</p>
+                  <p className="text-sm font-bold text-gray-500 tabular-nums">
+                    ≈ {formatK(channel.customerPrice)}
+                  </p>
+                  <p className="text-micro text-gray-400">{t('pm_estimated')}</p>
+                </div>
+                <div>
+                  <p className="text-micro text-gray-500">{t('pm_partner_margin')}</p>
+                  <p className="text-sm font-bold text-gray-500 tabular-nums">
+                    ≈ {formatK(channel.partnerMargin)} · {channel.partnerMarginPct}%
+                  </p>
+                  <p className="text-micro text-gray-400">
+                    {channel.programme ? t('pm_programme_rate') : t('pm_assumed_target')}
                   </p>
                 </div>
               </div>
@@ -1361,18 +1372,16 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
 
               {channel.overCap && !channel.programme && (
                 <p className="text-micro text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
-                  {t('pm_over_cap').replace('{pct}', channel.protectedPct)}
+                  {t('pm_over_cap').replace('{pct}', channel.discountPct)}
                 </p>
               )}
 
-              {/* The pipeline still carries the customer price. Changing what a
-                  deal is worth to us is not a display decision — it re-runs the
-                  forecast — so the difference is named and left for a decision. */}
+              {/* What the pipeline carries, said plainly, because the figure on
+                  a channel deal is ours and the bigger one on the customer's
+                  invoice is not. */}
               {channel.transfer > 0 && (
                 <p className="text-micro text-gray-500 border-t border-gray-100 pt-1.5">
-                  {t('pm_pipeline_note')
-                    .replace('{value}', formatK(totals.pvp))
-                    .replace('{transfer}', formatK(channel.transfer))}
+                  {t('pm_pipeline_note').replace('{transfer}', formatK(channel.transfer))}
                 </p>
               )}
             </>

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   CHANNEL_ROLES, PROTECTED_MARGIN, NAMED_PROGRAMMES,
   protectedMarginPct, partnerEconomics, partnerTargetPrice, roleFor,
+  channelEconomics, programmeMarginPct,
 } from '../partnerMargin'
 
 /** The published Full VAR ladder, on a list price of 100. */
@@ -223,5 +224,74 @@ describe('the two arrangements, and the three that were retired', () => {
   it('falls back to direct for a key it has never heard of', () => {
     expect(roleFor('something_new').key).toBe('direct')
     expect(roleFor(null).key).toBe('direct')
+  })
+})
+
+/**
+ * The channel read from our side, which is the only side we hold.
+ *
+ * R1–R4 is the transfer price: the list a distributor buys at, and the list a
+ * Fujifilm subsidiary buys at. It is nobody's selling price. Everything here is
+ * the consequence of that, and it is the correction to a screen that called the
+ * transfer "customer pays" and then took another 40% off it.
+ */
+describe('a channel deal, from the transfer list down', () => {
+  // The "test chile" deal: CWM Dose R3, 13,114.75 a year, five years.
+  const LIST = 65573.75
+
+  it('reports our revenue as what we quoted, with nothing deducted twice', () => {
+    const r = channelEconomics({ listPrice: LIST, transferPrice: LIST, role: 'full_var' })
+    expect(r.transfer).toBe(LIST)
+    expect(r.cwmRevenue).toBe(LIST)
+    expect(r.givenUp).toBe(0)
+    // The number the old reading printed, which existed on neither screen.
+    expect(r.transfer).not.toBe(39344.25)
+  })
+
+  it('estimates the customer price at the margin the partner quote opens on', () => {
+    const r = channelEconomics({ listPrice: LIST, transferPrice: LIST, role: 'full_var' })
+    // What TIMED's own screen shows for the same deal: 65,573.75 / 0.65.
+    expect(r.customerPrice).toBe(100882.69)
+    expect(r.partnerMargin).toBe(35308.94)
+    expect(r.partnerMarginPct).toBe(35)
+    // And says it is a guess, because the partner sets that price, not us.
+    expect(r.customerEstimated).toBe(true)
+  })
+
+  it('counts a discount off the transfer list as ours, in full', () => {
+    // 10% off what they pay us is 10% off our revenue. There is no customer
+    // concession here at all: we do not set the customer's price.
+    const r = channelEconomics({ listPrice: 100, transferPrice: 90, role: 'full_var' })
+    expect(r.discountPct).toBe(10)
+    expect(r.givenUp).toBe(10)
+    expect(r.cwmRevenue).toBe(90)
+    expect(r.overCap).toBe(false)
+  })
+
+  it('calls anything past the 30% cap an exception', () => {
+    expect(channelEconomics({ listPrice: 100, transferPrice: 69, role: 'full_var' }).overCap).toBe(true)
+    expect(channelEconomics({ listPrice: 100, transferPrice: 70, role: 'full_var' }).overCap).toBe(false)
+  })
+
+  it('takes a named programme\'s margin, which is a ratio and survives the basis', () => {
+    // 60 net / 42 transfer is 30% between them whatever the 100 is.
+    expect(programmeMarginPct('vr_displacement')).toBe(30)
+    expect(programmeMarginPct('lighthouse')).toBe(30.8)
+    const r = channelEconomics({
+      listPrice: 100, transferPrice: 100, role: 'full_var', programme: 'vr_displacement',
+    })
+    expect(r.partnerMarginPct).toBe(30)
+    expect(r.customerPrice).toBe(142.86)
+  })
+
+  it('is silent on a direct deal, where there is no partner to estimate for', () => {
+    const r = channelEconomics({ listPrice: 100, transferPrice: 100, role: 'direct' })
+    expect(r.applies).toBe(false)
+    expect(r.customerPrice).toBe(0)
+    expect(r.partnerMargin).toBe(0)
+  })
+
+  it('does not price a quote that has no prices in it', () => {
+    expect(channelEconomics({ listPrice: 0, transferPrice: 0, role: 'full_var' }).applies).toBe(false)
   })
 })
