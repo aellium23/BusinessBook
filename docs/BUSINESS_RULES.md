@@ -123,13 +123,15 @@ distribuidores no mesmo país podem ter papéis diferentes.
 Papel explícito da empresa → a empresa é distribuidor, logo Full VAR →
 `direct`. Não há nada para configurar no caso normal.
 
-**Numa proposta guardada, `direct` conta como não respondido, não como
-resposta.** Era o valor por omissão antes deste campo significar alguma coisa,
-portanto todos os negócios anteriores o carregam sem ninguém o ter decidido — e
-num negócio de parceiro é uma contradição, que o próprio ecrã já assinala.
-Qualquer outro papel guardado é respeitado: uma proposta cotada a 28% continua a
-valer 28%, porque uma proposta que se reavalia sozinha é uma proposta que não se
-pode enviar.
+**BR-035 — Um negócio guardado nunca é reavaliado por ser aberto.**
+A dedução aplica-se só a propostas novas. Um negócio anterior fica exactamente
+como foi cotado, mesmo quando o papel guardado é o `direct` por omissão e
+contradiz o parceiro — porque abrir uma página para a ver não pode mexer no que
+ela vale, e gravá-la por outro motivo qualquer escreveria números que ninguém
+acordou.
+
+Onde essa contradição existe, o ecrã **diz**, e uma pessoa decide. Corrigir os
+históricos é um acto, não um efeito secundário.
 
 ---
 

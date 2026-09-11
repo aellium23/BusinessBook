@@ -329,29 +329,26 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
   }, [deal?.id, deal?.stage])
 
   /**
-   * Apply what the partner's agreement says, unless somebody chose otherwise.
+   * Apply what the partner's agreement says — on a new quote, and only there.
    *
-   * The first attempt at this refused to touch a saved deal at all, on the
-   * reasoning that a quote must keep the role it was quoted at. That is right
-   * for a role somebody picked and wrong for the one every deal already
-   * carries: `direct` was the default before this field meant anything, so
-   * every deal made before today holds it without anybody having decided it.
-   * Carabineros opened as Direct Sales for exactly that reason — a stored value
-   * that was never a choice, outranking a fact about the partner.
+   * A saved deal is left exactly as it was quoted. That is a deliberate refusal
+   * and it cost a revision to arrive at: the version before this treated a
+   * stored `direct` as unanswered, on the reasoning that it was the old default
+   * rather than anybody's decision. True, and still the wrong thing to do —
+   * because it means opening an old deal to look at it changes the partner
+   * economics on screen, and saving it for any other reason writes figures
+   * nobody agreed to. History does not move because somebody opened a page.
    *
-   * So `direct` on a partner's deal is treated as unanswered rather than as an
-   * answer. It is a contradiction anyway: the screen already warns that deals
-   * in this territory are sold through the partner. Anything else that was
-   * stored is kept, and the line underneath says where the role came from, so a
-   * correction is visible rather than silent.
+   * A saved deal whose role contradicts its partner is told so instead, below,
+   * and changed by a person if a person decides to.
    */
   useEffect(() => {
-    if (!companyRole || roleFromCompany) return
+    if (deal?.id || !companyRole || roleFromCompany) return
     if (channelRole !== 'direct') return
     setChannelRole(companyRole)
     setRoleFromCompany(dealCompany?.channel_role ? 'company' : 'type')
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [companyRole, channelRole, dealCompany])
+  }, [companyRole, channelRole, dealCompany, deal?.id])
 
   const regionCode = pricingRegionForCountry(countryMap, country)
   const region = regionCode ? regions[regionCode] : null
@@ -1266,6 +1263,15 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
               {roleFromCompany === 'type' && dealCompany && (
                 <p className="text-micro text-gray-500 mt-0.5">
                   {t('pm_role_from_type')} {dealCompany.name}
+                </p>
+              )}
+              {/* A saved deal that says Direct for a partner is almost certainly
+                  carrying the old default rather than a decision. Said, not
+                  corrected: changing it moves what the deal is worth to both
+                  sides, and that is a person's call on a deal already quoted. */}
+              {deal?.id && companyRole && channelRole === 'direct' && (
+                <p className="text-micro text-amber-800 mt-0.5">
+                  {t('pm_role_suggest')} {dealCompany?.name}
                 </p>
               )}
             </div>
