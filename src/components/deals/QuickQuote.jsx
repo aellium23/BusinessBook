@@ -128,6 +128,7 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
    * gets worked around by accident.
    */
   const [dealCompany, setDealCompany] = useState(null)
+  const [companyRole, setCompanyRole] = useState(null)
   useEffect(() => {
     let alive = true
     const id = deal?.company_id || (internal ? null : profile?.company_id)
@@ -137,20 +138,8 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
       .then(({ data }) => {
         if (!alive || !data) return
         setDealCompany(data)
-        // Only where nothing has been chosen yet. Reopening a saved quote must
-        // keep the role it was quoted at, even if the agreement has changed
-        // since — a quote that reprices itself is a quote nobody can send.
-        if (deal?.id) return
-        if (data.channel_role) {
-          setChannelRole(data.channel_role)
-          setRoleFromCompany('company')
-        } else if (data.type === 'distributor') {
-          // A distributor is a Full VAR: they sell, implement and carry
-          // first-line support, and that is what being a distributor means
-          // here. There is nothing to configure and nothing to remember.
-          setChannelRole('full_var')
-          setRoleFromCompany('type')
-        }
+        setCompanyRole(data.channel_role
+          || (data.type === 'distributor' ? 'full_var' : null))
       })
     return () => { alive = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -338,6 +327,28 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
     const allowed = getAllowedTransitions('deal', deal.stage)
     return STAGES.filter(x => x === deal.stage || allowed.includes(x))
   }, [deal?.id, deal?.stage])
+
+  /**
+   * Apply what the partner's agreement says — on a new quote, and only there.
+   *
+   * A saved deal is left exactly as it was quoted. That is a deliberate refusal
+   * and it cost a revision to arrive at: the version before this treated a
+   * stored `direct` as unanswered, on the reasoning that it was the old default
+   * rather than anybody's decision. True, and still the wrong thing to do —
+   * because it means opening an old deal to look at it changes the partner
+   * economics on screen, and saving it for any other reason writes figures
+   * nobody agreed to. History does not move because somebody opened a page.
+   *
+   * A saved deal whose role contradicts its partner is told so instead, below,
+   * and changed by a person if a person decides to.
+   */
+  useEffect(() => {
+    if (deal?.id || !companyRole || roleFromCompany) return
+    if (channelRole !== 'direct') return
+    setChannelRole(companyRole)
+    setRoleFromCompany(dealCompany?.channel_role ? 'company' : 'type')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyRole, channelRole, dealCompany, deal?.id])
 
   const regionCode = pricingRegionForCountry(countryMap, country)
   const region = regionCode ? regions[regionCode] : null
@@ -1252,6 +1263,15 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
               {roleFromCompany === 'type' && dealCompany && (
                 <p className="text-micro text-gray-500 mt-0.5">
                   {t('pm_role_from_type')} {dealCompany.name}
+                </p>
+              )}
+              {/* A saved deal that says Direct for a partner is almost certainly
+                  carrying the old default rather than a decision. Said, not
+                  corrected: changing it moves what the deal is worth to both
+                  sides, and that is a person's call on a deal already quoted. */}
+              {deal?.id && companyRole && channelRole === 'direct' && (
+                <p className="text-micro text-amber-800 mt-0.5">
+                  {t('pm_role_suggest')} {dealCompany?.name}
                 </p>
               )}
             </div>
