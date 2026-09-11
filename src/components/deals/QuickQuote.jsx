@@ -128,6 +128,7 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
    * gets worked around by accident.
    */
   const [dealCompany, setDealCompany] = useState(null)
+  const [companyRole, setCompanyRole] = useState(null)
   useEffect(() => {
     let alive = true
     const id = deal?.company_id || (internal ? null : profile?.company_id)
@@ -137,20 +138,8 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
       .then(({ data }) => {
         if (!alive || !data) return
         setDealCompany(data)
-        // Only where nothing has been chosen yet. Reopening a saved quote must
-        // keep the role it was quoted at, even if the agreement has changed
-        // since — a quote that reprices itself is a quote nobody can send.
-        if (deal?.id) return
-        if (data.channel_role) {
-          setChannelRole(data.channel_role)
-          setRoleFromCompany('company')
-        } else if (data.type === 'distributor') {
-          // A distributor is a Full VAR: they sell, implement and carry
-          // first-line support, and that is what being a distributor means
-          // here. There is nothing to configure and nothing to remember.
-          setChannelRole('full_var')
-          setRoleFromCompany('type')
-        }
+        setCompanyRole(data.channel_role
+          || (data.type === 'distributor' ? 'full_var' : null))
       })
     return () => { alive = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -338,6 +327,31 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
     const allowed = getAllowedTransitions('deal', deal.stage)
     return STAGES.filter(x => x === deal.stage || allowed.includes(x))
   }, [deal?.id, deal?.stage])
+
+  /**
+   * Apply what the partner's agreement says, unless somebody chose otherwise.
+   *
+   * The first attempt at this refused to touch a saved deal at all, on the
+   * reasoning that a quote must keep the role it was quoted at. That is right
+   * for a role somebody picked and wrong for the one every deal already
+   * carries: `direct` was the default before this field meant anything, so
+   * every deal made before today holds it without anybody having decided it.
+   * Carabineros opened as Direct Sales for exactly that reason — a stored value
+   * that was never a choice, outranking a fact about the partner.
+   *
+   * So `direct` on a partner's deal is treated as unanswered rather than as an
+   * answer. It is a contradiction anyway: the screen already warns that deals
+   * in this territory are sold through the partner. Anything else that was
+   * stored is kept, and the line underneath says where the role came from, so a
+   * correction is visible rather than silent.
+   */
+  useEffect(() => {
+    if (!companyRole || roleFromCompany) return
+    if (channelRole !== 'direct') return
+    setChannelRole(companyRole)
+    setRoleFromCompany(dealCompany?.channel_role ? 'company' : 'type')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyRole, channelRole, dealCompany])
 
   const regionCode = pricingRegionForCountry(countryMap, country)
   const region = regionCode ? regions[regionCode] : null

@@ -120,10 +120,16 @@ O papel de canal diz o que o parceiro faz por nós, e é contrato: dois
 distribuidores no mesmo país podem ter papéis diferentes.
 
 **BR-034 — A precedência do papel de canal.**
-Papel explícito da empresa → a empresa é distribuidor, logo Full VAR → `direct`.
-Não há nada para configurar no caso normal. Reabrir uma proposta guardada mostra
-o papel a que foi cotada, não aquele a que o acordo entretanto mudou — uma
-proposta que se reavalia sozinha é uma proposta que não se pode enviar.
+Papel explícito da empresa → a empresa é distribuidor, logo Full VAR →
+`direct`. Não há nada para configurar no caso normal.
+
+**Numa proposta guardada, `direct` conta como não respondido, não como
+resposta.** Era o valor por omissão antes deste campo significar alguma coisa,
+portanto todos os negócios anteriores o carregam sem ninguém o ter decidido — e
+num negócio de parceiro é uma contradição, que o próprio ecrã já assinala.
+Qualquer outro papel guardado é respeitado: uma proposta cotada a 28% continua a
+valer 28%, porque uma proposta que se reavalia sozinha é uma proposta que não se
+pode enviar.
 
 ---
 
