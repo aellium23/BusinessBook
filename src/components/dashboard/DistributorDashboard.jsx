@@ -1,15 +1,38 @@
 import { useMemo, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { formatK } from '../ui'
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer
 } from 'recharts'
 import { useTranslation } from '../../hooks/useTranslation'
+import { MONTHS_K } from '../../constants'
+import { openRequestsFor } from '../../lib/discountRequests'
+import { ArrowLeftRight, Hourglass, ChevronRight } from 'lucide-react'
 
 // ── Dashboard do Distribuidor ─────────────────────────────────────────────────
 export default function DistributorDashboard({ deals, profile }) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [quotaTarget, setQuotaTarget] = useState(0)
+  const [requests, setRequests] = useState([])
+
+  // Discounts still in flight. Until now a counter-offer only appeared inside
+  // one deal's full card, which is the one place a distributor does not look on
+  // the way in: the answer to a question they asked waited for them to go and
+  // find it.
+  useEffect(() => {
+    let alive = true
+    if (!profile?.id) return
+    openRequestsFor(profile.id).then(({ data }) => { if (alive) setRequests(data || []) })
+    return () => { alive = false }
+  }, [profile?.id])
+
+  // The two directions are kept apart on purpose. A counter-offer is the
+  // distributor's move; a pending request is ours. Counting them together says
+  // four things are outstanding when only one of them can be acted on.
+  const mine = useMemo(() => requests.filter(r => r.status === 'counter'), [requests])
+  const ours = useMemo(() => requests.filter(r => r.status === 'pending'), [requests])
 
   // Carregar o target do distribuidor
   useEffect(() => {
@@ -24,8 +47,6 @@ export default function DistributorDashboard({ deals, profile }) {
         .catch(() => {})
     }
   }, [profile])
-
-  const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
 
   // Agregados dos deals deste distribuidor
   const stats = useMemo(() => {
@@ -43,22 +64,21 @@ export default function DistributorDashboard({ deals, profile }) {
 
     const actuals  = invoiced.reduce((s, d) => s + fyVal(d), 0)
     const fc       = [...invoiced, ...backlog].reduce((s, d) => s + fyVal(d), 0)
-    const pipeVal  = pipeline.reduce((s, d) => s + (Number(d.value_total) || 0) * rate(d), 0)
+    // Valued the same way as every other screen: the monthly columns, falling
+    // back to the total only where there is no monthly spread. This read
+    // value_total alone, so a deal with a schedule was worth one figure here
+    // and another in Deals, and neither said which was wrong.
+    const pipeVal  = pipeline.reduce((s, d) => s + fyVal(d), 0)
 
     // Clientes únicos
     const clients = [...new Set(active.map(d => d.client).filter(Boolean))]
-
-    // Wins este ano
-    const winRate = active.filter(d => ['Invoiced','BackLog','Lost'].includes(d.stage)).length > 0
-      ? Math.round(invoiced.length / active.filter(d => ['Invoiced','BackLog','Lost','Pipeline'].includes(d.stage)).length * 100)
-      : 0
 
     // Top produto
     const products = {}
     active.forEach(d => { if (d.product) products[d.product] = (products[d.product]||0) + 1 })
     const topProduct = Object.entries(products).sort((a,b)=>b[1]-a[1])[0]?.[0]
 
-    return { actuals, fc, pipeVal, clients, winRate, topProduct,
+    return { actuals, fc, pipeVal, clients, topProduct,
              invoicedCount: invoiced.length, backlogCount: backlog.length,
              pipelineCount: pipeline.length, lostCount: lost.length,
              totalDeals: active.length }
@@ -84,8 +104,6 @@ export default function DistributorDashboard({ deals, profile }) {
     })
   }, [deals, quotaTarget])
 
-  const companyName = profile?.full_name?.split(' ')?.[0] || 'Distribuidor'
-
   return (
     <div className="p-4 space-y-5 max-w-3xl mx-auto">
 
@@ -94,6 +112,58 @@ export default function DistributorDashboard({ deals, profile }) {
         <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-sm text-gray-400 mt-0.5">{t('dist_dash_subtitle')}</p>
       </div>
+
+      {/* What is waiting, and on whom. Silent when there is nothing open. */}
+      {mine.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+          <p className="text-xs font-semibold text-amber-900 flex items-center gap-1.5">
+            <ArrowLeftRight size={14}/>
+            {mine.length === 1
+              ? t('dist_counter_one')
+              : `${mine.length} ${t('dist_counter_many')}`}
+          </p>
+          <p className="text-micro text-amber-700 mt-0.5">{t('dist_counter_hint')}</p>
+          <div className="mt-2 space-y-1">
+            {mine.slice(0, 3).map(r => (
+              <button key={r.id} type="button"
+                onClick={() => navigate(`/deals?deal=${r.deal_id}`)}
+                className="w-full flex items-center gap-2 text-left bg-white border border-amber-200
+                           rounded-lg px-2.5 py-1.5 hover:bg-amber-50">
+                <span className="min-w-0 flex-1 truncate text-xs text-gray-800">
+                  {r.deals?.client || t('dist_no_client')}
+                </span>
+                <span className="text-micro text-gray-500 shrink-0">
+                  {t('dist_asked')} {Number(r.requested_pct)}%
+                </span>
+                <span className="text-xs font-bold text-amber-800 shrink-0">
+                  → {Number(r.approved_pct)}%
+                </span>
+                <ChevronRight size={14} className="text-amber-400 shrink-0"/>
+              </button>
+            ))}
+            {mine.length > 3 && (
+              <button type="button" onClick={() => navigate('/approvals')}
+                className="text-micro text-amber-800 underline">
+                {t('dist_see_all')}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {ours.length > 0 && (
+        <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50
+                        border border-gray-200 rounded-lg px-3 py-2">
+          <Hourglass size={14} className="text-gray-400 shrink-0"/>
+          <span className="min-w-0">
+            {ours.length === 1
+              ? t('dist_pending_one')
+              : `${ours.length} ${t('dist_pending_many')}`}
+          </span>
+          <button type="button" onClick={() => navigate('/approvals')}
+            className="ml-auto text-micro underline shrink-0">{t('dist_see_all')}</button>
+        </div>
+      )}
 
       {/* KPI Cards principais */}
       <div className="grid grid-cols-2 gap-3">
@@ -109,7 +179,7 @@ export default function DistributorDashboard({ deals, profile }) {
             <div className="text-right">
               <p className="text-xs text-gray-400">{t('dash_forecast')}</p>
               <p className="text-lg font-bold text-navy">{formatK(stats.fc)}</p>
-              <p className="text-xs text-gray-400">{fcPct}% do target</p>
+              <p className="text-xs text-gray-400">{fcPct}% {t('dist_of_target')}</p>
             </div>
           </div>
           {/* Progress bar */}
@@ -131,12 +201,12 @@ export default function DistributorDashboard({ deals, profile }) {
         <div className="bg-white rounded-xl border border-gray-200 p-3">
           <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">{t('dist_pipeline')}</p>
           <p className="text-xl font-bold text-gray-900 mt-1">{formatK(stats.pipeVal)}</p>
-          <p className="text-xs text-gray-500 mt-0.5">{stats.pipelineCount} deals ativos</p>
+          <p className="text-xs text-gray-500 mt-0.5">{stats.pipelineCount} {t('dist_active_deals')}</p>
         </div>
 
         {/* Clientes */}
         <div className="bg-white rounded-xl border border-gray-200 p-3">
-          <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">Clientes</p>
+          <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">{t('dist_clients')}</p>
           <p className="text-xl font-bold text-gray-900 mt-1">{stats.clients.length}</p>
           <p className="text-xs text-gray-500 mt-0.5">{t('dist_active_clients')}</p>
         </div>

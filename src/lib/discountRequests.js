@@ -60,6 +60,31 @@ export async function requestsForDeal(dealId) {
     .order('created_at', { ascending: false })
 }
 
+/**
+ * Everything of mine that has not finished, newest first.
+ *
+ * Two states qualify and they point in opposite directions: `counter` is
+ * waiting on the person who asked, `pending` is waiting on us. A dashboard that
+ * lumps them together tells a distributor there are four things outstanding
+ * when only one of them is theirs to move, so the caller is given both and
+ * splits them.
+ *
+ * The client comes back with each row because "a counter-offer on a deal" is
+ * not something anybody can act on, and "20% countered on Hospital de Braga"
+ * is. The embedded read is filtered by the deals policy in its own right, so a
+ * partner sees their own company's and nothing else.
+ */
+export async function openRequestsFor(userId) {
+  return supabase.from('deal_discount_requests')
+    .select('id, deal_id, requested_pct, approved_pct, status, justification, ' +
+            'response_note, brand, supplier_code, route, channel, scope, ' +
+            'value_at_risk, created_at, responded_at, requested_by, ' +
+            'deals!inner(client, stage)')
+    .in('status', ['pending', 'counter'])
+    .eq('requested_by', userId)
+    .order('created_at', { ascending: false })
+}
+
 /** What a request is waiting for, in one word the screen can colour. */
 export function requestState(req) {
   if (req.status === 'counter') return 'counter'
