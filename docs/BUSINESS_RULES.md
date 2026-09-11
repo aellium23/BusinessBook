@@ -69,6 +69,13 @@ pequeno mover um cliente grande.
 **BR-014 — Margem desconhecida mostra-se como traço, não como zero.**
 `0%` lê-se como "vendido ao custo" quando significa "ninguém preencheu".
 
+**Uma linha sem custo tira o negócio inteiro da conta.** `lineCostTotals` deixa-a
+de fora e diz quantas são; só com todas respondidas é que a margem é desenhada.
+Até 11-09 havia duas leituras em desacordo: o `DealForm` somava a coluna em bruto
+e a linha contava zero (margem 100%), o `ProductLineItems` fazia
+`cost_price || unit_price` e a linha contava pelo seu preço de venda (margem 0%).
+O mesmo negócio, dois ecrãs, duas respostas opostas, e nenhuma delas a verdadeira.
+
 ---
 
 ## 3. Descontos
@@ -182,12 +189,27 @@ Peru.
 
 | De | Para |
 |---|---|
-| Lead | Pipeline, Perdido |
+| Lead | Pipeline, **Proposta apresentada**, Perdido |
 | Pipeline | Proposta apresentada, Lead, Perdido |
 | Proposta apresentada | BackLog, Pipeline, Perdido |
 | BackLog | Faturado, Proposta apresentada, Perdido |
 | Faturado | Perdido *(apenas correcção)* |
 | Perdido | Lead *(reabertura)* |
+
+**BR-050a — Lead → Proposta apresentada salta o Pipeline, de propósito.**
+Acrescentada a 11-09. As fases de um distribuidor são Lead, Proposta, BackLog e
+Perdido — o Pipeline é a nossa qualificação interna e está fora do ecrã deles de
+propósito. O formulário cruza as duas listas, e a partir de um Lead a
+intersecção era **só Perdido**: um parceiro podia desistir de um negócio e não
+podia fazê-lo avançar.
+
+A aresta está certa por si e não como remendo: um negócio que vai directo a
+orçamento é corrente, e é o que o quick deal faz — cria e cota no mesmo ecrã, e
+a fase a seguir a isso é Proposta apresentada. O Pipeline fica para os negócios
+que são mesmo qualificados antes de alguém cotar.
+
+Nada do que se reporta se mexe: os funis contam negócios pela fase em que estão,
+não pelo caminho que fizeram.
 
 **BR-051 — A tabela acima é imposta pela base de dados.**
 `deal_stage_transitions` guarda estes treze pares e um trigger em `deals` recusa

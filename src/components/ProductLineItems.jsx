@@ -3,6 +3,8 @@ import { Plus, X, Package, Tag } from 'lucide-react'
 import { formatK } from './ui'
 import { usePricing } from '../hooks/usePricing'
 import { resolvePrice, pricingRegionForCountry } from '../lib/pricing'
+import { lineCostTotals, marginFromTotals } from '../lib/margins'
+import { numOrNull } from '../lib/numbers'
 
 const LICENSE_TYPES = [
   { id: 'per_equipment', label: 'Per Equipment' },
@@ -134,7 +136,10 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
       volume:        '',
       package_size:  lt === 'per_package' ? 10000 : '',
       unit_price:    unitPrice,
-      cost_price:    unitPrice,
+      // Null, not the selling price. `license_fee` is what the product sells
+      // for; putting it in the cost box says the line makes nothing, and a line
+      // that opens claiming 0% margin is one nobody thinks to correct.
+      cost_price:    null,
       margin_pct:    0,
       discount_pct:  0,
       net_price:     isVol ? 0 : unitPrice,
@@ -157,7 +162,7 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
       volume:        '',
       package_size:  '',
       unit_price:    0,
-      cost_price:    0,
+      cost_price:    null,
       margin_pct:    0,
       discount_pct:  0,
       net_price:     0,
@@ -213,17 +218,29 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
       line.quantity = Math.ceil(vol / pkgSize)
     }
 
+    // A markup is a way of ARRIVING at a price from a cost. With no cost it
+    // arrives at zero, and that is how a line worth 297,010.56 € lost its price
+    // to somebody opening it and touching a field: cost 0 × markup 100 % = 0,
+    // written straight over the real number. So the price only follows the
+    // markup when there is a cost for it to follow FROM; otherwise the markup
+    // is recorded and the price is left exactly where somebody put it.
     if (field === 'margin_pct') {
       const margin = Math.max(0, parseFloat(value) || 0)
       line.margin_pct = margin
-      const cost = parseFloat(line.cost_price) || 0
-      line.unit_price = Math.round(cost * (1 + margin / 100) * 100) / 100
+      const cost = numOrNull(line.cost_price)
+      if (cost !== null && cost > 0) {
+        line.unit_price = Math.round(cost * (1 + margin / 100) * 100) / 100
+      }
     }
 
     if (field === 'cost_price') {
-      line.cost_price = parseFloat(value) || 0
+      // Cleared means unknown, and unknown is null — never a zero that reads as
+      // "costs us nothing" and prints a 100% margin. BR-053.
+      line.cost_price = numOrNull(value)
       const margin = parseFloat(line.margin_pct) || 0
-      if (margin > 0) line.unit_price = Math.round(line.cost_price * (1 + margin / 100) * 100) / 100
+      if (line.cost_price !== null && line.cost_price > 0 && margin > 0) {
+        line.unit_price = Math.round(line.cost_price * (1 + margin / 100) * 100) / 100
+      }
     }
 
     if (['unit_price', 'discount_pct', 'quantity', 'volume', 'package_size', 'license_type', 'margin_pct', 'cost_price'].includes(field)) {
@@ -256,9 +273,14 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
   }
 
   const totalNet     = lines.reduce((s, l) => s + (parseFloat(l.net_price) || 0), 0)
-  const totalCost    = lines.reduce((s, l) => s + (parseFloat(l.cost_price || l.unit_price) || 0) * (parseInt(l.quantity) || 1), 0)
   const totalAnnual  = lines.reduce((s, l) => s + (parseFloat(l.annual_fee) || 0), 0)
-  const gmPct = totalNet > 0 ? ((totalNet - totalCost) / totalNet * 100) : 0
+  // The same reading the deal form uses, which until 11-09 it did not: this
+  // said `cost_price || unit_price`, so an uncosted line counted at its own
+  // selling price and showed 0% margin, while the form counted it at zero and
+  // showed 100%. One deal, two screens, two opposite answers, neither of them
+  // "we do not know" — which was the true one.
+  const costTotals = lineCostTotals(lines, { quantityOf: l => l.quantity })
+  const margin     = marginFromTotals(totalNet, costTotals)
 
   return (
     <div className="space-y-2">
@@ -268,7 +290,14 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
         </p>
         <div className="flex gap-3 text-xs flex-wrap">
           {totalNet > 0 && <span className="text-gray-600 font-semibold">Total: {formatK(totalNet)}</span>}
-          {!isDistributor && gmPct > 0 && <span className="text-green-600">GM: {gmPct.toFixed(1)}%</span>}
+          {!isDistributor && margin && <span className="text-green-600">GM: {margin.pct.toFixed(1)}%</span>}
+          {/* Named rather than left blank: a missing GM reads as "no margin on
+              this deal" unless something says why it is missing. */}
+          {!isDistributor && !margin && costTotals.unknown > 0 && (
+            <span className="text-amber-700">
+              GM: — ({costTotals.unknown} {t?.('pli_uncosted') || 'without cost'})
+            </span>
+          )}
           {totalAnnual > 0 && <span className="text-blue-600">Annual: {formatK(totalAnnual)}</span>}
         </div>
       </div>
@@ -443,8 +472,15 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
 
           <div className="grid gap-2 grid-cols-2 sm:grid-cols-4">
             <div>
-              <label className="text-micro text-gray-400">Cost €</label>
-              <input className="input text-xs py-1" type="number" value={line.cost_price || line.unit_price}
+              <label className={`text-micro ${line.cost_price === null || line.cost_price === undefined || line.cost_price === '' ? 'text-amber-600' : 'text-gray-400'}`}>
+                Cost €
+              </label>
+              {/* Empty, not pre-filled with the selling price. The fallback here
+                  was `cost_price || unit_price`, which showed a line nobody had
+                  costed as costing exactly what it sells for — an invitation to
+                  leave it, and a 0% margin for the deal. */}
+              <input className="input text-xs py-1" type="number" placeholder="—"
+                value={line.cost_price ?? ''}
                 onChange={e => updateLine(idx, 'cost_price', e.target.value)}/>
             </div>
             <div>

@@ -161,6 +161,67 @@ export function lineOverTerm({
  * and the caller is expected to say so — an unpriced services line reads as
  * pure margin, which is the same trap as a licence with no cost.
  */
+/**
+ * What a set of deal lines costs us, when some of them will not say.
+ *
+ * The one definition, because there were two and they disagreed by the whole
+ * margin. `DealForm` summed the cost column raw, so a line with no cost counted
+ * as zero and the deal came out at 100 % margin. `ProductLineItems` did
+ * `cost_price || unit_price`, so the same line counted at its own selling price
+ * and the deal came out at 0 %. The same deal, two screens, two opposite
+ * answers, and neither of them the true one — which is that we do not know.
+ *
+ * So: unknown lines are left out of the sum and counted separately. A total
+ * built from part of the lines is a total nobody may quote a margin from, and
+ * `complete` is what says so.
+ *
+ * A zero that somebody typed is kept. It is an answer.
+ *
+ * @param lines       deal product rows, as they come back from the view
+ * @param costOf      how to read the cost off a row (default: `cost_price`)
+ * @param quantityOf  how many of it (default: 1 — the quote already extends)
+ */
+export function lineCostTotals(lines, {
+  costOf = l => l?.cost_price,
+  quantityOf = () => 1,
+} = {}) {
+  let cost = 0
+  let known = 0
+  let unknown = 0
+
+  for (const l of lines || []) {
+    const c = costOf(l)
+    if (c === null || c === undefined || c === '' || !Number.isFinite(Number(c))) {
+      unknown += 1
+      continue
+    }
+    cost += Number(c) * (Number(quantityOf(l)) || 1)
+    known += 1
+  }
+
+  return {
+    cost: Math.round((cost + Number.EPSILON) * 100) / 100,
+    known,
+    unknown,
+    // Every line answered. Only then is a margin off this total a real margin.
+    complete: unknown === 0 && known > 0,
+  }
+}
+
+/**
+ * Gross margin on a total, or null when the cost behind it is incomplete.
+ *
+ * Null, not zero and not a hundred. BR-014: a margin nobody can compute is a
+ * dash on the screen, and the two readings this replaces were each a confident
+ * number standing where a dash belonged.
+ */
+export function marginFromTotals(pvp, totals) {
+  const p = Number(pvp) || 0
+  if (!totals?.complete || p <= 0) return null
+  const gm = Math.round((p - totals.cost + Number.EPSILON) * 100) / 100
+  return { gm, pct: Math.round((gm / p) * 1000) / 10 }
+}
+
 export function servicesEconomics({ manDays = 0, manDayCost = null, servicesPvp = 0 }) {
   const days = Math.max(0, num(manDays) ?? 0)
   const rate = num(manDayCost)

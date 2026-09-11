@@ -146,7 +146,7 @@ afirma nada — são linhas vazias, e pertencem ao DATA-01.
 
 ---
 
-## DATA-02 · P2 · Uma linha guarda três números que não podem ser todos verdade
+## DATA-02 · ✅ FECHADO · Uma linha guardava três números que não podiam ser todos verdade
 
 **Encontrado na limpeza do SEC-05.** A linha do `testelio23` (CWM Dose,
 297.010,56 €) tinha custo 0 e `margin_pct` 100 — e `margin_pct` é **markup sobre
@@ -162,24 +162,32 @@ significa.
 o preço recalculava-se para **zero** — os 297 mil desapareciam a meio de uma
 edição que ninguém pediu, na maior linha da tabela.
 
-O update do SEC-05 desarmou este caso: com `margin_pct` a nulo a condição
-`margin > 0` é falsa e o preço deixa de ser recalculado. **O mecanismo continua
-lá** para qualquer linha futura em que alguém escreva um markup sobre um custo
-que não tem.
+O update do SEC-05 desarmou esta linha. **O mecanismo foi fechado a 11-09**: o
+preço só segue o markup quando há um custo de onde partir. Sem custo, o markup é
+registado e o preço fica exactamente onde alguém o pôs — um markup é uma maneira
+de *chegar* a um preço a partir de um custo, e sem custo chega a zero.
+
+De caminho, uma linha nova deixou de nascer com `cost_price` igual ao preço de
+venda. `license_fee` é o que o produto **vende**, e pô-lo na caixa de custo diz
+que a linha não ganha nada — uma linha que abre a declarar 0% de margem é uma
+que ninguém se lembra de corrigir. Nasce vazia e a caixa fica âmbar até alguém
+responder.
 
 ---
 
-## SPEC-02 · P2 · Dois ecrãs discordam sobre uma linha sem custo
+## SPEC-02 · ✅ FECHADO · Dois ecrãs discordavam sobre uma linha sem custo
 
 **O quê.** `DealForm` soma `n(l.cost_price)` em bruto: custo zero dá margem
 **100%**. `ProductLineItems` faz `cost_price || unit_price`: o mesmo zero dá custo
 igual ao preço e margem **0%**. O mesmo negócio, dois ecrãs, duas margens
 opostas.
 
-Depois do SEC-05 as linhas afectadas dizem ambas "desconhecido", que é a resposta
-certa. A divergência em si sobrevive para qualquer linha nova, e o
-`cost_price || unit_price` é também o que preenche a caixa de custo com o preço
-de venda — que é uma maneira de sugerir a quem lá chega que a margem é zero.
+**Fechado a 11-09** com uma definição só: `lineCostTotals` em
+`src/lib/margins.js`, que ambos passam a chamar. Uma linha sem custo fica **fora**
+da soma e é contada à parte; a margem só é desenhada quando todas responderam, e
+até lá é um traço com a contagem das que faltam ao lado. Nem 100% nem 0%: a
+resposta verdadeira era "não sabemos", e era a única que nenhum dos dois sabia
+dizer.
 
 ---
 
@@ -196,7 +204,7 @@ de dados permite.
 
 ---
 
-## UX-02 · P2 · Um distribuidor não consegue fazer avançar um Lead
+## UX-02 · ✅ FECHADO · Um distribuidor não conseguia fazer avançar um Lead
 
 **O quê.** O ecrã cruza `DIST_STAGES` (Lead, Proposta apresentada, BackLog,
 Perdido) com as transições permitidas. Num Lead as permitidas são Pipeline e
@@ -204,10 +212,17 @@ Perdido, e Pipeline não está na lista de um distribuidor — logo a caixa ofer
 **só Perdido**. Para chegar a Proposta apresentada tem de passar por uma fase que
 não lhe é mostrada.
 
-**Já era assim antes do trigger.** O trigger não o causou; torna-o permanente, e
-por isso fica escrito. A correcção é decidir qual das duas listas está errada: ou
-um distribuidor vê Pipeline, ou Lead → Proposta apresentada passa a ser uma
-transição legítima.
+**Já era assim antes do trigger.** O trigger não o causou; tornava-o permanente.
+
+**Fechado a 11-09:** Lead → Proposta apresentada passa a transição legítima, nos
+dois sítios onde a máquina vive. A aresta está certa por si e não como remendo —
+um negócio que vai directo a orçamento é corrente, e é o que o quick deal faz.
+O Pipeline fica para os que são mesmo qualificados antes de alguém cotar, e o
+distribuidor deixa de ver uma fase que não é dele.
+
+**O teste que faltava não era de nenhuma das duas listas, era do cruzamento.**
+`writeGuards.test.js` percorre agora todas as fases de um distribuidor e exige
+que reste um movimento para a frente em cada uma — desistir não conta.
 
 ---
 

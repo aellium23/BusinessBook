@@ -4,15 +4,32 @@
 /**
  * DEAL_TRANSITIONS — allowed next stages for each deal stage.
  *
- * Lead           → Pipeline, Lost
+ * Lead           → Pipeline, Offer Presented, Lost
  * Pipeline       → Offer Presented, Lead, Lost
  * Offer Presented→ BackLog, Pipeline, Lost
  * BackLog        → Invoiced, Offer Presented, Lost
  * Invoiced       → (terminal — no further transitions, except Lost for corrections)
  * Lost           → Lead (reopen only)
+ *
+ * Lead → Offer Presented skips Pipeline on purpose, and was added on 11-09.
+ *
+ * A distributor's stages are Lead, Offer Presented, BackLog and Lost — Pipeline
+ * is our own qualification step and was deliberately kept off their screen. The
+ * form intersects the two lists, so from a Lead the only move a distributor was
+ * offered was **Lost**. They could not advance a deal at all, and the trigger
+ * added the same day would have made that permanent.
+ *
+ * The edge is right on its own terms rather than as a workaround: a deal that
+ * goes straight to a quote is ordinary, and it is exactly what the quick deal
+ * does — it creates the deal and quotes it on one screen, and the stage that
+ * follows that is Offer Presented, not Pipeline. Pipeline stays for the deals
+ * that are genuinely qualified before anybody quotes them.
+ *
+ * Nothing reported moves: the funnels count deals by the stage they are in, not
+ * by the path they took to get there.
  */
 export const DEAL_TRANSITIONS = {
-  'Lead':             ['Pipeline', 'Lost'],
+  'Lead':             ['Pipeline', 'Offer Presented', 'Lost'],
   'Pipeline':         ['Offer Presented', 'Lead', 'Lost'],
   'Offer Presented':  ['BackLog', 'Pipeline', 'Lost'],
   'BackLog':          ['Invoiced', 'Offer Presented', 'Lost'],
