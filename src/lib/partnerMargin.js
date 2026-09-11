@@ -148,9 +148,110 @@ export function protectedMarginPct(channelPct, { overCap = false } = {}) {
 }
 
 /**
- * One partner deal, end to end.
+ * The margin a partner keeps, where that is a ratio and not a basis.
  *
- * @param listPrice  the published regional list, before any deal discount
+ * A named programme states a net and a transfer as percentages of a list. The
+ * two percentages are expressed against the same list, so the margin between
+ * them survives whatever that list turns out to be: 60 and 42 is 30 %, whether
+ * the 100 is a customer price or a transfer price. That is why the programmes
+ * still say something usable after the correction below.
+ */
+export function programmeMarginPct(key) {
+  const p = key ? NAMED_PROGRAMMES.find(x => x.key === key) : null
+  if (!p || !p.netPctOfList) return null
+  return pct((p.netPctOfList - p.transferPctOfList) / p.netPctOfList * 100)
+}
+
+/**
+ * A channel deal read from OUR side, which is the only side we hold.
+ *
+ * The correction this exists for. R1–R4 is the transfer price: the list a
+ * distributor buys at, and the same list a Fujifilm subsidiary buys at. It is
+ * nobody's selling price. So on a TIMED deal the figure our quote produces is
+ * already what they pay us — and the version before this called that "customer
+ * pays", took another 40 % off it for a "transfer", and printed a number that
+ * existed on neither screen:
+ *
+ *   quoted 65,574   →  said: customer 65,574, transfer 39,344, partner 26,229
+ *                      is:   partner pays 65,574, and sells it on at their own
+ *                            price, which we do not hold
+ *
+ * What we know is the left-hand side: our transfer list, what we actually
+ * quoted off it, and therefore what the discount cost us. What the customer
+ * pays is the partner's decision — estimated here at the protected target so
+ * the screen can say something, and flagged as an estimate so nobody reports
+ * it. Where the partner has saved their own quote, `deal_channel` holds the
+ * real number and it should be preferred; that is not wired yet.
+ *
+ * @param listPrice      our published transfer list for these lines
+ * @param transferPrice  what we are actually quoting the partner
+ * @param role           channel role key; 'direct' means there is no partner
+ * @param programme      a named-programme key, which sets the partner's margin
+ */
+export function channelEconomics({ listPrice, transferPrice, role = 'direct', programme = null }) {
+  const list = num(listPrice) ?? 0
+  const transfer = num(transferPrice) ?? 0
+  const r = roleFor(role)
+
+  if (list <= 0 || transfer <= 0 || r.key === 'direct') {
+    return {
+      role: r.key, channelPct: r.channelPct, applies: false, programme: null,
+      discountPct: 0, overCap: false,
+      transfer: money(transfer), cwmRevenue: money(transfer),
+      cwmRevenueAtList: money(list), givenUp: 0,
+      customerPrice: 0, customerEstimated: false,
+      partnerMargin: 0, partnerMarginPct: 0, assumedMarginPct: 0,
+    }
+  }
+
+  // The only discount on this screen that is ours to give: off our own transfer
+  // list, straight out of our own revenue. Nothing here is a concession to the
+  // customer — we do not set the customer's price on a channel deal.
+  const discountPct = pct((list - transfer) / list * 100)
+  const prog = programmeMarginPct(programme)
+  const assumedMarginPct = prog ?? PROTECTED_MARGIN.target
+  // What the partner sells it for, if they take the margin we protect for them.
+  // An estimate, and the caller has to say so: a partner who quotes 10 % above
+  // this has not broken a rule, they have priced their own deal.
+  const customerPrice = money(transfer / (1 - assumedMarginPct / 100))
+
+  return {
+    role: r.key,
+    channelPct: r.channelPct,
+    applies: true,
+    programme: prog !== null ? programme : null,
+    discountPct,
+    overCap: discountPct > DEAL_DISCOUNT_CAP_PCT,
+    // Our revenue IS the transfer, and on this model the transfer is simply
+    // what we quoted. No second deduction.
+    transfer: money(transfer),
+    cwmRevenue: money(transfer),
+    cwmRevenueAtList: money(list),
+    givenUp: money(Math.max(0, list - transfer)),
+    customerPrice,
+    customerEstimated: true,
+    partnerMargin: money(customerPrice - transfer),
+    partnerMarginPct: assumedMarginPct,
+    assumedMarginPct,
+  }
+}
+
+/**
+ * One partner deal read from a CUSTOMER-facing list, end to end.
+ *
+ * ⚠ Not wired to the quick deal, and it cannot be until somebody says where a
+ * customer list price lives. This models the discount architecture as briefed —
+ * the customer pays `netPrice` off a published list, and the transfer steps
+ * down beneath it to protect the partner's margin — and every number in it is
+ * measured against a list that is the CUSTOMER's. R1–R4 is not that list; it is
+ * the transfer price a distributor or a Fujifilm subsidiary buys at. Feeding it
+ * the regional list is what produced a transfer 40 % below a figure that was
+ * already the transfer.
+ *
+ * Kept, rather than deleted, because the policy it encodes is real and the
+ * tests below are the record of it. See BIZ-05 in docs/BACKLOG.md.
+ *
+ * @param listPrice  the published CUSTOMER list, before any deal discount
  * @param netPrice   what the customer actually pays
  * @param role       channel role key; 'direct' means there is no partner
  * @param programme  a named-programme key, which overrides the transfer

@@ -110,9 +110,31 @@ Renovação 25%, Referral 15%. Saíram das opções em 11-09, mas a aritmética
 continua a saber preçá-los, para que uma proposta guardada a 28% continue a
 valer 28%.
 
-**BR-032 — O custo do parceiro é a pricelist regional da VGT.**
-A escada R1/R2/R3 no escalão de volume aplicável — não o preço por produto da
-autorização.
+**BR-032 — R1–R4 é preço de TRANSFERÊNCIA, não preço de cliente.**
+A escada regional é a lista de compra de quem está a jusante de nós: o
+distribuidor **e** a subsidiária Fujifilm. Não é o preço de venda de ninguém.
+
+Consequências, e são três:
+
+1. **O custo do parceiro é essa lista**, no escalão a que o volume chega. Onde a
+   autorização fixa um preço para aquele produto naquele país, esse preço ganha.
+2. **O que o cliente paga é decisão do parceiro.** Nós não o sabemos. O ecrã
+   estima-o à margem protegida — 35% — e diz que é uma estimativa.
+3. **Um desconto sobre essa lista sai inteiro da nossa receita.** Não há
+   concessão ao cliente final num negócio de canal, porque não somos nós que
+   lhe pomos o preço.
+
+*Corrigido a 11-09, depois de eu ter deduzido o contrário e ter sido corrigido.*
+A banda de canal chamava "o cliente paga" ao que o parceiro nos paga, e tirava-
+lhe outros 40% para inventar uma transferência. Nos números do negócio
+"test chile": dizia cliente 65.574 € / transferência 39.344 €, quando o parceiro
+nos paga 65.574 € e vende ao hospital por cerca de 100.883 €.
+
+**BR-036 — Nunca escrever uma estimativa numa coluna com nome de facto.**
+`deal_channel.end_customer_price` e `partner_margin_pct` ficam a **nulo** quando
+somos nós a cotar um negócio de canal. Uma estimativa que entra numa coluna
+chamada `end_customer_price` deixa de ser estimativa no primeiro relatório que
+a leia. Só a proposta do próprio parceiro as preenche, porque só ela as sabe.
 
 **BR-033 — Região de preço e papel de canal são coisas diferentes.**
 A região (R1/R2/R3) diz quanto vale a lista naquele país, e deriva-se do país.
