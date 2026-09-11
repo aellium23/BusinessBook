@@ -3,6 +3,7 @@ import { useProducts, createProduct, updateProduct, deleteProduct,
          fetchProductCosts, updateProductCost } from '../hooks/useProducts'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useLoadFailures, LoadFailureBanner } from '../hooks/useLoadFailures'
 import { useTranslation } from '../hooks/useTranslation'
 import { Modal, Spinner, EmptyState, formatK, CollapsibleSection } from '../components/ui'
 import SearchableSelect from '../components/SearchableSelect'
@@ -594,16 +595,22 @@ export default function Products() {
   const [confirmDel, setConfirmDel] = useState(null)
   const [expandedCats, setExpandedCats] = useState({})
   const [compCounts, setCompCounts] = useState({})
+  // How many partners are authorised for each product. A failed read shows zero
+  // beside every product, which reads as a catalogue nobody may sell.
+  const { failed, load, fail } = useLoadFailures()
 
   const { products, loading, refetch } = useProducts({ search: search || undefined })
 
   useEffect(() => {
-    supabase.from('product_components').select('product_id').then(({ data }) => {
-      if (!data) return
-      const counts = {}
-      for (const r of data) { counts[r.product_id] = (counts[r.product_id] || 0) + 1 }
-      setCompCounts(counts)
-    }).catch(() => {})
+    supabase.from('product_components').select('product_id')
+      .then(load(t('lf_products'), data => {
+        if (!data) return
+        const counts = {}
+        for (const r of data) { counts[r.product_id] = (counts[r.product_id] || 0) + 1 }
+        setCompCounts(counts)
+      }))
+      .catch(fail(t('lf_products')))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [products])
 
   const categories = useMemo(() => {
@@ -641,6 +648,8 @@ export default function Products() {
 
   return (
     <div className="space-y-4">
+      <LoadFailureBanner failed={failed} t={t} />
+
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-lg font-bold text-gray-900">{t('products_title')}</h1>

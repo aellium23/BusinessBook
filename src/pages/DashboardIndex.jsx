@@ -43,7 +43,7 @@ export default function DashboardIndex() {
 
   useEffect(() => {
     if (isDistributor) {
-      try { localStorage.setItem(`${STORAGE_KEY}_dist`, distView) } catch {}
+      try { localStorage.setItem(`${STORAGE_KEY}_dist`, distView) } catch { /* private window */ }
     }
   }, [distView, isDistributor])
 
@@ -57,7 +57,7 @@ export default function DashboardIndex() {
 
   useEffect(() => {
     if (!isDistributor) {
-      try { localStorage.setItem(STORAGE_KEY, view) } catch {}
+      try { localStorage.setItem(STORAGE_KEY, view) } catch { /* private window */ }
     }
   }, [view, isDistributor])
 

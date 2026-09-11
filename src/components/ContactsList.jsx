@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import SearchableSelect from './SearchableSelect'
 import { CONTACT_ROLES, contactRole } from '../constants'
+import { useTranslation } from '../hooks/useTranslation'
+import { useLoadFailures, LoadFailureBanner } from '../hooks/useLoadFailures'
 
 const ALL_COUNTRIES = ['Portugal','Spain','France','Germany','Italy','Netherlands','Belgium','UK','Switzerland','Sweden','Norway','Denmark','Finland','Austria','Poland','Czech Republic','Romania','Greece','Turkey','UAE','Saudi Arabia','Qatar','Kuwait','Egypt','Morocco','South Africa','Israel','Mexico','Brazil','Argentina','Chile','Colombia','Peru','Japan','China','South Korea','Australia','India','Singapore','USA','Canada']
 import {
@@ -192,11 +194,13 @@ export function ContactEditor({ contact, bu, clientName, onClose, onSaved }) {
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState(null)
   const [existingClients, setExistingClients] = useState([])
+  const { t } = useTranslation()
+  const { failed, load, fail } = useLoadFailures()
 
   useEffect(() => {
-    supabase.from('deals').select('client').then(({ data }) => {
+    supabase.from('deals').select('client').then(load(t('lf_deals'), data => {
       if (data) setExistingClients([...new Set(data.map(d => d.client).filter(Boolean))].sort())
-    }).catch(() => {})
+    })).catch(fail(t('lf_deals')))
   }, [])
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
@@ -241,6 +245,7 @@ export function ContactEditor({ contact, bu, clientName, onClose, onSaved }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose}/>
+      <LoadFailureBanner failed={failed} t={t} className="absolute top-2 inset-x-2 z-10" />
       <div className="relative bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-3xl shadow-2xl flex flex-col"
         style={{ maxHeight: '90dvh' }}>
 

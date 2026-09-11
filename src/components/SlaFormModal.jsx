@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase'
 import SearchableSelect from './SearchableSelect'
 import { validateSLA } from '../lib/validation'
 import { useTranslation } from '../hooks/useTranslation'
+import { useLoadFailures, LoadFailureBanner } from '../hooks/useLoadFailures'
+import { logger } from '../lib/logger'
 import { Modal, CollapsibleSection } from './ui'
 import { formatK } from './ui'
 import { SLA_STATUSES, SLA_TYPES, BILLING_MODELS, BILLING_FREQUENCIES } from '../constants'
@@ -53,6 +55,7 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState(null)
+  const { failed, load, fail } = useLoadFailures()
   const [fieldErrors, setFieldErrors] = useState({})
   const [clients, setClients] = useState([])
   const [renamePlan, setRenamePlan] = useState(null)
@@ -61,18 +64,43 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
   const [addProductId, setAddProductId] = useState('')
 
   useEffect(() => {
-    supabase.from('deals').select('client').then(({ data }) => {
+    supabase.from('deals').select('client').then(load(t('lf_deals'), data => {
       if (data) setClients([...new Set(data.map(d => d.client).filter(Boolean))].sort())
-    }).catch(() => {})
+    })).catch(fail(t('lf_deals')))
     supabase.from('products').select('id, name, sku, category, annual_fee').eq('active', true).order('name')
-      .then(({ data }) => { if (data) setCatalogProducts(data) }).catch(() => {})
+      .then(load(t('lf_products'), data => { if (data) setCatalogProducts(data) }))
+      .catch(fail(t('lf_products')))
     if (sla?.id) {
       supabase.from('sla_products').select('*').eq('sla_id', sla.id).order('created_at')
-        .then(({ data }) => { if (data) setSlaProducts(data) }).catch(() => {})
+        .then(load(t('lf_lines'), data => { if (data) setSlaProducts(data) }))
+        .catch(fail(t('lf_lines')))
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sla?.id])
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
+
+  /**
+   * One product line, saved as the field loses focus.
+   *
+   * These three boxes used to write with `.then(() => {}).catch(() => {})` and
+   * throw the result away. A save that the database refused left the number the
+   * person had typed sitting in the box, looking saved — and the annual fee one
+   * went further: it then added that number into the contract total on screen,
+   * so the contract was worth more here than in the database.
+   *
+   * @returns whether it was written, so the caller can decline to act on it.
+   */
+  async function saveLine(id, patch) {
+    const { error: e } = await supabase.from('sla_products').update(patch).eq('id', id)
+    if (e) {
+      logger.error('SLA line not saved', { id, error: e.message })
+      setError(t('sla_line_save_failed') || 'That change was not saved. Check your connection and try again.')
+      return false
+    }
+    setError(null)
+    return true
+  }
 
   const monthlyRecognition = useMemo(() => {
     const annualVal = parseFloat(form.annual_value) || 0
@@ -284,6 +312,7 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
       )}
       <div className="space-y-2">
         {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+        <LoadFailureBanner failed={failed} t={t} />
 
         <div className="grid grid-cols-3 gap-3">
           <div>
@@ -430,7 +459,7 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
                     <input className="input text-xs py-1" type="number" defaultValue={sp.unit_price ?? 0}
                       onBlur={async (e) => {
                         const cost = parseFloat(e.target.value) || 0
-                        await supabase.from('sla_products').update({ unit_price: cost }).eq('id', sp.id).then(() => {}).catch(() => {})
+                        await saveLine(sp.id, { unit_price: cost })
                       }}/>
                   </div>
                   <div>
@@ -438,7 +467,7 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
                     <input className="input text-xs py-1 border-blue-200" type="number" defaultValue={sp.annual_value ?? 0}
                       onBlur={async (e) => {
                         const val = parseFloat(e.target.value) || 0
-                        await supabase.from('sla_products').update({ annual_value: val }).eq('id', sp.id).then(() => {}).catch(() => {})
+                        if (!(await saveLine(sp.id, { annual_value: val }))) return
                         setSlaProducts(prev => prev.map(p => p.id === sp.id ? { ...p, annual_value: val } : p))
                         const newTotal = slaProducts.map(p => p.id === sp.id ? { ...p, annual_value: val } : p)
                           .reduce((s, p) => s + (Number(p.annual_value) || 0), 0)
@@ -450,7 +479,7 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
                     <input className="input text-xs py-1" type="number" min="1" defaultValue={sp.quantity ?? 1}
                       onBlur={async (e) => {
                         const qty = parseInt(e.target.value) || 1
-                        await supabase.from('sla_products').update({ quantity: qty }).eq('id', sp.id).then(() => {}).catch(() => {})
+                        await saveLine(sp.id, { quantity: qty })
                       }}/>
                   </div>
                 </div>

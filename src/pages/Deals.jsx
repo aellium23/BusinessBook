@@ -9,6 +9,7 @@ import DealForm from '../components/DealForm'
 import KanbanBoard from '../components/KanbanBoard'
 import { Search, Download, RefreshCw, LayoutGrid, List, Globe, Zap } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
+import { useLoadFailures, LoadFailureBanner } from '../hooks/useLoadFailures'
 import { STAGES, WEIGHTS, REGIONS, BUS, MONTHS, MONTHS_K, FORECAST_CATEGORIES, resolveForecastCategory } from '../constants'
 import { canTransition, getAllowedTransitions } from '../lib/stateMachine'
 import { canEditDeal as canEditDealRule } from '../lib/roles'
@@ -65,6 +66,10 @@ export default function Deals() {
   const canEditDeal = deal => canEditDealRule(profile, deal, { canEdit, isAdmin, editOwnOnly })
 
   const { t } = useTranslation()
+  // The badges on a deal card come from these lines; a failed read takes the
+  // brand and product chips off every card, which reads as deals with no
+  // products in them.
+  const { failed, load, fail } = useLoadFailures()
 
   // Filtros
   const [search, setSearch]     = useState('')
@@ -97,7 +102,7 @@ export default function Deals() {
   })
 
   useEffect(() => {
-    try { localStorage.setItem('bb_deals_view', viewMode) } catch {}
+    try { localStorage.setItem('bb_deals_view', viewMode) } catch { /* private window */ }
   }, [viewMode])
 
   // Debounce search 300ms to avoid a network call on every keystroke
@@ -234,9 +239,11 @@ export default function Deals() {
     if (!rawDeals.length) return
     supabase.from('deal_open_discounts').select('*')
       .in('deal_id', rawDeals.map(d => d.id))
-      .then(({ data }) => setOpenDiscounts(
+      .then(load(t('lf_requests'), data => setOpenDiscounts(
         Object.fromEntries((data || []).map(r => [r.deal_id, r]))
-      ))
+      )))
+      .catch(fail(t('lf_requests')))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rawDeals])
 
   useEffect(() => {
@@ -244,7 +251,7 @@ export default function Deals() {
     const ids = rawDeals.map(d => d.id)
     supabase.from('deal_products').select('deal_id, product_name, product:product_id(brand, name, category)')
       .in('deal_id', ids)
-      .then(({ data }) => {
+      .then(load(t('lf_lines'), data => {
         if (!data) return
         const bMap = {}, pMap = {}, cMap = {}
         for (const row of data) {
@@ -260,8 +267,9 @@ export default function Deals() {
         setDealBrands(Object.fromEntries(Object.entries(bMap).map(([k, v]) => [k, [...v]])))
         setDealProducts(Object.fromEntries(Object.entries(pMap).map(([k, v]) => [k, [...v]])))
         setDealCategories(Object.fromEntries(Object.entries(cMap).map(([k, v]) => [k, [...v]])))
-      })
-      .catch(() => {})
+      }))
+      .catch(fail(t('lf_lines')))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rawDeals])
 
   // Totals computed from the client-side filtered deals (not the hook's raw totals)
@@ -375,6 +383,8 @@ export default function Deals() {
 
   return (
     <div className="p-4 space-y-4 max-w-4xl mx-auto">
+
+      <LoadFailureBanner failed={failed} t={t} />
 
       {/* Discount tracking — visible for admin/manager AND distributors */}
       {(() => {

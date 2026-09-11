@@ -4,6 +4,8 @@ import { supabase } from '../../lib/supabase'
 import { MONTHS_K, WEIGHTS, normalizeBusinessModel } from '../../constants'
 import { Copy, Check, Users, Package, Building2, Info, RefreshCw, Filter, Download } from 'lucide-react'
 import { exportSalesByProduct, exportInternalSales } from './exportHQExcel'
+import { useTranslation } from '../../hooks/useTranslation'
+import { useLoadFailures, LoadFailureBanner } from '../../hooks/useLoadFailures'
 
 const MONTHS_LABEL = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 
@@ -154,13 +156,19 @@ export default function EST1Builder() {
   const [stages, setStages] = useState(STAGE_OPTIONS)
   const [includeArr, setIncludeArr] = useState(true)
   const [slas, setSlas] = useState([])
+  const { t } = useTranslation()
+  // The recurring half of the forecast. Without these the EST1 shows only the
+  // deals, and a forecast missing its support base is not a small forecast — it
+  // is a wrong one, and it looks exactly like a right one.
+  const { failed, load, fail } = useLoadFailures()
 
   useEffect(() => {
     supabase.from('slas')
       .select('id, status, annual_value, start_date, end_date, bu, client, product, sales_type, deal:deal_id(sales_type)')
       .in('status', ['warranty', 'active', 'pending_renewal'])
-      .then(({ data }) => setSlas(data || []))
-      .catch(() => {})
+      .then(load(t('lf_slas'), data => setSlas(data || [])))
+      .catch(fail(t('lf_slas')))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const toggleStage = (s) => setStages(prev =>
@@ -307,6 +315,8 @@ export default function EST1Builder() {
 
   return (
     <div className="space-y-5">
+      <LoadFailureBanner failed={failed} t={t} />
+
       {/* Controls */}
       <div className="space-y-3">
         <p className="text-sm text-gray-400">

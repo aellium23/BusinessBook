@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useCompanyScope } from '../hooks/useCompanyScope'
 import { useDeals } from '../hooks/useDeals'
 import { useTranslation } from '../hooks/useTranslation'
+import { useLoadFailures, LoadFailureBanner } from '../hooks/useLoadFailures'
 import { Spinner, formatK } from '../components/ui'
 import Gauge from '../components/Gauge'
 import { MONTHS_K } from '../constants'
@@ -17,7 +18,7 @@ function CollapsibleSection({ id, title, icon, children, defaultOpen = true }) {
     try { const v = localStorage.getItem(key); return v === null ? defaultOpen : v === '1' } catch { return defaultOpen }
   })
   const toggle = useCallback(() => {
-    setOpen(o => { const n = !o; try { localStorage.setItem(key, n ? '1' : '0') } catch {}; return n })
+    setOpen(o => { const n = !o; try { localStorage.setItem(key, n ? '1' : '0') } catch { /* private window */ }; return n })
   }, [key])
   return (
     <div>
@@ -56,6 +57,7 @@ function sumMonthly(row, monthKeys) {
 
 // ── Distributor Dashboard ─────────────────────────────────────────────────
 function DistributorDashboard() {
+  const { t } = useTranslation()
   const { profile, company } = useAuth()
   const { deals: allDeals, loading } = useDeals()
   const [quota, setQuota] = useState(null)
@@ -65,12 +67,17 @@ function DistributorDashboard() {
 
   // The target, newest year first: taking whichever row came back first is a
   // coin toss once there is more than one year of them.
+  //
+  // A target that fails to load leaves the gauge at nothing, which a partner
+  // reads as "no target set for me" — so it is named instead.
+  const { failed, load, fail } = useLoadFailures()
   useEffect(() => {
     if (!companyId) return
     supabase.from('quotas').select('*').eq('company_id', companyId)
       .order('fiscal_year', { ascending: false }).limit(1)
-      .then(({ data }) => { if (data?.length) setQuota(data[0]) })
-      .catch(() => {})
+      .then(load(t('lf_quota'), data => { if (data?.length) setQuota(data[0]) }))
+      .catch(fail(t('lf_quota')))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companyId])
 
   // Filter deals for this distributor
@@ -119,6 +126,8 @@ function DistributorDashboard() {
 
   return (
     <div className="space-y-5">
+      <LoadFailureBanner failed={failed} t={t} />
+
       {/* Company header */}
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-navy/10 text-navy flex items-center justify-center text-lg font-bold">
@@ -266,19 +275,23 @@ export default function DashboardSummary({ selectedBU = '' }) {
   // Actuals source: 'BB' = sum of invoiced deals (CRM) · 'SAP' = budget ACT cycle (official P&L)
   const [source, setSource] = useState('BB')
 
+  // Every headline on this page is a sum, and a sum of nothing is zero — which
+  // reads as a quarter with no revenue rather than a read that did not happen.
+  const { failed, load, fail } = useLoadFailures()
+
   useEffect(() => {
     supabase.from('budget').select('*')
-      .then(({ data }) => setBudget(data || []))
-      .catch(() => {})
+      .then(load(t('lf_budget'), data => setBudget(data || [])))
+      .catch(fail(t('lf_budget')))
     supabase.from('accounts').select('id, client_type')
-      .then(({ data }) => {
+      .then(load(t('lf_accounts'), data => {
         if (data) setAccountTypes(Object.fromEntries(data.map(a => [a.id, a.client_type])))
-      }).catch(() => {})
+      })).catch(fail(t('lf_accounts')))
     supabase.from('fy25_actuals').select('*')
-      .then(({ data }) => setFy25(data || []))
-      .catch(() => {})
+      .then(load(t('lf_fy25'), data => setFy25(data || [])))
+      .catch(fail(t('lf_fy25')))
     supabase.from('slas').select('status, annual_value, revenue_by_fy, bu, product, sales_type')
-      .then(({ data }) => {
+      .then(load(t('lf_slas'), data => {
         if (!data || !Array.isArray(data)) return
         try {
         const active = data.filter(s => ['warranty','active','pending_renewal'].includes(s.status))
@@ -322,11 +335,16 @@ export default function DashboardSummary({ selectedBU = '' }) {
           extValue, intValue, extByBU, intByBU,
           revenueByFY, byBU,
         })
-        } catch {}
-      }).catch(() => {})
+        } catch (e) {
+          // Not a preference: if this throws, every recurring figure on the page
+          // keeps its default of zero and the read that produced it succeeded,
+          // so nothing else would ever mention it.
+          fail(t('lf_slas'))(e)
+        }
+      })).catch(fail(t('lf_slas')))
     supabase.from('forecast_snapshots').select('*').order('created_at', { ascending: false }).limit(20)
-      .then(({ data, error }) => {
-        if (error || !data?.length) return
+      .then(load(t('lf_forecast'), data => {
+        if (!data?.length) return
         const latest = {}
         for (const s of data) {
           const k = `${s.cycle}-${s.bu}-${s.pl_key}`
@@ -339,7 +357,8 @@ export default function DashboardSummary({ selectedBU = '' }) {
         const cycle = data[0]?.cycle
         const date = data[0]?.created_at
         if (fctTotal > 0) setManualFct({ total: fctTotal, cycle, date })
-      }).catch(() => {})
+      })).catch(fail(t('lf_forecast')))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const cycle = useMemo(() => activeCycleNow(), [])
@@ -501,6 +520,9 @@ export default function DashboardSummary({ selectedBU = '' }) {
 
   return (
     <div className="space-y-6">
+      {/* Above everything, because it changes how every figure below is read. */}
+      <LoadFailureBanner failed={failed} t={t} />
+
       {/* Margin that is not ours yet. Silent unless something is open. */}
       <DiscountRisk selectedBU={selectedBU}/>
 

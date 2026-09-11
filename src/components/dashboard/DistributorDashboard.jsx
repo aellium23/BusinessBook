@@ -6,6 +6,7 @@ import {
   ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer
 } from 'recharts'
 import { useTranslation } from '../../hooks/useTranslation'
+import { useLoadFailures, LoadFailureBanner } from '../../hooks/useLoadFailures'
 import { MONTHS_K } from '../../constants'
 import { openRequestsFor } from '../../lib/discountRequests'
 import { ArrowLeftRight, Hourglass, ChevronRight } from 'lucide-react'
@@ -13,6 +14,9 @@ import { ArrowLeftRight, Hourglass, ChevronRight } from 'lucide-react'
 // ── Dashboard do Distribuidor ─────────────────────────────────────────────────
 export default function DistributorDashboard({ deals, profile }) {
   const { t } = useTranslation()
+  // A target that fails to load leaves the gauge at nothing, which a partner
+  // reads as "no target has been set for me".
+  const { failed, load, fail } = useLoadFailures()
   const navigate = useNavigate()
   // null = nobody has set one; a number = the target. Not the same thing.
   const [quotaTarget, setQuotaTarget] = useState(null)
@@ -48,11 +52,12 @@ export default function DistributorDashboard({ deals, profile }) {
       .eq('company_id', profile.company_id)
       .order('fiscal_year', { ascending: false })
       .limit(1)
-      .then(({ data }) => {
+      .then(load(t('lf_quota'), data => {
         const row = data?.[0]
         setQuotaTarget(row && row.target_eur != null ? Number(row.target_eur) : null)
-      })
-      .catch(() => {})
+      }))
+      .catch(fail(t('lf_quota')))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile])
 
   // Agregados dos deals deste distribuidor
@@ -114,6 +119,8 @@ export default function DistributorDashboard({ deals, profile }) {
 
   return (
     <div className="p-4 space-y-5 max-w-3xl mx-auto">
+
+      <LoadFailureBanner failed={failed} t={t} />
 
       {/* Header */}
       <div className="pt-1">

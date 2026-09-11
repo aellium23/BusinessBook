@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { Spinner, formatK, CollapsibleSection } from '../components/ui'
 import { Save, CheckCircle, TrendingUp, TrendingDown, Minus, Lock, Plus, ChevronDown } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
+import { useLoadFailures, LoadFailureBanner } from '../hooks/useLoadFailures'
 
 const MONTHS       = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 const MONTHS_SHORT = ['A','M','J','J','A','S','O','N','D','J','F','M']
@@ -92,6 +93,7 @@ function Trend({ value, reference }) {
 export default function Budget() {
   const { isAdmin, readOnly } = useAuth()
   const { t: tr } = useTranslation()
+  const { failed, load, fail } = useLoadFailures()
   const [rows, setRows]       = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
@@ -124,8 +126,9 @@ export default function Budget() {
         setLoading(false)
       })
     supabase.from('forecast_snapshots').select('*').order('created_at', { ascending: false })
-      .then(({ data }) => setFctSnapshots(data || []))
-      .catch(() => {})
+      .then(load(tr('lf_forecast'), data => setFctSnapshots(data || [])))
+      .catch(fail(tr('lf_forecast')))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function getVal(bu, cycle, plKey, month) {
@@ -189,6 +192,8 @@ export default function Budget() {
 
   return (
     <div className="p-4 space-y-4 max-w-6xl mx-auto">
+
+      <LoadFailureBanner failed={failed} t={tr} />
 
       {/* Header */}
       <div className="flex items-center justify-between pt-1 flex-wrap gap-2">

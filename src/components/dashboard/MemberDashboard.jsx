@@ -6,6 +6,8 @@ import { supabase } from '../../lib/supabase'
 import { formatK, Spinner } from '../ui'
 import { MONTHS_K } from '../../constants'
 import { Target, TrendingUp, ChevronRight } from 'lucide-react'
+import { useTranslation } from '../../hooks/useTranslation'
+import { useLoadFailures, LoadFailureBanner } from '../../hooks/useLoadFailures'
 
 function ProgressRing({ pct, color, size = 72 }) {
   const r = (size - 10) / 2
@@ -28,6 +30,8 @@ export default function MemberDashboard() {
   const [overlays, setOverlays] = useState([])
   const [overlayLines, setOverlayLines] = useState([])
   const [loading, setLoading] = useState(true)
+  const { t } = useTranslation()
+  const { failed, load, fail } = useLoadFailures()
 
   const myName = profile?.sales_owner_name || profile?.full_name || ''
   const myBU = profile?.bu || 'VGT'
@@ -47,6 +51,9 @@ export default function MemberDashboard() {
   }, [myName, myBU])
 
   // Load deal_products for overlay matching (need product names per deal)
+  //
+  // These name the products behind an overlay. A failed read leaves the overlay
+  // unmatched, which shows as an overlay covering nothing.
   useEffect(() => {
     if (overlays.length === 0) { setOverlayLines([]); return }
     const sourceOwners = [...new Set(overlays.map(o => o.source_owner))]
@@ -55,8 +62,9 @@ export default function MemberDashboard() {
     const ids = overlayDeals.map(d => d.id)
     supabase.from('deal_products').select('deal_id, product_name, product:product_id(name)')
       .in('deal_id', ids)
-      .then(({ data }) => setOverlayLines(data || []))
-      .catch(() => {})
+      .then(load(t('lf_lines'), data => setOverlayLines(data || [])))
+      .catch(fail(t('lf_lines')))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [overlays, allDeals, myBU])
 
   // My own deals
@@ -146,6 +154,8 @@ export default function MemberDashboard() {
 
   return (
     <div className="space-y-4 max-w-lg mx-auto">
+      <LoadFailureBanner failed={failed} t={t} />
+
       {/* Target card */}
       <div className="card p-5 space-y-4">
         <div className="flex items-start justify-between">

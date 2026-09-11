@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useCompanyScope } from '../hooks/useCompanyScope'
+import { useLoadFailures, LoadFailureBanner } from '../hooks/useLoadFailures'
 import { useTranslation } from '../hooks/useTranslation'
 import { REGIONS } from '../constants'
 import { regionOf, countriesOf } from '../lib/regions'
@@ -26,6 +27,7 @@ export default function QuickDealForm({ initialClient = '', onCancel, onCreated 
   const { profile, company } = useAuth()
   const { homeId } = useCompanyScope()
   const { t } = useTranslation()
+  const { failed, load, fail } = useLoadFailures()
   const isPartner = profile?.role === 'distributor' || profile?.role === 'partner'
 
   // A partner's business is VGT's; ours follows whichever unit we sit in.
@@ -48,9 +50,9 @@ export default function QuickDealForm({ initialClient = '', onCancel, onCreated 
   const [existingClients, setExistingClients] = useState([])
 
   useEffect(() => {
-    supabase.from('deals').select('client').then(({ data }) => {
+    supabase.from('deals').select('client').then(load(t('lf_deals'), data => {
       if (data) setExistingClients([...new Set(data.map(d => d.client).filter(Boolean))].sort())
-    }).catch(() => {})
+    })).catch(fail(t('lf_deals')))
   }, [])
 
   async function save() {
@@ -78,6 +80,8 @@ export default function QuickDealForm({ initialClient = '', onCancel, onCreated 
 
   return (
     <div className="border border-gray-200 rounded-xl p-3 space-y-2 bg-gray-50">
+      <LoadFailureBanner failed={failed} t={t} />
+
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold text-gray-700">{t('qdf_title')}</p>
         <button type="button" onClick={onCancel}

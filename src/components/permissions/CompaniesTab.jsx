@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { CHANNEL_ROLES } from '../../lib/partnerMargin'
+import { useLoadFailures, LoadFailureBanner } from '../../hooks/useLoadFailures'
 import { useTranslation } from '../../hooks/useTranslation'
 import { Modal } from '../ui'
 import {
@@ -18,6 +19,7 @@ const COMPANY_TYPES = {
 // ── Empresas ──────────────────────────────────────────────────────────────────
 function CompaniesSection({ companies, onRefresh }) {
   const { t } = useTranslation()
+  const { failed, load, fail } = useLoadFailures()
   const [adding, setAdding] = useState(false)
   const [form, setForm] = useState({ name:'', type:'distributor', country:'', default_currency:'EUR' })
   const [saving, setSaving] = useState(false)
@@ -29,7 +31,8 @@ function CompaniesSection({ companies, onRefresh }) {
 
   useEffect(() => {
     supabase.from('products').select('id, name, sku, category').eq('active', true).order('name')
-      .then(({ data }) => { if (data) setCatalogProducts(data) }).catch(() => {})
+      .then(load(t('lf_products'), data => { if (data) setCatalogProducts(data) }))
+      .catch(fail(t('lf_products')))
   }, [])
 
   async function loadAuth(co) {
@@ -71,6 +74,8 @@ function CompaniesSection({ companies, onRefresh }) {
 
   return (
     <div className="space-y-4">
+      <LoadFailureBanner failed={failed} t={t} />
+
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-bold text-gray-700 flex items-center gap-2">
           <Building2 size={15} className="text-navy"/>{t('perm_companies')}
