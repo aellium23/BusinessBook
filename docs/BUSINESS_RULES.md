@@ -268,6 +268,22 @@ parceiros e *viewers* ficam de fora. Até 11-09 a view respondia admin e manager
 só, portanto um comercial escrevia o custo no quick deal e era informado, ao
 reabrir o negócio, de que a linha não tinha custo.
 
+**BR-057 — Gravar linhas actualiza no sítio; apagar é só o que saiu.**
+`saveDealProducts` apagava tudo e reinseria, e por isso a gravação de um parceiro
+destruía o nosso custo: o custo é nulado no INSERT para quem não o pode ler, e a
+linha que o guardava tinha sido apagada. O mesmo trigger, no UPDATE, **repõe** o
+custo antigo — portanto actualizar no sítio preserva-o sem ninguém precisar de o
+poder ler. `reconcileLines` casa por `id` onde existe e por `product_id` onde
+não, e apaga só o que saiu mesmo da proposta.
+
+*De todas as operações de gravação, apagar é a única que perde informação que
+ninguém recupera.* Fica para o fim e só sobre o que foi retirado.
+
+**BR-058 — Um parceiro pode editar um negócio que nós criámos.**
+Decidido a 11-09. Quem corre o negócio no dia a dia é o parceiro; um negócio que
+ninguém no terreno pode actualizar é pior do que um que podem. A política
+`deals partner update` sempre o permitiu e fica como está.
+
 **BR-052 — Quem não vê custo não o escreve.**
 `cost_price` e `margin_pct` em `deal_products` são forçados a nulo no INSERT, e
 repostos ao valor anterior no UPDATE, para quem não passa
