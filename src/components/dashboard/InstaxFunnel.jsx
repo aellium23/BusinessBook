@@ -57,21 +57,121 @@ const PHOTO_INSET = 17          // the white border down each side of a frame
  */
 const OVERHANG = 5
 
+/**
+ * The tape across the top corner of a picture, carrying the conversion.
+ *
+ * Measured off the scene's own, which is 76 by 41 and tilted about seven
+ * degrees anticlockwise — a good deal taller than it looks, and the reason a
+ * first attempt left the painted "620%" legible underneath the drawn one. The
+ * tape is translucent, so the badge is drawn a few pixels proud all round: one
+ * that only just covers it leaves a mint rim.
+ */
+const TAPE = { rise: 5, tilt: -6 }
+
 const FRAMES = {
-  'Lead':            { icon: Users,        x0: 73,   x1: 339,  tint: 'from-sky-200 to-emerald-100' },
-  'Pipeline':        { icon: TrendingUp,   x0: 360,  x1: 633,  tint: 'from-emerald-200 to-sky-100' },
-  'Offer Presented': { icon: FileText,     x0: 650,  x1: 900,  tint: 'from-indigo-200 to-sky-100' },
-  'BackLog':         { icon: Clock,        x0: 919,  x1: 1168, tint: 'from-amber-200 to-rose-100' },
-  'Invoiced':        { icon: CheckCircle2, x0: 1189, x1: 1434, tint: 'from-orange-200 to-rose-200' },
+  'Lead': { icon: Users, x0: 73, x1: 339,
+    tint: 'from-sky-200 to-emerald-100', tape: '#e8e2d6' },
+  'Pipeline': { icon: TrendingUp, x0: 360, x1: 633,
+    tint: 'from-emerald-200 to-sky-100', tape: '#d3e4e0' },
+  'Offer Presented': { icon: FileText, x0: 650, x1: 900,
+    tint: 'from-indigo-200 to-sky-100', tape: '#f2dfe0' },
+  'BackLog': { icon: Clock, x0: 919, x1: 1168,
+    tint: 'from-amber-200 to-rose-100', tape: '#e8e2d6' },
+  'Invoiced': { icon: CheckCircle2, x0: 1189, x1: 1434,
+    tint: 'from-orange-200 to-rose-200', tape: '#f5dfe2' },
 }
 
-/** The summary banner, drawn a little larger than the one in the picture so it
- *  covers it completely rather than leaving a cream edge showing. */
-const BANNER = { left: 6.6, top: 70.0, width: 81.5, height: 17.8, tilt: 1.8 }
+/**
+ * The consolidated totals, as a length of 35mm film.
+ *
+ * The strip in the scene is a piece of paper lying on a desk, photographed from
+ * slightly above, so it is not a rectangle: 169px tall at the near end and
+ * 130px at the far one. A rotated box misses the corners and lets a cream edge
+ * of the printed one peek out, which reads as a printing fault — so what is
+ * drawn is clipped to the quadrilateral the paper actually occupies, measured
+ * off the file and then let out six pixels all round so nothing survives
+ * underneath.
+ *
+ * The film is not painted black. A negative is translucent: the desk it lies on
+ * is still there, dimmed and warmed. So the base is the wood from the band just
+ * above the strip — real grain, at its real colours — with the emulsion laid
+ * over it, and a heavy black block at the foot of a warm page is exactly what
+ * that avoids.
+ */
+const STRIP = { x: 136, y: 734, w: 1197, h: 182 }
+const WOOD = { x: 136, y: 720, w: 1197, h: 14 }   // the desk, just above the strip
 
-// The handwriting. A stack of what a laptop already has, so nothing is fetched
-// and nothing falls back to a serif on a phone.
-const HAND = { fontFamily: "'Segoe Script', 'Bradley Hand', 'Comic Sans MS', cursive" }
+/** The emulsion over that wood, and the amber it lets through. */
+const EMULSION = 'linear-gradient(101deg, rgba(46,32,22,.90) 0%, rgba(31,21,14,.93) 40%, ' +
+                 'rgba(24,16,11,.94) 74%, rgba(18,12,8,.95) 100%)'
+const BACKLIGHT = 'radial-gradient(120% 180% at 30% 120%, rgba(217,150,63,.20), transparent 60%)'
+const FILM_HOLE = '#7d5330'      // the desk, seen through a sprocket hole
+const FILM_EDGE = '#d9963f'      // the amber of Fujifilm edge print
+
+/** A 35mm perforation, and how often it repeats. */
+const PERF = { pitch: 34, w: 15, h: 11, inset: 6 }
+
+/** Where the four totals sit along the strip. */
+const COLUMNS = [
+  { x0: 148, x1: 430, pad: 46 },
+  { x0: 430, x1: 879, pad: 22 },
+  { x0: 879, x1: 1096, pad: 28 },
+  { x0: 1096, x1: 1325, pad: 60 },
+]
+/**
+ * The bands down the film, as offsets from whichever edge owns them.
+ *
+ * They are offsets rather than percentages because the far end of the strip is
+ * 122px tall against 169px at the near end: a band set at a percentage is a
+ * different band at each end, and the exposure numbers end up printed across
+ * the totals. The budget at the narrow end is what fixes the type sizes — top
+ * perforations and edge print take 30, the bottom perforations 17, and what is
+ * left is 75 for a label, a number and a line under it.
+ */
+const BAND = { edgePrint: 19, content: 32, bottomPerf: 17 }
+
+/**
+ * The handwritten line runs along the film rather than across it. The bottom
+ * edge falls 39px over the strip's length, so a level line would dive into the
+ * perforations before it finished the sentence; set at the edge's own angle it
+ * stays where the scene puts it. It only reaches as far as the film is tall
+ * enough to hold it, which is about where the scene stops it too.
+ */
+const FOOTER = { x: 212, y: 866, tilt: -1.2 }
+
+/**
+ * The strip's own edges, as a y for a given x, each already let out six pixels
+ * past the paper it covers.
+ *
+ * The top is very nearly level. The bottom is not, and it is not straight
+ * either: it falls gently for most of its length and then drops five times as
+ * fast over the last two hundred pixels, where the paper curls away from the
+ * camera. A single straight line was tried and a cream sliver of the printed
+ * strip showed under the middle of the film for its whole width — fourteen
+ * pixels of it at the worst point — so the fall is taken in two pieces, which
+ * is what the file says it does.
+ *
+ * The perforations and the frames are placed against these rather than at a
+ * percentage of the height: the far end is sixty pixels shorter than the near
+ * one, and a band set at a percentage walks off the film before it gets there.
+ */
+const topEdgeAt = x => 738 + 0.00595 * (x - 148)
+const bottomEdgeAt = x => (x <= 1040 ? 910 - 0.0205 * (x - 260) : 894 - 0.105 * (x - 1040))
+const RIGHT_TOP = 1333
+const RIGHT_BOTTOM = 1312   // the far end leans back as it goes down
+
+/** The film's outline, walked from the measurements rather than hand-written. */
+function stripOutline() {
+  const pts = [[STRIP.x, topEdgeAt(STRIP.x)], [RIGHT_TOP, topEdgeAt(RIGHT_TOP)]]
+  for (const x of [RIGHT_BOTTOM, 1100, 1040, 800, 500, STRIP.x]) {
+    pts.push([x, bottomEdgeAt(x)])
+  }
+  return pts
+}
+
+// The handwriting, shipped with the app (see index.css). The stack behind it is
+// only there for the instant before the file lands.
+const HAND = { fontFamily: "'BB Hand', 'Segoe Script', 'Bradley Hand', cursive" }
 
 const pct = (v, of) => `${(v / of) * 100}%`
 
@@ -118,15 +218,23 @@ export default function InstaxFunnel({ selectedBU = '' }) {
 
   if (loading) return <Spinner label={t('ifn_title')}/>
 
+  /**
+   * The four exposures. Each one opens what it counts, so a total on the film
+   * is a way into the deals behind it and not only a number to read: the open
+   * pipeline is every stage that has not been invoiced, and the weighted
+   * forecast belongs to Forecast, where the weighting is explained.
+   */
   const figures = [
     { icon: Layers, label: t('ifn_open'), value: formatK(total.openValue),
-      hint: `${total.openCount} ${t('ifn_deals')}` },
+      hint: `${total.openCount} ${t('ifn_deals')}`, exposure: '01A', to: '/deals?open=1' },
     { icon: BarChart3, label: t('ifn_weighted'), value: formatK(total.weighted),
-      hint: t('ifn_weighted_hint') },
+      hint: t('ifn_weighted_hint'), exposure: '02A', to: '/forecast' },
     { icon: ClipboardCheck, label: t('ifn_invoiced'), value: formatK(total.invoiced),
-      hint: `${total.invoicedCount} ${t('ifn_deals')}`, tone: 'text-green-700' },
+      hint: `${total.invoicedCount} ${t('ifn_deals')}`, exposure: '03A',
+      to: '/deals?stage=Invoiced', tone: 'text-green-700', film: '#7fd39b' },
     { icon: AlertTriangle, label: t('ifn_lost'), value: formatK(lost.value),
-      hint: `${lost.count} ${t('ifn_deals')}`, tone: 'text-red-600' },
+      hint: `${lost.count} ${t('ifn_deals')}`, exposure: '04A',
+      to: '/deals?stage=Lost', tone: 'text-red-600', film: '#e9857c' },
   ]
 
   return (
@@ -139,7 +247,7 @@ export default function InstaxFunnel({ selectedBU = '' }) {
         style={{ aspectRatio: `${ART_W} / ${ART_H}`, backgroundImage: `url(${ART})`,
                  containerType: 'inline-size' }}>
         {frames.map(f => <SceneFrame key={f.stage} f={f} t={t} onOpen={() => open(f.stage)}/>)}
-        <SceneBanner figures={figures} t={t}/>
+        <SceneFilm figures={figures} t={t} onOpen={to => navigate(to)}/>
       </div>
 
       <div className="md:hidden space-y-3">
@@ -179,17 +287,24 @@ function SceneFrame({ f, t, onOpen }) {
           top: pct(PHOTO_TOP - box.y, box.h),
           height: pct(PHOTO_BOTTOM - PHOTO_TOP, box.h),
           ...framePhoto(conf),
-        }}>
-        {/* The share of the stage before that reached this one, on a strip of
-            tape in the corner — where his artwork puts it. */}
-        {f.fromPrevious !== null && (
-          <span className="absolute top-[4%] right-0 translate-x-[6%] rotate-2
-                           bg-[#f1eee6] text-gray-800 font-bold shadow-sm"
-            style={{ fontSize: '1.25cqw', padding: '0.35cqw 0.7cqw' }}>
-            {f.fromPrevious}%
-          </span>
-        )}
-      </div>
+        }}/>
+
+      {/* The share of the stage before that reached this one, on the strip of
+          tape the scene sticks across the picture's top corner. It is drawn
+          outside the picture rather than inside it because the tape in the
+          scene overhangs the print on two sides, and a badge clipped to the
+          picture leaves the painted tape showing round it. */}
+      {f.fromPrevious !== null && (
+        <span className="absolute text-gray-800 font-bold shadow-sm"
+          style={{
+            top: pct(PHOTO_TOP - box.y - TAPE.rise, box.h),
+            right: pct(PHOTO_INSET + OVERHANG, box.w),
+            transform: `rotate(${TAPE.tilt}deg)`, background: conf.tape,
+            fontSize: '1.35cqw', padding: '0.88cqw 0.62cqw', lineHeight: 1,
+          }}>
+          {f.fromPrevious}%
+        </span>
+      )}
 
       <div className="absolute inset-x-0 bottom-0"
         style={{ top: pct(PHOTO_BOTTOM - box.y + 8, box.h), padding: '0 6.5%' }}>
@@ -218,38 +333,130 @@ function SceneFrame({ f, t, onOpen }) {
   )
 }
 
-function SceneBanner({ figures, t }) {
+function SceneFilm({ figures, t, onOpen }) {
+  // Everything inside is placed against the strip's own box, so the sums read
+  // as what they are: this total sits where that total is printed.
+  const inX = v => pct(v - STRIP.x, STRIP.w)
+  const inY = v => pct(v - STRIP.y, STRIP.h)
+
+  // The perforations, walked along the film's two real edges.
+  const perfs = []
+  for (let x = STRIP.x + 10; x < STRIP.x + STRIP.w - PERF.w; x += PERF.pitch) {
+    const mid = x + PERF.w / 2
+    perfs.push({ x, y: topEdgeAt(mid) + PERF.inset })
+    perfs.push({ x, y: bottomEdgeAt(mid) - PERF.inset - PERF.h })
+  }
+
   return (
-    <div className="absolute bg-[#f7f3e8] shadow-md ring-1 ring-black/5"
+    <div className="absolute"
       style={{
-        left: `${BANNER.left}%`, top: `${BANNER.top}%`,
-        width: `${BANNER.width}%`, height: `${BANNER.height}%`,
-        transform: `rotate(${BANNER.tilt}deg)`,
+        left: pct(STRIP.x, ART_W), width: pct(STRIP.w, ART_W),
+        top: pct(STRIP.y, ART_H), height: pct(STRIP.h, ART_H),
+        clipPath: `polygon(${stripOutline().map(([x, y]) =>
+          `${inX(x)} ${inY(y)}`).join(', ')})`,
+        ...crop(WOOD.x, WOOD.y, WOOD.w, WOOD.h),
       }}>
-      <div className="h-full flex flex-col justify-center" style={{ padding: '0 2.5cqw' }}>
-        <div className="flex items-start" style={{ gap: '2cqw' }}>
-          {figures.map((fig, i) => (
-            <div key={fig.label}
-              className={`flex-1 flex items-start ${i > 0 ? 'border-l border-gray-300' : ''}`}
-              style={{ gap: '0.8cqw', paddingLeft: i > 0 ? '2cqw' : 0 }}>
-              <fig.icon style={{ width: '1.9cqw', height: '1.9cqw', marginTop: '0.3cqw' }}
-                className="shrink-0 text-gray-500"/>
-              <div className="min-w-0">
-                <p className="text-gray-600 leading-none" style={{ fontSize: '1cqw' }}>{fig.label}</p>
-                <p className={`font-bold leading-none ${fig.tone || 'text-gray-900'}`}
-                  style={{ fontSize: '2.2cqw', marginTop: '0.5cqw' }}>{fig.value}</p>
-                <p className="text-gray-500 leading-tight"
-                  style={{ fontSize: '0.85cqw', marginTop: '0.5cqw' }}>{fig.hint}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <p className="text-gray-600" style={{ ...HAND, fontSize: '1.05cqw', marginTop: '1.2cqw' }}>
-          {t('ifn_footer')} <span className="text-rose-300">♥</span>
-        </p>
-      </div>
+
+      {/* The emulsion over the wood, and the warmth a negative gives back to
+          whatever is behind it. */}
+      <div className="absolute inset-0" style={{ backgroundImage: EMULSION }}/>
+      <div className="absolute inset-0" style={{ backgroundImage: BACKLIGHT }}/>
+
+      {perfs.map((p, i) => (
+        <span key={i} className="absolute"
+          style={{
+            left: inX(p.x), top: inY(p.y),
+            width: pct(PERF.w, STRIP.w), height: pct(PERF.h, STRIP.h),
+            background: FILM_HOLE, borderRadius: '0.18cqw',
+            boxShadow: 'inset 0 0.08cqw 0.16cqw rgba(0,0,0,.55)',
+          }}/>
+      ))}
+
+      {figures.map((fig, i) => {
+        const c = COLUMNS[i]
+        const light = fig.film || '#f0e2cd'
+        return (
+          <button key={fig.label} type="button" onClick={() => onOpen(fig.to)}
+            aria-label={`${fig.label} — ${fig.value}, ${fig.hint}`}
+            className="absolute text-left group focus:outline-none"
+            style={{ left: inX(c.x0), width: pct(c.x1 - c.x0, STRIP.w),
+                     top: inY(topEdgeAt(c.x0) + PERF.inset + PERF.h),
+                     height: pct(bottomEdgeAt(c.x1) - topEdgeAt(c.x0)
+                                 - PERF.inset - PERF.h - BAND.bottomPerf, STRIP.h) }}>
+
+            {/* Light through the negative, the way a frame looks when it is
+                lifted onto a light table. */}
+            <span className="absolute inset-0 opacity-0 group-hover:opacity-100
+                             group-focus-visible:opacity-100 transition-opacity duration-200"
+              style={{ background: 'radial-gradient(90% 120% at 50% 50%,' +
+                                   ' rgba(217,150,63,.28), transparent 72%)' }}/>
+
+            {/* The line between one exposure and the next. */}
+            {i > 0 && (
+              <span className="absolute left-0 top-0 bottom-0"
+                style={{ width: '0.1cqw', background: 'rgba(240,226,205,.22)' }}/>
+            )}
+
+            <span className="absolute flex items-start"
+              style={{ left: pct(c.pad, c.x1 - c.x0), right: 0,
+                       top: pct(BAND.edgePrint, frameHeight(c)), gap: '0.8cqw' }}>
+              <fig.icon style={{ width: '2.2cqw', height: '2.2cqw', marginTop: '0.35cqw',
+                                 color: light }} className="shrink-0" strokeWidth={1.5}/>
+              <span className="min-w-0 block">
+                <span className="block uppercase leading-none"
+                  style={{ fontSize: '0.9cqw', letterSpacing: '0.12em', color: 'rgba(240,226,205,.72)' }}>
+                  {fig.label}
+                </span>
+                <span className="block font-bold leading-none"
+                  style={{ fontSize: '2.3cqw', marginTop: '0.55cqw', color: light,
+                           textShadow: '0 0 0.45em rgba(217,150,63,.40)' }}>
+                  {fig.value}
+                </span>
+                <span className="block leading-none whitespace-nowrap"
+                  style={{ fontSize: '0.85cqw', marginTop: '0.6cqw', color: 'rgba(240,226,205,.60)' }}>
+                  {fig.hint}
+                </span>
+              </span>
+            </span>
+          </button>
+        )
+      })}
+
+      {/* Edge print, in the amber every roll of this film is marked with. The
+          numbers are exposure numbers, and they belong to the frames they sit
+          under. */}
+      {figures.map((fig, i) => (
+        <span key={`e${i}`} className="absolute uppercase whitespace-nowrap"
+          style={{ left: inX(COLUMNS[i].x0 + 8),
+                   top: inY(topEdgeAt(COLUMNS[i].x0) + PERF.inset + PERF.h + 2),
+                   fontSize: '0.62cqw', letterSpacing: '0.18em', color: FILM_EDGE, opacity: 0.8 }}>
+          {i === 0 ? 'FUJIFILM · SALES 2026' : `FRAME ${String(i + 1).padStart(2, '0')}`}
+        </span>
+      ))}
+      {figures.map((fig, i) => (
+        <span key={`n${i}`} className="absolute"
+          style={{ left: inX(COLUMNS[i].x0 + 8),
+                   top: inY(bottomEdgeAt(COLUMNS[i].x0) - BAND.bottomPerf - 12),
+                   fontSize: '0.62cqw', letterSpacing: '0.18em', color: FILM_EDGE, opacity: 0.7 }}>
+          {fig.exposure}
+        </span>
+      ))}
+
+      {/* The line from the scene, kept where the scene keeps it: on the film,
+          at the near end, running along the edge rather than across it. */}
+      <p className="absolute leading-none whitespace-nowrap origin-left"
+        style={{ ...HAND, left: inX(FOOTER.x), top: inY(FOOTER.y),
+                 transform: `rotate(${FOOTER.tilt}deg)`,
+                 fontSize: '1.3cqw', color: 'rgba(240,226,205,.78)' }}>
+        {t('ifn_footer')} <span style={{ fontFamily: 'system-ui', color: '#e9857c' }}>♥</span>
+      </p>
     </div>
   )
+}
+
+/** How tall one exposure is — the film between the two rows of perforations. */
+function frameHeight(c) {
+  return bottomEdgeAt(c.x1) - topEdgeAt(c.x0) - PERF.inset - PERF.h - BAND.bottomPerf
 }
 
 /* ── the phone ─────────────────────────────────────────────────────────────

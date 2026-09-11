@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* The handwriting on the Funnel page.
+   Shipped with the app rather than pulled from a font service: the page is a
+   replica of a photograph, and a replica whose lettering depends on what
+   happens to be installed on the reader's laptop is a different page on every
+   laptop. One variable file covers 400 to 700. */
+@font-face {
+  font-family: 'BB Hand';
+  src: url('/fonts/caveat.woff2') format('woff2');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
   body {
     @apply bg-gray-50 text-gray-900 antialiased;
