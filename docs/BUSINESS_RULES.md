@@ -110,9 +110,36 @@ Renovação 25%, Referral 15%. Saíram das opções em 11-09, mas a aritmética
 continua a saber preçá-los, para que uma proposta guardada a 28% continue a
 valer 28%.
 
-**BR-032 — O custo do parceiro é a pricelist regional da VGT.**
-A escada R1/R2/R3 no escalão de volume aplicável — não o preço por produto da
-autorização.
+**BR-032 — O custo do parceiro é a pricelist regional MENOS a taxa do canal.**
+A escada R1/R2/R3 no escalão de volume aplicável dá o preço do CLIENTE — é o
+mesmo número que uma proposta directa põe à frente do cliente final. O parceiro
+compra abaixo dele, pela taxa do seu papel: um Full VAR paga 60% da lista.
+
+Onde a autorização fixa um preço para aquele produto naquele país, esse preço
+ganha e é já um preço de transferência — a taxa não sai dele uma segunda vez.
+
+Sem papel registado não há desconto nenhum: o parceiro compra à lista. Caro, não
+grátis, e o cartão diz que o papel está por definir.
+
+*Corrigido a 11-09.* A versão anterior desta regra — e o código — davam ao
+parceiro a lista regional inteira como custo, e a proposta dele abria com margem
+por cima disso: R3 CWM Dose a 5 anos custava-lhe 65.573 € e ia ao cliente a
+100.882 €, enquanto nós vendíamos ao mesmo hospital a 65.573 €. 54% acima da
+nossa própria lista, em todos os negócios de canal.
+
+**BR-036 — As duas vistas do mesmo negócio têm de dar o mesmo número.**
+A nossa proposta para um negócio TIMED e a proposta da própria TIMED são
+construídas por código diferente a partir de pontos diferentes. Têm de chegar ao
+mesmo preço de cliente, ao mesmo preço de transferência e à mesma margem do
+parceiro. É a propriedade que faltava testar: cada lado era coerente consigo
+mesmo, e discordavam do outro pela margem inteira do parceiro.
+
+Consequência aritmética: comprar a 60 e vender com 40% de margem devolve
+exactamente 100. O parceiro que cota à sua própria taxa cota à nossa lista
+publicada, e o cliente paga o mesmo por qualquer um dos dois caminhos.
+
+Teste: `src/lib/__tests__/partnerCatalogue.test.js`, "our view of a partner deal
+and the partner's view of it".
 
 **BR-033 — Região de preço e papel de canal são coisas diferentes.**
 A região (R1/R2/R3) diz quanto vale a lista naquele país, e deriva-se do país.

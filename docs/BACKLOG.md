@@ -126,6 +126,38 @@ e depois de alinhar as duas fontes.
 
 ---
 
+## BIZ-04 · P1 · As três propostas da TIMED foram gravadas ao preço errado
+
+**O quê.** A correcção de 11-09 (BR-032) muda o que o ecrã calcula, não o que
+está gravado. Os três negócios que a TIMED criou têm `deal_products.unit_price`
+e `net_price` escritos com o custo inflacionado — a lista regional inteira como
+custo deles — e portanto um preço ao cliente ~54% acima da nossa lista.
+
+**O que acontece agora.** Abrir a proposta no quick deal mostra os números
+corrigidos; o negócio só passa a valer isso quando alguém gravar. Até lá o
+pipeline e os relatórios por produto carregam os valores antigos.
+
+**Correcção.** Abrir cada um dos três, confirmar o preço e gravar. São três
+cliques deliberados, que é o que deve ser: mexer no valor de um negócio já
+cotado não é uma decisão de ecrã.
+
+---
+
+## BIZ-05 · P2 · O que fazem os programas nomeados depois do BR-032
+
+**O quê.** `NAMED_PROGRAMMES` guarda `netPctOfList 60 / transferPctOfList 42` e
+`65 / 45`. Estão expressos contra a lista — que agora está estabelecido ser o
+preço do cliente — portanto continuam a ler-se bem do lado da `partnerEconomics`.
+O que não existe é o caminho do parceiro: a proposta da TIMED não conhece
+programas, e num deal de deslocação competitiva o custo dela devia ser 42% da
+lista, não 60%.
+
+**Correcção.** Passar o programa ao `partnerLineCost` quando houver um. Não foi
+feito agora porque nenhum dos três negócios da TIMED tem programa e a regra
+merece ser confirmada antes de ser codificada.
+
+---
+
 ## BIZ-01 · P2 · Tecto de desconto do `PACS ACTIVE MONITORING FEE`
 
 Carrega 80% herdados, que foram ditos incorrectos. Falta o número real.
