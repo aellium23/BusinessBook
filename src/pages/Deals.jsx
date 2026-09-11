@@ -79,6 +79,10 @@ export default function Deals() {
   const [productF, setProductF]   = useState('')  // '' | product name
   const [categoryF, setCategoryF] = useState('')  // '' | category name
   const [noProductF, setNoProductF] = useState(false) // deals without product lines
+  // Everything still to happen: the funnel's "open pipeline" total is the sum
+  // of every stage that is neither invoiced nor lost, and the frame that shows
+  // it has to be able to open exactly that set or the figure cannot be checked.
+  const [openOnlyF, setOpenOnlyF] = useState(false)
   const [periodF, setPeriodF]   = useState(0)   // dias; 0 = todos
   const [pageSize, setPageSize]             = useState(5)
   const [page, setPage]                     = useState(1)
@@ -123,13 +127,15 @@ export default function Deals() {
     const noproduct = searchParams.get('noproduct')
     const owner = searchParams.get('owner')
     const client = searchParams.get('client')
+    const openOnly = searchParams.get('open')
     if (dealId) {
       supabase.from('deals').select('*').eq('id', dealId).maybeSingle()
         .then(({ data }) => { if (data) { setEditDeal(data); setQuoteOpen(true) } })
       setSearchParams({}, { replace: true })
       return
     }
-    if (stage || product || brand || category || noproduct || owner || client) {
+    if (stage || product || brand || category || noproduct || owner || client || openOnly) {
+      if (openOnly) setOpenOnlyF(true)
       if (stage) setStageF(stage)
       if (product) setProductF(product)
       if (brand) setBrandF(brand)
@@ -160,6 +166,7 @@ export default function Deals() {
     let d = profile?.role === 'distributor'
       ? rawDeals.filter(x => x.company_id === profile?.company_id)
       : rawDeals
+    if (openOnlyF) d = d.filter(x => x.stage !== 'Invoiced' && x.stage !== 'Lost')
     if (slaF) d = d.filter(x => x.is_sla)
     if (discountF === 'any') d = d.filter(x => !!x.discount_status)
     else if (discountF) d = d.filter(x => x.discount_status === discountF)
@@ -180,7 +187,7 @@ export default function Deals() {
     if (deliveryF) d = d.filter(x => x.stage === 'BackLog' && (x.delivery_status || 'not_sent') === deliveryF)
     if (salesTypeF) d = d.filter(x => x.sales_type === salesTypeF)
     return d
-  }, [rawDeals, slaF, discountF, ownerF, forecastF, periodF, invoicedMonthF.join(','), brandF, productF, categoryF, noProductF, deliveryF, salesTypeF, dealBrands, dealProducts, dealCategories, profile])
+  }, [rawDeals, slaF, discountF, ownerF, forecastF, periodF, invoicedMonthF.join(','), brandF, productF, categoryF, noProductF, openOnlyF, deliveryF, salesTypeF, dealBrands, dealProducts, dealCategories, profile])
 
   // How much of each deal's margin is still waiting on somebody else's answer.
   const [openDiscounts, setOpenDiscounts] = useState({})
@@ -291,7 +298,7 @@ export default function Deals() {
   }, [rawDeals])
 
   // Contagem de filtros activos
-  const activeFilters = [search, stageF, regionF, buF, ownerF, forecastF, slaF, discountF, brandF, productF, categoryF, noProductF, deliveryF, salesTypeF, periodF > 0, invoicedMonthF.length > 0].filter(Boolean).length
+  const activeFilters = [search, stageF, regionF, buF, ownerF, forecastF, slaF, discountF, brandF, productF, categoryF, noProductF, openOnlyF, deliveryF, salesTypeF, periodF > 0, invoicedMonthF.length > 0].filter(Boolean).length
 
   // Drag-drop on the Kanban: moving a card across stages
   async function handleStageChange(dealId, newStage) {
@@ -628,7 +635,7 @@ export default function Deals() {
             {activeFilters > 0 && (
               <button onClick={() => {
                 setSearch(''); setStageF(''); setRegionF(''); setBuF('')
-                setOwnerF(''); setForecastF(''); setSlaF(false); setDiscountF(''); setBrandF(''); setProductF(''); setCategoryF(''); setNoProductF(false); setDeliveryF(''); setSalesTypeF(''); setPeriodF(0); setInvoicedMonthF([]); resetPage()
+                setOwnerF(''); setForecastF(''); setSlaF(false); setDiscountF(''); setBrandF(''); setProductF(''); setCategoryF(''); setNoProductF(false); setOpenOnlyF(false); setDeliveryF(''); setSalesTypeF(''); setPeriodF(0); setInvoicedMonthF([]); resetPage()
               }} className="text-xs text-red-500 hover:text-red-700 font-medium">
                 {t("deals_clear_filters")}
               </button>
