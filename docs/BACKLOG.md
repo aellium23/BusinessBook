@@ -143,6 +143,37 @@ cotado não é uma decisão de ecrã.
 
 ---
 
+## BIZ-06 · P1 · A tabela PROPOSAL mede a nossa margem contra o preço do cliente
+
+**O quê.** No `table` do quick deal (`QuickQuote.jsx`), `gm = pvp − cost`. Num
+negócio de canal o `pvp` é o preço do CLIENTE e a nossa receita é a
+transferência, portanto a margem que a tabela imprime inclui a fatia do
+parceiro.
+
+Com o custo real do CWM Dose a rondar 20k nos cinco anos:
+
+| | tabela diz | é |
+|---|---|---|
+| Margem bruta | 45.573 € · 69% | 19.344 € · 49% |
+
+Sobreavaliada por exactamente os 26.229 € que são do parceiro, em todos os
+negócios de canal. O aviso âmbar existente ("algumas linhas não têm custo")
+apanha o caso do custo zero e não apanha este.
+
+**Bloqueia numa decisão.** Repartir a transferência por linha precisa de saber
+se os serviços de implementação passam pelo parceiro ou são nossos directos:
+
+- **Passam pelo parceiro** — a margem de cada linha mede-se contra a parte da
+  transferência que lhe cabe, serviços incluídos.
+- **São nossos** — os serviços mantêm a margem cheia e só os produtos são
+  medidos contra a transferência.
+
+Na dúvida a leitura conservadora é a primeira, porque é a que não inventa
+margem. Não foi aplicada sem resposta: é um número de dinheiro em todos os
+negócios de canal.
+
+---
+
 ## BIZ-05 · P2 · O que fazem os programas nomeados depois do BR-032
 
 **O quê.** `NAMED_PROGRAMMES` guarda `netPctOfList 60 / transferPctOfList 42` e
