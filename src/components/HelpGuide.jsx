@@ -209,7 +209,7 @@ const HELP = {
       ],
       admin: 'You can edit or delete any deal regardless of ownership. Bulk actions are available in list view.',
       viewer: 'You can view deal details but cannot create or modify deals.',
-      distributor: 'Every deal of your company is yours to edit, whoever created it — a colleague of yours, or one of us setting it up on your behalf. You see only deals linked to your company. Your deal form is simplified (Stage, Client, Products, Discount). Select products from your authorized catalog, and request discounts that route to the brand approver. The approvals banner shows the status of your requests.',
+      distributor: 'Your dashboard has two views, and the choice is remembered: the numbers, and the Instax funnel — your pipeline as five instant photographs, the same one we use. A target shows only once one has been set for your company; until then it says so rather than showing a zero. Every deal of your company is yours to edit, whoever created it — a colleague of yours, or one of us setting it up on your behalf. You see only deals linked to your company. Your deal form is simplified (Stage, Client, Products, Discount). Select products from your authorized catalog, and request discounts that route to the brand approver. The approvals banner shows the status of your requests.',
     },
     es: {
       title: 'Oportunidades',
@@ -268,7 +268,7 @@ const HELP = {
       ],
       admin: 'Puedes editar o eliminar cualquier deal independientemente del propietario.',
       viewer: 'Puedes ver los detalles del deal pero no crear ni modificar.',
-      distributor: 'Toda oportunidad de tu empresa es tuya para editar, la haya creado quien la haya creado — un colega tuyo, o alguien de los nuestros preparandola por ti. Solo ves los deals vinculados a tu empresa. Tu formulario de deal es simplificado (Etapa, Cliente, Productos, Descuento). Selecciona productos de tu catalogo autorizado y solicita descuentos que se enrutan al aprobador de la marca. El banner de aprobaciones muestra el estado de tus solicitudes.',
+      distributor: 'Tu panel tiene dos vistas, y la eleccion se recuerda: las cifras, y el embudo Instax — tu pipeline como cinco fotos instantaneas, el mismo que usamos nosotros. Un objetivo aparece solo cuando se ha definido uno para tu empresa; hasta entonces lo dice en vez de mostrar un cero. Toda oportunidad de tu empresa es tuya para editar, la haya creado quien la haya creado — un colega tuyo, o alguien de los nuestros preparandola por ti. Solo ves los deals vinculados a tu empresa. Tu formulario de deal es simplificado (Etapa, Cliente, Productos, Descuento). Selecciona productos de tu catalogo autorizado y solicita descuentos que se enrutan al aprobador de la marca. El banner de aprobaciones muestra el estado de tus solicitudes.',
     },
     pt: {
       title: 'Negocios',
@@ -327,7 +327,7 @@ const HELP = {
       ],
       admin: 'Podes editar ou eliminar qualquer deal independentemente do proprietario.',
       viewer: 'Podes ver os detalhes do deal mas nao criar nem modificar.',
-      distributor: 'Todo o negocio da tua empresa e teu para editar, seja quem for que o criou — um colega teu, ou alguem nosso a prepara-lo por ti. Ves apenas os deals ligados a tua empresa. O teu formulario de deal e simplificado (Fase, Cliente, Produtos, Desconto). Seleciona produtos do teu catalogo autorizado e pede descontos que sao encaminhados para o aprovador da marca. O banner de aprovacoes mostra o estado dos teus pedidos.',
+      distributor: 'O teu painel tem duas vistas, e a escolha fica guardada: os numeros, e o funil Instax — o teu pipeline como cinco fotografias instantaneas, o mesmo que nos usamos. Um objetivo so aparece depois de ter sido definido um para a tua empresa; ate la di-lo em vez de mostrar um zero. Todo o negocio da tua empresa e teu para editar, seja quem for que o criou — um colega teu, ou alguem nosso a prepara-lo por ti. Ves apenas os deals ligados a tua empresa. O teu formulario de deal e simplificado (Fase, Cliente, Produtos, Desconto). Seleciona produtos do teu catalogo autorizado e pede descontos que sao encaminhados para o aprovador da marca. O banner de aprovacoes mostra o estado dos teus pedidos.',
     },
   },
 

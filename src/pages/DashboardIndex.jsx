@@ -36,6 +36,16 @@ export default function DashboardIndex() {
     return localStorage.getItem(STORAGE_KEY) || 'funnel'
   })
   const [selectedBU, setSelectedBU] = useState('')
+  const [distView, setDistView] = useState(() => {
+    if (typeof window === 'undefined') return 'classic'
+    return localStorage.getItem(`${STORAGE_KEY}_dist`) || 'classic'
+  })
+
+  useEffect(() => {
+    if (isDistributor) {
+      try { localStorage.setItem(`${STORAGE_KEY}_dist`, distView) } catch {}
+    }
+  }, [distView, isDistributor])
 
   // Non-admins are locked to their own BU across every dashboard view
   useEffect(() => {
@@ -51,9 +61,37 @@ export default function DashboardIndex() {
     }
   }, [view, isDistributor])
 
-  // Distributors skip the view toggle and go directly to the dedicated dashboard
+  // Distributors get their own dashboard, and the funnel beside it. Their
+  // deals move through the same five stages ours do, and the question the
+  // funnel answers — what is in the pipeline and what reached the next frame —
+  // is theirs as much as it is ours. The choice is remembered like everybody
+  // else's; it was not before, which is why this reads a little differently.
   if (isDistributor) {
-    return <DashboardClassic selectedBU="" />
+    return (
+      <div className="space-y-3">
+        <div className="px-4 pt-4 flex gap-0.5 bg-transparent">
+          {[
+            { id: 'classic', label: t('dash_view_details') || 'Details', icon: BarChart3 },
+            { id: 'funnel', label: t('dash_view_funnel') || 'Funnel', icon: Camera },
+          ].map(v => {
+            const Icon = v.icon
+            const active = distView === v.id
+            return (
+              <button key={v.id} type="button" onClick={() => setDistView(v.id)}
+                aria-pressed={active}
+                className={`px-3 py-1.5 rounded-full text-xs flex items-center gap-1.5 transition-colors ${
+                  active ? 'bg-navy text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}>
+                <Icon size={13}/> <span>{v.label}</span>
+              </button>
+            )
+          })}
+        </div>
+        {distView === 'funnel'
+          ? <div className="px-4 pb-4"><InstaxFunnel selectedBU="" /></div>
+          : <DashboardClassic selectedBU="" />}
+      </div>
+    )
   }
 
   // Sales reps (member) get a personal dashboard similar to distributors
