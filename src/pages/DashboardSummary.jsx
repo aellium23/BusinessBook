@@ -7,7 +7,7 @@ import { useTranslation } from '../hooks/useTranslation'
 import { useLoadFailures, LoadFailureBanner } from '../hooks/useLoadFailures'
 import { Spinner, formatK } from '../components/ui'
 import Gauge from '../components/Gauge'
-import { MONTHS_K } from '../constants'
+import { MONTHS_K, SLA_PIPELINE_STATUSES, SLA_ACTIVE_STATUSES } from '../constants'
 import { TrendingUp, Target, AlertCircle, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
 import DiscountRisk from '../components/dashboard/DiscountRisk'
 import ClawbackReminder from '../components/dashboard/ClawbackReminder'
@@ -294,8 +294,10 @@ export default function DashboardSummary({ selectedBU = '' }) {
       .then(load(t('lf_slas'), data => {
         if (!data || !Array.isArray(data)) return
         try {
-        const active = data.filter(s => ['warranty','active','pending_renewal'].includes(s.status))
-        const pipeline = data.filter(s => s.status === 'pipeline')
+        const active = data.filter(s => SLA_ACTIVE_STATUSES.includes(s.status))
+        // Not `status === 'pipeline'`: that is the id of a tab, not a status,
+        // and it matched nothing — so this figure was always zero. DATA-03.
+        const pipeline = data.filter(s => SLA_PIPELINE_STATUSES.includes(s.status))
         const revenueByFY = {}
         const byBU = { VGT: 0, ECT: 0, CWM: 0, total: 0 }
         let extValue = 0, intValue = 0
