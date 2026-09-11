@@ -96,7 +96,7 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
   }, [budget, activeCycle])
 
   // FY25 actuals per BU
-  const fy25Totals = useMemo(() => {
+  const _fy25Totals_unused = useMemo(() => {
     const get = (bu) => {
       const rows = fy25.filter(r => r.bu === bu)
       return rows.reduce((s, r) => s + MONTHS_K.reduce((ms, m) => ms + (r[m] || 0), 0), 0)
@@ -143,10 +143,6 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
     return out
   }, [budget])
   const hasSap = useMemo(() => budget.some(r => r.cycle === 'ACT'), [budget])
-  const sapTotals = useMemo(() => ({
-    vgt: sapMonthly.VGT.reduce((a,b)=>a+b,0),
-    ect: sapMonthly.ECT.reduce((a,b)=>a+b,0),
-  }), [sapMonthly])
 
   // Monthly chart data — per BU
   const monthlyDataByBU = useMemo(() => {
@@ -267,8 +263,6 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
   const REGION_COLOR = { Europe:'#B5D4F4', MEA:'#FAC775', LATAM:'#C0DD97', APAC:'#F4C0D1', NA:'#D3D1C7' }
   const total_fc = agg.vgt_fc + agg.ect_fc
   const total_act = agg.vgt_act + agg.ect_act
-  const total_plan = budgetTotals.vgt_ns + budgetTotals.ect_ns
-  const total_py = fy25Totals.vgt + fy25Totals.ect
 
   if (loading) return (
     <div className="flex items-center justify-center p-16">

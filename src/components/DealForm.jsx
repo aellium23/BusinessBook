@@ -982,7 +982,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                 <button type="button"
                   onClick={async () => {
                     const { createSlaFromDeal } = await import('../hooks/useSlas')
-                    const { data, error } = await createSlaFromDeal(
+                    const { error } = await createSlaFromDeal(
                       { ...deal, ...form, id: deal.id },
                       { warranty_months: parseInt(form.warranty_months) || 36 }
                     )

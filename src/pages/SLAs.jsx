@@ -405,6 +405,15 @@ export default function SLAs() {
             {countries.map(c => <option key={c}>{c}</option>)}
           </select>
         )}
+        {/* The product filter was written and never given a control: the list of
+            products and the filter that reads it both existed, and nothing on
+            screen could set it. */}
+        {products.length > 0 && (
+          <select className="select text-xs w-auto" value={productF} onChange={e => setProductF(e.target.value)}>
+            <option value="">{t('sla_all_products')}</option>
+            {products.map(p => <option key={p}>{p}</option>)}
+          </select>
+        )}
         {ownersList.length > 0 && (
           <select className="select text-xs w-auto" value={ownerF} onChange={e => setOwnerF(e.target.value)}>
             <option value="">{t('sla_all_owners')}</option>

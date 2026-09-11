@@ -8,7 +8,6 @@ export function calcSLARecognition({ startDay, startMonth, startYear, endDay, en
 
   const startDate = new Date(`${startYear}-${String(ALL_MONTHS.indexOf(startMonth)+1).padStart(2,'0')}-${String(startDay||1).padStart(2,'0')}`)
   const endDate   = new Date(`${endYear}-${String(ALL_MONTHS.indexOf(endMonth)+1).padStart(2,'0')}-${String(endDay||28).padStart(2,'0')}`)
-  const billDate  = new Date(`${billingYear}-${String(ALL_MONTHS.indexOf(billingMonth)+1).padStart(2,'0')}-01`)
 
   // Total contract duration in days
   const totalDays = (endDate - startDate) / 86400000 + 1
@@ -19,10 +18,8 @@ export function calcSLARecognition({ startDay, startMonth, startYear, endDay, en
   const valueEUR = parseFloat(annualValue) * (currency === 'EUR' ? 1 : rate)
   const dailyRate = valueEUR / totalDays
 
-  // FY26 months: Apr 2026 → Mar 2027
-  const fy26Start = new Date('2026-04-01')
-  const fy26End   = new Date('2027-03-31')
-
+  // FY26 months: Apr 2026 → Mar 2027. The boundaries are built per month
+  // below; the billing month is read as an index, not as a date.
   const recognition = {}
   FY26_MONTHS.forEach((m, i) => {
     const yr = i < 9 ? 2026 : 2027  // Apr-Dec=2026, Jan-Mar=2027

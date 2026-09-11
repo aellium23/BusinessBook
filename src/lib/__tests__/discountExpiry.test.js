@@ -4,7 +4,6 @@ import {
   clawbackSummary, renewalReasons, renewalBase,
 } from '../discountExpiry'
 
-const day = 86400000
 
 describe('the lighthouse clock', () => {
   it('gives the reference twelve months', () => {

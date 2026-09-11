@@ -57,7 +57,6 @@ function sumMonthly(row, monthKeys) {
 // ── Distributor Dashboard ─────────────────────────────────────────────────
 function DistributorDashboard() {
   const { profile, company } = useAuth()
-  const { t } = useTranslation()
   const { deals: allDeals, loading } = useDeals()
   const [quota, setQuota] = useState(null)
 

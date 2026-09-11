@@ -273,6 +273,10 @@ export default function Deals() {
   const handleOwner  = v => { setOwnerF(v); resetPage() }
   const handleSla    = ()  => { setSlaF(o => !o); resetPage() }
   const handlePeriod        = v => { setPeriodF(Number(v)); resetPage() }
+  // Every month button goes through here. Three of them used to call the
+  // setter directly and skip the page reset, so narrowing to one month while
+  // on page three showed an empty list — the filter worked, the page it landed
+  // on had nothing on it.
   const handleInvoicedMonth = v => { setInvoicedMonthF(v); resetPage() }
 
   // Paginação
@@ -583,19 +587,21 @@ export default function Deals() {
                 {t("deals_invoiced_month")}
               </label>
               <div className="flex gap-1 flex-wrap">
-                <button onClick={() => setInvoicedMonthF([])}
+                <button onClick={() => handleInvoicedMonth([])}
                   className={`text-micro px-1.5 py-0.5 rounded ${invoicedMonthF.length === 0 ? 'bg-navy text-white' : 'bg-gray-100 text-gray-500'}`}>All</button>
                 <button onClick={() => {
                   const m = new Date().getMonth() + 1
                   const elapsed = ((m - 4 + 12) % 12) + 1
-                  setInvoicedMonthF(MONTHS_K.slice(0, elapsed))
+                  handleInvoicedMonth(MONTHS_K.slice(0, elapsed))
                 }}
                   className={`text-micro px-1.5 py-0.5 rounded ${invoicedMonthF.length > 1 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>FY YTD</button>
               </div>
               <div className="grid grid-cols-4 gap-0.5 mt-1">
                 {MONTHS.map((m, i) => (
                   <button key={m} onClick={() => {
-                    setInvoicedMonthF(prev => prev.includes(MONTHS_K[i]) ? prev.filter(x => x !== MONTHS_K[i]) : [...prev, MONTHS_K[i]])
+                    handleInvoicedMonth(invoicedMonthF.includes(MONTHS_K[i])
+                      ? invoicedMonthF.filter(x => x !== MONTHS_K[i])
+                      : [...invoicedMonthF, MONTHS_K[i]])
                   }}
                     className={`text-micro px-1 py-0.5 rounded ${invoicedMonthF.includes(MONTHS_K[i]) ? 'bg-blue-500 text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
                     {m}

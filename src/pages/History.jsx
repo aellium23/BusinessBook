@@ -68,7 +68,8 @@ function KpiSparkCard({ label, value, sub, color, data, dataKey }) {
 const tickK = v => v >= 1000 ? `${(v/1000).toFixed(1)}M` : v <= -1000 ? `${(v/1000).toFixed(1)}M` : `${v}K`
 
 // ── History do Distribuidor ──────────────────────────────────────────────────
-function DistributorHistory({ profile }) {
+function DistributorHistory() {
+  const [loadError, setLoadError] = useState(null)
   const { ids: scopeIds } = useCompanyScope()
   const scopeKey = scopeIds.join('|')
   const { t } = useTranslation()
@@ -86,7 +87,9 @@ function DistributorHistory({ profile }) {
       .in('company_id', scopeIds)
       .eq('is_intercompany_mirror', false)
       .then(({ data, error }) => {
-
+        // A failed load used to render as "no deals", which for a partner who
+        // has deals is a confident wrong answer.
+        if (error) setLoadError(error.message)
         setDeals(data || [])
         setLoading(false)
       })
@@ -123,6 +126,13 @@ function DistributorHistory({ profile }) {
   if (loading) return (
     <div className="flex items-center justify-center p-16">
       <div className="w-6 h-6 border-2 border-navy border-t-transparent rounded-full animate-spin"/>
+    </div>
+  )
+  if (loadError) return (
+    <div className="p-4">
+      <p role="alert" className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+        {loadError}
+      </p>
     </div>
   )
 
@@ -727,7 +737,7 @@ export default function History() {
                   </tr>
                 </thead>
                 <tbody>
-                  {histData.map((d, i) => {
+                  {histData.map((d) => {
                     const isLegacy = fyNum(d.fy) < fyNum(brk.year)
                     return (
                       <tr key={d.fy} className={`border-b border-gray-50 ${isLegacy ? 'bg-gray-50/50' : ''} ${d.fy === brk.year ? 'border-t-2 border-t-amber-300' : ''}`}>

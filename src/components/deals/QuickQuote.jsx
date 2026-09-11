@@ -15,7 +15,6 @@ import { recommendedCapexPvp, recommendedSlaPvp, belowFloor, lineOverTerm,
          servicesEconomics, recommendedServicesPvp,
          SERVICES_TARGET_MARGIN_PCT } from '../../lib/margins'
 import { routeFor, applyDiscount, discountViews, internalApproval } from '../../lib/discountRouting'
-import { priceAtRung } from '../../lib/discountLadder'
 import { partnerEconomics, partnerTargetPrice, PROTECTED_MARGIN,
          CHANNEL_ROLES, NAMED_PROGRAMMES } from '../../lib/partnerMargin'
 import { unitsNeeded, quantityFor } from '../../lib/volumeUnits'
@@ -124,7 +123,6 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
   const [askNote, setAskNote] = useState('')
   const [rebuilt, setRebuilt] = useState(false)
   const [quoteStoreError, setQuoteStoreError] = useState(null)
-  const [loadingQuote, setLoadingQuote] = useState(Boolean(deal?.id))
 
   useEffect(() => {
     if (!deal?.id) return
@@ -164,7 +162,6 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
         setProgramme(state.programme)
         if (state.country) setCountry(state.country)
         setRebuilt(Boolean(state.rebuilt) && !qErr)
-        setLoadingQuote(false)
       })
     return () => { alive = false }
   }, [deal?.id])
@@ -582,9 +579,6 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
       marginPct: pvp > 0 ? Math.round((gm / pvp) * 1000) / 10 : 0,
     }
   }
-  const granted = useMemo(() => withServices(views.ifApproved),
-    [views, services, servicesOn, warrantyServicesPvp])
-
   const totals = useMemo(() => ({
     ...withServices(views.actual),
     capexPvp: round2(lines.reduce((n, l) => n + l.capexPvp + l.servicesPvp, 0)

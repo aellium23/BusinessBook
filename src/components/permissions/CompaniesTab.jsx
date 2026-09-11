@@ -39,15 +39,6 @@ function CompaniesSection({ companies, onRefresh }) {
     setAuthProducts(data || [])
   }
 
-  async function addAuth() {
-    if (!addProd || !addCountry || !editingAuth) return
-    await supabase.from('company_product_authorizations').insert({
-      company_id: editingAuth.id, product_id: addProd, country: addCountry
-    })
-    setAddProd(''); setAddCountry('')
-    loadAuth(editingAuth)
-  }
-
   async function removeAuth(id) {
     await supabase.from('company_product_authorizations').delete().eq('id', id)
     if (editingAuth) loadAuth(editingAuth)
