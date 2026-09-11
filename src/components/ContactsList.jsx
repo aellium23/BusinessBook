@@ -21,6 +21,7 @@ import {
  *   compact:      boolean       — render tighter (e.g. inside DealForm)
  */
 export default function ContactsList({ bu, clientName, canEdit = true, compact = false }) {
+  const { t } = useTranslation()
   const [items, setItems]     = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(null)
@@ -84,11 +85,11 @@ export default function ContactsList({ bu, clientName, canEdit = true, compact =
       )}
 
       {loading ? (
-        <p className="text-xs text-gray-400">Loading…</p>
+        <p className="text-xs text-gray-400">{t('cl_loading')}</p>
       ) : items.length === 0 ? (
         <div className="text-center py-4 text-gray-400 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
           <User size={20} className="mx-auto mb-1 opacity-40"/>
-          <p className="text-xs">No contacts yet for <strong>{clientName}</strong>.</p>
+          <p className="text-xs">{t('cl_none')} <strong>{clientName}</strong>.</p>
           {canEdit && compact && (
             <button type="button" onClick={() => setEditing('new')}
               className="btn-secondary text-xs py-1 px-2 flex items-center gap-1 mx-auto mt-2">
@@ -258,20 +259,20 @@ export function ContactEditor({ contact, bu, clientName, onClose, onSaved }) {
 
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
           <div>
-            <label className="label">Name *</label>
+            <label className="label">{t('cl_name')}</label>
             <input className="input" value={form.full_name}
               onChange={e => set('full_name', e.target.value)}
-              placeholder="Dr. João Silva" autoFocus/>
+              placeholder={t('cl_name_ph')} autoFocus/>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="label">Client *</label>
+              <label className="label">{t('cl_client')}</label>
               <SearchableSelect
                 value={form.client_name}
                 onChange={v => set('client_name', v)}
                 options={existingClients.map(c => ({ value: c, label: c }))}
-                placeholder="Search clients…"
+                placeholder={t('cl_client_ph')}
                 emptyLabel="— Select —"
                 onCreateNew={(q) => { if (q) set('client_name', q) }}
                 createLabel="New"
@@ -279,7 +280,7 @@ export function ContactEditor({ contact, bu, clientName, onClose, onSaved }) {
               />
             </div>
             <div>
-              <label className="label">BU *</label>
+              <label className="label">{t('cl_bu')}</label>
               <select className="select" value={form.bu} onChange={e => set('bu', e.target.value)}>
                 <option value="">—</option>
                 <option value="VGT">VGT</option>
@@ -289,7 +290,7 @@ export function ContactEditor({ contact, bu, clientName, onClose, onSaved }) {
           </div>
 
           <div>
-            <label className="label">Stakeholder role</label>
+            <label className="label">{t('cl_role')}</label>
             <div className="flex flex-wrap gap-1.5">
               {CONTACT_ROLES.map(r => {
                 const active = form.role_type === r.id
@@ -307,21 +308,21 @@ export function ContactEditor({ contact, bu, clientName, onClose, onSaved }) {
           </div>
 
           <div>
-            <label className="label">Job title</label>
+            <label className="label">{t('cl_job')}</label>
             <input className="input" value={form.job_title}
               onChange={e => set('job_title', e.target.value)}
-              placeholder="Head of Radiology"/>
+              placeholder={t('cl_job_ph')}/>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
-              <label className="label">Email</label>
+              <label className="label">{t('cl_email')}</label>
               <input className="input" type="email" value={form.email}
                 onChange={e => set('email', e.target.value)}
-                placeholder="name@hospital.pt"/>
+                placeholder={t('cl_email_ph')}/>
             </div>
             <div>
-              <label className="label">Phone</label>
+              <label className="label">{t('cl_phone')}</label>
               <input className="input" type="tel" value={form.phone}
                 onChange={e => set('phone', e.target.value)}
                 placeholder="+351 …"/>
@@ -329,22 +330,22 @@ export function ContactEditor({ contact, bu, clientName, onClose, onSaved }) {
           </div>
 
           <div>
-            <label className="label">Country</label>
+            <label className="label">{t('cl_country')}</label>
             <SearchableSelect
               value={form.country}
               onChange={v => set('country', v)}
               options={ALL_COUNTRIES.map(c => ({ value: c, label: c }))}
-              placeholder="Search country…"
+              placeholder={t('cl_country_ph')}
               emptyLabel="— Select —"
               size="sm"
             />
           </div>
 
           <div>
-            <label className="label">Notes</label>
+            <label className="label">{t('cl_notes')}</label>
             <textarea className="input min-h-[72px] resize-none" value={form.notes}
               onChange={e => set('notes', e.target.value)}
-              placeholder="Context, preferences, last conversation…"/>
+              placeholder={t('cl_notes_ph')}/>
           </div>
 
           <label className="flex items-center gap-2 cursor-pointer">
@@ -364,7 +365,7 @@ export function ContactEditor({ contact, bu, clientName, onClose, onSaved }) {
 
         <div className="flex gap-2 px-4 py-3 border-t border-gray-100"
           style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
-          <button className="btn-secondary flex-1" onClick={onClose}>Cancel</button>
+          <button className="btn-secondary flex-1" onClick={onClose}>{t('cancel')}</button>
           <button className="btn-primary flex-1 flex items-center justify-center gap-1"
             onClick={handleSave} disabled={saving}>
             <Save size={12}/> {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create contact'}

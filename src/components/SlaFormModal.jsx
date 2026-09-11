@@ -271,7 +271,7 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
     <Modal open title={isEdit ? 'Edit SLA' : 'New SLA'} onClose={onClose}
       footer={
         <div className="flex gap-2">
-          <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
+          <button onClick={onClose} className="btn-secondary flex-1">{t('cancel')}</button>
           {/* Arrow fn: a bare handler would pass the click event as renameDecision. */}
           <button onClick={() => handleSave()} disabled={saving} className="btn-primary flex-1">
             {saving ? 'Saving…' : 'Save SLA'}
@@ -316,7 +316,7 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
 
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <label className="label">BU *</label>
+            <label className="label">{t('slaf_bu')}</label>
             <select className={`select ${fieldErrors.bu ? 'border-red-400' : ''}`} value={form.bu} onChange={e => set('bu', e.target.value)}>
               <option value="VGT">VGT</option>
               <option value="ECT">ECT</option>
@@ -324,20 +324,20 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
             {fieldErrors.bu && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.bu}</p>}
           </div>
           <div>
-            <label className="label">Int / Ext</label>
+            <label className="label">{t('slaf_intext')}</label>
             <div className="flex gap-1">
               <button type="button" onClick={() => set('sales_type', 'External')}
                 className={`flex-1 text-xs py-1.5 rounded-lg border font-semibold transition-colors ${
                   form.sales_type !== 'Internal' ? 'border-amber-400 bg-amber-50 text-amber-800' : 'border-gray-200 text-gray-500'
-                }`}>External</button>
+                }`}>{t('df_external')}</button>
               <button type="button" onClick={() => set('sales_type', 'Internal')}
                 className={`flex-1 text-xs py-1.5 rounded-lg border font-semibold transition-colors ${
                   form.sales_type === 'Internal' ? 'border-blue-400 bg-blue-50 text-blue-800' : 'border-gray-200 text-gray-500'
-                }`}>Internal</button>
+                }`}>{t('df_internal')}</button>
             </div>
           </div>
           <div>
-            <label className="label">Status</label>
+            <label className="label">{t('slaf_status')}</label>
             <select className="select" value={form.status} onChange={e => {
               const newStatus = e.target.value
               if (sla?.id && !canTransition('sla', sla.status, newStatus)) {
@@ -358,16 +358,16 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
         </div>
 
         <div>
-          <label className="label">Client *</label>
+          <label className="label">{t('slaf_client')}</label>
           <div className={`flex gap-2 ${fieldErrors.client ? 'ring-1 ring-red-400 rounded-lg' : ''}`}>
             <input className="input flex-1" value={form.client}
               onChange={e => set('client', e.target.value)}
-              placeholder="Client name"/>
+              placeholder={t('slaf_client_ph')}/>
             <SearchableSelect
               value=""
               onChange={v => { if (v) set('client', v) }}
               options={clients.map(c => ({ value: c, label: c }))}
-              placeholder="Search…"
+              placeholder={t('slaf_search_ph')}
               emptyLabel="Pick existing"
               size="sm"
             />
@@ -380,21 +380,21 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">SLA Owner</label>
+            <label className="label">{t('slaf_owner')}</label>
             <SearchableSelect
               value={form.sla_owner}
               onChange={v => set('sla_owner', v)}
               options={owners.map(o => ({ value: o, label: o }))}
-              placeholder="Search owners…"
+              placeholder={t('slaf_search_owners_ph')}
               emptyLabel="— Select —"
               onCreateNew={(q) => { if (q) set('sla_owner', q) }}
               createLabel="Other"
             />
           </div>
           <div>
-            <label className="label">SLA Type</label>
+            <label className="label">{t('slaf_type')}</label>
             <select className="select" value={form.sla_type} onChange={e => set('sla_type', e.target.value)}>
-              <option value="">Select…</option>
+              <option value="">{t('slaf_select')}</option>
               {SLA_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
@@ -402,12 +402,12 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">Annual Value</label>
-            <input className={`input ${fieldErrors.annual_value ? 'border-red-400' : ''}`} type="number" value={form.annual_value} onChange={e => set('annual_value', e.target.value)} placeholder="28000"/>
+            <label className="label">{t('slaf_annual_value')}</label>
+            <input className={`input ${fieldErrors.annual_value ? 'border-red-400' : ''}`} type="number" value={form.annual_value} onChange={e => set('annual_value', e.target.value)} placeholder={t('slaf_annual_value_ph')}/>
             {fieldErrors.annual_value && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.annual_value}</p>}
           </div>
           <div>
-            <label className="label">Billing month</label>
+            <label className="label">{t('slaf_billing_month')}</label>
             <select className="select" value={form.billing_month} onChange={e => set('billing_month', e.target.value)}>
               <option value="">—</option>
               {MONTHS_ALL.map(m => <option key={m} value={m}>{m}</option>)}
@@ -417,14 +417,14 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">Start Date</label>
+            <label className="label">{t('slaf_start_date')}</label>
             <input className={`input ${fieldErrors.start_date ? 'border-red-400' : ''}`} type="date" value={form.start_date} onChange={e => set('start_date', e.target.value)}/>
             {fieldErrors.start_date && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.start_date}</p>}
           </div>
         </div>
 
         <div>
-          <label className="label">Description</label>
+          <label className="label">{t('slaf_description')}</label>
           <textarea className={`input min-h-[60px] resize-none ${fieldErrors.description ? 'border-red-400' : ''}`} value={form.description} onChange={e => set('description', e.target.value)}/>
           {fieldErrors.description && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.description}</p>}
         </div>
@@ -436,7 +436,7 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
               <p className="text-xs font-semibold text-gray-500 uppercase">Products ({slaProducts.length})</p>
               {slaProducts.length > 0 && (
                 <span className="text-xs text-gray-500">
-                  Total: <span className="font-bold text-blue-600">{formatK(slaProducts.reduce((s, p) => s + (Number(p.annual_value) || 0), 0))}/yr</span>
+                  {t('slaf_total')} <span className="font-bold text-blue-600">{formatK(slaProducts.reduce((s, p) => s + (Number(p.annual_value) || 0), 0))}/yr</span>
                 </span>
               )}
             </div>
@@ -455,7 +455,7 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <label className="text-micro text-gray-400">Cost €</label>
+                    <label className="text-micro text-gray-400">{t('slaf_cost')}</label>
                     <input className="input text-xs py-1" type="number" defaultValue={sp.unit_price ?? 0}
                       onBlur={async (e) => {
                         const cost = parseFloat(e.target.value) || 0
@@ -463,7 +463,7 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
                       }}/>
                   </div>
                   <div>
-                    <label className="text-micro text-blue-500">Annual Fee €</label>
+                    <label className="text-micro text-blue-500">{t('slaf_annual_fee')}</label>
                     <input className="input text-xs py-1 border-blue-200" type="number" defaultValue={sp.annual_value ?? 0}
                       onBlur={async (e) => {
                         const val = parseFloat(e.target.value) || 0
@@ -532,7 +532,7 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">Contract Duration</label>
+            <label className="label">{t('slaf_duration')}</label>
             <select className="select" value={form.contract_duration_years} onChange={e => {
               set('contract_duration_years', e.target.value)
               if (form.start_date) {
@@ -551,17 +551,17 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
             </select>
           </div>
           <div>
-            <label className="label">Renewal Date</label>
+            <label className="label">{t('slaf_renewal_date')}</label>
             <input className={`input ${fieldErrors.renewal_date ? 'border-red-400' : ''}`} type="date" value={form.renewal_date} onChange={e => set('renewal_date', e.target.value)}/>
             {fieldErrors.renewal_date && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.renewal_date}</p>}
           </div>
         </div>
 
         <div>
-          <label className="label">Invoice Date</label>
+          <label className="label">{t('slaf_invoice_date')}</label>
           <input className={`input ${fieldErrors.invoice_date ? 'border-red-400' : ''}`} type="date" value={form.invoice_date} onChange={e => set('invoice_date', e.target.value)}/>
           {fieldErrors.invoice_date && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.invoice_date}</p>}
-          <p className="text-micro text-gray-400 mt-0.5">Date when PO received and invoice issued</p>
+          <p className="text-micro text-gray-400 mt-0.5">{t('slaf_invoice_hint')}</p>
         </div>
 
         {/* Contract coverage — what the SLA actually includes (Scenario 4) — collapsed */}
@@ -590,7 +590,7 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
         </CollapsibleSection>
 
         {monthlyRecognition && (
-          <CollapsibleSection title="Revenue Recognition · FY26" subtitle={t('df_optional')}>
+          <CollapsibleSection title={t('slaf_revrec')} subtitle={t('df_optional')}>
             <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
               {monthlyRecognition.months.map((m, i) => {
                 const key = monthlyRecognition.keys[i]
@@ -605,7 +605,7 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
                   <div key={m} className={`text-center rounded p-1.5 ${bgClass}`}>
                     <p className="text-micro text-gray-400">{m}</p>
                     {st === 'pending_renewal' ? (
-                      <p className="text-micro font-bold text-orange-500">Renew</p>
+                      <p className="text-micro font-bold text-orange-500">{t('slaf_legend_renew')}</p>
                     ) : (
                       <p className={`text-xs font-bold ${val > 0 ? 'text-gray-800' : 'text-gray-300'}`}>
                         {val > 0 ? formatK(val) : '—'}
@@ -617,11 +617,11 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
             </div>
             <div className="flex items-center justify-between mt-1">
               <div className="flex gap-2 text-micro text-gray-400">
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-blue-100 border border-blue-200"/> Active</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-amber-100 border border-amber-300"/> Invoice</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-orange-50 border border-orange-200"/> Renewal</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-blue-100 border border-blue-200"/> {t('slaf_legend_active')}</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-amber-100 border border-amber-300"/> {t('slaf_legend_invoice')}</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-orange-50 border border-orange-200"/> {t('slaf_legend_renewal')}</span>
               </div>
-              <p className="text-micro text-gray-500">Total: {formatK(monthlyRecognition.total)}</p>
+              <p className="text-micro text-gray-500">{t('slaf_total')} {formatK(monthlyRecognition.total)}</p>
             </div>
           </CollapsibleSection>
         )}
@@ -629,22 +629,22 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
         {/* Renewal section */}
         {sla?.id && ['active','pending_renewal'].includes(form.status) && (
           <div className="border-t pt-3 space-y-2">
-            <p className="text-xs font-semibold text-gray-500 uppercase">Renewal</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase">{t('slaf_renewal')}</p>
             {sla.previous_value && (
               <p className="text-micro text-gray-400">Previous: {formatK(sla.previous_value)} → Current: {formatK(sla.annual_value)}</p>
             )}
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-micro text-gray-500">New Value €</label>
+                <label className="text-micro text-gray-500">{t('slaf_new_value')}</label>
                 <input className="input text-xs py-1" type="number"
                   id="renewal_new_value"
                   defaultValue={form.annual_value}/>
               </div>
               <div>
-                <label className="text-micro text-gray-500">or Increase %</label>
+                <label className="text-micro text-gray-500">{t('slaf_or_increase')}</label>
                 <input className="input text-xs py-1" type="number"
                   id="renewal_increase_pct"
-                  placeholder="e.g. 3"
+                  placeholder={t('slaf_increase_ph')}
                   onChange={e => {
                     const pct = parseFloat(e.target.value) || 0
                     const newVal = Math.round((parseFloat(form.annual_value) || 0) * (1 + pct / 100))
@@ -665,7 +665,7 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
               })
               if (!error) { onSaved(); onClose() }
             }} className="btn-primary text-xs w-full">
-              Renew Contract
+              {t('slaf_renew_btn')}
             </button>
           </div>
         )}
@@ -683,18 +683,18 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
           <>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="label">Price per Study €</label>
-                <input className={`input ${fieldErrors.price_per_study ? 'border-red-400' : ''}`} type="number" step="0.01" value={form.price_per_study} onChange={e => set('price_per_study', e.target.value)} placeholder="e.g. 2.50"/>
+                <label className="label">{t('slaf_price_study')}</label>
+                <input className={`input ${fieldErrors.price_per_study ? 'border-red-400' : ''}`} type="number" step="0.01" value={form.price_per_study} onChange={e => set('price_per_study', e.target.value)} placeholder={t('slaf_price_study_ph')}/>
                 {fieldErrors.price_per_study && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.price_per_study}</p>}
               </div>
               <div>
                 <label className="label">{t('sla_est_studies')}</label>
-                <input className="input" type="number" value={form.estimated_annual_studies} onChange={e => set('estimated_annual_studies', e.target.value)} placeholder="e.g. 15000"/>
+                <input className="input" type="number" value={form.estimated_annual_studies} onChange={e => set('estimated_annual_studies', e.target.value)} placeholder={t('slaf_est_studies_ph')}/>
               </div>
               <div>
                 <label className="label">{t('sla_actual_prod')}</label>
                 <input className={`input ${(() => { const e = parseInt(form.estimated_annual_studies)||0; const a = parseInt(form.actual_production)||0; return a > e && e > 0 ? 'border-red-400 bg-red-50' : '' })()}`}
-                  type="number" value={form.actual_production} onChange={e => set('actual_production', e.target.value)} placeholder="e.g. 50000"/>
+                  type="number" value={form.actual_production} onChange={e => set('actual_production', e.target.value)} placeholder={t('slaf_actual_prod_ph')}/>
               </div>
             </div>
             {(() => {
@@ -718,12 +718,12 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
         {['reduced','cancelled'].includes(form.status) && (
           <div className="grid grid-cols-2 gap-3 border-t pt-3">
             <div>
-              <label className="label">Previous Value</label>
+              <label className="label">{t('slaf_prev_value')}</label>
               <input className="input" type="number" value={form.previous_value} onChange={e => set('previous_value', e.target.value)}/>
             </div>
             <div>
-              <label className="label">Change Reason</label>
-              <input className="input" value={form.change_reason} onChange={e => set('change_reason', e.target.value)} placeholder="e.g. scope reduction UK"/>
+              <label className="label">{t('slaf_change_reason')}</label>
+              <input className="input" value={form.change_reason} onChange={e => set('change_reason', e.target.value)} placeholder={t('slaf_change_reason_ph')}/>
             </div>
           </div>
         )}

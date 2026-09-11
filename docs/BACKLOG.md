@@ -497,17 +497,37 @@ nomeie um estado que não existe**, e que `pipeline` não seja confundido com um
 
 ---
 
-## BIZ-06 · P3 · 524 strings em inglês no código
+## BIZ-06 · ⏳ EM CURSO · Strings em inglês no código
 
-O ponto #8 de Junho falava de 762. As chaves de i18n estão completas — 1.320 nas
-três línguas, zero lacunas — mas cerca de 524 strings continuam escritas em
-inglês directamente no JSX, em 58 ficheiros. Os piores são o `SlaFormModal`, a
-`History`, as `Settings` e a `ContactsList`.
+As chaves de i18n estão completas — **1.416 nas três línguas, zero lacunas** —
+mas parte da interface está escrita em inglês directamente no JSX. Um espanhol
+abria o formulário de contratos e lia-o em inglês.
 
-Um espanhol a abrir o formulário de contratos lê-o em inglês. Não é urgente e
-não é pouco trabalho: é ficheiro a ficheiro, e cada string precisa de uma chave e
-de três traduções.
+**Feito a 11-09, os quatro piores:**
 
-**Nota sobre a contagem:** é grosseira — texto entre tags e `placeholder`/`title`
-com palavras que começam por maiúscula. Serve para ordenar os ficheiros por
-tamanho do problema, não para reportar progresso.
+| Ficheiro | Antes | Agora |
+|---|---|---|
+| `SlaFormModal.jsx` | 41 | 0 |
+| `History.jsx` | 38 | os códigos de coluna |
+| `Settings.jsx` | 30 | 0 |
+| `ContactsList.jsx` | 27 | 0 |
+
+**Total: 524 → 425.**
+
+**O que ficou em inglês de propósito, no `History`:** `VGT NS`, `ECT GM`,
+`Op.Inc`, `Ach.%`, `Int%`, `Iberia NS`. São códigos de coluna do P&L, lidos
+contra o SAP, e traduzi-los tornaria a tabela mais difícil de conferir e não mais
+fácil de ler. A prosa e as etiquetas a sério foram todas.
+
+**Dois achados pelo caminho:** o contador de clientes do `History` dizia
+`Clientes` — português cravado num ficheiro inglês — e `hist_title` e
+`hist_metric` já existiam, portanto reaproveitaram-se em vez de duplicar.
+
+**O que falta**, por ordem: `DashboardSummary` (26), `Clients` (23),
+`RequirementsMatrix` (22), `UsersTab` (22), `Approvals` (19),
+`DiscountHistory` (16). É ficheiro a ficheiro e cada string precisa de uma chave
+e de três traduções — não há atalho.
+
+**Nota sobre a contagem:** é grosseira — texto entre tags e
+`placeholder`/`title` com palavras que começam por maiúscula. Serve para ordenar
+os ficheiros por tamanho do problema, não para reportar progresso ao décimo.

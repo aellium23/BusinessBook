@@ -13,6 +13,7 @@ const CURRENCIES = [
 
 // ── Sales Owners management ──────────────────────────────────────────────────
 function SalesOwnersSection() {
+  const { t } = useTranslation()
   const [owners, setOwners]       = useState([])
   const [loading, setLoading]     = useState(true)
   const [editingId, setEditingId] = useState(null)
@@ -88,11 +89,11 @@ function SalesOwnersSection() {
       {/* Add form */}
       {adding && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
-          <p className="text-xs font-semibold text-blue-700">New Sales Owner</p>
+          <p className="text-xs font-semibold text-blue-700">{t('set_new_owner')}</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <input
               className="input sm:col-span-2"
-              placeholder="Full name (e.g. Paulo Cunha)"
+              placeholder={t('set_owner_ph')}
               value={newName}
               onChange={e => setNewName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleAdd()}
@@ -105,7 +106,7 @@ function SalesOwnersSection() {
             </select>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setAdding(false)} className="btn-secondary text-xs flex-1">Cancel</button>
+            <button onClick={() => setAdding(false)} className="btn-secondary text-xs flex-1">{t('cancel')}</button>
             <button onClick={handleAdd} disabled={!newName.trim() || saving}
               className="btn-primary text-xs flex-1">
               {saving ? 'Saving…' : 'Add Sales Owner'}
@@ -116,7 +117,7 @@ function SalesOwnersSection() {
 
       {/* Two columns: VGT + ECT */}
       {loading ? (
-        <div className="text-center py-6 text-gray-400 text-sm">Loading…</div>
+        <div className="text-center py-6 text-gray-400 text-sm">{t('set_loading')}</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {[{ label: 'VGT · Portugal', list: vgtOwners, color: '#1D9E75' },
@@ -129,7 +130,7 @@ function SalesOwnersSection() {
               </div>
               <div className="divide-y divide-gray-50">
                 {list.length === 0 && (
-                  <p className="px-4 py-3 text-xs text-gray-400 italic">No owners yet</p>
+                  <p className="px-4 py-3 text-xs text-gray-400 italic">{t('set_no_owners')}</p>
                 )}
                 {list.map(owner => (
                   <div key={owner.id} className={`px-4 py-2.5 flex items-center gap-3 ${!owner.active ? 'opacity-40' : ''}`}>
@@ -152,7 +153,7 @@ function SalesOwnersSection() {
                       <>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-800 truncate">{owner.name}</p>
-                          {owner.bu === 'ALL' && <span className="text-micro text-gray-400">Both teams</span>}
+                          {owner.bu === 'ALL' && <span className="text-micro text-gray-400">{t('set_both_teams')}</span>}
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                           {/* Active toggle */}
@@ -179,7 +180,7 @@ function SalesOwnersSection() {
       )}
 
       <p className="text-xs text-gray-400 text-center">
-        After adding owners here, go to <strong>Users</strong> to link each account to their sales owner.
+        {t('set_owners_hint_a')} <strong>Users</strong> {t('set_owners_hint_b')}
       </p>
     </div>
   )
@@ -233,18 +234,18 @@ function AppSettingsSection() {
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="label">Company Name</label>
+            <label className="label">{t('set_company_name')}</label>
             <input className="input" value={form.company_name || ''}
               onChange={e => setForm(f => ({ ...f, company_name: e.target.value }))}/>
           </div>
           <div>
-            <label className="label">Subtitle</label>
+            <label className="label">{t('set_subtitle')}</label>
             <input className="input" value={form.company_subtitle || ''}
               onChange={e => setForm(f => ({ ...f, company_subtitle: e.target.value }))}/>
           </div>
         </div>
         <div>
-          <label className="label">Primary Color</label>
+          <label className="label">{t('set_primary_color')}</label>
           <div className="flex items-center gap-2">
             <input type="color" value={form.primary_color || '#0D2137'}
               onChange={e => setForm(f => ({ ...f, primary_color: e.target.value }))}
@@ -261,14 +262,14 @@ function AppSettingsSection() {
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="label">Fiscal Year Start</label>
+            <label className="label">{t('set_fy_start')}</label>
             <select className="select" value={form.fy_start_month || 4}
               onChange={e => setForm(f => ({ ...f, fy_start_month: e.target.value }))}>
               {MONTH_NAMES.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
             </select>
           </div>
           <div>
-            <label className="label">Default Currency</label>
+            <label className="label">{t('set_default_currency')}</label>
             <select className="select" value={form.default_currency || 'EUR'}
               onChange={e => setForm(f => ({ ...f, default_currency: e.target.value }))}>
               <option value="EUR">EUR €</option>
@@ -285,7 +286,7 @@ function AppSettingsSection() {
           <p className="text-micro text-gray-400 mt-0.5">{t('set_man_day_hint')}</p>
         </div>
         <div>
-          <label className="label">Budget Cycles (comma-separated)</label>
+          <label className="label">{t('set_cycles')}</label>
           <input className="input" value={form.budget_cycles || ''}
             onChange={e => setForm(f => ({ ...f, budget_cycles: e.target.value }))}
             placeholder="BUD, EST1, EST2"/>
@@ -295,7 +296,7 @@ function AppSettingsSection() {
 
       <button onClick={handleSave} disabled={saving}
         className="btn-primary flex items-center gap-2">
-        {saved ? <><CheckCircle2 size={14}/> Saved</> : saving ? 'Saving…' : <><Save size={14}/> Save Settings</>}
+        {saved ? <><CheckCircle2 size={14}/> {t('set_saved')}</> : saving ? t('set_saving') : <><Save size={14}/> {t('set_save')}</>}
       </button>
     </div>
   )
@@ -347,7 +348,7 @@ export default function Settings() {
   return (
     <div className="max-w-2xl mx-auto p-4 sm:p-6 space-y-6">
 
-      <h1 className="text-xl font-bold text-gray-900">Settings</h1>
+      <h1 className="text-xl font-bold text-gray-900">{t('set_title')}</h1>
 
       <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
         <button onClick={() => setSettingsTab('app')}
