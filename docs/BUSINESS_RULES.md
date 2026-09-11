@@ -1,20 +1,33 @@
 # Regras de negócio — BusinessBook
 
 **Estado:** derivado da implementação e do `CLAUDE.md`, em 2026-09-11.
-**Autoridade:** este documento é **descritivo até ser revisto**. Regista o que o
-sistema faz hoje, não o que deveria fazer. Cada regra marcada `⚠ POR CONFIRMAR`
-foi inferida do código e ninguém a aprovou — é exactamente aí que os defeitos se
-escondem, e foi aí que a auditoria de 11 de Setembro encontrou cinco.
 
-Quando uma regra for confirmada por ti, retira a marca. A partir daí passa a ser
-normativa: uma divergência entre esta página e o código passa a ser um bug do
-código.
+## Como ler as marcas
+
+Cada regra leva uma, e a marca diz **de onde vem a prova** — não se a regra é
+boa:
+
+| | Significa |
+|---|---|
+| ✅ | **Confirmado por ti**, por escrito ou por decisão. É normativa: uma divergência entre ela e o código é um bug do código. |
+| 📐 | **Facto do código**, verificável sem opinião — uma unidade, uma coluna, um comportamento. Não é política e não precisa de aprovação. Se estiver errada, é porque eu li mal. |
+| ⚠ | **Política inferida.** Eu deduzi-a do que o código faz, e ninguém a aprovou. É exactamente aqui que os defeitos se escondem, e foi aqui que a auditoria de 11 de Setembro encontrou cinco. |
+
+**Correcção de 11-09.** Este cabeçalho dizia que as regras inferidas estavam
+marcadas `⚠ POR CONFIRMAR`. Não estavam: a marca não aparecia numa única regra
+das quarenta, portanto um leitor concluía que estavam todas confirmadas. Era pior
+do que não ter marcas nenhumas — um sinal prometido e ausente lê-se como um sinal
+que passou. As marcas abaixo foram aplicadas uma a uma.
+
+**O que ainda precisa de ti:** as ⚠. Estão listadas ao fundo, para não teres de
+percorrer o documento à procura delas.
 
 ---
 
 ## 1. Valor de um negócio
 
-**BR-001 — A regra única.**
+✅ **BR-001 — A regra única.**  
+*✅ — a regra do `CLAUDE.md`, escrita por ti*
 O valor de um negócio é a soma das colunas mensais (`apr`…`mar`). Onde não há
 calendarização mensal, recorre-se a `value_total`. O resultado é convertido pela
 taxa **guardada no negócio** (`exchange_rate`), não pela taxa de hoje.
@@ -24,25 +37,29 @@ Implementação: `src/lib/dealValue.js`. Todos os ecrãs a chamam.
 *Porquê a taxa guardada:* uma taxa é um instantâneo. Uma alteração cambial
 amanhã não pode reavaliar em silêncio o que foi cotado hoje.
 
-**BR-002 — Dentro de um período, não há recurso ao total.**
+⚠ **BR-002 — Dentro de um período, não há recurso ao total.**  
+*⚠ — deduzi que num período não se recorre ao total*
 Num relatório mensal ou trimestral as colunas mensais são a única fonte honesta.
 Usar `value_total` faria um negócio sem calendarização aterrar por inteiro em
 todos os meses consultados.
 
 Implementação: `src/lib/salesByClient.js`.
 
-**BR-003 — Espelhos intercompany nunca contam.**
+⚠ **BR-003 — Espelhos intercompany nunca contam.**  
+*⚠ — deduzi que os espelhos nunca contam*
 Um negócio com `is_intercompany_mirror = true` existe para mostrar a mesma
 operação dos dois lados da casa. Contá-lo duplica receita.
 
-**BR-004 — Pesos de previsão.**
+✅ **BR-004 — Pesos de previsão.**  
+*✅ — os pesos estão no `CLAUDE.md`*
 Lead 10% · Pipeline 30% · Proposta apresentada 60% · BackLog 100% · Faturado
 100% · Perdido 0%.
 
 O BackLog vale 100% porque já foi adjudicado. Implementação: `WEIGHTS` em
 `src/constants.js`.
 
-**BR-005 — Perdido não é uma fase do funil.**
+⚠ **BR-005 — Perdido não é uma fase do funil.**  
+*⚠ — deduzi que Perdido se reporta à parte*
 É a saída dele. Reporta-se à parte das cinco, senão sugere que um negócio passa
 por lá a caminho de outro sítio.
 
@@ -53,20 +70,25 @@ por lá a caminho de outro sítio.
 Três unidades diferentes, duas delas em colunas cujo nome não o diz. Esta secção
 existe porque a confusão entre elas custou um erro de 100× em Setembro.
 
-**BR-010 — `deals.gm_pct` é uma FRACÇÃO.**
+📐 **BR-010 — `deals.gm_pct` é uma FRACÇÃO.**  
+*📐 — unidade da coluna*
 `0.35` são 35%. Todos os leitores multiplicam por 100 para mostrar.
 
-**BR-011 — `deal_products.margin_pct` é um MARKUP SOBRE O CUSTO, em percentagem.**
+📐 **BR-011 — `deal_products.margin_pct` é um MARKUP SOBRE O CUSTO, em percentagem.**  
+*📐 — unidade da coluna*
 O editor de linhas reconstrói o preço como `custo × (1 + margem/100)`.
 
-**BR-012 — Margem bruta é sobre o preço de venda, não sobre o custo.**
+📐 **BR-012 — Margem bruta é sobre o preço de venda, não sobre o custo.**  
+*📐 — aritmética*
 São números diferentes para a mesma linha: 35% de margem é 53,8% de markup.
 
-**BR-013 — Margem percentual agregada é ponderada, nunca uma média de percentagens.**
+⚠ **BR-013 — Margem percentual agregada é ponderada, nunca uma média de percentagens.**  
+*⚠ — deduzi a ponderação; é aritmética, mas a escolha é de reporte*
 `soma(margem) / soma(receita)`. Uma média de percentagens deixa um negócio
 pequeno mover um cliente grande.
 
-**BR-014 — Margem desconhecida mostra-se como traço, não como zero.**
+⚠ **BR-014 — Margem desconhecida mostra-se como traço, não como zero.**  
+*⚠ — princípio meu*
 `0%` lê-se como "vendido ao custo" quando significa "ninguém preencheu".
 
 **Uma linha sem custo tira o negócio inteiro da conta.** `lineCostTotals` deixa-a
@@ -80,35 +102,42 @@ O mesmo negócio, dois ecrãs, duas respostas opostas, e nenhuma delas a verdade
 
 ## 3. Descontos
 
-**BR-020 — Estados de um pedido.**
+⚠ **BR-020 — Estados de um pedido.**  
+*⚠ — deduzi os estados do código*
 `to_request` → `pending` → (`approved` | `rejected` | `counter`).
 Uma contraproposta espera pela aceitação de quem pediu; só então passa a
 `approved` e o dinheiro se move.
 
-**BR-021 — Aprovar por menos do que foi pedido é contrapor.**
+⚠ **BR-021 — Aprovar por menos do que foi pedido é contrapor.**  
+*⚠ — deduzi que aprovar por menos é contrapor*
 O ecrã converte-o automaticamente. A diferença importa a jusante: uma aprovação
 é final, uma contraproposta espera.
 
-**BR-022 — Cada ronda é uma linha nova, não uma edição.**
+⚠ **BR-022 — Cada ronda é uma linha nova, não uma edição.**  
+*⚠ — deduzi que cada ronda é linha nova*
 A negociação guarda o histórico: o que foi pedido, o que voltou, o que se pediu
 a seguir.
 
-**BR-023 — O valor em risco acompanha por ponto de desconto.**
+⚠ **BR-023 — O valor em risco acompanha por ponto de desconto.**  
+*⚠ — deduzi a proporcionalidade do valor em risco*
 Um segundo pedido a 15% contra um primeiro a 20% vale três quartos dele.
 
-**BR-024 — O alívio aplica-se uma só vez.**
+⚠ **BR-024 — O alívio aplica-se uma só vez.**  
+*⚠ — deduzi do `applied_at`*
 `applied_at` impede que responder duas vezes desconte duas vezes.
 
 ---
 
 ## 4. Margem protegida do parceiro
 
-**BR-030 — Alvo 35%, chão de desconto 20%, chão absoluto 15%.**
+⚠ **BR-030 — Alvo 35%, chão de desconto 20%, chão absoluto 15%.**  
+*⚠ — vem do briefing, cuja base se revelou errada — ver BIZ-05*
 Os descontos não devem levar um parceiro abaixo de 20%. Nunca abaixo de 15%.
 
 Implementação: `PROTECTED_MARGIN` em `src/lib/partnerMargin.js`.
 
-**BR-031 — Dois acordos, não cinco.**
+⚠ **BR-031 — Dois acordos, não cinco.**  
+*⚠ — o que os 40% significam ficou sem resposta*
 **Full VAR 40%** — o parceiro vende, implementa e dá primeiro nível de suporte.
 É o que ser distribuidor significa aqui. **Direct 0%** — vendemos nós.
 
@@ -117,8 +146,8 @@ Renovação 25%, Referral 15%. Saíram das opções em 11-09, mas a aritmética
 continua a saber preçá-los, para que uma proposta guardada a 28% continue a
 valer 28%.
 
-**BR-032 — R1–R4 é preço de TRANSFERÊNCIA, não preço de cliente.** ✅ *Confirmado
-pelo dono do P&L a 11-09.*
+✅ **BR-032 — R1–R4 é preço de TRANSFERÊNCIA, não preço de cliente.**  
+*✅ — confirmado por palavras tuas a 11-09*
 A escada regional é a lista de compra de quem está a jusante de nós: o
 distribuidor **e** a subsidiária Fujifilm. Não é o preço de venda de ninguém.
 Nas palavras dele: o preço de transferência para o parceiro é o que aparece na
@@ -140,7 +169,8 @@ lhe outros 40% para inventar uma transferência. Nos números do negócio
 "test chile": dizia cliente 65.574 € / transferência 39.344 €, quando o parceiro
 nos paga 65.574 € e vende ao hospital por cerca de 100.883 €.
 
-**BR-037 — Uma margem assumida não verifica nada.**
+📐 **BR-037 — Uma margem assumida não verifica nada.**  
+*📐 — está no código e tem teste*
 Enquanto ninguém escrever o preço que o parceiro vai cobrar, a margem dele é a
 assunção lida de volta — e uma verificação de piso contra uma assunção **passa
 sempre**. Por isso os pisos 35/20/15 só são avaliados sobre um preço que nos foi
@@ -150,22 +180,26 @@ dito. Vazia a caixa, o painel estima e não afirma nada.
 significam os 40% do Full VAR depois do BR-032. Não entram em cálculo nenhum;
 são a referência contra a qual a margem medida é lida.
 
-**BR-036 — Nunca escrever uma estimativa numa coluna com nome de facto.**
+⚠ **BR-036 — Nunca escrever uma estimativa numa coluna com nome de facto.**  
+*⚠ — princípio meu*
 `deal_channel.end_customer_price` e `partner_margin_pct` ficam a **nulo** quando
 somos nós a cotar um negócio de canal. Uma estimativa que entra numa coluna
 chamada `end_customer_price` deixa de ser estimativa no primeiro relatório que
 a leia. Só a proposta do próprio parceiro as preenche, porque só ela as sabe.
 
-**BR-033 — Região de preço e papel de canal são coisas diferentes.**
+⚠ **BR-033 — Região de preço e papel de canal são coisas diferentes.**  
+*⚠ — deduzi a separação região/papel*
 A região (R1/R2/R3) diz quanto vale a lista naquele país, e deriva-se do país.
 O papel de canal diz o que o parceiro faz por nós, e é contrato: dois
 distribuidores no mesmo país podem ter papéis diferentes.
 
-**BR-034 — A precedência do papel de canal.**
+⚠ **BR-034 — A precedência do papel de canal.**  
+*⚠ — deduzi a precedência*
 Papel explícito da empresa → a empresa é distribuidor, logo Full VAR →
 `direct`. Não há nada para configurar no caso normal.
 
-**BR-035 — Um negócio guardado nunca é reavaliado por ser aberto.**
+⚠ **BR-035 — Um negócio guardado nunca é reavaliado por ser aberto.**  
+*⚠ — princípio meu, aplicado depois de me corrigires*
 A dedução aplica-se só a propostas novas. Um negócio anterior fica exactamente
 como foi cotado, mesmo quando o papel guardado é o `direct` por omissão e
 contradiz o parceiro — porque abrir uma página para a ver não pode mexer no que
@@ -179,18 +213,22 @@ históricos é um acto, não um efeito secundário.
 
 ## 5. Âmbito por empresa
 
-**BR-040 — Um parceiro está limitado às empresas por que age.**
+📐 **BR-040 — Um parceiro está limitado às empresas por que age.**  
+*📐 — é o que a política `acts_for()` faz*
 A pertença está em `company_members`, e a função `acts_for()` é a única pergunta
 que as políticas fazem.
 
-**BR-041 — A unidade de um parceiro é a empresa, não a pessoa.**
+📐 **BR-041 — A unidade de um parceiro é a empresa, não a pessoa.**  
+*📐 — é o que a política faz*
 Um negócio da empresa é editável por qualquer pessoa que aja por ela, seja quem
 for que o criou.
 
-**BR-042 — Um negócio pertence a uma empresa só.**
+⚠ **BR-042 — Um negócio pertence a uma empresa só.**  
+*⚠ — deduzi do comportamento ao criar*
 Ao criar com o filtro em "todas", vai para a empresa de origem.
 
-**BR-043 — O catálogo é o da empresa DO NEGÓCIO.**
+⚠ **BR-043 — O catálogo é o da empresa DO NEGÓCIO.**  
+*⚠ — deduzi do comportamento ao abrir*
 Abrir um negócio do Peru com o filtro no Chile valoriza-o pelas autorizações do
 Peru.
 
@@ -198,7 +236,8 @@ Peru.
 
 ## 6. Transições de estado
 
-**BR-050 — Transições permitidas para negócios.**
+📐 **BR-050 — Transições permitidas para negócios.**  
+*📐 — está na base de dados e no teste*
 
 | De | Para |
 |---|---|
@@ -209,7 +248,8 @@ Peru.
 | Faturado | Perdido *(apenas correcção)* |
 | Perdido | Lead *(reabertura)* |
 
-**BR-050a — Lead → Proposta apresentada salta o Pipeline, de propósito.**
+✅ **BR-050a — Lead → Proposta apresentada salta o Pipeline, de propósito.**  
+*✅ — escolhido por ti a 11-09*
 Acrescentada a 11-09. As fases de um distribuidor são Lead, Proposta, BackLog e
 Perdido — o Pipeline é a nossa qualificação interna e está fora do ecrã deles de
 propósito. O formulário cruza as duas listas, e a partir de um Lead a
@@ -224,14 +264,16 @@ que são mesmo qualificados antes de alguém cotar.
 Nada do que se reporta se mexe: os funis contam negócios pela fase em que estão,
 não pelo caminho que fizeram.
 
-**BR-056 — Os grupos de estados de contrato têm um nome só.**
+📐 **BR-056 — Os grupos de estados de contrato têm um nome só.**  
+*📐 — está no código e tem teste*
 `SLA_PIPELINE_STATUSES` (draft, waiting_po) e `SLA_ACTIVE_STATUSES` (warranty,
 active, pending_renewal), em `src/constants.js`. **Não existe um estado
 `pipeline`** — isso é o id de um separador, e três ecrãs usaram-no como valor de
 coluna até 11-09. Não apanhava nada, e dois números do painel eram zero por
 construção.
 
-**BR-055 — O ciclo de vida de um contrato também é imposto pela base de dados.**
+📐 **BR-055 — O ciclo de vida de um contrato também é imposto pela base de dados.**  
+*📐 — está na base de dados e no teste*
 Dezassete transições em `sla_status_transitions`, e um trigger em `slas` recusa
 o resto. Mesmos isentos que os negócios: admin, e o SQL Editor. O INSERT fica de
 fora — um contrato pode chegar-nos já activo.
@@ -247,7 +289,8 @@ fora — um contrato pode chegar-nos já activo.
 | expirado | activo *(reactivação)* |
 | cancelado | draft *(recomeçar)* |
 
-**BR-051 — A tabela acima é imposta pela base de dados.**
+📐 **BR-051 — A tabela acima é imposta pela base de dados.**  
+*📐 — está na base de dados e no teste*
 `deal_stage_transitions` guarda estes treze pares e um trigger em `deals` recusa
 o que lá não estiver. Deixou de ser só a caixa de selecção: uma chamada directa
 à API já não move um Lead para Faturado.
@@ -261,14 +304,16 @@ import, ou um negócio que nos chega já ganho. A máquina governa movimento.
 A regra existe em dois sítios por necessidade — o ecrã tem de desenhar a caixa
 antes de qualquer pedido — e os dois são comparados a cada `npm run test`.
 
-**BR-054 — Quem vê custo: admin, manager e os nossos comerciais.**
+✅ **BR-054 — Quem vê custo: admin, manager e os nossos comerciais.**  
+*✅ — escolhido por ti a 11-09*
 A pergunta é `sees_internal_economics()`, e é a mesma nos três sítios onde se
 faz: `roles.js`, a função SQL e a view `deal_products_cost`. Distribuidores,
 parceiros e *viewers* ficam de fora. Até 11-09 a view respondia admin e manager
 só, portanto um comercial escrevia o custo no quick deal e era informado, ao
 reabrir o negócio, de que a linha não tinha custo.
 
-**BR-057 — Gravar linhas actualiza no sítio; apagar é só o que saiu.**
+📐 **BR-057 — Gravar linhas actualiza no sítio; apagar é só o que saiu.**  
+*📐 — está no código e tem teste*
 `saveDealProducts` apagava tudo e reinseria, e por isso a gravação de um parceiro
 destruía o nosso custo: o custo é nulado no INSERT para quem não o pode ler, e a
 linha que o guardava tinha sido apagada. O mesmo trigger, no UPDATE, **repõe** o
@@ -279,19 +324,22 @@ não, e apaga só o que saiu mesmo da proposta.
 *De todas as operações de gravação, apagar é a única que perde informação que
 ninguém recupera.* Fica para o fim e só sobre o que foi retirado.
 
-**BR-058 — Um parceiro pode editar um negócio que nós criámos.**
+✅ **BR-058 — Um parceiro pode editar um negócio que nós criámos.**  
+*✅ — decidido por ti a 11-09*
 Decidido a 11-09. Quem corre o negócio no dia a dia é o parceiro; um negócio que
 ninguém no terreno pode actualizar é pior do que um que podem. A política
 `deals partner update` sempre o permitiu e fica como está.
 
-**BR-052 — Quem não vê custo não o escreve.**
+📐 **BR-052 — Quem não vê custo não o escreve.**  
+*📐 — está no trigger*
 `cost_price` e `margin_pct` em `deal_products` são forçados a nulo no INSERT, e
 repostos ao valor anterior no UPDATE, para quem não passa
 `sees_internal_economics()`. Coagido e não recusado: a proposta de um parceiro
 manda essas colunas em todas as gravações e manda-as vazias, e rebentar ali
 partia gravações legítimas para castigar um caso que não acontece.
 
-**BR-053 — Custo desconhecido grava-se a nulo, nunca a zero.**
+📐 **BR-053 — Custo desconhecido grava-se a nulo, nunca a zero.**  
+*📐 — está no código e tem teste*
 `parseFloat(null) || 0` é `0`, e durante meses foi assim que todas as gravações
 de parceiro escreveram custo zero e 100% de margem. Ver `numOrNull` em
 `src/lib/numbers.js`. É o BR-061 aplicado ao caminho de escrita, que era o único
@@ -301,13 +349,16 @@ sítio onde não estava.
 
 ## 7. Nunca mostrar um número que não se sabe
 
-**BR-060 — Uma taxa sobre nada é desconhecida, não zero.**
+⚠ **BR-060 — Uma taxa sobre nada é desconhecida, não zero.**  
+*⚠ — princípio meu*
 Uma conversão cuja fase anterior está vazia não mostra `0%` — `0%` lê-se como um
 funil a falhar quando significa um funil vazio.
 
-**BR-061 — Custo desconhecido assinala-se, não se assume zero.**
+⚠ **BR-061 — Custo desconhecido assinala-se, não se assume zero.**  
+*⚠ — princípio meu*
 
-**BR-062 — Um erro de carregamento diz-se, não se mostra vazio.**
+⚠ **BR-062 — Um erro de carregamento diz-se, não se mostra vazio.**  
+*⚠ — princípio meu*
 Uma página de zeros e uma lista vazia são respostas. Dá-las quando a pergunta
 falhou é mentir com confiança.
 
@@ -331,3 +382,60 @@ nenhum total no ecrã.
 | Negócios de origem interna | Se o parceiro os pode editar | Hoje pode; não foi decidido |
 | `PACS ACTIVE MONITORING FEE` | O tecto real de desconto | Carrega 80% herdados, ditos incorrectos |
 | Quem vê custo | Matriz papel × coluna | `roles.js` e a view discordam |
+
+---
+
+## 8. O que falta confirmares
+
+**Vinte e uma regras `⚠`.** Nenhuma é uma pergunta difícil; o que as torna
+perigosas é ninguém lhes ter dito que sim. Responde em bloco — "todas certas
+menos a X e a Y" chega perfeitamente.
+
+### Valor e reporte — 4
+
+| | Pergunta |
+|---|---|
+| **BR-002** | Num relatório mensal ou trimestral, um negócio **sem calendarização mensal** conta zero nesse período? (Hoje conta zero. A alternativa seria cair lá por inteiro, que é pior — mas é a tua chamada.) |
+| **BR-003** | Um espelho intercompany **nunca** entra em soma nenhuma? |
+| **BR-005** | Perdido reporta-se **à parte** das cinco fases, e não dentro do funil? |
+| **BR-013** | A margem de um cliente é `soma(margem)/soma(receita)` e nunca a média das percentagens — portanto um negócio pequeno não mexe com um cliente grande? |
+
+### Descontos — 5
+
+| | Pergunta |
+|---|---|
+| **BR-020** | Os estados são `to_request → pending → approved / rejected / counter`, e uma contraproposta **espera** pela aceitação de quem pediu antes de mover dinheiro? |
+| **BR-021** | Aprovar por **menos** do que foi pedido é automaticamente uma contraproposta, e não uma aprovação? |
+| **BR-022** | Cada ronda de negociação é **linha nova** e não edição da anterior, para o histórico sobreviver? |
+| **BR-023** | O valor em risco acompanha **por ponto de desconto** — um segundo pedido a 15% contra um primeiro a 20% vale três quartos? |
+| **BR-024** | O alívio aplica-se **uma só vez**, mesmo que alguém responda duas vezes ao mesmo pedido? |
+
+### Canal e parceiros — 7
+
+| | Pergunta |
+|---|---|
+| **BR-030** | O alvo 35% / piso de desconto 20% / piso absoluto 15% continua a ser a política, agora que se sabe que a base contra a qual foi escrita estava errada? |
+| **BR-031** | **A que ficou sem resposta.** O que são os 40% do Full VAR? Hoje são só uma referência contra a margem medida. |
+| **BR-033** | Região de preço e papel de canal são independentes — dois distribuidores no mesmo país podem ter papéis diferentes? |
+| **BR-034** | O papel vem da empresa; se ela é distribuidor, é Full VAR; senão, `direct`. Nada para configurar no caso normal? |
+| **BR-035** | Um negócio guardado **nunca** é reavaliado só por ser aberto, mesmo quando o papel guardado contradiz o parceiro? |
+| **BR-036** | Uma estimativa **nunca** entra numa coluna com nome de facto — `end_customer_price` fica a nulo enquanto ninguém escrever o número? |
+| **BR-042** | Ao criar um negócio com o filtro em "todas as empresas", ele vai para a **empresa de origem** de quem o cria? |
+
+### Catálogo — 1
+
+| | Pergunta |
+|---|---|
+| **BR-043** | Abrir um negócio do Peru com o filtro no Chile valoriza-o pelas autorizações **do Peru** — a empresa do negócio ganha ao filtro do ecrã? |
+
+### Princípios de ecrã — 4
+
+Estes são meus, e são o fio condutor de metade do trabalho de 11-09. Se
+discordares de algum, há bastante código a rever.
+
+| | Pergunta |
+|---|---|
+| **BR-014** | Margem desconhecida é um **traço**, nunca `0%`? |
+| **BR-060** | Uma taxa de conversão sobre uma fase vazia é **desconhecida**, não `0%`? |
+| **BR-061** | Custo desconhecido **assinala-se**, nunca se assume zero? |
+| **BR-062** | Uma leitura que falhou **diz-se**, em vez de mostrar uma página de zeros ou uma lista vazia? |

@@ -455,15 +455,36 @@ nenhum; fica onde está até haver motivo para lhe tocar.
 
 ---
 
-## DOC-01 · P2 · Documentação sem autoridade
+## DOC-01 · ⏳ À TUA ESPERA · Documentação sem autoridade
 
-Os documentos em `docs/` são descritivos até serem revistos. Enquanto ninguém os
-confirmar, não conseguem dizer que o produto está errado — foi assim que a
-margem 100× sobreviveu.
+**O problema era pior do que estava escrito.** Este item dizia "tirar as marcas
+`⚠ POR CONFIRMAR`". Não havia marcas nenhumas: a expressão aparecia **uma vez**,
+no cabeçalho a explicar a convenção, e em nenhuma das quarenta regras. Um leitor
+concluía que estavam todas confirmadas.
 
-**Correcção:** leres `BUSINESS_RULES.md` e tirares as marcas `⚠ POR CONFIRMAR`
-do que estiver certo, corrigindo o resto. A partir daí uma divergência entre o
-documento e o código é um bug do código.
+Um sinal prometido e ausente é pior do que sinal nenhum — lê-se como um sinal que
+passou.
+
+**Feito a 11-09.** As quarenta regras levam agora uma marca, aplicada uma a uma,
+e a marca diz **de onde vem a prova**:
+
+| | Quantas | Significa |
+|---|---|---|
+| ✅ | 6 | Confirmado pelo dono do P&L, por escrito ou por decisão. Normativa. |
+| 📐 | 13 | Facto do código, verificável sem opinião. Não é política. |
+| ⚠ | 21 | Política que eu inferi e ninguém aprovou. |
+
+As 21 estão listadas na secção 8 do `BUSINESS_RULES.md`, agrupadas por assunto e
+escritas como perguntas de sim ou não, para serem despachadas de uma assentada
+sem percorrer o documento.
+
+**Falta:** responderes. Enquanto não responderes, o documento continua a não
+conseguir dizer que o código está errado — que foi como a margem 100× sobreviveu
+três meses.
+
+**A que vale mais:** a **BR-031**, o que significam os 40% do Full VAR. É a única
+⚠ que já sabemos não ter resposta, e é a que ainda deixa dois números a fazer o
+mesmo trabalho em ecrãs diferentes.
 
 ---
 
