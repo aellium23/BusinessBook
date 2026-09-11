@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { BUBadge, StageBadge, SalesTypeBadge, ForecastBadge, formatK, CurrencyBadge } from '../ui'
 import { canPrice } from '../../lib/roles'
 import { useAuth } from '../../hooks/useAuth'
-import { Trash2, Pencil, ChevronDown, ChevronUp, Link, AlertTriangle, Clock, RefreshCw } from 'lucide-react'
+import { Trash2, Pencil, ChevronDown, ChevronUp, Link, AlertTriangle, Clock, RefreshCw, Building2 } from 'lucide-react'
 import { useTranslation } from '../../hooks/useTranslation'
 import { WEIGHTS, MONTHS, MONTHS_K } from '../../constants'
 import { dealValue } from '../../lib/dealValue'
@@ -108,7 +108,7 @@ function DiscountChip({ deal, t }) {
 // Compact by default; taps expand "Details" (extra badges, description,
 // distribution chain, monthly breakdown). Keeps the Monthly toggle as a
 // subset of the full details — one chevron, one state.
-export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete, brands, openDiscounts }) {
+export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete, brands, openDiscounts, partnerName }) {
   const { profile } = useAuth()
   const seesMargin = canPrice(profile?.role)
   const { t } = useTranslation()
@@ -157,6 +157,23 @@ export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete, b
             <StageBadge stage={deal.stage} />
             <SalesTypeBadge type={deal.sales_type} />
             <ForecastBadge deal={deal} />
+            {/* Where this deal came from. A deal filed by a partner lands in
+                our pipeline looking exactly like one of ours, and the
+                difference matters before anybody opens it: the margin on it is
+                theirs, and a discount on it is a concession to a company rather
+                than to a customer.
+
+                A badge and not a coloured border, deliberately. The left border
+                on this card already carries two meanings — intercompany, or the
+                health score — so a third would be one stripe saying three
+                things, two of them in the same green. A word survives that, and
+                survives a reader who does not separate green from amber. */}
+            {partnerName && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold
+                               bg-teal-50 text-teal-700 border border-teal-200">
+                <Building2 size={10}/> {partnerName}
+              </span>
+            )}
             {Array.isArray(brands) && brands.map(b => (
               <span key={b} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-indigo-100 text-indigo-700">
                 {b}

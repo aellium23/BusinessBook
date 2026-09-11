@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import { CHANNEL_ROLES } from '../../lib/partnerMargin'
 import { useTranslation } from '../../hooks/useTranslation'
 import { Modal } from '../ui'
 import {
@@ -285,6 +286,20 @@ function SalesTargetsSection({ companies, onRefresh }) {
     return quotas.find(q => q.company_id === companyId)?.target_eur || 0
   }
 
+  /**
+   * The channel role, straight onto the company.
+   *
+   * No confirm step: it is one field, it is reversible, and a dialog between
+   * the admin and a dropdown is a dialog nobody reads. A failure says so
+   * instead of leaving the select showing a value that was never stored.
+   */
+  async function saveChannelRole(companyId, role) {
+    const { error } = await supabase.from('companies')
+      .update({ channel_role: role || null }).eq('id', companyId)
+    if (error) { alert(error.message); return }
+    onRefresh()
+  }
+
   async function handleSave(companyId) {
     setSaving(true)
     const val = parseFloat(editVal) || 0
@@ -335,6 +350,20 @@ function SalesTargetsSection({ companies, onRefresh }) {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900">{co.name}</p>
                     <p className="text-xs text-gray-400">{co.bu || co.country || '—'}</p>
+                    {/* How this partner sells for us. It belongs to the
+                        relationship, not to each deal — the quote reads it to
+                        work out the transfer price and the partner's margin,
+                        and without it that whole panel stays empty. */}
+                    <select className="select text-xs py-1 mt-1 w-44"
+                      value={co.channel_role || ''}
+                      onChange={e => saveChannelRole(co.id, e.target.value)}>
+                      <option value="">{t('perm_role_unset')}</option>
+                      {CHANNEL_ROLES.map(r => (
+                        <option key={r.key} value={r.key}>
+                          {t(`pm_role_${r.key}`)}{r.channelPct > 0 ? ` · ${r.channelPct}%` : ''}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   {isEditing ? (
                     <div className="flex items-center gap-2 shrink-0">

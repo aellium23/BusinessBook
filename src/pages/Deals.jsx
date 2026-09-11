@@ -159,6 +159,24 @@ export default function Deals() {
 
   // Map of deal_id → brands[] / product names[] / categories[] (for filtering)
   const [dealBrands, setDealBrands] = useState({})
+
+  /**
+   * Which deals came in from a partner, and from which one.
+   *
+   * A deal filed by TIMED lands in our pipeline looking exactly like one of
+   * ours, and the difference matters before anybody opens it: the economics are
+   * a partner's, the margin on screen is theirs and not ours, and a discount on
+   * it is a concession to a company rather than to a customer.
+   *
+   * One small query for the whole list, like the brands above.
+   */
+  const [partnerCompanies, setPartnerCompanies] = useState({})
+  useEffect(() => {
+    supabase.from('companies').select('id, name, type').eq('type', 'distributor')
+      .then(({ data }) => {
+        if (data) setPartnerCompanies(Object.fromEntries(data.map(c => [c.id, c.name])))
+      })
+  }, [])
   const [dealProducts, setDealProducts] = useState({})
   const [dealCategories, setDealCategories] = useState({})
 
@@ -718,6 +736,7 @@ export default function Deals() {
             <div className="space-y-2">
               {paginated.map(d => (
                 <DealCard key={d.id} deal={d} openDiscounts={openDiscounts[d.id]}
+                  partnerName={partnerCompanies[d.company_id]}
                   canEdit={canEditDeal(d)} canDelete={canDelete}
                   brands={dealBrands[d.id]}
                   onEdit={deal => { setEditDeal(deal); setQuoteOpen(true) }}
