@@ -101,8 +101,14 @@ Os descontos não devem levar um parceiro abaixo de 20%. Nunca abaixo de 15%.
 
 Implementação: `PROTECTED_MARGIN` em `src/lib/partnerMargin.js`.
 
-**BR-031 — Papéis de canal e as suas margens.**
-Directo · VAR completo 40% · Revendedor 28% · Renovação 25% · Referral 15%.
+**BR-031 — Dois acordos, não cinco.**
+**Full VAR 40%** — o parceiro vende, implementa e dá primeiro nível de suporte.
+É o que ser distribuidor significa aqui. **Direct 0%** — vendemos nós.
+
+Existiram mais três, herdados da folha de preços e nunca usados: Revendedor 28%,
+Renovação 25%, Referral 15%. Saíram das opções em 11-09, mas a aritmética
+continua a saber preçá-los, para que uma proposta guardada a 28% continue a
+valer 28%.
 
 **BR-032 — O custo do parceiro é a pricelist regional da VGT.**
 A escada R1/R2/R3 no escalão de volume aplicável — não o preço por produto da
@@ -114,9 +120,10 @@ O papel de canal diz o que o parceiro faz por nós, e é contrato: dois
 distribuidores no mesmo país podem ter papéis diferentes.
 
 **BR-034 — A precedência do papel de canal.**
-Papel da empresa → papel por omissão da região → `direct`. O explícito ganha
-sempre, e reabrir uma proposta guardada mostra o papel a que foi cotada, não
-aquele a que a política entretanto mudou.
+Papel explícito da empresa → a empresa é distribuidor, logo Full VAR → `direct`.
+Não há nada para configurar no caso normal. Reabrir uma proposta guardada mostra
+o papel a que foi cotada, não aquele a que o acordo entretanto mudou — uma
+proposta que se reavalia sozinha é uma proposta que não se pode enviar.
 
 ---
 

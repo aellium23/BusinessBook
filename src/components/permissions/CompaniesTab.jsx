@@ -331,12 +331,6 @@ function SalesTargetsSection({ companies, onRefresh }) {
         <p className="text-xs text-gray-400 mt-0.5">{t('perm_targets_desc') || 'Annual targets for distributors and partners'}</p>
       </div>
 
-      {/* What a region lends to partners that say nothing. A default, not a
-          derivation: the region decides what the list is worth there, the
-          agreement decides what a partner does for us, and a company that
-          states a role overrides this. */}
-      <RegionDefaults t={t}/>
-
       {distCompanies.length === 0 ? (
         <div className="bg-gray-50 rounded-xl p-8 text-center">
           <p className="text-gray-400 text-sm">{t('perm_no_distributors') || 'No active distributors'}</p>
@@ -417,65 +411,6 @@ export default function CompaniesTab({ companies, onRefresh }) {
     <div className="space-y-6">
       <CompaniesSection companies={companies} onRefresh={onRefresh}/>
       <SalesTargetsSection companies={companies} onRefresh={onRefresh}/>
-    </div>
-  )
-}
-
-/**
- * The channel role each pricing region lends.
- *
- * Three rows, set once, and most partners then need no setting at all. It is
- * deliberately here beside the per-company control rather than on a settings
- * page of its own: the two answer the same question at different scopes, and
- * somebody changing one should see the other.
- */
-function RegionDefaults({ t }) {
-  const [regions, setRegions] = useState([])
-  const [error, setError] = useState(null)
-
-  async function load() {
-    const { data, error: e } = await supabase.from('pricing_regions')
-      .select('code, name, discount_pct, default_channel_role').order('code')
-    // A missing column means the migration has not run. Saying nothing is
-    // better than an empty box nobody can explain.
-    if (e) { setError(e.message); return }
-    setRegions(data || [])
-  }
-  useEffect(() => { load() }, [])
-
-  async function save(code, role) {
-    const { error: e } = await supabase.from('pricing_regions')
-      .update({ default_channel_role: role || null }).eq('code', code)
-    if (e) { alert(e.message); return }
-    load()
-  }
-
-  if (error || regions.length === 0) return null
-
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 mb-3">
-      <p className="text-sm font-semibold text-gray-900">{t('perm_region_roles')}</p>
-      <p className="text-xs text-gray-400 mt-0.5 mb-2">{t('perm_region_roles_desc')}</p>
-      <div className="space-y-1.5">
-        {regions.map(r => (
-          <div key={r.code} className="flex items-center gap-3">
-            <span className="text-xs font-bold text-gray-700 w-8 shrink-0">{r.code}</span>
-            <span className="text-xs text-gray-400 flex-1 min-w-0 truncate">
-              {r.name}{r.discount_pct != null ? ` · ${r.discount_pct}% off list` : ''}
-            </span>
-            <select className="select text-xs py-1 w-44 shrink-0"
-              value={r.default_channel_role || ''}
-              onChange={e => save(r.code, e.target.value)}>
-              <option value="">{t('perm_role_unset')}</option>
-              {CHANNEL_ROLES.map(cr => (
-                <option key={cr.key} value={cr.key}>
-                  {t(`pm_role_${cr.key}`)}{cr.channelPct > 0 ? ` · ${cr.channelPct}%` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-        ))}
-      </div>
     </div>
   )
 }

@@ -42,13 +42,40 @@ import { DEAL_DISCOUNT_CAP_PCT } from './dealDiscounts'
 const num = v => (v === null || v === undefined || v === '' ? null : Number(v))
 
 /** What each channel role earns off the regional list, at list. */
+/**
+ * The two arrangements this business actually has.
+ *
+ * A distributor is always a Full VAR: they sell, they implement, and they carry
+ * first-line support — that is what being a distributor means here, and it is
+ * why the role never needed asking. Anything we sell ourselves is direct.
+ *
+ * Three more once existed — reseller 28, renewal 25, referral 15 — inherited
+ * from the pricing spreadsheet and never used. They are gone from the choices
+ * rather than left as five answers to a question with two, because a menu of
+ * options nobody picks teaches the reader that the field does not matter.
+ */
 export const CHANNEL_ROLES = [
   { key: 'direct',   channelPct: 0 },
   { key: 'full_var', channelPct: 40 },
+]
+
+/**
+ * Roles that were once offered, so a quote saved at one still prices correctly.
+ *
+ * A deal quoted as a reseller was quoted at 28 %, and reopening it must show
+ * what it was quoted at rather than silently repricing to something else. The
+ * lesson is one this app learned the hard way in the same week: a select whose
+ * value is not among its options renders empty, and a figure that changes
+ * because a list changed is a figure nobody can trust.
+ */
+export const RETIRED_CHANNEL_ROLES = [
   { key: 'reseller', channelPct: 28 },
   { key: 'renewal',  channelPct: 25 },
   { key: 'referral', channelPct: 15 },
 ]
+
+/** Every role the arithmetic still understands, current or retired. */
+export const ALL_CHANNEL_ROLES = [...CHANNEL_ROLES, ...RETIRED_CHANNEL_ROLES]
 
 /**
  * The protected margin, as policy. Three numbers doing three different jobs.
@@ -97,8 +124,15 @@ export function partnerTargetPrice(cost, marginPct = PROTECTED_MARGIN.target) {
   return money(c / (1 - m / 100))
 }
 
+/**
+ * The arrangement behind a key, retired ones included.
+ *
+ * A quote saved as a reseller was saved at 28 %, and it has to keep pricing at
+ * 28 % — a figure that moves because a list of options changed is a figure
+ * nobody can trust.
+ */
 export function roleFor(key) {
-  return CHANNEL_ROLES.find(r => r.key === key) || CHANNEL_ROLES[0]
+  return ALL_CHANNEL_ROLES.find(r => r.key === key) || CHANNEL_ROLES[0]
 }
 
 /**

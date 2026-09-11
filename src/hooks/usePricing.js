@@ -24,7 +24,7 @@ export function usePricing() {
     let alive = true
 
     Promise.all([
-      supabase.from('pricing_regions').select('code, name, discount_pct, default_channel_role'),
+      supabase.from('pricing_regions').select('code, name, discount_pct'),
       supabase.from('pricing_region_countries').select('country, region_code'),
       supabase.from('product_price_tiers')
         .select('product_id, tier_label, tier_from, tier_to, global_list_price, sort_order')
@@ -41,9 +41,7 @@ export function usePricing() {
         }
 
         setRegions(Object.fromEntries(
-          (r.data || []).map(x => [x.code, { discountPct: Number(x.discount_pct), name: x.name,
-            // Null until an admin sets it; the quote falls back to direct.
-            defaultChannelRole: x.default_channel_role || null }])
+          (r.data || []).map(x => [x.code, { discountPct: Number(x.discount_pct), name: x.name }])
         ))
         setCountryMap(Object.fromEntries(
           (c.data || []).map(x => [x.country, x.region_code])

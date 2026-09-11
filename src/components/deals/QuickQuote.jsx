@@ -138,10 +138,18 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
         if (!alive || !data) return
         setDealCompany(data)
         // Only where nothing has been chosen yet. Reopening a saved quote must
-        // keep the role it was quoted at, even if the company has changed since.
-        if (data.channel_role && !deal?.id) {
+        // keep the role it was quoted at, even if the agreement has changed
+        // since — a quote that reprices itself is a quote nobody can send.
+        if (deal?.id) return
+        if (data.channel_role) {
           setChannelRole(data.channel_role)
           setRoleFromCompany('company')
+        } else if (data.type === 'distributor') {
+          // A distributor is a Full VAR: they sell, implement and carry
+          // first-line support, and that is what being a distributor means
+          // here. There is nothing to configure and nothing to remember.
+          setChannelRole('full_var')
+          setRoleFromCompany('type')
         }
       })
     return () => { alive = false }
@@ -334,25 +342,6 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
   const regionCode = pricingRegionForCountry(countryMap, country)
   const region = regionCode ? regions[regionCode] : null
 
-  /**
-   * The role a region lends, where the company does not state one.
-   *
-   * A default and not a derivation. The region decides what the list is worth
-   * in that country; it does not decide what a partner does for us, which is a
-   * contract. But most partners in a region sell the same way, so letting the
-   * region lend a role means only the exceptions need setting.
-   *
-   * Never over an explicit one, and never on a saved quote: reopening a deal
-   * must show the role it was quoted at, not the role policy has drifted to
-   * since.
-   */
-  useEffect(() => {
-    if (deal?.id || roleFromCompany) return
-    if (!dealCompany || dealCompany.channel_role) return
-    const fallback = region?.defaultChannelRole
-    if (fallback) { setChannelRole(fallback); setRoleFromCompany('region') }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [region?.defaultChannelRole, dealCompany, deal?.id])
 
   // The supplier SKUs under whichever families are on the quote.
   const { itemsByProduct } = useProductItems(picked)
@@ -1260,14 +1249,10 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
                   {t('pm_role_from')} {dealCompany.name}
                 </p>
               )}
-              {roleFromCompany === 'region' && regionCode && (
+              {roleFromCompany === 'type' && dealCompany && (
                 <p className="text-micro text-gray-500 mt-0.5">
-                  {t('pm_role_from_region')} {regionCode}
+                  {t('pm_role_from_type')} {dealCompany.name}
                 </p>
-              )}
-              {dealCompany?.type === 'distributor' && !dealCompany.channel_role
-                && !region?.defaultChannelRole && (
-                <p className="text-micro text-amber-700 mt-0.5">{t('pm_role_unset')}</p>
               )}
             </div>
             {/* Above the cap the deal is already an exception, and the two named
