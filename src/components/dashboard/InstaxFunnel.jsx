@@ -65,8 +65,14 @@ const OVERHANG = 5
  * first attempt left the painted "620%" legible underneath the drawn one. The
  * tape is translucent, so the badge is drawn a few pixels proud all round: one
  * that only just covers it leaves a mint rim.
+ *
+ * Every figure here is in hundredths of the PICTURE's width, not the scene's,
+ * so the same badge covers the same painted tape whether the picture is 239
+ * pixels wide on a desk or 96 on a phone. The phone showed why this matters: at
+ * a fixed size the badge shrank out of the way and the painted 620% — a number
+ * from the day the scene was made — read as today's conversion.
  */
-const TAPE = { rise: 5, tilt: -6 }
+const TAPE = { rise: 2.4, tilt: -6, size: 8.7, padY: 5.7, padX: 4.0 }
 
 const FRAMES = {
   'Lead': { icon: Users, x0: 73, x1: 339,
@@ -197,6 +203,29 @@ function cardBox(conf) {
   return { x, w: (conf.x1 + OVERHANG) - x, y: CARD_TOP, h: CARD_BOTTOM - CARD_TOP }
 }
 
+/**
+ * The share of the stage before that reached this one, on the strip of tape the
+ * scene sticks across the picture's top corner.
+ *
+ * Drawn over the picture but not inside it: the tape in the scene overhangs the
+ * print, and a badge clipped to the print leaves the painted tape showing round
+ * itself. Its parent is the picture's own box, which is what makes it a
+ * container query and what makes one badge serve both layouts.
+ */
+function TapeBadge({ f, conf }) {
+  if (f.fromPrevious === null) return null
+  return (
+    <span className="absolute right-0 text-gray-800 font-bold shadow-sm"
+      style={{
+        top: `${-TAPE.rise}cqw`, transform: `rotate(${TAPE.tilt}deg)`,
+        background: conf.tape, lineHeight: 1,
+        fontSize: `${TAPE.size}cqw`, padding: `${TAPE.padY}cqw ${TAPE.padX}cqw`,
+      }}>
+      {f.fromPrevious}%
+    </span>
+  )
+}
+
 /** The picture inside one frame, cut from the scene. */
 function framePhoto(conf) {
   const x = conf.x0 + PHOTO_INSET
@@ -253,7 +282,7 @@ export default function InstaxFunnel({ selectedBU = '' }) {
       <div className="md:hidden space-y-3">
         <PhoneHeader t={t}/>
         {frames.map(f => <PhoneFrame key={f.stage} f={f} t={t} onOpen={() => open(f.stage)}/>)}
-        <PhoneBanner figures={figures} t={t}/>
+        <PhoneFilm figures={figures} t={t} onOpen={to => navigate(to)}/>
       </div>
     </>
   )
@@ -280,31 +309,18 @@ function SceneFrame({ f, t, onOpen }) {
         top: pct(box.y, ART_H), height: pct(box.h, ART_H),
       }}>
 
-      <div className={`absolute overflow-hidden bg-gradient-to-br ${conf.tint}`}
+      <div className="absolute"
         style={{
           left: pct(PHOTO_INSET + OVERHANG, box.w),
           right: pct(PHOTO_INSET + OVERHANG, box.w),
           top: pct(PHOTO_TOP - box.y, box.h),
           height: pct(PHOTO_BOTTOM - PHOTO_TOP, box.h),
-          ...framePhoto(conf),
-        }}/>
-
-      {/* The share of the stage before that reached this one, on the strip of
-          tape the scene sticks across the picture's top corner. It is drawn
-          outside the picture rather than inside it because the tape in the
-          scene overhangs the print on two sides, and a badge clipped to the
-          picture leaves the painted tape showing round it. */}
-      {f.fromPrevious !== null && (
-        <span className="absolute text-gray-800 font-bold shadow-sm"
-          style={{
-            top: pct(PHOTO_TOP - box.y - TAPE.rise, box.h),
-            right: pct(PHOTO_INSET + OVERHANG, box.w),
-            transform: `rotate(${TAPE.tilt}deg)`, background: conf.tape,
-            fontSize: '1.35cqw', padding: '0.88cqw 0.62cqw', lineHeight: 1,
-          }}>
-          {f.fromPrevious}%
-        </span>
-      )}
+          containerType: 'inline-size',
+        }}>
+        <span className={`absolute inset-0 overflow-hidden bg-gradient-to-br ${conf.tint}`}
+          style={framePhoto(conf)}/>
+        <TapeBadge f={f} conf={conf}/>
+      </div>
 
       <div className="absolute inset-x-0 bottom-0"
         style={{ top: pct(PHOTO_BOTTOM - box.y + 8, box.h), padding: '0 6.5%' }}>
@@ -488,16 +504,17 @@ function PhoneFrame({ f, t, onOpen }) {
       aria-label={`${f.stage} — ${formatK(f.value)}, ${f.count} ${t('ifn_deals')}`}
       className="w-full text-left bg-[#fbf7f0] rounded-[3px] shadow-md ring-1 ring-black/5
                  p-2 pb-3 flex gap-3 items-center">
-      <div className={`w-24 shrink-0 bg-gradient-to-br ${conf.tint}`}
-        style={{ aspectRatio: `${w} / ${PHOTO_BOTTOM - PHOTO_TOP}`, ...framePhoto(conf) }}/>
+      <div className="w-28 shrink-0 relative"
+        style={{ aspectRatio: `${w} / ${PHOTO_BOTTOM - PHOTO_TOP}`,
+                 containerType: 'inline-size' }}>
+        <span className={`absolute inset-0 overflow-hidden bg-gradient-to-br ${conf.tint}`}
+          style={framePhoto(conf)}/>
+        <TapeBadge f={f} conf={conf}/>
+      </div>
       <div className="min-w-0 flex-1">
         <p className="text-base text-gray-900 flex items-center gap-1.5" style={HAND}>
           <Icon size={14} className="text-gray-600"/>
           {t(`ifn_s_${key}`)}
-          {f.fromPrevious !== null && (
-            <span className="ml-auto bg-[#f4f1ea] text-micro font-bold text-gray-700
-                             px-1.5 py-0.5 shadow-sm rotate-2">{f.fromPrevious}%</span>
-          )}
         </p>
         <p className="text-micro text-gray-500 uppercase tracking-wide leading-tight mt-0.5">
           {t(`ifn_c_${key}`)}
@@ -514,26 +531,69 @@ function PhoneFrame({ f, t, onOpen }) {
   )
 }
 
-function PhoneBanner({ figures, t }) {
+/**
+ * The same four totals, on the same film, held the other way up.
+ *
+ * A phone cannot take four exposures across, so the strip runs vertically and
+ * the perforations run down the two sides. The base is a gradient rather than a
+ * crop of the desk: the scene's film lies on that desk and borrows its grain,
+ * this one lies on a list and has nothing to borrow, and a fourteen-pixel band
+ * of wood stretched over a panel this tall bands into stripes.
+ *
+ * Every frame opens what it counts, the same as on the desk. A total you cannot
+ * walk into is a total you cannot check.
+ */
+function PhoneFilm({ figures, t, onOpen }) {
   return (
-    <div className="bg-[#f7f3e8] border border-amber-100 rounded-xl shadow-sm px-3 py-2.5">
-      <div className="grid grid-cols-2 gap-3">
-        {figures.map(fig => (
-          <div key={fig.label} className="flex items-start gap-2">
-            <fig.icon size={16} className="text-gray-400 mt-0.5 shrink-0"/>
-            <div className="min-w-0">
-              <p className="text-micro text-gray-500">{fig.label}</p>
-              <p className={`text-lg font-bold leading-tight ${fig.tone || 'text-gray-900'}`}>
-                {fig.value}
-              </p>
-              <p className="text-micro text-gray-400 leading-tight">{fig.hint}</p>
-            </div>
-          </div>
-        ))}
+    <div className="relative rounded-lg overflow-hidden shadow-sm"
+      style={{ background: 'linear-gradient(160deg,#3a2a1d,#241812 58%,#1b120d)' }}>
+      <div className="absolute inset-0" style={{ backgroundImage: BACKLIGHT }}/>
+      {['left-0', 'right-0'].map(side => (
+        <div key={side} className={`absolute ${side} top-0 bottom-0`}
+          style={{
+            width: 13,
+            backgroundImage: `repeating-linear-gradient(to bottom, transparent 0 9px,` +
+                             ` ${FILM_HOLE} 9px 23px)`,
+            backgroundPosition: '0 6px',
+          }}/>
+      ))}
+
+      <div className="relative px-5 pt-2 pb-3">
+        <p className="uppercase" style={{ fontSize: 8, letterSpacing: '0.18em',
+                                          color: FILM_EDGE, opacity: 0.8 }}>
+          FUJIFILM · SALES 2026
+        </p>
+        <div className="grid grid-cols-2 gap-x-3 mt-1.5">
+          {figures.map((fig, i) => (
+            <button key={fig.label} type="button" onClick={() => onOpen(fig.to)}
+              aria-label={`${fig.label} — ${fig.value}, ${fig.hint}`}
+              className={`text-left flex items-start gap-2 py-2 active:opacity-70
+                          ${i % 2 ? 'pl-3 border-l' : ''} ${i > 1 ? 'border-t' : ''}`}
+              style={{ borderColor: 'rgba(240,226,205,.18)' }}>
+              <fig.icon size={15} className="shrink-0 mt-0.5"
+                style={{ color: fig.film || '#f0e2cd' }} strokeWidth={1.5}/>
+              <span className="min-w-0 block">
+                <span className="block uppercase leading-none"
+                  style={{ fontSize: 9, letterSpacing: '0.1em', color: 'rgba(240,226,205,.72)' }}>
+                  {fig.label}
+                </span>
+                <span className="block font-bold leading-none mt-1"
+                  style={{ fontSize: 20, color: fig.film || '#f0e2cd' }}>{fig.value}</span>
+                <span className="block leading-tight mt-1"
+                  style={{ fontSize: 9, color: 'rgba(240,226,205,.6)' }}>{fig.hint}</span>
+              </span>
+              <span className="ml-auto self-end" style={{ fontSize: 8, letterSpacing: '0.16em',
+                                                          color: FILM_EDGE, opacity: 0.65 }}>
+                {fig.exposure}
+              </span>
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 leading-tight"
+          style={{ ...HAND, fontSize: 13, color: 'rgba(240,226,205,.78)' }}>
+          {t('ifn_footer')} <span style={{ fontFamily: 'system-ui', color: '#e9857c' }}>♥</span>
+        </p>
       </div>
-      <p className="text-xs text-gray-500 mt-2" style={HAND}>
-        {t('ifn_footer')} <span className="text-rose-300">♥</span>
-      </p>
     </div>
   )
 }
