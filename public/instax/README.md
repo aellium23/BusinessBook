@@ -1,24 +1,21 @@
-# The funnel photographs
+# The funnel photograph
 
-The Funnel dashboard reads its pictures from this folder. Drop the files in and
-they appear; leave them out and each frame falls back to a drawn gradient, so
-the page never breaks over a missing image.
+`desk.png` is the artwork behind the Funnel dashboard — the whole scene, frames
+and all, exactly as it was made. It is 1536 × 1024, and that matters: every box
+in `src/components/dashboard/InstaxFunnel.jsx` is a measurement in those pixels
+— where each white card sits, where the picture inside it starts, where the
+summary banner lies. The page draws the live figures over the frames in the
+photograph, and cuts each frame's picture out of this same file at display time,
+so there is no second copy of anything to keep in step.
 
-    desk.jpg      the scene behind the frames — the desk, the camera, the plants
-    lead.jpg      the photograph inside the Lead frame
-    pipeline.jpg  …Pipeline
-    offer.jpg     …Offer Presented
-    backlog.jpg   …Backlog
-    invoiced.jpg  …Invoiced
+Replacing it means re-measuring. If a new version of the scene is dropped in
+with the frames anywhere else, the live cards will sit beside the painted ones
+rather than on top of them. The measurements to revisit are `FRAMES`,
+`CARD_TOP` / `CARD_BOTTOM`, `PHOTO_TOP` / `PHOTO_BOTTOM`, `PHOTO_INSET` and
+`BANNER`, and the way to check is to look at it rather than to reason about it:
+render the page at 1536 px wide and see whether any pale edge of a painted card
+shows along a drawn one.
 
-Any of them may be .jpg, .png or .webp — name the file exactly as above with the
-extension you have, and the page will find it.
-
-Sizes: the frames are about 400 px wide on a laptop and are cropped to a square,
-so anything from 600×600 up is plenty. `desk.jpg` is a background and is seen at
-up to ~1600 px wide; keep it under about 400 KB or the dashboard pays for it on
-a phone.
-
-The whole-scene image with the frames already in it is not what goes here: the
-figures are drawn live over the background, so the background must be the desk
-WITHOUT the five polaroids.
+The numbers are never baked into the picture. A figure inside a photograph is
+stale the moment it is taken, and this one is read from the deals every time the
+page opens.
