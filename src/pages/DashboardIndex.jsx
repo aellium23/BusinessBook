@@ -7,6 +7,7 @@ import DashboardSummary from './DashboardSummary'
 import ProductFunnel from '../components/dashboard/ProductFunnel'
 import SalesRepFunnel from '../components/dashboard/SalesRepFunnel'
 import TopClients from '../components/dashboard/TopClients'
+import SalesByClient from '../components/dashboard/SalesByClient'
 import MemberDashboard from '../components/dashboard/MemberDashboard'
 import { Gauge as GaugeIcon, BarChart3, Package, Users, Building2 } from 'lucide-react'
 
@@ -138,7 +139,15 @@ export default function DashboardIndex() {
       {view === 'summary' ? <DashboardSummary selectedBU={effectiveBU} />
         : view === 'products' ? <ProductFunnel selectedBU={effectiveBU} />
         : view === 'reps' ? <SalesRepFunnel selectedBU={effectiveBU} />
-        : view === 'clients' ? <TopClients selectedBU={effectiveBU} />
+        : view === 'clients' ? (
+          <div className="space-y-4">
+            {/* What was invoiced, by client, over a period — the question the
+                month-end report answers. The funnel below it answers a
+                different one: what is still coming. */}
+            <SalesByClient selectedBU={effectiveBU} />
+            <TopClients selectedBU={effectiveBU} />
+          </div>
+        )
         : <DashboardClassic hideHeader selectedBU={effectiveBU} />}
     </div>
   )
