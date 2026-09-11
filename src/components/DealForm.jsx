@@ -3,6 +3,9 @@ import { Modal, CollapsibleSection, formatK } from './ui'
 import { upsertDeal, upsertDealWithIntercompany } from '../hooks/useDeals'
 import { useAuth } from '../hooks/useAuth'
 import { useCompanyScope } from '../hooks/useCompanyScope'
+// Aliased: the component already has a `dealLines` state array, and the
+// import would sit in its shadow — the call would reach the array.
+import { dealLines as fetchDealLines } from '../lib/dealLines'
 import { supabase } from '../lib/supabase'
 import { useFxRates } from '../hooks/useFxRates'
 import { logger } from '../lib/logger'
@@ -190,8 +193,8 @@ export default function DealForm({ deal, onClose, onSaved }) {
   }, [profile?.role, deal?.company_id, homeId, profile?.company_id])
   useEffect(() => {
     if (deal?.id) {
-      // Use the security view so cost_price/margin_pct are nulled for non-admin/manager roles
-      supabase.from('deal_products_v').select('*').eq('deal_id', deal.id).order('created_at')
+      // Lines from the shared view, cost from the guarded one. See lib/dealLines.
+      fetchDealLines(deal.id)
         .then(({ data }) => { if (data) setDealLines(data.map(d => ({ ...d, _key: d.id }))) })
         .catch(() => {})
       // The contract term lives with the quote, not on the deal, and without it
