@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { signOut, supabase } from '../lib/supabase'
 import { useNotifications } from '../hooks/useTasks'
 import { useTasks } from '../hooks/useTasks'
-import { LayoutDashboard, List, DollarSign, User, LogOut, ChevronRight, History, Building2, Target, Settings, CheckSquare, FileText, MoreHorizontal, Shield, Contact, GitBranch, LayoutGrid, Network as NetIcon, RefreshCw, Package, CalendarDays } from 'lucide-react'
+import { LayoutDashboard, List, DollarSign, User, LogOut, ChevronRight, History, Building2, Target, Settings, CheckSquare, FileText, MoreHorizontal, Shield, Contact, GitBranch, LayoutGrid, Network as NetIcon, RefreshCw, Package, CalendarDays, Scale } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 import { useSettings } from '../hooks/useSettings'
 import { LANGUAGES, setLang } from '../lib/i18n'
@@ -102,6 +102,7 @@ export default function Layout({ children }) {
     { to: '/settings',    icon: Settings, label: t("nav_settings"),    page: 'settings' },
     { to: '/permissions',  icon: Shield,   label: t('nav_permissions'), page: 'permissions' },
     { to: '/approvals',    icon: CheckSquare, label: 'Approvals',       page: 'approvals' },
+    { to: '/verification', icon: Scale,       label: t('vf_nav'),        page: 'verification' },
   ]
   const nav = allNav.filter(n => canAccessPage(n.page))
 
