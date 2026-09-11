@@ -108,6 +108,16 @@ Directo · VAR completo 40% · Revendedor 28% · Renovação 25% · Referral 15%
 A escada R1/R2/R3 no escalão de volume aplicável — não o preço por produto da
 autorização.
 
+**BR-033 — Região de preço e papel de canal são coisas diferentes.**
+A região (R1/R2/R3) diz quanto vale a lista naquele país, e deriva-se do país.
+O papel de canal diz o que o parceiro faz por nós, e é contrato: dois
+distribuidores no mesmo país podem ter papéis diferentes.
+
+**BR-034 — A precedência do papel de canal.**
+Papel da empresa → papel por omissão da região → `direct`. O explícito ganha
+sempre, e reabrir uma proposta guardada mostra o papel a que foi cotada, não
+aquele a que a política entretanto mudou.
+
 ---
 
 ## 5. Âmbito por empresa

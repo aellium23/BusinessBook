@@ -109,7 +109,7 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
   const [servicesTouched, setTouched] = useState(false)
   const [servicesPvp, setServicesPvp] = useState('')   // '' = the default price
   const [channelRole, setChannelRole] = useState('direct')
-  const [roleFromCompany, setRoleFromCompany] = useState(false)
+  const [roleFromCompany, setRoleFromCompany] = useState(null)  // 'company' | 'region'
   const [programme, setProgramme] = useState('')   // named programme, above cap
 
   /**
@@ -141,7 +141,7 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
         // keep the role it was quoted at, even if the company has changed since.
         if (data.channel_role && !deal?.id) {
           setChannelRole(data.channel_role)
-          setRoleFromCompany(true)
+          setRoleFromCompany('company')
         }
       })
     return () => { alive = false }
@@ -333,6 +333,26 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
 
   const regionCode = pricingRegionForCountry(countryMap, country)
   const region = regionCode ? regions[regionCode] : null
+
+  /**
+   * The role a region lends, where the company does not state one.
+   *
+   * A default and not a derivation. The region decides what the list is worth
+   * in that country; it does not decide what a partner does for us, which is a
+   * contract. But most partners in a region sell the same way, so letting the
+   * region lend a role means only the exceptions need setting.
+   *
+   * Never over an explicit one, and never on a saved quote: reopening a deal
+   * must show the role it was quoted at, not the role policy has drifted to
+   * since.
+   */
+  useEffect(() => {
+    if (deal?.id || roleFromCompany) return
+    if (!dealCompany || dealCompany.channel_role) return
+    const fallback = region?.defaultChannelRole
+    if (fallback) { setChannelRole(fallback); setRoleFromCompany('region') }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [region?.defaultChannelRole, dealCompany, deal?.id])
 
   // The supplier SKUs under whichever families are on the quote.
   const { itemsByProduct } = useProductItems(picked)
@@ -1226,7 +1246,7 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
               <label className="label">{t('pm_sold_through')}</label>
               <select className={`select w-44 ${partnerTerritory && channelRole === 'direct' ? 'border-amber-300' : ''}`}
                 value={channelRole}
-                onChange={e => { setChannelRole(e.target.value); setRoleFromCompany(false) }}>
+                onChange={e => { setChannelRole(e.target.value); setRoleFromCompany(null) }}>
                 {CHANNEL_ROLES.map(r => (
                   <option key={r.key} value={r.key}>
                     {t(`pm_role_${r.key}`)}{r.channelPct > 0 ? ` · ${r.channelPct}%` : ''}
@@ -1235,12 +1255,18 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
               </select>
               {/* Where it came from, so a figure that was not chosen is not
                   mistaken for one that was. */}
-              {roleFromCompany && dealCompany && (
+              {roleFromCompany === 'company' && dealCompany && (
                 <p className="text-micro text-gray-500 mt-0.5">
                   {t('pm_role_from')} {dealCompany.name}
                 </p>
               )}
-              {dealCompany?.type === 'distributor' && !dealCompany.channel_role && (
+              {roleFromCompany === 'region' && regionCode && (
+                <p className="text-micro text-gray-500 mt-0.5">
+                  {t('pm_role_from_region')} {regionCode}
+                </p>
+              )}
+              {dealCompany?.type === 'distributor' && !dealCompany.channel_role
+                && !region?.defaultChannelRole && (
                 <p className="text-micro text-amber-700 mt-0.5">{t('pm_role_unset')}</p>
               )}
             </div>
