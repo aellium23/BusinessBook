@@ -41,6 +41,12 @@ altura foi criar a view. A view resolve o ecrã e não a API.
 tabela como quem chama. Revogar a coluna parte a view também para os admins, e
 o `DealForm` calcula o breakdown económico a partir dela.
 
+**Verificado a 11-09**, do lado da base de dados e não por inferência:
+`information_schema.column_privileges` não dá `SELECT` a `authenticated` em
+`cost_price` nem em `margin_pct`, e dá-o nas catorze restantes. `INSERT` e
+`UPDATE` continuam — de propósito, o quick deal grava custo — e o `REFERENCES`
+que aparece é resíduo do grant de tabela, sem valor de leitura.
+
 **Nota para o futuro:** o `grant` na tabela base é agora por lista de colunas.
 Uma coluna nova fica ilegível até ser acrescentada a essa lista — que é o
 comportamento certo para uma tabela que guarda o nosso custo, mas explica
@@ -69,6 +75,27 @@ dados e imports vão precisar de passar por cima.
 
 **Esforço:** 1 migração. **Risco:** bloqueia correcções legítimas se a lista de
 isenções ficar curta.
+
+---
+
+## SEC-04 · P2 · Um parceiro não lê o nosso custo, mas pode sobrepô-lo
+
+**O quê.** Fechar o SEC-01 tirou o `SELECT` das colunas de custo, e deixou o
+`INSERT` e o `UPDATE` — que são precisos, porque o quick deal grava custo. Mas
+a política de escrita em `deal_products` deixa um parceiro alterar as linhas dos
+negócios da empresa dele, essas colunas incluídas.
+
+Não pode espiar. Pode estragar — e as nossas margens saem dali.
+
+**Porque não se resolve com `grant`.** Ao nível do Postgres somos todos o mesmo
+papel `authenticated`: um grant de coluna não distingue um comercial nosso de um
+distribuidor. Tem de ser RLS ou um trigger.
+
+**Nota:** um parceiro nunca grava custo legitimamente — o quick deal escreve
+`cost_price: null` quando quem cota não é dos nossos. Portanto a regra é simples
+de enunciar: quem não vê custo não o escreve.
+
+**Parente do SEC-03.** Mesmo mecanismo, mesma migração se forem feitos juntos.
 
 ---
 
