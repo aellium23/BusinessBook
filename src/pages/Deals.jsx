@@ -113,6 +113,9 @@ export default function Deals() {
   useEffect(() => {
     // A funnel frame links straight into its own deals; without this the click
     // arrived on an unfiltered list and the figure had to be found again by eye.
+    // Straight to one deal's breakdown, for the approver who needs to see the
+    // whole project before deciding on one line of it.
+    const dealId = searchParams.get('deal')
     const stage = searchParams.get('stage')
     const product = searchParams.get('product')
     const brand = searchParams.get('brand')
@@ -120,6 +123,12 @@ export default function Deals() {
     const noproduct = searchParams.get('noproduct')
     const owner = searchParams.get('owner')
     const client = searchParams.get('client')
+    if (dealId) {
+      supabase.from('deals').select('*').eq('id', dealId).maybeSingle()
+        .then(({ data }) => { if (data) { setEditDeal(data); setQuoteOpen(true) } })
+      setSearchParams({}, { replace: true })
+      return
+    }
     if (stage || product || brand || category || noproduct || owner || client) {
       if (stage) setStageF(stage)
       if (product) setProductF(product)

@@ -25,6 +25,7 @@ import { COUNTRY_MAP, regionForCountry, STAGES } from '../../constants'
 import { getAllowedTransitions } from '../../lib/stateMachine'
 import { canPrice } from '../../lib/roles'
 import { toQuoteState, fromQuoteState, rebuildFrom } from '../../lib/quoteState'
+import { requestsForDeal, acceptCounter, askAgain, requestState } from '../../lib/discountRequests'
 import { authMapOf, authorisedProducts, authorisedCountries,
          hasAuthorisations, authKey, partnerLineCost } from '../../lib/partnerCatalogue'
 import SearchableSelect from '../SearchableSelect'
@@ -111,6 +112,13 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
   // A deal from before those were stored is rebuilt from its product lines and
   // says so, because an approximation presented as the original is how a quote
   // that went to a customer gets quietly rewritten.
+  // Where each discount ask on this deal stands. It used to live only in the
+  // full form's history, two screens from where a partner works — so a
+  // counter-offer arrived and nobody saw it.
+  const [requests, setRequests] = useState([])
+  const [askingOn, setAskingOn] = useState(null)
+  const [askPct, setAskPct] = useState('')
+  const [askNote, setAskNote] = useState('')
   const [rebuilt, setRebuilt] = useState(false)
   const [quoteStoreError, setQuoteStoreError] = useState(null)
   const [loadingQuote, setLoadingQuote] = useState(Boolean(deal?.id))
@@ -121,6 +129,8 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
     setClient(deal.client || '')
     if (deal.stage) setStage(deal.stage)
     if (deal.country) setCountry(deal.country)
+
+    requestsForDeal(deal.id).then(({ data }) => { if (alive) setRequests(data || []) })
 
     supabase.from('deal_quote').select('state').eq('deal_id', deal.id).maybeSingle()
       .then(async ({ data, error: qErr }) => {
@@ -573,6 +583,24 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
       + (servicesOn ? services.pvp : 0)),
     annualPvp: round2(lines.reduce((n, l) => n + l.annualPvp, 0)),
   }), [views, lines, services, servicesOn, warrantyServicesPvp])
+
+  async function reloadRequests() {
+    const { data } = await requestsForDeal(deal.id)
+    setRequests(data || [])
+  }
+
+  async function onAccept(req) {
+    const { error: e } = await acceptCounter(req.id)
+    if (e) { setError(e.message); return }
+    reloadRequests()
+  }
+
+  async function onAskAgain(req) {
+    const { error: e } = await askAgain(req, askPct, askNote, profile?.id)
+    if (e) { setError(e.message); return }
+    setAskingOn(null); setAskPct(''); setAskNote('')
+    reloadRequests()
+  }
 
   // Services alone are a deal: an implementation, a migration, a training week.
   const quotable = servicesOn && services.pvp > 0
@@ -1357,6 +1385,60 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
                   )}
                 </div>
               )}
+
+              {/* What came back on this line. The figure alone says nothing:
+                  a counter is an offer waiting for an answer, and the answer
+                  belongs where the rep already is. */}
+              {requests.filter(r => r.product_id === l.id).map(r => {
+                const state = requestState(r)
+                const tone = state === 'approved' ? 'text-green-700 bg-green-50 border-green-200'
+                  : state === 'rejected' ? 'text-red-700 bg-red-50 border-red-200'
+                  : state === 'counter' ? 'text-amber-800 bg-amber-50 border-amber-200'
+                  : 'text-gray-600 bg-gray-50 border-gray-200'
+                return (
+                  <div key={r.id} className={`rounded-lg border px-2 py-1.5 text-micro space-y-1 ${tone}`}>
+                    <p className="font-semibold">
+                      {t(`qd_req_${state}`)}
+                      {r.approved_pct != null && state !== 'pending' && ` · ${r.approved_pct}%`}
+                      <span className="font-normal opacity-80"> · {t('qd_req_asked')} {r.requested_pct}%</span>
+                    </p>
+                    {r.response_note && <p className="font-normal opacity-90">{r.response_note}</p>}
+
+                    {state === 'counter' && r.requested_by === profile?.id && (
+                      askingOn === r.id ? (
+                        <div className="space-y-1 pt-1">
+                          <div className="flex items-center gap-2">
+                            <input className="input text-xs py-1 w-16 text-right" type="number"
+                              min="0" max="99" value={askPct} style={{ fontSize: '16px' }}
+                              placeholder={String(r.requested_pct)}
+                              onChange={e => setAskPct(e.target.value)}/>
+                            <span>%</span>
+                          </div>
+                          <input className="input text-xs py-1 w-full" value={askNote}
+                            style={{ fontSize: '16px' }} placeholder={t('qd_disc_why_ph')}
+                            onChange={e => setAskNote(e.target.value)}/>
+                          <div className="flex gap-2">
+                            <button type="button" onClick={() => setAskingOn(null)}
+                              className="btn-secondary text-xs flex-1">{t('qd_cancel')}</button>
+                            <button type="button" onClick={() => onAskAgain(r)}
+                              disabled={!askPct || !askNote.trim()}
+                              className="btn-primary text-xs flex-1">{t('qd_req_send')}</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2 pt-0.5">
+                          <button type="button" onClick={() => setAskingOn(r.id)}
+                            className="btn-secondary text-xs flex-1">{t('qd_req_again')}</button>
+                          <button type="button" onClick={() => onAccept(r)}
+                            className="btn-primary text-xs flex-1">
+                            {t('qd_req_accept')} {r.approved_pct}%
+                          </button>
+                        </div>
+                      )
+                    )}
+                  </div>
+                )
+              })}
 
               {internal && (l.capexBelow || l.annualBelow) && (
                 <p className="text-micro text-red-700">
