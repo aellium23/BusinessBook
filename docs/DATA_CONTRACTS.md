@@ -40,8 +40,9 @@ Esta secção vem primeiro porque a confusão entre estas três custou um erro d
 | Tabela | Lê | Escreve |
 |---|---|---|
 | `deals` | admin · a sua BU · a sua empresa | admin · a sua BU · a sua empresa |
-| `deal_products` | igual, via o negócio-pai | igual ⚠ *custo exposto, ver SEC-01* |
-| `deal_products_v` | igual, com custo mascarado | — *(view)* |
+| `deal_products` | igual, via o negócio-pai, **sem as colunas de custo** | igual |
+| `deal_products_v` | igual, sem custo nenhum | — *(view, security_invoker)* |
+| `deal_products_cost` | admin · manager | — *(view, guarda no `where`)* |
 | `deal_channel` | `sees_internal_economics()` | os nossos |
 | `deal_discount_requests` | quem pediu · a empresa · os nossos | insert do próprio; resposta por função |
 | `deal_quote` | quem vê o negócio | quem edita o negócio |
