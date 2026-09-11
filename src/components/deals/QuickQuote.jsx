@@ -29,7 +29,7 @@ import { useCompanyScope } from '../../hooks/useCompanyScope'
 import { authMapOf, authorisedProducts, authorisedCountries,
          hasAuthorisations, authKey, partnerLineCost } from '../../lib/partnerCatalogue'
 import SearchableSelect from '../SearchableSelect'
-import { formatK } from '../ui'
+import { formatK, Spinner } from '../ui'
 import { X, Check, ChevronDown, ChevronRight, Paperclip } from 'lucide-react'
 import AttachmentsList from '../AttachmentsList'
 
@@ -124,6 +124,26 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
   const [rebuilt, setRebuilt] = useState(false)
   const [quoteStoreError, setQuoteStoreError] = useState(null)
 
+  /**
+   * Two things arrive after the first render, and until they do the screen was
+   * telling the reader something untrue.
+   *
+   * A saved quote: the form drew its defaults — no products, one year, no
+   * services — and a moment later snapped to what was actually quoted. Anybody
+   * reading quickly saw an empty quote for a deal that has one.
+   *
+   * A partner's authorisations: the catalogue starts empty, and an empty
+   * catalogue is what "you have no authorised products" is derived from. So
+   * every partner opening the quick deal was told, briefly, that they are not
+   * allowed to sell anything.
+   *
+   * Both start true only where there is something to wait for — a new deal has
+   * no stored quote, and our own people have no authorisations to fetch — so
+   * nothing waits on a request that will never be made.
+   */
+  const [loadingQuote, setLoadingQuote] = useState(Boolean(deal?.id))
+  const [loadingAuths, setLoadingAuths] = useState(!internal)
+
   useEffect(() => {
     if (!deal?.id) return
     let alive = true
@@ -162,6 +182,15 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
         setProgramme(state.programme)
         if (state.country) setCountry(state.country)
         setRebuilt(Boolean(state.rebuilt) && !qErr)
+        setLoadingQuote(false)
+      })
+      // A rejected promise never reaches .then, and a spinner nobody clears is
+      // worse than the flicker it replaced.
+      .catch(e => {
+        if (!alive) return
+        logger.error('Quote state load failed', { error: e.message, deal: deal.id })
+        setQuoteStoreError(e.message)
+        setLoadingQuote(false)
       })
     return () => { alive = false }
   }, [deal?.id])
@@ -175,11 +204,16 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
   // happens to be filtered to.
   const catalogueCompany = deal?.company_id || homeId || profile?.company_id || null
   useEffect(() => {
-    if (internal || !catalogueCompany) return
+    if (internal) return
+    if (!catalogueCompany) { setLoadingAuths(false); return }
+    let alive = true
+    setLoadingAuths(true)
     supabase.from('company_product_authorizations')
       .select('product_id, country, price, active')
       .eq('company_id', catalogueCompany)
-      .then(({ data }) => setAuths(data || []))
+      .then(({ data }) => { if (alive) { setAuths(data || []); setLoadingAuths(false) } })
+      .catch(() => { if (alive) setLoadingAuths(false) })
+    return () => { alive = false }
   }, [internal, catalogueCompany])
   const authMap = useMemo(() => authMapOf(auths), [auths])
 
@@ -965,6 +999,14 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
         {on && <Check size={11} className="inline mr-1 -mt-0.5"/>}{p.name}
       </button>
     )
+  }
+
+  // Before either of the two answers is in, say nothing rather than the wrong
+  // thing. This sits above the refusal below on purpose: that refusal is
+  // derived from an empty catalogue, and an empty catalogue is also what "not
+  // loaded yet" looks like.
+  if (loadingQuote || loadingAuths) {
+    return <Spinner label={t('qd_loading')}/>
   }
 
   // A partner with nothing authorised has nothing to quote, and saying so is
