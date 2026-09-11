@@ -15,7 +15,7 @@ import { recommendedCapexPvp, recommendedSlaPvp, belowFloor, lineOverTerm,
          servicesEconomics, recommendedServicesPvp,
          SERVICES_TARGET_MARGIN_PCT } from '../../lib/margins'
 import { routeFor, applyDiscount, discountViews, internalApproval } from '../../lib/discountRouting'
-import { partnerEconomics, partnerTargetPrice, PROTECTED_MARGIN, roleFor,
+import { partnerEconomics, partnerTargetPrice, PROTECTED_MARGIN,
          CHANNEL_ROLES, NAMED_PROGRAMMES } from '../../lib/partnerMargin'
 import { unitsNeeded, quantityFor } from '../../lib/volumeUnits'
 import { toEur, rateLabel } from '../../lib/fx'
@@ -354,23 +354,6 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companyRole, channelRole, dealCompany, deal?.id])
 
-  /**
-   * The partner's own rate, which decides both sides of their quote.
-   *
-   * It is what comes off our regional list to give them a price, and it is the
-   * margin their quote opens at — the same number twice, and that is the whole
-   * point: a Full VAR buying at 60 % of list and selling at their 40 % lands
-   * exactly on our published list, so the customer pays the same through TIMED
-   * as they would from us. Any other pair of numbers puts the channel in
-   * competition with the direct business.
-   *
-   * An arrangement we do not know is not a discount: the rate is zero, the
-   * partner buys at list, and the opening margin falls back to the protected
-   * target rather than to nothing.
-   */
-  const partnerRatePct = roleFor(channelRole).channelPct
-  const partnerOpeningMarginPct = partnerRatePct || PROTECTED_MARGIN.target
-
   const regionCode = pricingRegionForCountry(countryMap, country)
   const region = regionCode ? regions[regionCode] : null
 
@@ -486,19 +469,18 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
       const o = overrides[id] || {}
 
       // What this line costs the person quoting it. For us that is the transfer
-      // price we pay a supplier. For a partner it is what they pay US: the
-      // regional list at the tier the volume reaches, LESS their channel rate,
-      // because that list is the customer's price and the partner buys under
-      // it. An authorisation may pin a different price for one product in one
-      // country, and where it does, the pinned price wins: somebody agreed it
-      // deliberately.
+      // price we pay a supplier. For a partner it is what they pay US, and that
+      // is the regional price list — R1, R2, R3 — at the tier the volume
+      // reaches, which is the same ladder every other price on this screen
+      // comes from. An authorisation may pin a different price for one product
+      // in one country, and where it does, the pinned price wins: somebody
+      // agreed it deliberately.
       const authRow = internal ? null : authMap[authKey(product.id, country)]
       const partnerCost = internal ? 0 : partnerLineCost({
         product,
         pinnedUnit: authRow?.price,
         listedNet: listed?.net,
         quantity: productQty,
-        channelPct: partnerRatePct,
       })
 
       const capexCost = o.capexCost !== undefined ? Number(o.capexCost) || 0
@@ -514,16 +496,14 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
       // yearly fee; for a licensed product it is the one-off licence.
       const capexPvp = o.capexPvp !== undefined ? Number(o.capexPvp) || 0
         : isSub ? 0
-        // A partner's quote opens on their own rate, which puts the price back
-        // on our published regional list: they bought at 60 % of it and sell at
-        // their 40 %. The customer therefore pays the same through the channel
-        // as direct, which is the only version of this that does not have us
-        // bidding against our own distributor. It is a target, not a rule: the
-        // price and the margin are both editable from either end.
-        : !internal ? partnerTargetPrice(capexCost, partnerOpeningMarginPct)
+        // A partner's quote opens on the margin they should be landing on —
+        // the same 35% the transfer price protects on our own deals — so the
+        // common case needs no arithmetic at all. It is a target, not a rule:
+        // the price and the margin are both editable from either end.
+        : !internal ? partnerTargetPrice(capexCost)
         : (listed ? listed.net : recommendedCapexPvp(capexCost))
       const annualPvp = o.annualPvp !== undefined ? Number(o.annualPvp) || 0
-        : !internal ? partnerTargetPrice(annualCost, partnerOpeningMarginPct)
+        : !internal ? partnerTargetPrice(annualCost)
         : isSub && listed ? listed.net
         : recommendedSlaPvp(annualCost)
 
@@ -598,7 +578,7 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
     }).filter(Boolean)
   }, [picked, catalogue, tiersByProduct, region, studies, overrides, itemsByProduct,
       famSel, productCosts, years, pacsInQuote, suppliers, volumes, rates,
-      internal, authMap, country, partnerRatePct, partnerOpeningMarginPct])
+      internal, authMap, country])
 
   // The quote seen both ways: what we have, and what we have if the supplier
   // discounts land. The gap between them is the number worth naming.

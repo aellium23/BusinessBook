@@ -58,47 +58,30 @@ export function authorisedProducts(products, authMap, country) {
 /**
  * What a partner pays us for one line.
  *
- * The ladder is the regional price list — R1, R2, R3 — at whatever tier the
- * volume reaches, and a partner in R3 walks the same ladder anybody else does.
- * But that ladder is the CUSTOMER's price: it is what our own quote puts in
- * front of an end customer on a direct deal, straight out of `resolvePrice`.
- * The partner buys BELOW it, by their channel rate — a Full VAR's 40 %.
+ * The transfer price is the regional price list — R1, R2, R3 — at whatever tier
+ * the volume reaches. It is the same ladder every other price on the quote comes
+ * from, which is the point: a partner in R3 buys at R3 prices, and a bigger
+ * hospital moves them down a tier exactly as it would move anybody else.
  *
- * This is the correction, and it was a 54 % error on the customer's side. The
- * version before it handed the partner the regional list as their cost, and the
- * partner's quote then opened at a margin on top of that:
- *
- *   R3 CWM Dose, 5 years   list 65,573   partner cost 65,573 → sells 100,882
- *
- * So the same hospital paid 100,882 through TIMED and 65,573 from us — a
- * channel that prices itself out of every deal it touches, and a number nobody
- * could reconcile with the transfer price on our own screen. With the rate
- * applied, the two agree: the partner buys at 39,344, sells at our list, and
- * keeps the 40 % their agreement says.
- *
- * An authorisation may pin a price for one product in one country. A pinned
- * price IS a transfer price — somebody negotiated it with them — so the rate
- * does not come off it a second time.
+ * An authorisation may pin a price for one product in one country. Where one is
+ * pinned it wins, because somebody agreed it deliberately and a ladder should
+ * not quietly overrule a negotiation.
  *
  * @param product     the catalogue row, for its price_basis
  * @param pinnedUnit  the authorised price per unit, or 0/null when none
  * @param listedNet   the regional list for this volume, already converted
  * @param quantity    the volume the line is priced on
- * @param channelPct  the partner's channel rate; 0 for an unknown arrangement,
- *                    which buys at list rather than inventing a discount
  */
-export function partnerLineCost({ product, pinnedUnit, listedNet, quantity, channelPct = 0 }) {
+export function partnerLineCost({ product, pinnedUnit, listedNet, quantity }) {
   const pinned = num(pinnedUnit) ?? 0
   if (pinned > 0) {
     return product?.price_basis === 'per_unit'
       ? round(pinned * (num(quantity) ?? 0))
       : round(pinned)
   }
-  // No pinned price is not "free": it is the regional ladder less the rate, and
-  // where the ladder is unknown too the caller has to say so rather than quote
-  // a zero cost.
-  const rate = Math.min(100, Math.max(0, num(channelPct) ?? 0))
-  return round((num(listedNet) ?? 0) * (1 - rate / 100))
+  // No pinned price is not "free": it is the regional ladder, and where that is
+  // unknown too the caller has to say so rather than quote a zero cost.
+  return round(num(listedNet) ?? 0)
 }
 
 /** Whether this partner has any authorisation at all, anywhere. */

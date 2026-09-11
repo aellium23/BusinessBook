@@ -3,7 +3,6 @@ import {
   authKey, authMapOf, authorisedProducts, hasAuthorisations, authorisedCountries,
   partnerLineCost,
 } from '../partnerCatalogue'
-import { partnerTargetPrice, partnerEconomics } from '../partnerMargin'
 
 // TIMED, as the user describes them: four products and nothing else.
 const CATALOGUE = [
@@ -84,27 +83,8 @@ describe('what a partner pays us', () => {
   const DOSE = { price_basis: 'per_unit' }
   const PACS = { price_basis: 'flat' }
 
-  it('is the regional list less their channel rate', () => {
-    // R3, 20,000 exams. The ladder has been walked and this is where it lands —
-    // but the ladder is the CUSTOMER's price, so a Full VAR buys at 60% of it.
-    expect(partnerLineCost({
-      product: DOSE, pinnedUnit: 0, listedNet: 9180.32, quantity: 20000, channelPct: 40,
-    })).toBe(5508.19)
-  })
-
-  it('sells at our own list when the partner quotes at their rate', () => {
-    // The property that matters, and the one whose absence sent a customer a
-    // price 54% above ours: buy at 60 of 100, sell at 40% margin, land on 100.
-    const cost = partnerLineCost({
-      product: DOSE, pinnedUnit: 0, listedNet: 13114.75, quantity: 20000, channelPct: 40,
-    })
-    expect(cost).toBe(7868.85)
-    expect(partnerTargetPrice(cost, 40)).toBe(13114.75)
-  })
-
-  it('does not invent a discount for an arrangement nobody has recorded', () => {
-    // No rate is not 40%. It is list, which is too expensive rather than free —
-    // and the deal card says the role is unset, which is the thing to fix.
+  it('is the regional list at the tier the volume reaches', () => {
+    // R3, 20,000 exams: the ladder has already been walked, and this is it.
     expect(partnerLineCost({ product: DOSE, pinnedUnit: 0, listedNet: 9180.32, quantity: 20000 }))
       .toBe(9180.32)
   })
@@ -112,63 +92,23 @@ describe('what a partner pays us', () => {
   it('is not zero just because nobody pinned a price for them', () => {
     // The fault this replaced: a partner with no per-product authorisation
     // price saw a cost of zero, and therefore a margin of 100%.
-    expect(partnerLineCost({
-      product: DOSE, pinnedUnit: null, listedNet: 9180.32, quantity: 20000, channelPct: 40,
-    })).toBeGreaterThan(0)
+    expect(partnerLineCost({ product: DOSE, pinnedUnit: null, listedNet: 9180.32, quantity: 20000 }))
+      .toBeGreaterThan(0)
   })
 
   it('lets a pinned price overrule the ladder, because somebody agreed it', () => {
-    // And does not take the rate off it a second time: a negotiated price for
-    // that partner in that country IS the transfer price.
-    expect(partnerLineCost({
-      product: DOSE, pinnedUnit: 0.4, listedNet: 9180.32, quantity: 20000, channelPct: 40,
-    })).toBe(8000)
+    expect(partnerLineCost({ product: DOSE, pinnedUnit: 0.4, listedNet: 9180.32, quantity: 20000 }))
+      .toBe(8000)
   })
 
   it('does not multiply a flat price by the volume', () => {
-    expect(partnerLineCost({
-      product: PACS, pinnedUnit: 31602, listedNet: 40000, quantity: 200000, channelPct: 40,
-    })).toBe(31602)
+    expect(partnerLineCost({ product: PACS, pinnedUnit: 31602, listedNet: 40000, quantity: 200000 }))
+      .toBe(31602)
   })
 
   it('is zero only when there is no ladder and no pinned price', () => {
     // Which the screen has to flag rather than present as a free product.
-    expect(partnerLineCost({
-      product: DOSE, pinnedUnit: 0, listedNet: 0, quantity: 20000, channelPct: 40,
-    })).toBe(0)
-  })
-})
-
-/**
- * The two screens, forced to agree.
- *
- * Our own quote for a TIMED deal and TIMED's own quote for the same deal are
- * built by different code from different starting points, and for a while they
- * disagreed by the partner's whole margin without either side noticing: ours
- * said the customer paid 65.6k and theirs said 100.9k. Nothing tested the pair,
- * because each was internally consistent. This does.
- */
-describe('our view of a partner deal and the partner\'s view of it', () => {
-  const DOSE = { price_basis: 'per_unit' }
-  const LIST = 13114.75      // R3 CWM Dose, one year, at this volume
-  const YEARS = 5
-
-  it('reaches the same customer price, transfer and partner margin', () => {
-    // Their screen: what they pay us, and what they quote on top of it.
-    const theirCost = partnerLineCost({
-      product: DOSE, pinnedUnit: 0, listedNet: LIST, quantity: 20000, channelPct: 40,
-    }) * YEARS
-    const theirPrice = partnerTargetPrice(theirCost, 40)
-
-    // Ours: the same deal read from the list price down.
-    const ours = partnerEconomics({
-      listPrice: LIST * YEARS, netPrice: LIST * YEARS, role: 'full_var',
-    })
-
-    expect(theirPrice).toBeCloseTo(LIST * YEARS, 2)
-    expect(theirCost).toBeCloseTo(ours.transfer, 2)
-    expect(theirPrice - theirCost).toBeCloseTo(ours.partnerMargin, 2)
-    expect(ours.partnerMarginPct).toBe(40)
+    expect(partnerLineCost({ product: DOSE, pinnedUnit: 0, listedNet: 0, quantity: 20000 })).toBe(0)
   })
 })
 
