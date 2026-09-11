@@ -200,7 +200,11 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
         let state = fromQuoteState(data?.state)
         if (!state) {
           const { data: rows } = await dealLines(deal.id,
-            'id, product_id, volume, unit_price, net_price, annual_fee, cost_price')
+            // No cost_price here: it is not on the shared view any more, and
+            // dealLines joins it in from the guarded one for a reader entitled
+            // to it. Asking the view for a column it no longer has is an error,
+            // not a null.
+            'id, product_id, volume, unit_price, net_price, annual_fee')
           state = rebuildFrom(rows || [])
         }
         if (!alive) return

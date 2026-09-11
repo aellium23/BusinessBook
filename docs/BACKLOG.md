@@ -8,7 +8,7 @@ Severidade: **P1** precisa de decisão e acção · **P2** vale a pena · **P3**
 
 ---
 
-## SEC-01 · P1 · Custo legível na tabela base
+## SEC-01 · ✅ FECHADO · Custo legível na tabela base
 
 **O quê.** `deal_products` é directamente legível por qualquer conta
 autenticada, colunas incluídas. A view `deal_products_v` mascara `cost_price` e
@@ -31,17 +31,20 @@ altura foi criar a view. A view resolve o ecrã e não a API.
 1. ✅ **Feito em 11-09.** `deal_products_cost` criada, e `src/lib/dealLines.js`
    junta as duas. Tolera a view não existir, portanto a ordem entre o SQL e o
    deploy é indiferente. SQL: `supabase_migration_20260911_cost_view.sql`.
-2. ⏳ Tirar as colunas de custo de `deal_products_v` e revogar
-   `select (cost_price, margin_pct)` da tabela base. **Só depois da fase 1 estar
-   em produção e testada** — a partir daqui a consola de um parceiro devolve
-   nada.
+2. ✅ **Feito em 11-09**, depois de a fase 1 estar em produção e o breakdown
+   económico confirmado. `supabase_migration_20260911_cost_revoke.sql`: a view
+   perde as colunas e a tabela base troca o `grant select` de tabela por um de
+   lista de colunas. A partir daqui a consola de um parceiro devolve erro, não
+   um número.
 
 **Porque não numa fase:** a view é agora `security_invoker`, portanto lê a
 tabela como quem chama. Revogar a coluna parte a view também para os admins, e
 o `DealForm` calcula o breakdown económico a partir dela.
 
-**Esforço:** 2 migrações, 2 deploys, 2 ficheiros. **Risco:** mexe no ecrã de
-pricing.
+**Nota para o futuro:** o `grant` na tabela base é agora por lista de colunas.
+Uma coluna nova fica ilegível até ser acrescentada a essa lista — que é o
+comportamento certo para uma tabela que guarda o nosso custo, mas explica
+qualquer "permission denied" inesperado depois de uma migração.
 
 ---
 
