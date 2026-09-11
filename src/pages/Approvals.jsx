@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useToast } from '../components/Toast'
 import { formatK, Spinner, EmptyState } from '../components/ui'
 import { approvalImpact } from '../lib/approvalImpact'
+import { askAgain as askAgainRequest } from '../lib/discountRequests'
 import { CheckCircle, XCircle, RefreshCw, Clock, ShieldCheck } from 'lucide-react'
 import CostRequestWorklist from '../components/approvals/CostRequestWorklist'
 
@@ -83,30 +84,14 @@ export default function Approvals() {
   }
 
   /**
-   * Another round: a new request rather than an edit of the old one, so the
-   * negotiation keeps its history — what was asked, what came back, what was
-   * asked next.
+   * Another round. The rules live in lib/discountRequests, which is also what
+   * the quote screen calls: this page had its own copy of the same insert, and
+   * a negotiation whose rules exist in two copies drifts into two
+   * negotiations — the copy here never told the approver a new round had
+   * arrived.
    */
   async function askAgain(req, pct, note) {
-    const asked = parseFloat(pct) || 0
-    // What the old ask was worth per point, carried to the new percentage.
-    const perPoint = req.requested_pct > 0 && req.value_at_risk
-      ? Number(req.value_at_risk) / Number(req.requested_pct)
-      : null
-    const { error } = await supabase.from('deal_discount_requests').insert({
-      deal_id: req.deal_id,
-      product_id: req.product_id,
-      requested_by: profile?.id || null,
-      requested_pct: asked,
-      brand: req.brand,
-      supplier_code: req.supplier_code,
-      route: req.route,
-      channel: req.channel,
-      status: 'pending',
-      scope: req.scope,
-      value_at_risk: perPoint ? Math.round(perPoint * asked * 100) / 100 : null,
-      justification: note,
-    })
+    const { error } = await askAgainRequest(req, pct, note)
     if (error) { showToast(error.message, 'error'); return }
     showToast('Request sent', 'success')
     load()

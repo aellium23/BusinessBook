@@ -50,7 +50,7 @@ const HELP = {
       admin: 'As an admin you see all business units. The Products/Reps/Clients views help analyse mix, team performance, and account concentration.',
       member: 'As a sales rep you get a personal dashboard showing your target, pipeline, and deals. Overlay credits from team-mate product rules are included automatically.',
       viewer: 'You have read-only access. Contact your admin to request edit permissions.',
-      distributor: 'You see your company\'s pipeline and targets. Anything still open on a discount is at the top, split by whose move it is: a counter-offer waiting for your answer, named by client and showing what you asked against what came back, and below it a quieter line for the requests still sitting with us. Tap one to open the deal and accept it or come back with another number.',
+      distributor: 'You see your company\'s pipeline and targets. Anything still open on a discount is at the top, split by whose move it is: a counter-offer waiting for your answer, named by client and showing what you asked against what came back, and below it a quieter line for the requests still sitting with us. Tap one to open the deal and accept it or come back with another number. Coming back with another number now tells the person who made the counter-offer, so the ball being in our court is something we are told rather than something you have to chase.',
     },
     es: {
       title: 'Panel',
@@ -95,7 +95,7 @@ const HELP = {
       admin: 'Como admin ves todas las unidades. Las vistas Productos/Comerciales/Clientes ayudan a analizar mix, rendimiento del equipo y concentracion de cuentas.',
       member: 'Como comercial tienes un dashboard personal con tu objetivo, pipeline y deals. Los creditos de overlay de reglas de producto de companeros se incluyen automaticamente.',
       viewer: 'Tienes acceso de solo lectura. Contacta a tu admin para solicitar permisos de edicion.',
-      distributor: 'Ves el pipeline y los objetivos de tu empresa. Lo que sigue abierto en descuentos esta arriba, separado por a quien le toca mover: una contraoferta esperando tu respuesta, con el nombre del cliente y lo que pediste frente a lo que volvio, y debajo una linea mas discreta para las solicitudes que siguen con nosotros. Toca una para abrir la oportunidad y aceptarla o volver con otro numero.',
+      distributor: 'Ves el pipeline y los objetivos de tu empresa. Lo que sigue abierto en descuentos esta arriba, separado por a quien le toca mover: una contraoferta esperando tu respuesta, con el nombre del cliente y lo que pediste frente a lo que volvio, y debajo una linea mas discreta para las solicitudes que siguen con nosotros. Toca una para abrir la oportunidad y aceptarla o volver con otro numero. Volver con otro numero ahora avisa a quien hizo la contraoferta, asi que la pelota en nuestro tejado es algo que se nos dice y no algo que tengas que perseguir.',
     },
     pt: {
       title: 'Painel',
@@ -140,7 +140,7 @@ const HELP = {
       admin: 'Como admin ves todas as unidades. As vistas Produtos/Comerciais/Clientes ajudam a analisar mix, desempenho da equipa e concentracao de contas.',
       member: 'Como comercial tens um dashboard pessoal com o teu objetivo, pipeline e deals. Creditos de overlay de regras de produto de colegas sao incluidos automaticamente.',
       viewer: 'Tens acesso apenas de leitura. Contacta o teu admin para solicitar permissoes de edicao.',
-      distributor: 'Ves o pipeline e os objetivos da tua empresa. O que esta em aberto nos descontos aparece no topo, separado por quem tem a jogada: uma contraproposta a espera da tua resposta, com o nome do cliente e o que pediste contra o que voltou, e por baixo uma linha mais discreta para os pedidos que continuam connosco. Toca num para abrir o negocio e aceitar ou voltar com outro numero.',
+      distributor: 'Ves o pipeline e os objetivos da tua empresa. O que esta em aberto nos descontos aparece no topo, separado por quem tem a jogada: uma contraproposta a espera da tua resposta, com o nome do cliente e o que pediste contra o que voltou, e por baixo uma linha mais discreta para os pedidos que continuam connosco. Toca num para abrir o negocio e aceitar ou voltar com outro numero. Voltar com outro numero avisa agora quem fez a contraproposta, por isso a bola estar do nosso lado e algo que nos e dito e nao algo que tenhas de andar a perseguir.',
     },
   },
 

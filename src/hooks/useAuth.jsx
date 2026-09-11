@@ -2,69 +2,11 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { safeJsonParse } from '../constants'
 import { logger } from '../lib/logger'
+import { ROLE_PERMISSIONS, pageAllowed } from '../lib/pageAccess'
 
 const AuthContext = createContext(null)
 
-// ── Permissões por role ───────────────────────────────────────────────────────
-export const ROLE_PERMISSIONS = {
-  admin: {
-    pages:    ['dashboard','deals','clients','contacts','accounts','whitespace','network','audit','history','quotas','budget','forecast','settings','tasks','tenders','permissions','sla','products','quotations','verification'],
-    canEdit:  true,
-    canDelete: true,
-    editOwn:  false,
-    seeBU:    'ALL',
-    seeAll:   true,
-    manageUsers: true,
-  },
-  manager: {
-    pages:    ['dashboard','deals','clients','contacts','accounts','whitespace','network','history','quotas','budget','forecast','tasks','tenders','sla','products','quotations','verification'],
-    canEdit:  true,
-    canDelete: true,
-    editOwn:  false,
-    seeBU:    null,
-    seeAll:   false,
-    manageUsers: false,
-  },
-  member: {
-    pages:    ['dashboard','deals','clients','contacts','accounts','whitespace','network','history','quotas','forecast','tasks','tenders','sla','products','quotations'],
-    canEdit:  true,
-    canDelete: false,
-    editOwn:  true,
-    seeBU:    null,
-    seeAll:   false,
-    manageUsers: false,
-  },
-  distributor: {
-    // `approvals` reads from the other end for them: the answers to their own
-    // requests, not a queue of somebody else's. A partner who can ask for a
-    // discount and cannot see the reply is being asked to phone somebody.
-    pages:    ['dashboard','deals','tasks','tenders','clients','contacts','history','quotas','quotations','approvals'],
-    canEdit:  true,
-    canDelete: false,
-    editOwn:  true,
-    seeBU:    null,
-    seeAll:   false,
-    manageUsers: false,
-  },
-  viewer: {
-    pages:    ['dashboard','deals','clients','contacts','history'],
-    canEdit:  false,
-    canDelete: false,
-    editOwn:  false,
-    seeBU:    null,
-    seeAll:   false,
-    manageUsers: false,
-  },
-  partner: {
-    pages:    ['dashboard','deals','clients','contacts','tasks','tenders'],
-    canEdit:  false,
-    canDelete: false,
-    editOwn:  false,
-    seeBU:    null,
-    seeAll:   false,
-    manageUsers: false,
-  },
-}
+export { ROLE_PERMISSIONS }
 
 export function AuthProvider({ children }) {
   const [user, setUser]             = useState(null)
@@ -181,20 +123,11 @@ export function AuthProvider({ children }) {
   // Settings, Permissions, Network, Quotas…), enabling a "view-only admin" profile.
   const readOnly   = !perms.canEdit && !perms.canDelete
 
-  // Verificar se o user pode aceder a uma página
-  // Brand-only approvers have no other page access
-  const isBrandApproverOnly = Array.isArray(profile?.approves_brands) && profile.approves_brands.length > 0
-    && !['admin','manager','member'].includes(role)
-
-  function canAccessPage(page) {
-    if (role === 'admin') return true
-    if (page === 'approvals') {
-      return Array.isArray(profile?.approves_brands) && profile.approves_brands.length > 0
-    }
-    // Brand-only approvers cannot access any other page
-    if (isBrandApproverOnly) return false
-    return resolvedPages.includes(page)
-  }
+  // The rule itself lives in lib/pageAccess, where it can be loaded — and so
+  // tested — without dragging Supabase in behind it.
+  const canAccessPage = page => pageAllowed(
+    { role, pages: resolvedPages, approvesBrands: profile?.approves_brands }, page
+  )
 
   return (
     <AuthContext.Provider value={{

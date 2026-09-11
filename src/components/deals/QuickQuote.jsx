@@ -596,7 +596,7 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
   }
 
   async function onAskAgain(req) {
-    const { error: e } = await askAgain(req, askPct, askNote, profile?.id)
+    const { error: e } = await askAgain(req, askPct, askNote)
     if (e) { setError(e.message); return }
     setAskingOn(null); setAskPct(''); setAskNote('')
     reloadRequests()
