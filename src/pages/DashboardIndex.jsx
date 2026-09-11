@@ -28,10 +28,12 @@ export default function DashboardIndex() {
   const isDistributor = profile?.role === 'distributor'
 
   // Distributors go straight to the Classic view which has DistributorDashboard
+  // The funnel is where the day starts, so it is what opens — until somebody
+  // chooses otherwise, which is then remembered.
   const [view, setView] = useState(() => {
     if (isDistributor) return 'classic'
-    if (typeof window === 'undefined') return 'summary'
-    return localStorage.getItem(STORAGE_KEY) || 'summary'
+    if (typeof window === 'undefined') return 'funnel'
+    return localStorage.getItem(STORAGE_KEY) || 'funnel'
   })
   const [selectedBU, setSelectedBU] = useState('')
 
