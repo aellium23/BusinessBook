@@ -152,6 +152,8 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
     setSearchTerm('')
   }
 
+  // Opened straight away, because the name box lives inside the expanded panel
+  // and a custom line added closed never asks for a name at all.
   function addCustomLine() {
     const newLine = {
       _key: Date.now() + Math.random(),
@@ -172,6 +174,7 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
     const newLines = [...lines, newLine]
     onChange(newLines)
     notifyTotal(newLines)
+    setExpandedIdx(newLines.length - 1)
   }
 
   function recalcNet(line) {
@@ -386,7 +389,13 @@ export default function ProductLineItems({ lines, onChange, products, businessMo
           {/* Compact row: name + qty + net price + remove */}
           <div className="flex items-center gap-2 p-2 cursor-pointer" onClick={() => setExpandedIdx(expandedIdx === idx ? null : idx)}>
             <div className="flex-1 min-w-0 flex items-center gap-2">
-              <p className="text-sm font-medium text-gray-800 truncate">{line.product_name || t?.('products_name') || '—'}</p>
+              {/* An unnamed custom line used to show the placeholder text here,
+                  which reads as a label rather than as something missing. */}
+              <p className={`text-sm font-medium truncate ${
+                line.product_id || String(line.product_name || '').trim() ? 'text-gray-800' : 'text-amber-700'
+              }`}>
+                {line.product_name || (line.product_id ? (t?.('products_name') || '—') : (t?.('pli_name_this') || 'Name this line'))}
+              </p>
               <span className="text-micro text-gray-400 shrink-0">×{line.quantity || 1}</span>
             </div>
             <span className="text-sm font-bold text-gray-900 shrink-0">{formatK(parseFloat(line.net_price) || 0)}</span>

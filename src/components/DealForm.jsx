@@ -341,6 +341,17 @@ export default function DealForm({ deal, onClose, onSaved }) {
     const { valid, errors: valErrors } = validateDeal(form)
     setFieldErrors(valErrors)
     if (!valid) { setError('Please fix the highlighted fields'); return }
+    // A line carrying money and no name is a line that becomes "(line with no
+    // product)" in every report by product — three of them exist, one worth
+    // 27,500 €, and none was typed on purpose: the name box only appears when a
+    // custom line is expanded, so one added and left closed never asked.
+    const unnamed = dealLines.filter(l =>
+      !l.product_id && !String(l.product_name || '').trim() &&
+      (Number(l.net_price) || Number(l.unit_price) || 0) > 0)
+    if (unnamed.length) {
+      setError(t('df_unnamed_line').replace('{n}', unnamed.length))
+      return
+    }
     // Validate stage transition for existing deals
     if (deal?.id && deal.stage !== form.stage && !canTransition('deal', deal.stage, form.stage)) {
       setError(`Invalid stage transition: "${deal.stage}" to "${form.stage}". Allowed transitions: ${getAllowedTransitions('deal', deal.stage).filter(s => s !== deal.stage).join(', ') || 'none'}`)

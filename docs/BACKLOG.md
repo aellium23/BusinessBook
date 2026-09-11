@@ -379,8 +379,8 @@ como regra escrita.
 
 ## DATA-01 · P3 · Linhas de produto sem produto
 
-**O lado do código, fechado a 11-09.** Três coisas diferentes aterravam no mesmo
-traço no funil de produto, e só uma delas é um problema de dados:
+**O funil, corrigido a 11-09.** Três coisas diferentes aterravam no mesmo traço,
+e só uma delas é um problema de dados:
 
 | Agora diz | É |
 |---|---|
@@ -388,19 +388,27 @@ traço no funil de produto, e só uma delas é um problema de dados:
 | `(line with no product)` | uma **linha** que não nomeia produto — dinheiro por atribuir |
 | `(no category)` | um produto a sério, com a categoria por preencher |
 
-As duas primeiras aparecem a âmbar, porque têm alguma coisa para corrigir por
-trás em vez de um produto para ler.
+As duas primeiras aparecem a âmbar.
 
-**O lado dos dados fica contigo.** Pelo menos uma linha com `product_name` vazio
-e 27.500 € de valor líquido. Vale confirmar quantas são e se é intencional:
+**Por onde entravam, fechado a 11-09.** A caixa do nome só aparece quando uma
+linha personalizada está expandida — portanto uma linha acrescentada e deixada
+fechada nunca pedia nome nenhum, e o cabeçalho mostrava o texto do *placeholder*,
+que se lê como uma etiqueta e não como uma falta. Agora a linha nova abre-se
+sozinha, o cabeçalho fica âmbar a dizer "dá um nome a esta linha", e gravar um
+negócio com uma linha que leva preço e não leva nome é recusado.
 
-```sql
-select dp.id, dp.deal_id, d.client, dp.net_price, dp.created_at
-from public.deal_products dp
-join public.deals d on d.id = dp.deal_id
-where dp.product_name is null or trim(dp.product_name) = ''
-order by dp.net_price desc;
-```
+**As três que existem** (confirmado contra a base de dados a 11-09):
+
+| Cliente | Valor | Quando |
+|---|---|---|
+| IPOC | 27.500 € | 26-08 |
+| REMAGNA | 400 € | 17-08 |
+| LPCC NRC — SYN | 0 € | 27-05 |
+
+As duas primeiras são dinheiro a sério a cair em `(line with no product)`. Só tu
+sabes o que foi vendido, portanto ficam para nomeares — abre cada negócio,
+expande a linha e escreve o nome. A terceira não vale nada e não move número
+nenhum; fica onde está até haver motivo para lhe tocar.
 
 ---
 
