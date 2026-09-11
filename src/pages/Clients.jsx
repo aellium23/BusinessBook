@@ -20,6 +20,7 @@ const COUNTRY_MAP = {
 }
 
 function ClientFormModal({ client, distributors, onClose, onSaved }) {
+  const { t } = useTranslation()
   const isEdit = !!client?.id
   const [form, setForm] = useState({
     name:           client?.name           || '',
@@ -55,31 +56,31 @@ function ClientFormModal({ client, distributors, onClose, onSaved }) {
   }
 
   return (
-    <Modal open title={isEdit ? 'Edit Client' : 'New Client'} onClose={onClose}
+    <Modal open title={isEdit ? t('cli_edit') : t('cli_new')} onClose={onClose}
       footer={
         <div className="flex gap-2">
-          <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
+          <button onClick={onClose} className="btn-secondary flex-1">{t('cancel')}</button>
           <button onClick={handleSave} disabled={saving} className="btn-primary flex-1">
-            {saving ? 'Saving…' : 'Save'}
+            {saving ? t('set_saving') : t('save')}
           </button>
         </div>
       }>
       <div className="space-y-3">
         {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
         <div>
-          <label className="label">Name *</label>
-          <input className="input" value={form.name} onChange={e => set('name', e.target.value)} placeholder="Hospital name"/>
+          <label className="label">{t('cli_name')}</label>
+          <input className="input" value={form.name} onChange={e => set('name', e.target.value)} placeholder={t('cli_name_ph')}/>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">Region</label>
+            <label className="label">{t('accounts_region')}</label>
             <select className="select" value={form.region} onChange={e => { set('region', e.target.value); set('country', '') }}>
               <option value="">—</option>
               {REGIONS.map(r => <option key={r}>{r}</option>)}
             </select>
           </div>
           <div>
-            <label className="label">Country</label>
+            <label className="label">{t('accounts_country')}</label>
             <select className="select" value={form.country} onChange={e => set('country', e.target.value)}>
               <option value="">—</option>
               {(COUNTRY_MAP[form.region] || []).map(c => <option key={c}>{c}</option>)}
@@ -88,15 +89,15 @@ function ClientFormModal({ client, distributors, onClose, onSaved }) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">Type</label>
+            <label className="label">{t('cli_type')}</label>
             <div className="grid grid-cols-2 gap-1">
               <button type="button" onClick={() => set('client_type', 'public')}
                 className={`px-2 py-1.5 rounded text-xs font-medium border-2 ${form.client_type === 'public' ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-500'}`}>
-                Public
+                {t('cli_public')}
               </button>
               <button type="button" onClick={() => set('client_type', 'private')}
                 className={`px-2 py-1.5 rounded text-xs font-medium border-2 ${form.client_type === 'private' ? 'border-purple-400 bg-purple-50 text-purple-700' : 'border-gray-200 text-gray-500'}`}>
-                Private
+                {t('cli_private')}
               </button>
             </div>
           </div>
@@ -110,7 +111,7 @@ function ClientFormModal({ client, distributors, onClose, onSaved }) {
         </div>
         {distributors.length > 0 && (
           <div>
-            <label className="label">Distributor</label>
+            <label className="label">{t('cli_distributor')}</label>
             <select className="select" value={form.distributor_id} onChange={e => set('distributor_id', e.target.value)}>
               <option value="">— Direct —</option>
               {distributors.map(d => <option key={d.id} value={d.id}>{d.name} ({d.country || d.region})</option>)}
@@ -118,7 +119,7 @@ function ClientFormModal({ client, distributors, onClose, onSaved }) {
           </div>
         )}
         <div>
-          <label className="label">Notes</label>
+          <label className="label">{t('accounts_notes')}</label>
           <textarea className="input min-h-[60px] resize-none" value={form.notes} onChange={e => set('notes', e.target.value)}/>
         </div>
       </div>
@@ -259,7 +260,7 @@ export default function Clients() {
           )}
           {canEdit && (
             <button onClick={() => { setEditClient(null); setFormOpen(true) }} className="btn-primary flex items-center gap-1">
-              <Plus size={14}/> New Client
+              <Plus size={14}/> {t('cli_new')}
             </button>
           )}
         </div>
@@ -267,41 +268,41 @@ export default function Clients() {
 
       <div className="grid grid-cols-3 gap-2">
         <div className="card p-3">
-          <p className="text-micro text-gray-400 uppercase font-semibold">Clients</p>
+          <p className="text-micro text-gray-400 uppercase font-semibold">{t('clients_title')}</p>
           <p className="text-xl font-bold text-navy">{stats.total}</p>
         </div>
         <div className="card p-3">
-          <p className="text-micro text-gray-400 uppercase font-semibold">Pipeline</p>
+          <p className="text-micro text-gray-400 uppercase font-semibold">{t('accounts_col_pipeline')}</p>
           <p className="text-xl font-bold text-amber-600">{formatK(stats.pipeline)}</p>
         </div>
         <div className="card p-3">
-          <p className="text-micro text-gray-400 uppercase font-semibold">Invoiced</p>
+          <p className="text-micro text-gray-400 uppercase font-semibold">{t('accounts_col_invoiced')}</p>
           <p className="text-xl font-bold text-green-600">{formatK(stats.invoiced)}</p>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-2 items-center">
         <div className="relative flex-1 min-w-[140px]">
-          <input className="input pl-8 text-sm" placeholder="Search…" value={search}
+          <input className="input pl-8 text-sm" placeholder={t('cli_search_ph')} value={search}
             onChange={e => { setSearch(e.target.value); setPage(1) }} style={{ fontSize: '16px' }}/>
           <Search size={14} className="absolute left-2.5 top-3 text-gray-400"/>
         </div>
         <select className="select text-xs w-auto" value={regionF} onChange={e => { setRegionF(e.target.value); setCountryF(''); setPage(1) }}>
-          <option value="">All Regions</option>
+          <option value="">{t('accounts_all_regions')}</option>
           {REGIONS.map(r => <option key={r}>{r}</option>)}
         </select>
         <select className="select text-xs w-auto" value={countryF} onChange={e => { setCountryF(e.target.value); setPage(1) }}>
-          <option value="">All Countries</option>
+          <option value="">{t('accounts_all_countries')}</option>
           {countries.map(c => <option key={c}>{c}</option>)}
         </select>
         <select className="select text-xs w-auto" value={typeF} onChange={e => { setTypeF(e.target.value); setPage(1) }}>
-          <option value="">All Types</option>
-          <option value="public">Public</option>
-          <option value="private">Private</option>
+          <option value="">{t('cli_all_types')}</option>
+          <option value="public">{t('cli_public')}</option>
+          <option value="private">{t('cli_private')}</option>
         </select>
         {isAdmin && (
           <select className="select text-xs w-auto" value={buF} onChange={e => { setBuF(e.target.value); setPage(1) }}>
-            <option value="">All BU</option>
+            <option value="">{t('clients_all_bu')}</option>
             <option value="VGT">VGT</option>
             <option value="ECT">ECT</option>
           </select>

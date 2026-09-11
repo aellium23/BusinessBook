@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import { useTranslation } from '../../hooks/useTranslation'
 import { useAuth } from '../../hooks/useAuth'
 import { useToast } from '../Toast'
 import { CheckCircle, XCircle, RefreshCw, Plus, Send, Clock } from 'lucide-react'
@@ -12,6 +13,7 @@ const STATUS_STYLE = {
 }
 
 export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
+  const { t } = useTranslation()
   const { profile, isAdmin } = useAuth()
   const { showToast } = useToast()
   const [requests, setRequests] = useState([])
@@ -164,7 +166,7 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
         <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 space-y-2">
           {dealBrands.length > 1 && (
             <div>
-              <label className="label">Brand *</label>
+              <label className="label">{t('dh_brand')}</label>
               <select className="select" value={brand} onChange={e => setBrand(e.target.value)}>
                 <option value="">— Select brand —</option>
                 {dealBrands.map(b => <option key={b} value={b}>{b}</option>)}
@@ -173,16 +175,16 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
             </div>
           )}
           <div>
-            <label className="label">Requested discount (%)</label>
+            <label className="label">{t('dh_requested_pct')}</label>
             <input className="input" type="number" min="0" max="100" step="0.1"
-              value={pct} onChange={e => setPct(e.target.value)} placeholder="e.g. 15"/>
+              value={pct} onChange={e => setPct(e.target.value)} placeholder={t('dh_pct_ph')}/>
           </div>
           <div>
-            <label className="label">Justification *</label>
+            <label className="label">{t('dh_justification')}</label>
             <textarea className="input min-h-[100px] resize-y" rows={4}
               value={justification} onChange={e => setJustification(e.target.value)}
               placeholder="Explain why: competitive situation, client budget, strategic account, volume commitment…"/>
-            <p className="text-micro text-gray-400 mt-1">Detailed justification speeds up approval.</p>
+            <p className="text-micro text-gray-400 mt-1">{t('dh_justification_hint')}</p>
           </div>
           <button onClick={handleSubmit} disabled={saving || !pct || !justification.trim()}
             className="btn-primary text-xs w-full gap-1 disabled:opacity-40">
@@ -193,7 +195,7 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
 
       {/* Request timeline */}
       {requests.length === 0 && !showForm && (
-        <p className="text-xs text-gray-400 text-center py-3">No discount requests yet.</p>
+        <p className="text-xs text-gray-400 text-center py-3">{t('dh_none')}</p>
       )}
 
       <div className="space-y-2">
@@ -271,11 +273,11 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
                   <div className="border-t pt-2 space-y-2">
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-micro text-gray-500">Decision</label>
+                        <label className="text-micro text-gray-500">{t('ap_decision')}</label>
                         <select className="select text-xs" value={respStatus} onChange={e => setRespStatus(e.target.value)}>
-                          <option value="approved">Approve</option>
-                          <option value="counter">Counter-offer</option>
-                          <option value="rejected">Reject</option>
+                          <option value="approved">{t('ap_approve')}</option>
+                          <option value="counter">{t('ap_counter')}</option>
+                          <option value="rejected">{t('ap_reject')}</option>
                         </select>
                       </div>
                       {(respStatus === 'approved' || respStatus === 'counter') && (
@@ -288,12 +290,12 @@ export default function DiscountHistory({ dealId, dealClient, isDistributor }) {
                       )}
                     </div>
                     <div>
-                      <label className="text-micro text-gray-500">Note</label>
+                      <label className="text-micro text-gray-500">{t('dh_note')}</label>
                       <input className="input text-xs" value={respNote} onChange={e => setRespNote(e.target.value)}
-                        placeholder="Optional response note"/>
+                        placeholder={t('dh_note_ph')}/>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => setRespondingId(null)} className="btn-secondary text-xs flex-1">Cancel</button>
+                      <button onClick={() => setRespondingId(null)} className="btn-secondary text-xs flex-1">{t('cancel')}</button>
                       <button onClick={() => handleRespond(req.id)} disabled={respSaving}
                         className="btn-primary text-xs flex-1">
                         {respSaving ? 'Saving…' : 'Submit'}

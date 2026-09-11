@@ -563,34 +563,41 @@ nomeie um estado que não existe**, e que `pipeline` não seja confundido com um
 
 ## BIZ-06 · ⏳ EM CURSO · Strings em inglês no código
 
-As chaves de i18n estão completas — **1.416 nas três línguas, zero lacunas** —
+As chaves de i18n estão completas — **1.499 nas três línguas, zero lacunas** —
 mas parte da interface está escrita em inglês directamente no JSX. Um espanhol
 abria o formulário de contratos e lia-o em inglês.
 
-**Feito a 11-09, os quatro piores:**
+**Feito a 11-09, dez ficheiros:**
 
 | Ficheiro | Antes | Agora |
 |---|---|---|
 | `SlaFormModal.jsx` | 41 | 0 |
-| `History.jsx` | 38 | os códigos de coluna |
-| `Settings.jsx` | 30 | 0 |
+| `History.jsx` | 38 | 14 — códigos de coluna do P&L |
+| `Settings.jsx` | 30 | 14 |
 | `ContactsList.jsx` | 27 | 0 |
+| `DashboardSummary.jsx` | 26 | 0 |
+| `Clients.jsx` | 23 | 0 |
+| `RequirementsMatrix.jsx` | 22 | 0 |
+| `UsersTab.jsx` | 22 | 0 |
+| `Approvals.jsx` | 19 | 0 |
+| `DiscountHistory.jsx` | 16 | 0 |
 
-**Total: 524 → 425.**
+**Total: 524 → 325.**
 
-**O que ficou em inglês de propósito, no `History`:** `VGT NS`, `ECT GM`,
-`Op.Inc`, `Ach.%`, `Int%`, `Iberia NS`. São códigos de coluna do P&L, lidos
-contra o SAP, e traduzi-los tornaria a tabela mais difícil de conferir e não mais
-fácil de ler. A prosa e as etiquetas a sério foram todas.
+**O que fica em inglês de propósito.** No `History`, os códigos de coluna do
+P&L — `VGT NS`, `ECT GM`, `Op.Inc`, `Ach.%`, `Int%`, `Iberia NS`. São lidos
+contra o SAP; traduzi-los torna a tabela mais difícil de conferir e não mais
+fácil de ler.
 
-**Dois achados pelo caminho:** o contador de clientes do `History` dizia
-`Clientes` — português cravado num ficheiro inglês — e `hist_title` e
-`hist_metric` já existiam, portanto reaproveitaram-se em vez de duplicar.
+**Três achados pelo caminho, todos o mesmo problema pelo avesso:** o contador de
+clientes do `History` dizia `Clientes`, e o `UsersTab` tinha `Cancelar`,
+`Guardar`, `Nome (opcional)` e `Convidar utilizador` — português cravado em
+ficheiros ingleses, invisível para quem lê em inglês e errado para quem lê em
+espanhol.
 
-**O que falta**, por ordem: `DashboardSummary` (26), `Clients` (23),
-`RequirementsMatrix` (22), `UsersTab` (22), `Approvals` (19),
-`DiscountHistory` (16). É ficheiro a ficheiro e cada string precisa de uma chave
-e de três traduções — não há atalho.
+**O que falta**, por ordem: `EST1Builder` (14), `AuditLog` (13),
+`ProductLineItems` (12), `SalesOverlayConfig` (12), e a cauda. É ficheiro a
+ficheiro e cada string precisa de uma chave e de três traduções.
 
 **Nota sobre a contagem:** é grosseira — texto entre tags e
 `placeholder`/`title` com palavras que começam por maiúscula. Serve para ordenar

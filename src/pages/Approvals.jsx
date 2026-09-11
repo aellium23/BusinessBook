@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
+import { useTranslation } from '../hooks/useTranslation'
 import { useAuth } from '../hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '../components/Toast'
@@ -17,6 +18,7 @@ const STATUS = {
 }
 
 export default function Approvals() {
+  const { t } = useTranslation()
   const { profile } = useAuth()
   const { showToast } = useToast()
   const [requests, setRequests] = useState([])
@@ -118,7 +120,7 @@ export default function Approvals() {
     return (
       <div className="p-4 max-w-2xl mx-auto space-y-4">
         <CostRequestWorklist/>
-        <EmptyState icon="🛡️" title="No approval brands assigned"
+        <EmptyState icon="🛡️" title={t('ap_no_brands')}
           description="An admin must assign you as a discount approver for one or more brands."/>
       </div>
     )
@@ -156,7 +158,7 @@ export default function Approvals() {
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState icon="✅" title="Nothing here" description="No requests in this status."/>
+        <EmptyState icon="✅" title={t('ap_nothing')} description={t('ap_nothing_desc')}/>
       ) : (
         <div className="space-y-3">
           {filtered.map(req => (
@@ -171,6 +173,7 @@ export default function Approvals() {
 }
 
 function ApprovalCard({ req, onRespond, channel, readOnly, onAccept, onAskAgain }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [asking, setAsking] = useState(false)
@@ -237,7 +240,7 @@ function ApprovalCard({ req, onRespond, channel, readOnly, onAccept, onAskAgain 
         <div className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 space-y-1">
           <div className="grid grid-cols-2 gap-2 text-micro">
             <div>
-              <p className="text-gray-500">Our revenue</p>
+              <p className="text-gray-500">{t('ap_our_revenue')}</p>
               <p className="text-sm font-bold text-navy tabular-nums">
                 {formatK(impact.ourRevenueIfGranted)}
               </p>
@@ -246,7 +249,7 @@ function ApprovalCard({ req, onRespond, channel, readOnly, onAccept, onAskAgain 
               )}
             </div>
             <div>
-              <p className="text-gray-500">Partner margin</p>
+              <p className="text-gray-500">{t('ap_partner_margin')}</p>
               <p className={`text-sm font-bold tabular-nums ${
                 impact.partnerMarginIfGranted < 0 ? 'text-red-700' : 'text-green-700'
               }`}>
@@ -295,16 +298,16 @@ function ApprovalCard({ req, onRespond, channel, readOnly, onAccept, onAskAgain 
           <div className="border-t pt-2 space-y-2">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-micro text-gray-500">Ask for %</label>
+                <label className="text-micro text-gray-500">{t('ap_ask_pct')}</label>
                 <input className="input text-xs" type="number" min="0" max="100"
                   value={askPct} onChange={e => setAskPct(e.target.value)}
                   placeholder={String(req.requested_pct)}/>
               </div>
             </div>
             <input className="input text-xs" value={askNote} onChange={e => setAskNote(e.target.value)}
-              placeholder="Why this time (the approver reads this)"/>
+              placeholder={t('ap_ask_note_ph')}/>
             <div className="flex gap-2">
-              <button onClick={() => setAsking(false)} className="btn-secondary text-xs flex-1">Cancel</button>
+              <button onClick={() => setAsking(false)} className="btn-secondary text-xs flex-1">{t('cancel')}</button>
               <button className="btn-primary text-xs flex-1"
                 disabled={!askPct || !askNote.trim()}
                 onClick={async () => { await onAskAgain(req, askPct, askNote); setAsking(false) }}>
@@ -329,11 +332,11 @@ function ApprovalCard({ req, onRespond, channel, readOnly, onAccept, onAskAgain 
           <div className="border-t pt-2 space-y-2">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-micro text-gray-500">Decision</label>
+                <label className="text-micro text-gray-500">{t('ap_decision')}</label>
                 <select className="select text-xs" value={status} onChange={e => setStatus(e.target.value)}>
-                  <option value="approved">Approve</option>
-                  <option value="counter">Counter-offer</option>
-                  <option value="rejected">Reject</option>
+                  <option value="approved">{t('ap_approve')}</option>
+                  <option value="counter">{t('ap_counter')}</option>
+                  <option value="rejected">{t('ap_reject')}</option>
                 </select>
               </div>
               {(status === 'approved' || status === 'counter') && (
@@ -353,9 +356,9 @@ function ApprovalCard({ req, onRespond, channel, readOnly, onAccept, onAskAgain 
               </p>
             )}
             <input className="input text-xs" value={note} onChange={e => setNote(e.target.value)}
-              placeholder="Response note (optional)"/>
+              placeholder={t('ap_note_ph')}/>
             <div className="flex gap-2">
-              <button onClick={() => setOpen(false)} className="btn-secondary text-xs flex-1">Cancel</button>
+              <button onClick={() => setOpen(false)} className="btn-secondary text-xs flex-1">{t('cancel')}</button>
               <button onClick={submit} disabled={saving} className="btn-primary text-xs flex-1">
                 {saving ? 'Saving…'
                   : decision === 'counter' ? 'Send counter-offer'

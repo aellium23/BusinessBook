@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useTranslation } from '../hooks/useTranslation'
 import {
   Plus, Trash2, CheckCircle2, Circle, Clock, MinusCircle,
   ChevronDown, ChevronRight, ListChecks, AlertCircle, X,
@@ -35,6 +36,7 @@ function StatusCell({ value, onChange }) {
 
 // ── ApplyTemplatesModal ──────────────────────────────────────────────────────
 function ApplyTemplatesModal({ onClose, onApply, existingTitles }) {
+  const { t } = useTranslation()
   const [templates, setTemplates] = useState([])
   const [loading, setLoading]     = useState(true)
   const [loadError, setLoadError] = useState(null)
@@ -110,25 +112,25 @@ function ApplyTemplatesModal({ onClose, onApply, existingTitles }) {
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={16}/></button>
         </div>
         <div className="px-4 py-2 border-b border-gray-100 space-y-2">
-          <input className="input py-1.5 text-sm" placeholder="Search templates…"
+          <input className="input py-1.5 text-sm" placeholder={t('rm_search_ph')}
             value={search} onChange={e => setSearch(e.target.value)}/>
           <div className="flex gap-2 text-tiny">
-            <button onClick={selectAllVisible} className="text-navy hover:underline">Select visible</button>
+            <button onClick={selectAllVisible} className="text-navy hover:underline">{t('rm_select_visible')}</button>
             <span className="text-gray-300">·</span>
-            <button onClick={clearVisible} className="text-gray-500 hover:underline">Clear visible</button>
+            <button onClick={clearVisible} className="text-gray-500 hover:underline">{t('rm_clear_visible')}</button>
             <span className="ml-auto text-gray-400">{selected.size} selected</span>
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-2">
           {loading ? (
-            <p className="text-sm text-gray-400 py-6 text-center">Loading…</p>
+            <p className="text-sm text-gray-400 py-6 text-center">{t('set_loading')}</p>
           ) : loadError ? (
             // "No templates match" was shown for a failed load too, which reads
             // as an empty library rather than as a library nobody could reach.
             <p role="alert" className="text-sm text-red-700 py-6 text-center">{loadError}</p>
           ) : filtered.length === 0 ? (
-            <p className="text-sm text-gray-400 py-6 text-center">No templates match.</p>
+            <p className="text-sm text-gray-400 py-6 text-center">{t('rm_no_match')}</p>
           ) : CATEGORIES.map(cat => {
             const list = groups[cat.id] || []
             if (list.length === 0) return null
@@ -156,7 +158,7 @@ function ApplyTemplatesModal({ onClose, onApply, existingTitles }) {
                               <p className="text-tiny text-gray-500 mt-0.5">{t.description}</p>
                             )}
                             {alreadyHas && (
-                              <p className="text-micro text-gray-400 italic mt-0.5">Already added</p>
+                              <p className="text-micro text-gray-400 italic mt-0.5">{t('rm_already')}</p>
                             )}
                           </div>
                         </label>
@@ -171,7 +173,7 @@ function ApplyTemplatesModal({ onClose, onApply, existingTitles }) {
 
         <div className="flex gap-2 px-4 py-3 border-t border-gray-100"
           style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
-          <button className="btn-secondary flex-1" onClick={onClose}>Cancel</button>
+          <button className="btn-secondary flex-1" onClick={onClose}>{t('cancel')}</button>
           <button className="btn-primary flex-1"
             disabled={selected.size === 0}
             onClick={() => {
@@ -194,6 +196,7 @@ function ApplyTemplatesModal({ onClose, onApply, existingTitles }) {
  *   assignees: [{ id, full_name }] — sales owners list
  */
 export default function RequirementsMatrix({ tenderId, canEdit = true, assignees = [] }) {
+  const { t } = useTranslation()
   const [items, setItems]         = useState([])
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState(null)
@@ -318,7 +321,7 @@ export default function RequirementsMatrix({ tenderId, canEdit = true, assignees
               <Plus size={11}/> Add requirement
             </button>
             <button onClick={() => setShowTemplates(true)} className="btn-secondary text-xs py-1 px-2 flex items-center gap-1">
-              <ListChecks size={11}/> Apply templates
+              <ListChecks size={11}/> {t('rm_apply_templates')}
             </button>
           </div>
         )}
@@ -331,13 +334,13 @@ export default function RequirementsMatrix({ tenderId, canEdit = true, assignees
       )}
 
       {loading ? (
-        <p className="text-xs text-gray-400">Loading…</p>
+        <p className="text-xs text-gray-400">{t('set_loading')}</p>
       ) : items.length === 0 ? (
         <div className="text-center py-6 text-gray-400 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
           <ListChecks size={24} className="mx-auto mb-2 opacity-40"/>
-          <p className="text-sm">No requirements yet.</p>
+          <p className="text-sm">{t('rm_none')}</p>
           {canEdit && (
-            <p className="text-xs mt-1">Use <strong>Apply templates</strong> to start from the medical-imaging defaults.</p>
+            <p className="text-xs mt-1">{t('rm_none_hint_a')} <strong>{t('rm_apply_templates')}</strong> {t('rm_none_hint_b')}</p>
           )}
         </div>
       ) : CATEGORIES.map(cat => {
@@ -372,7 +375,7 @@ export default function RequirementsMatrix({ tenderId, canEdit = true, assignees
                           <textarea
                             className="input py-1.5 text-xs text-gray-600 mt-1.5 min-h-[40px] resize-y w-full"
                             value={req.description || ''}
-                            placeholder="Notes / description…"
+                            placeholder={t('rm_notes_ph')}
                             disabled={!canEdit}
                             rows={2}
                             onChange={e => updateRequirement(req.id, { description: e.target.value })}
@@ -391,7 +394,7 @@ export default function RequirementsMatrix({ tenderId, canEdit = true, assignees
                           disabled={!canEdit}
                           onChange={e => updateRequirement(req.id, { assignee_id: e.target.value || null })}
                           aria-label="Assignee">
-                          <option value="">Unassigned</option>
+                          <option value="">{t('rm_unassigned')}</option>
                           {assignees.map(a => (
                             <option key={a.id} value={a.id}>{a.full_name}</option>
                           ))}
