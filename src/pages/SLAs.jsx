@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useTranslation } from '../hooks/useTranslation'
 import { useDebounce } from '../hooks/useDebounce'
 import { Spinner, EmptyState, BUBadge, formatK } from '../components/ui'
-import { SLA_STATUSES, FY_RANGE, getFiscalYear } from '../constants'
+import { SLA_STATUSES, SLA_PIPELINE_STATUSES, FY_RANGE, getFiscalYear } from '../constants'
 import SlaFormModal from '../components/SlaFormModal'
 import {
   Plus, Search, Pencil, Trash2, Calendar, User,
@@ -70,7 +70,7 @@ const SlaCard = memo(function SlaCard({ sla, onEdit, onDelete, canEdit, canDelet
             <Calendar size={9}/> {t('sla_start')}: {new Date(sla.start_date).toLocaleDateString('pt-PT', { month: 'short', year: 'numeric' })}
           </span>
         )}
-        {sla.warranty_end_date && sla.status === 'pipeline' && (
+        {sla.warranty_end_date && SLA_PIPELINE_STATUSES.includes(sla.status) && (
           <span className="flex items-center gap-1">
             <Shield size={9}/> {t('sla_warranty_ends')}: {new Date(sla.warranty_end_date).toLocaleDateString('pt-PT', { month: 'short', year: 'numeric' })}
           </span>
@@ -292,7 +292,7 @@ export default function SLAs() {
   const tf = typeFiltered
   const tabs = [
     { id: 'active',   label: `${t('sla_tab_active')} (${tf.filter(s=>['warranty','active','pending_renewal'].includes(s.status)).length})` },
-    { id: 'pipeline', label: `${t('sla_tab_pipeline')} (${tf.filter(s=>['draft','waiting_po'].includes(s.status)).length})` },
+    { id: 'pipeline', label: `${t('sla_tab_pipeline')} (${tf.filter(s=>SLA_PIPELINE_STATUSES.includes(s.status)).length})` },
     { id: 'renewal',  label: `${t('sla_tab_renewal')} (${tf.filter(s=>['pending_renewal','renewed'].includes(s.status)).length})` },
     { id: 'closed',   label: `${t('sla_tab_closed')} (${tf.filter(s=>['expired','cancelled'].includes(s.status)).length})` },
     { id: 'all',      label: `${t('sla_tab_all')} (${tf.length})` },

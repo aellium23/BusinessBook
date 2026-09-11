@@ -157,6 +157,22 @@ export function computeMargins(deal) {
 }
 
 // ── SLA Management ──────────────────────────────────────────────────────
+
+/**
+ * The contract statuses each screen groups together, named once.
+ *
+ * There is no `pipeline` status. There never was — the eight are below. What
+ * existed was a TAB on the contracts page with the id `pipeline`, whose contents
+ * are draft plus waiting_po, and three screens then filtered contracts with
+ * `status === 'pipeline'`: the id of a tab, used as the value of a column.
+ *
+ * It matched nothing, so two figures on two dashboards were structurally zero —
+ * and a zero reads as "no recurring pipeline", not as "this sum is wrong".
+ * Confirmed against the database on 11-09: only the eight exist.
+ */
+export const SLA_PIPELINE_STATUSES = ['draft', 'waiting_po']
+export const SLA_ACTIVE_STATUSES   = ['warranty', 'active', 'pending_renewal']
+
 export const SLA_STATUSES = [
   { id: 'draft',            label: 'Draft',            color: 'bg-gray-100 text-gray-700 border-gray-200',       dot: 'bg-gray-400' },
   { id: 'waiting_po',       label: 'Waiting PO',       color: 'bg-amber-100 text-amber-700 border-amber-200',   dot: 'bg-amber-400' },

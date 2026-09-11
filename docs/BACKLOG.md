@@ -468,33 +468,32 @@ antes da extracção.
 
 ---
 
-## DATA-03 · P1 · Três números do painel filtram por um estado que não existe
+## DATA-03 · ✅ FECHADO · Três números do painel filtravam por um estado que não existe
 
 **Encontrado a escrever o SEC-07.** `Dashboard.jsx`, `DashboardSummary.jsx` e
-`SLAs.jsx` filtram contratos por `status === 'pipeline'`. O `SLA_STATUSES` tem
-oito estados e **`pipeline` não é um deles**: draft, waiting_po, warranty,
-active, pending_renewal, renewed, expired, cancelled.
+`SLAs.jsx` filtravam contratos por `status === 'pipeline'`. Não há estado
+`pipeline`: os oito são draft, waiting_po, warranty, active, pending_renewal,
+renewed, expired e cancelled.
 
-O que provavelmente aconteceu: em `SLAs.jsx` existe um **separador** com o id
-`pipeline`, cujo conteúdo é `['draft','waiting_po']`. O id do separador e o
-estado do contrato foram confundidos.
+O que existia era um **separador** na página de contratos com o id `pipeline`,
+cujo conteúdo é draft mais waiting_po. **O id de um separador, usado como valor
+de uma coluna.**
 
-Se nenhuma linha carregar esse estado — e não deveria — então
-`slaRecurring.pipeline` e `slaStats.pipelineValue` são **estruturalmente zero**,
-e lêem-se como "não há pipeline recorrente" em vez de "esta conta está errada".
+**Confirmado contra a base de dados a 11-09:** só os oito existem, nenhuma linha
+com `pipeline`. Portanto o filtro não apanhava nada e `slaRecurring.pipeline` e
+`slaStats.pipelineValue` eram **zero por construção** — e um zero lê-se como
+"não há pipeline recorrente", não como uma soma partida.
 
-**Confirmar antes de corrigir**, porque a base de dados pode ter estados que o
-enum não lista:
+**Fechado a 11-09.** `SLA_PIPELINE_STATUSES` e `SLA_ACTIVE_STATUSES` em
+`src/constants.js`, usados nos quatro sítios — os três ecrãs e a contagem do
+próprio separador, que era onde a definição verdadeira já estava escrita.
 
-```sql
-select status, count(*) as contratos, sum(annual_value) as valor
-from public.slas group by status order by contratos desc;
-```
+**É uma alteração de reporte, não de ecrã.** Dois números que estavam a zero
+passam a mostrar o valor anual dos contratos em draft e à espera de PO. Se
+parecerem altos, é porque estiveram escondidos.
 
-Se `pipeline` não aparecer, a correcção é trocar o filtro por
-`['draft','waiting_po']` nos três sítios — o que **faz subir um número que hoje
-está a zero** em dois painéis, e portanto é uma alteração de reporte e não de
-ecrã.
+O teste que faltava não era de nenhuma das duas listas: é de que **nenhum grupo
+nomeie um estado que não existe**, e que `pipeline` não seja confundido com um.
 
 ---
 

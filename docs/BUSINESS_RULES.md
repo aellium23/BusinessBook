@@ -211,6 +211,13 @@ que são mesmo qualificados antes de alguém cotar.
 Nada do que se reporta se mexe: os funis contam negócios pela fase em que estão,
 não pelo caminho que fizeram.
 
+**BR-056 — Os grupos de estados de contrato têm um nome só.**
+`SLA_PIPELINE_STATUSES` (draft, waiting_po) e `SLA_ACTIVE_STATUSES` (warranty,
+active, pending_renewal), em `src/constants.js`. **Não existe um estado
+`pipeline`** — isso é o id de um separador, e três ecrãs usaram-no como valor de
+coluna até 11-09. Não apanhava nada, e dois números do painel eram zero por
+construção.
+
 **BR-055 — O ciclo de vida de um contrato também é imposto pela base de dados.**
 Dezassete transições em `sla_status_transitions`, e um trigger em `slas` recusa
 o resto. Mesmos isentos que os negócios: admin, e o SQL Editor. O INSERT fica de

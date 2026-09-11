@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { DEAL_TRANSITIONS, SLA_TRANSITIONS, getAllowedTransitions } from '../stateMachine'
-import { DIST_STAGES, SLA_STATUSES } from '../../constants'
+import { DIST_STAGES, SLA_STATUSES, SLA_PIPELINE_STATUSES, SLA_ACTIVE_STATUSES } from '../../constants'
 import { numOrNull } from '../numbers'
 
 /**
@@ -166,5 +166,34 @@ describe('the contract status machine, in both places it is written', () => {
     expect(sql).toMatch(/before update of status on public\.slas/)
     // INSERT stays open: a contract can reach us already active.
     expect(sql).not.toMatch(/before insert[^\n]*on public\.slas/)
+  })
+})
+
+/**
+ * A status that does not exist matched nothing, and nothing said so.
+ *
+ * Three screens filtered contracts with `status === 'pipeline'`. There is no
+ * `pipeline` status — it is the id of a TAB on the contracts page, whose
+ * contents are draft plus waiting_po. The id of a tab, used as the value of a
+ * column. It matched nothing, so two dashboard figures were structurally zero,
+ * and a zero reads as "no recurring pipeline" rather than as a broken sum.
+ *
+ * Confirmed against the database on 11-09: only the eight statuses exist.
+ */
+describe('the status groups the screens filter on', () => {
+  const known = new Set(SLA_STATUSES.map(s => s.id))
+
+  it('name only statuses that exist', () => {
+    expect([...SLA_PIPELINE_STATUSES].filter(s => !known.has(s)), 'pipeline group').toEqual([])
+    expect([...SLA_ACTIVE_STATUSES].filter(s => !known.has(s)), 'active group').toEqual([])
+  })
+
+  it('does not call a tab id a status', () => {
+    expect(known.has('pipeline')).toBe(false)
+    expect(SLA_PIPELINE_STATUSES).toEqual(['draft', 'waiting_po'])
+  })
+
+  it('keeps the two groups apart, because a contract is in one or the other', () => {
+    expect(SLA_PIPELINE_STATUSES.filter(s => SLA_ACTIVE_STATUSES.includes(s))).toEqual([])
   })
 })

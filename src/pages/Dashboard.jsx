@@ -9,7 +9,7 @@ import { useTranslation } from '../hooks/useTranslation'
 import { useLoadFailures, LoadFailureBanner } from '../hooks/useLoadFailures'
 import DistributorDashboard from '../components/dashboard/DistributorDashboard'
 import PerformanceSection from '../components/dashboard/PerformanceSection'
-import { STAGE_HEX } from '../constants'
+import { STAGE_HEX, SLA_PIPELINE_STATUSES, SLA_ACTIVE_STATUSES } from '../constants'
 
 const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
 const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
@@ -60,8 +60,10 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
       .then(load(t('lf_slas'), data => {
         if (!data) return
         try {
-          const active = data.filter(s => ['warranty','active','pending_renewal'].includes(s.status))
-          const pipeline = data.filter(s => s.status === 'pipeline')
+          const active = data.filter(s => SLA_ACTIVE_STATUSES.includes(s.status))
+          // Not `status === 'pipeline'`: that is the id of a tab, not a status,
+          // and it matched nothing — so this figure was always zero. DATA-03.
+          const pipeline = data.filter(s => SLA_PIPELINE_STATUSES.includes(s.status))
           const activeExt = active.filter(s => s.sales_type !== 'Internal')
           const activeInt = active.filter(s => s.sales_type === 'Internal')
           setSlaRecurring({
