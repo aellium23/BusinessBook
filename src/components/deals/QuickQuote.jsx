@@ -30,7 +30,8 @@ import { authMapOf, authorisedProducts, authorisedCountries,
          hasAuthorisations, authKey, partnerLineCost } from '../../lib/partnerCatalogue'
 import SearchableSelect from '../SearchableSelect'
 import { formatK } from '../ui'
-import { X, Check, ChevronDown, ChevronRight } from 'lucide-react'
+import { X, Check, ChevronDown, ChevronRight, Paperclip } from 'lucide-react'
+import AttachmentsList from '../AttachmentsList'
 
 const ALL_COUNTRIES = Object.values(COUNTRY_MAP).flat().sort()
 
@@ -1629,6 +1630,22 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
             </p>
           )}
         </div>
+      )}
+
+      {/* Documents, on a saved deal only — there is nowhere to hang a file
+          before the deal exists. Folded away, because the quick deal is meant
+          to take fifteen seconds and most of them carry no paperwork; but
+          reachable, because a signed order arrives while somebody is in here
+          and the full form is two screens away. */}
+      {deal?.id && (
+        <details className="border-t border-gray-100 pt-2">
+          <summary className="text-xs text-gray-500 cursor-pointer min-h-tap flex items-center gap-1.5">
+            <Paperclip size={13}/> {t('qd_documents')}
+          </summary>
+          <div className="pt-2">
+            <AttachmentsList entityType="deal" entityId={deal.id} canEdit/>
+          </div>
+        </details>
       )}
 
       {onFullForm && (
