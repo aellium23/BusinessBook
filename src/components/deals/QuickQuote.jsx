@@ -26,6 +26,7 @@ import { getAllowedTransitions } from '../../lib/stateMachine'
 import { canPrice } from '../../lib/roles'
 import { toQuoteState, fromQuoteState, rebuildFrom } from '../../lib/quoteState'
 import { requestsForDeal, acceptCounter, askAgain, requestState } from '../../lib/discountRequests'
+import { useCompanyScope } from '../../hooks/useCompanyScope'
 import { authMapOf, authorisedProducts, authorisedCountries,
          hasAuthorisations, authKey, partnerLineCost } from '../../lib/partnerCatalogue'
 import SearchableSelect from '../SearchableSelect'
@@ -77,6 +78,7 @@ const DEFAULT_MAN_DAY_COST = 450
  */
 export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
   const { profile } = useAuth()
+  const { homeId } = useCompanyScope()
   const { t } = useTranslation()
   const { settings } = useSettings()
   const { products } = useProducts()
@@ -170,13 +172,18 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
   // What this partner may sell, and where. Set by an admin in Permissions →
   // Companies, one row per product per country.
   const [auths, setAuths] = useState([])
+  // Whose catalogue applies. The deal's own company wins over whichever one is
+  // selected in the header: opening a Peru deal while looking at Chile must
+  // price it against Peru's authorisations, not against the ones the reader
+  // happens to be filtered to.
+  const catalogueCompany = deal?.company_id || homeId || profile?.company_id || null
   useEffect(() => {
-    if (internal || !profile?.company_id) return
+    if (internal || !catalogueCompany) return
     supabase.from('company_product_authorizations')
       .select('product_id, country, price, active')
-      .eq('company_id', profile.company_id)
+      .eq('company_id', catalogueCompany)
       .then(({ data }) => setAuths(data || []))
-  }, [internal, profile?.company_id])
+  }, [internal, catalogueCompany])
   const authMap = useMemo(() => authMapOf(auths), [auths])
 
   // A partner sells from their own country. Picking somebody else's is not a
@@ -779,7 +786,10 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
           .select('id, client, bu, country').single()
       : await supabase.from('deals').insert({
           ...fields,
-          company_id: profile?.company_id || null,
+          // A deal belongs to one company. Where somebody acts for several and
+          // is looking at all of them, that is their home company; where they
+          // have narrowed to one, it is obviously the one they are looking at.
+          company_id: homeId || profile?.company_id || null,
           created_by: profile?.id || null,
         }).select('id, client, bu, country').single()
 

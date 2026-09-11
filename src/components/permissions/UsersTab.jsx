@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { supabase, anonClient } from '../../lib/supabase'
 import { useTranslation } from '../../hooks/useTranslation'
@@ -261,18 +261,34 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
             </select>
           </div>
 
-          {/* Company */}
+          {/* Company: the home one, and any others they act for. */}
           <div>
-            <label className="label">Company</label>
+            <label className="label">Home company</label>
             <select className="select text-sm" value={profile.company_id || ''}
               onChange={async (e) => {
-                await supabase.from('profiles').update({ company_id: e.target.value || null }).eq('id', profile.id)
+                const next = e.target.value || null
+                await supabase.from('profiles').update({ company_id: next }).eq('id', profile.id)
+                // The home company is a membership like any other — everything
+                // that decides what this person can see reads the membership
+                // list, so a home company that is not in it grants nothing.
+                if (next) {
+                  await supabase.from('company_members')
+                    .upsert({ profile_id: profile.id, company_id: next },
+                            { onConflict: 'profile_id,company_id' })
+                }
                 onSaved()
               }}>
               <option value="">— No company —</option>
               {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
+            <p className="text-micro text-gray-400 mt-1">
+              Where their new deals are filed.
+            </p>
           </div>
+
+          {/* Other companies they act for. One person can be an officer of two
+              distributors, and used to need two accounts to be both. */}
+          <CompanyMemberships profile={profile} companies={companies} onSaved={onSaved}/>
 
           {/* Discount approval brands */}
           <div>
@@ -599,6 +615,69 @@ export default function UsersTab({ profiles, permSets, companies, salesOwners, u
             onSaved={onRefresh} isSelf={p.id === user?.id}/>
         ))}
       </div>
+    </div>
+  )
+}
+
+/**
+ * Which companies this person may act for, besides their home one.
+ *
+ * The CEO of TIMED Chile is also an officer of TIMED Peru. Ticking Peru here is
+ * what lets one account be both — every company-scoped policy in the database
+ * asks `acts_for()`, which reads exactly this list.
+ *
+ * The home company is shown ticked and cannot be unticked here: it is set
+ * above, and a person filing deals into a company they cannot see is a support
+ * call waiting to happen.
+ */
+function CompanyMemberships({ profile, companies, onSaved }) {
+  const [ids, setIds] = useState(null)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    supabase.from('company_members').select('company_id').eq('profile_id', profile.id)
+      .then(({ data, error }) => setIds(error ? [] : (data || []).map(r => r.company_id)))
+  }, [profile.id])
+
+  async function toggle(companyId, on) {
+    setBusy(true)
+    if (on) {
+      await supabase.from('company_members')
+        .upsert({ profile_id: profile.id, company_id: companyId },
+                { onConflict: 'profile_id,company_id' })
+      setIds(s => [...s, companyId])
+    } else {
+      await supabase.from('company_members').delete()
+        .eq('profile_id', profile.id).eq('company_id', companyId)
+      setIds(s => s.filter(x => x !== companyId))
+    }
+    setBusy(false)
+    onSaved()
+  }
+
+  if (ids === null) return null
+
+  return (
+    <div>
+      <label className="label">Also acts for</label>
+      <div className="flex flex-wrap gap-1.5">
+        {companies.map(c => {
+          const home = c.id === profile.company_id
+          const on = home || ids.includes(c.id)
+          return (
+            <button key={c.id} type="button" disabled={home || busy}
+              onClick={() => toggle(c.id, !on)}
+              className={`px-2.5 py-1 rounded-full border text-xs font-semibold transition-colors ${
+                on ? 'bg-navy text-white border-navy' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+              } ${home ? 'opacity-60 cursor-default' : ''}`}>
+              {c.name}{home ? ' ·' : ''}
+            </button>
+          )
+        })}
+      </div>
+      <p className="text-micro text-gray-400 mt-1">
+        Their home company is always included. Everything else is a deliberate grant.
+      </p>
     </div>
   )
 }

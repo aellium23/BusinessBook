@@ -1,6 +1,7 @@
 import { useState, useEffect, memo, useMemo } from 'react'
 import { useTenders, createTender, updateTender, deleteTender } from '../hooks/useTasks'
 import { useAuth } from '../hooks/useAuth'
+import { useCompanyScope } from '../hooks/useCompanyScope'
 import { useTranslation } from '../hooks/useTranslation'
 import { useDebounce } from '../hooks/useDebounce'
 import { supabase } from '../lib/supabase'
@@ -459,6 +460,7 @@ const TenderCard = memo(function TenderCard({ tender, onEdit, onDelete, canEdit 
 // ── Main Tenders Page ──────────────────────────────────────────────────────────
 export default function Tenders() {
   const { user, profile, isAdmin, canEdit: authCanEdit } = useAuth()
+  const { ids: scopeIds } = useCompanyScope()
   const canEdit = authCanEdit
   const { tenders, urgentCount, loading, refetch } = useTenders()
 
@@ -473,8 +475,8 @@ export default function Tenders() {
 
   function loadDeals() {
     let dealsQ = supabase.from('deals').select("id, client, bu, country, company_id").order('client')
-    if (profile?.role === 'distributor' && profile?.company_id) {
-      dealsQ = dealsQ.eq('company_id', profile.company_id)
+    if (profile?.role === 'distributor' && scopeIds.length) {
+      dealsQ = dealsQ.in('company_id', scopeIds)
     }
     return dealsQ.then(({ data }) => setDeals(data ?? []))
       .catch(() => {})
@@ -503,7 +505,7 @@ export default function Tenders() {
       setUsers(merged)
     }).catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile?.id, profile?.role, profile?.company_id])
+  }, [profile?.id, profile?.role, scopeIds.join('|')])
 
   const filtered = useMemo(() => tenders.filter(t => {
     const matchSearch = !debouncedSearch || t.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||

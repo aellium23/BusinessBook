@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useDeals, deleteDeal, upsertDeal } from '../hooks/useDeals'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useCompanyScope } from '../hooks/useCompanyScope'
 import { Spinner, EmptyState, formatK } from '../components/ui'
 import DealForm from '../components/DealForm'
 import KanbanBoard from '../components/KanbanBoard'
@@ -56,6 +57,7 @@ const PERIOD_KEYS = [
 
 export default function Deals() {
   const { canEdit, isAdmin, editOwnOnly, profile, perms } = useAuth()
+  const { inScope } = useCompanyScope()
   const { showToast } = useToast()
   const canDelete = perms?.canDelete ?? false
   // The rule lives in lib/roles, beside the other answers to "who sees what",
@@ -163,7 +165,7 @@ export default function Deals() {
   // Filtros client-side adicionais
   const deals = useMemo(() => {
     let d = profile?.role === 'distributor'
-      ? rawDeals.filter(x => x.company_id === profile?.company_id)
+      ? rawDeals.filter(x => inScope(x.company_id))
       : rawDeals
     if (openOnlyF) d = d.filter(x => x.stage !== 'Invoiced' && x.stage !== 'Lost')
     if (slaF) d = d.filter(x => x.is_sla)

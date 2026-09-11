@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useCompanyScope } from '../hooks/useCompanyScope'
 import { useTranslation } from '../hooks/useTranslation'
 import { REGIONS } from '../constants'
 import { regionOf, countriesOf } from '../lib/regions'
@@ -23,6 +24,7 @@ import SearchableSelect from './SearchableSelect'
  */
 export default function QuickDealForm({ initialClient = '', onCancel, onCreated }) {
   const { profile, company } = useAuth()
+  const { homeId } = useCompanyScope()
   const { t } = useTranslation()
   const isPartner = profile?.role === 'distributor' || profile?.role === 'partner'
 
@@ -62,7 +64,7 @@ export default function QuickDealForm({ initialClient = '', onCancel, onCreated 
         region: form.region || null,
         country: form.country || null,
         stage: form.stage,
-        company_id: profile?.company_id || null,
+        company_id: homeId || profile?.company_id || null,
       })
       .select('id, client, bu, country, company_id')
       .single()

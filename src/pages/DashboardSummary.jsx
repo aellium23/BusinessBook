@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useCompanyScope } from '../hooks/useCompanyScope'
 import { useDeals } from '../hooks/useDeals'
 import { useTranslation } from '../hooks/useTranslation'
 import { Spinner, formatK } from '../components/ui'
@@ -60,19 +61,22 @@ function DistributorDashboard() {
   const { deals: allDeals, loading } = useDeals()
   const [quota, setQuota] = useState(null)
 
-  const companyId = profile?.company_id
+  const { ids: scopeIds, homeId } = useCompanyScope()
+  const companyId = homeId || profile?.company_id
 
-  // Load distributor's sales target
+  // The target, newest year first: taking whichever row came back first is a
+  // coin toss once there is more than one year of them.
   useEffect(() => {
     if (!companyId) return
-    supabase.from('quotas').select('*').eq('company_id', companyId).limit(1)
+    supabase.from('quotas').select('*').eq('company_id', companyId)
+      .order('fiscal_year', { ascending: false }).limit(1)
       .then(({ data }) => { if (data?.length) setQuota(data[0]) })
       .catch(() => {})
   }, [companyId])
 
   // Filter deals for this distributor
   const myDeals = useMemo(() =>
-    allDeals.filter(d => d.company_id === companyId),
+    allDeals.filter(d => scopeIds.includes(d.company_id)),
     [allDeals, companyId]
   )
 

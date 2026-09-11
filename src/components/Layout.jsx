@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { signOut, supabase } from '../lib/supabase'
 import { useNotifications } from '../hooks/useTasks'
 import NotificationsBell from './NotificationsBell'
+import CompanySwitcher from './CompanySwitcher'
 import { useTasks } from '../hooks/useTasks'
 import { LayoutDashboard, List, DollarSign, User, LogOut, ChevronRight, History, Building2, Target, Settings, CheckSquare, FileText, MoreHorizontal, Shield, Contact, GitBranch, LayoutGrid, Network as NetIcon, RefreshCw, Package, CalendarDays, Scale } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
@@ -126,6 +127,7 @@ export default function Layout({ children }) {
           {/* The bell lives here, where every page shows it. It used to be on
               Tasks, behind a button, on a screen a partner has no reason to
               open — which is how five answered discount requests went unread. */}
+          <CompanySwitcher/>
           <NotificationsBell/>
           <span className="text-white/80 text-xs hidden sm:inline font-medium">{profile?.full_name || profile?.email}</span>
           <span className="text-white/80 text-xs sm:hidden font-medium truncate max-w-20">{(profile?.full_name || profile?.email || '').split(" ")[0]}</span>

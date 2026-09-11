@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
+import { useCompanyScope } from './useCompanyScope'
 import { useToast } from '../components/Toast'
 import { MONTHS_K } from '../constants'
 import { logger } from '../lib/logger'
 
 export function useDeals(filters = {}) {
   const { profile, isAdmin } = useAuth()
+  const { ids: scopeIds } = useCompanyScope()
   const { showToast } = useToast()
   const [deals, setDeals]     = useState([])
   const [loading, setLoading] = useState(true)
@@ -17,6 +19,8 @@ export function useDeals(filters = {}) {
     () => [filters.bu, filters.stage, filters.region, filters.search].join('|'),
     [filters.bu, filters.stage, filters.region, filters.search]
   )
+  // Same trick for the company scope: an array identity changes every render.
+  const scopeKey = scopeIds.join('|')
 
   const mounted = useRef(true)
   useEffect(() => () => { mounted.current = false }, [])
@@ -30,10 +34,14 @@ export function useDeals(filters = {}) {
     // Filtros por role
     if (!isAdmin) {
       if (profile?.role === 'distributor') {
-        if (profile?.company_id) {
-          q = q.eq('company_id', profile.company_id)
+        // Every company this person acts for, not just the one on their
+        // profile: one person can be an officer of two distributors, and used
+        // to need two accounts to be both. The scope narrows to one when they
+        // pick one in the header.
+        if (scopeIds.length) {
+          q = q.in('company_id', scopeIds)
         } else {
-          // Distributor without company_id: return empty to avoid data leak
+          // No company at all: return empty rather than unfiltered.
           if (mounted.current) { setDeals([]); setError(null); setLoading(false) }
           return
         }
@@ -60,7 +68,7 @@ export function useDeals(filters = {}) {
     else { setDeals((data ?? []).filter(d => !d.converted_to_sla)); setError(null); hasData.current = true }
     setLoading(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile?.id, profile?.role, profile?.company_id, profile?.bu, isAdmin, filterKey])
+  }, [profile?.id, profile?.role, scopeKey, profile?.bu, isAdmin, filterKey])
 
   useEffect(() => {
     // Aguardar profile carregar antes de fazer o fetch

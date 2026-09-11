@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useCompanyScope } from '../hooks/useCompanyScope'
 import { useTranslation } from '../hooks/useTranslation'
 import { formatK, CollapsibleSection } from '../components/ui'
 import {
@@ -68,6 +69,8 @@ const tickK = v => v >= 1000 ? `${(v/1000).toFixed(1)}M` : v <= -1000 ? `${(v/10
 
 // ── History do Distribuidor ──────────────────────────────────────────────────
 function DistributorHistory({ profile }) {
+  const { ids: scopeIds } = useCompanyScope()
+  const scopeKey = scopeIds.join('|')
   const { t } = useTranslation()
   const [deals, setDeals]   = useState([])
   const [loading, setLoading] = useState(true)
@@ -76,10 +79,11 @@ function DistributorHistory({ profile }) {
   const MONTHS   = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 
   useEffect(() => {
-    if (!profile?.company_id) { setLoading(false); return }
+    // Every company this person acts for, narrowed by the header switcher.
+    if (!scopeIds.length) { setLoading(false); return }
     supabase.from('deals')
       .select('*')
-      .eq('company_id', profile.company_id)
+      .in('company_id', scopeIds)
       .eq('is_intercompany_mirror', false)
       .then(({ data, error }) => {
 
@@ -87,7 +91,7 @@ function DistributorHistory({ profile }) {
         setLoading(false)
       })
       .catch(() => { setLoading(false) })
-  }, [profile])
+  }, [scopeKey])
 
   const { invoiced, byClient, monthly } = useMemo(() => {
     const rate = d => (!d.currency || d.currency === 'EUR') ? 1 : (Number(d.exchange_rate) || 1)

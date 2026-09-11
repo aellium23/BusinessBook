@@ -2,6 +2,7 @@ import React, { Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { SettingsProvider } from './hooks/useSettings'
+import { CompanyScopeProvider } from './hooks/useCompanyScope'
 import { ToastProvider } from './components/Toast'
 import ErrorBoundary from './components/ErrorBoundary'
 import Layout from './components/Layout'
@@ -149,9 +150,14 @@ export default function App() {
       <BrowserRouter>
         <AuthProvider>
           <SettingsProvider>
+            {/* Which companies this person acts for. Inside Auth, because it
+                reads the profile; outside everything else, because every page
+                filters by it. */}
+            <CompanyScopeProvider>
             <ToastProvider>
               <AppRoutes />
             </ToastProvider>
+            </CompanyScopeProvider>
           </SettingsProvider>
         </AuthProvider>
       </BrowserRouter>
