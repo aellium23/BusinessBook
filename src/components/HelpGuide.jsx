@@ -37,6 +37,7 @@ const HELP = {
         '7. Click any product, rep, or client row to open its deals.',
       ],
       shortcuts: [
+        'A deal carries its discount state on the card itself, in all four states: pending, counter-offer, approved, rejected. It used to show only the two still waiting for an answer, which left a settled discount to the expanded details — and left the partner who asked for it looking for the answer to their own question.',
         'Click a funnel row → opens Deals pre-filtered for that item.',
       ],
       mistakes: [
@@ -83,6 +84,7 @@ const HELP = {
         '7. Haz clic en cualquier fila de producto, comercial o cliente para abrir sus deals.',
       ],
       shortcuts: [
+        'Una oportunidad lleva el estado de su descuento en la propia tarjeta, en los cuatro estados: pendiente, contraoferta, aprobado, rechazado. Antes solo mostraba los dos que seguian esperando respuesta, lo que dejaba un descuento ya resuelto en el detalle desplegado — y dejaba al socio que lo pidio buscando la respuesta a su propia pregunta.',
         'Clic en una fila del embudo → abre Oportunidades pre-filtradas.',
       ],
       mistakes: [
@@ -129,6 +131,7 @@ const HELP = {
         '7. Clica em qualquer linha de produto, comercial ou cliente para abrir os deals.',
       ],
       shortcuts: [
+        'Um negocio leva o estado do seu desconto no proprio cartao, nos quatro estados: pendente, contraproposta, aprovado, recusado. Antes so mostrava os dois que ainda esperavam resposta, o que deixava um desconto ja resolvido no detalhe expandido — e deixava o parceiro que o pediu a procurar a resposta a pergunta dele.',
         'Clica numa linha do funil → abre Negocios pre-filtrados para esse item.',
       ],
       mistakes: [
@@ -166,6 +169,7 @@ const HELP = {
         'Financed Project deals get a year-by-year revenue schedule (e.g. €936,200 in FY1, then €237,700 in FY2–FY5) — use "Split evenly" or enter each year manually.',
         'CAPEX warranty/SLA coverage (updates & upgrades included, support-hours bank) is captured on the linked Contract (SLA).',
         'Deal cards show a brand badge (e.g. Medsky) for non-Fujifilm products.',
+        'Documents: a saved deal carries its files, both in the full card and folded away at the foot of the quick deal, so a signed order can be attached without leaving the screen you are on. Everyone who can see the deal can see its documents, and only whoever uploaded a file — or an admin — can remove it. Files are private: a link to one is signed and expires in a minute.',
         'Request discounts: distributors can request a discount (% + justification) that routes to the right brand-based approver, with multiple negotiation rounds (counter-offers). An approved discount is applied to the deal value.',
         'A discount-approvals banner at the top shows pending / approved / rejected requests with filter chips, for admins, managers, and distributors.',
         'Project TCO: on a saved deal, add third-party (other vendor) costs to see the global project margin alongside Fujifilm products.',
@@ -225,6 +229,7 @@ const HELP = {
         'Los Proyectos Financiados tienen un calendario de ingresos año a año (p. ej. 936.200 € en FY1, luego 237.700 € en FY2–FY5) — usa "Repartir equitativamente" o introduce cada año manualmente.',
         'La cobertura de garantia/SLA de CAPEX (actualizaciones y upgrades incluidos, bolsa de horas de soporte) se registra en el Contrato (SLA) vinculado.',
         'Las tarjetas de deal muestran una insignia de marca (p. ej. Medsky) para productos que no son Fujifilm.',
+        'Documentos: una oportunidad guardada lleva sus ficheros, tanto en la ficha completa como plegados al pie del quick deal, asi que un pedido firmado se adjunta sin salir de la pantalla donde estas. Quien puede ver la oportunidad puede ver sus documentos, y solo quien subio un fichero — o un admin — puede quitarlo. Los ficheros son privados: el enlace a uno va firmado y caduca en un minuto.',
         'Solicita descuentos: los distribuidores pueden pedir un descuento (% + justificacion) que se enruta al aprobador correcto segun la marca, con varias rondas de negociacion (contraofertas). Un descuento aprobado se aplica al valor del deal.',
         'Un banner de aprobaciones de descuento en la parte superior muestra solicitudes pendientes / aprobadas / rechazadas con chips de filtro, para admins, managers y distribuidores.',
         'TCO del proyecto: en un deal guardado, anade costes de terceros (otros proveedores) para ver el margen global del proyecto junto a los productos Fujifilm.',
@@ -283,6 +288,7 @@ const HELP = {
         'Os Projetos Financiados tem um calendario de receita ano a ano (p. ex. 936.200 € no FY1, depois 237.700 € nos FY2–FY5) — usa "Dividir igualmente" ou introduz cada ano manualmente.',
         'A cobertura de garantia/SLA do CAPEX (updates e upgrades incluidos, banco de horas de suporte) e registada no Contrato (SLA) associado.',
         'Os cartoes de deal mostram um distintivo de marca (p. ex. Medsky) para produtos que nao sao Fujifilm.',
+        'Documentos: um negocio guardado leva os seus ficheiros, tanto no cartao completo como dobrados ao fundo do quick deal, por isso uma ordem assinada anexa-se sem sair do ecra onde estas. Quem ve o negocio ve os documentos dele, e so quem carregou um ficheiro — ou um admin — o pode retirar. Os ficheiros sao privados: a ligacao para um vai assinada e expira ao fim de um minuto.',
         'Pede descontos: os distribuidores podem pedir um desconto (% + justificacao) que e encaminhado para o aprovador correto com base na marca, com varias rondas de negociacao (contrapropostas). Um desconto aprovado e aplicado ao valor do deal.',
         'Um banner de aprovacoes de desconto no topo mostra pedidos pendentes / aprovados / rejeitados com chips de filtro, para admins, gestores e distribuidores.',
         'TCO do projeto: num deal guardado, adiciona custos de terceiros (outros fornecedores) para ver a margem global do projeto a par dos produtos Fujifilm.',

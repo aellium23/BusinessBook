@@ -121,13 +121,28 @@ export async function listAttachments(entityType, entityId) {
   return { data: data ?? [], error }
 }
 
+/**
+ * The bytes go first, then the row.
+ *
+ * The other way round used to be fine, because the bucket let any signed-in
+ * user delete anything in it. Now that permission is derived from the metadata
+ * row — you may delete an object when you may delete its row — removing the row
+ * first destroys the only proof that you were allowed to remove the file, and
+ * the file stays behind for ever with nothing pointing at it.
+ *
+ * A failure to remove the bytes now stops the whole thing and says so. It used
+ * to be swallowed, which meant "deleted" could mean the document was still
+ * sitting in the bucket — not a thing to be relaxed about when the document is
+ * a signed contract and the bucket is shared with partners.
+ */
 export async function deleteAttachment(attachment) {
+  const { error: upErr } = await supabase.storage
+    .from('attachments').remove([attachment.storage_path])
+  if (upErr) return { error: upErr }
+
   const { error: dbErr } = await supabase
     .from('attachments').delete().eq('id', attachment.id)
-  if (dbErr) return { error: dbErr }
-  // Best-effort removal from storage. The metadata row is the source of truth.
-  await supabase.storage.from('attachments').remove([attachment.storage_path]).catch(() => {})
-  return { error: null }
+  return { error: dbErr || null }
 }
 
 // Short-lived signed URL so the browser can download a private object.

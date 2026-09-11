@@ -11,6 +11,26 @@
 
 import { supabase } from './supabase'
 
+/**
+ * What every read of a discount request brings back.
+ *
+ * `deal_id` is first in the list and it is the reason the list exists. The
+ * per-deal query filtered on deal_id and did not select it, so every row it
+ * returned carried `deal_id: undefined` — which looked harmless until a
+ * distributor answered a counter-offer and the new request was written with a
+ * null deal. The database refused it, correctly, and the partner was told
+ * "null value in column deal_id violates not-null constraint" for the crime of
+ * negotiating.
+ *
+ * A column you filter on is a column you use. One list, shared by both queries,
+ * so the next reader cannot be handed a row missing the field they are about
+ * to read.
+ */
+const REQUEST_COLUMNS =
+  'deal_id, id, product_id, requested_pct, approved_pct, status, justification, ' +
+  'response_note, requested_by, brand, supplier_code, route, channel, scope, ' +
+  'value_at_risk, created_at, responded_at'
+
 /** Take the counter-offer as it stands. */
 export async function acceptCounter(requestId) {
   return supabase.rpc('accept_counter_offer', { p_request_id: requestId })
@@ -46,9 +66,7 @@ export async function askAgain(req, pct, note) {
 /** Everything still open or answered on one deal, newest first. */
 export async function requestsForDeal(dealId) {
   return supabase.from('deal_discount_requests')
-    .select('id, product_id, requested_pct, approved_pct, status, justification, response_note, ' +
-            'requested_by, brand, supplier_code, route, channel, scope, value_at_risk, ' +
-            'created_at, responded_at')
+    .select(REQUEST_COLUMNS)
     .eq('deal_id', dealId)
     .order('created_at', { ascending: false })
 }
@@ -69,10 +87,7 @@ export async function requestsForDeal(dealId) {
  */
 export async function openRequestsFor(userId) {
   return supabase.from('deal_discount_requests')
-    .select('id, deal_id, requested_pct, approved_pct, status, justification, ' +
-            'response_note, brand, supplier_code, route, channel, scope, ' +
-            'value_at_risk, created_at, responded_at, requested_by, ' +
-            'deals!inner(client, stage)')
+    .select(`${REQUEST_COLUMNS}, deals!inner(client, stage)`)
     .in('status', ['pending', 'counter'])
     .eq('requested_by', userId)
     .order('created_at', { ascending: false })

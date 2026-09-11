@@ -72,17 +72,35 @@ function dealScore(deal) {
 }
 
 // ── Discount status chip ───────────────────────────────────────────────────
-function DiscountChip({ deal }) {
+/**
+ * Where a deal's discount stands, in one chip.
+ *
+ * All four states are shown, in the same shape, on the compact row. It used to
+ * be only the two that needed an answer, on the reasoning that a settled
+ * discount needs no action — true for the person who granted it, false for the
+ * partner who asked. And a chip that appears for two states out of four teaches
+ * the reader that its absence means "no discount", which is not what it means:
+ * a card saying "Counter 20%" beside a card saying nothing reads as one deal
+ * with a discount and one without.
+ */
+function DiscountChip({ deal, t }) {
   if (!deal.discount_status) return null
   const map = {
-    pending:  { cls: 'bg-purple-100 text-purple-800', text: `⏳ Pending ${deal.discount_requested ?? ''}%` },
-    approved: { cls: 'bg-green-100 text-green-700',   text: `✓ ${deal.discount_approved ?? ''}% approved` },
-    counter:  { cls: 'bg-amber-100 text-amber-700',   text: `↔ Counter: ${deal.discount_approved ?? ''}%` },
-    rejected: { cls: 'bg-red-100 text-red-700',       text: '✗ Rejected' },
+    pending:  { cls: 'bg-purple-100 text-purple-800', mark: '⏳',
+                text: `${t('dc_disc_pending')} ${deal.discount_requested ?? ''}%` },
+    approved: { cls: 'bg-green-100 text-green-700', mark: '✓',
+                text: `${t('dc_disc_approved')} ${deal.discount_approved ?? ''}%` },
+    counter:  { cls: 'bg-amber-100 text-amber-700', mark: '↔',
+                text: `${t('dc_disc_counter')} ${deal.discount_approved ?? ''}%` },
+    rejected: { cls: 'bg-red-100 text-red-700', mark: '✗', text: t('dc_disc_rejected') },
   }
   const m = map[deal.discount_status]
   if (!m) return null
-  return <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${m.cls}`}>{m.text}</span>
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${m.cls}`}>
+      {m.mark} {m.text}
+    </span>
+  )
 }
 
 // ── Deal card ─────────────────────────────────────────────────────────────
@@ -117,8 +135,11 @@ export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete, b
     return null
   })()
 
-  // Only surface the discount chip on the compact row when it's actionable
-  const showDiscount = ['pending','counter'].includes(deal.discount_status)
+  // Every discount state shows on the compact row. It used to be only the
+  // actionable two, which left the settled ones to the expanded details — where
+  // the partner who asked for the discount would have to go looking for the
+  // answer to their own question.
+  const showDiscount = !!deal.discount_status
 
   const scoreBorderClass = score.color === 'green' ? 'border-l-4 border-green-400' :
     score.color === 'amber' ? 'border-l-4 border-amber-400' :
@@ -146,7 +167,7 @@ export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete, b
                 <Link size={10}/> IC mirror
               </span>
             )}
-            {showDiscount && <DiscountChip deal={deal} />}
+            {showDiscount && <DiscountChip deal={deal} t={t} />}
             {deferredInfo && (
               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-micro font-bold ${
                 deferredInfo.type === 'deferred' ? 'bg-purple-100 text-purple-700' : 'bg-indigo-100 text-indigo-700'
@@ -268,7 +289,6 @@ export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete, b
                 <RefreshCw size={9}/> SLA
               </span>
             )}
-            {!showDiscount && <DiscountChip deal={deal} />}
             {hasIC && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-800">
                 <Link size={10}/> IC → VGT
