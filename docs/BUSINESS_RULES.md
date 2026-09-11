@@ -117,9 +117,12 @@ Renovação 25%, Referral 15%. Saíram das opções em 11-09, mas a aritmética
 continua a saber preçá-los, para que uma proposta guardada a 28% continue a
 valer 28%.
 
-**BR-032 — R1–R4 é preço de TRANSFERÊNCIA, não preço de cliente.**
+**BR-032 — R1–R4 é preço de TRANSFERÊNCIA, não preço de cliente.** ✅ *Confirmado
+pelo dono do P&L a 11-09.*
 A escada regional é a lista de compra de quem está a jusante de nós: o
 distribuidor **e** a subsidiária Fujifilm. Não é o preço de venda de ninguém.
+Nas palavras dele: o preço de transferência para o parceiro é o que aparece na
+pricelist, na coluna R1/R2/R3/R4 que corresponde ao país.
 
 Consequências, e são três:
 
@@ -136,6 +139,16 @@ A banda de canal chamava "o cliente paga" ao que o parceiro nos paga, e tirava-
 lhe outros 40% para inventar uma transferência. Nos números do negócio
 "test chile": dizia cliente 65.574 € / transferência 39.344 €, quando o parceiro
 nos paga 65.574 € e vende ao hospital por cerca de 100.883 €.
+
+**BR-037 — Uma margem assumida não verifica nada.**
+Enquanto ninguém escrever o preço que o parceiro vai cobrar, a margem dele é a
+assunção lida de volta — e uma verificação de piso contra uma assunção **passa
+sempre**. Por isso os pisos 35/20/15 só são avaliados sobre um preço que nos foi
+dito. Vazia a caixa, o painel estima e não afirma nada.
+
+*A caixa é a resposta que se encontrou para uma pergunta sem resposta:* o que
+significam os 40% do Full VAR depois do BR-032. Não entram em cálculo nenhum;
+são a referência contra a qual a margem medida é lida.
 
 **BR-036 — Nunca escrever uma estimativa numa coluna com nome de facto.**
 `deal_channel.end_customer_price` e `partner_margin_pct` ficam a **nulo** quando

@@ -111,6 +111,15 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
   const [channelRole, setChannelRole] = useState('direct')
   const [roleFromCompany, setRoleFromCompany] = useState(null)  // 'company' | 'region'
   const [programme, setProgramme] = useState('')   // named programme, above cap
+  /**
+   * What the partner told us they will charge the hospital, when they told us.
+   *
+   * Empty is the normal state and the panel estimates. Filled, the estimate
+   * gives way to a measurement — and only then can the protected floors be
+   * checked rather than recited, because until there is a real sell price the
+   * partner's margin is just the assumption read back to itself.
+   */
+  const [customerPrice, setCustomerPrice] = useState('')
 
   /**
    * Whose deal this is, and therefore how it is sold.
@@ -217,6 +226,7 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
         setServicesOn(state.servicesOn)
         setServicesPvp(state.servicesPvp)
         setChannelRole(state.channelRole)
+        setCustomerPrice(state.customerPrice ?? '')
         setProgramme(state.programme)
         if (state.country) setCountry(state.country)
         setRebuilt(Boolean(state.rebuilt) && !qErr)
@@ -609,12 +619,13 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
       rows: rows.length,
       ...channelEconomics({
         listPrice: round2(listTotal), transferPrice: round2(netTotal),
+        customerPrice: customerPrice === '' ? null : Number(customerPrice),
         role: channelRole, programme: programme || null,
       }),
       listTotal: round2(listTotal),
       netTotal: round2(netTotal),
     }
-  }, [lines, years, channelRole, programme])
+  }, [lines, years, channelRole, programme, customerPrice])
 
   /**
    * Implementation services, as a line of its own.
@@ -903,7 +914,7 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
       deal_id: data.id,
       state: toQuoteState({
         picked, volumes, overrides, famSel, years, manDays,
-        servicesOn, servicesPvp, channelRole, programme, country,
+        servicesOn, servicesPvp, channelRole, programme, country, customerPrice,
       }),
       version: 1,
       created_by: profile?.id || null,
@@ -953,8 +964,11 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
         // the screen shows an estimate at the protected target and says so, and
         // an estimate written into a column called `end_customer_price` stops
         // being an estimate the moment somebody reports off it.
-        partner_margin_pct: null,
-        end_customer_price: null,
+        // Written only when somebody typed it. The panel's own estimate never
+        // reaches here: an estimate in a column called `end_customer_price`
+        // stops being an estimate the moment a report reads it.
+        partner_margin_pct: channel.customerEstimated ? null : channel.partnerMarginPct,
+        end_customer_price: channel.customerEstimated ? null : channel.customerPrice,
         cwm_given_up: channel.givenUp,
         created_by: profile?.id || null,
         updated_at: new Date().toISOString(),
@@ -1339,23 +1353,54 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
                     {t('pm_at_list')} {formatK(channel.cwmRevenueAtList)}
                   </p>
                 </div>
-                {/* The customer's price is the partner's decision. We print an
-                    estimate because a blank is unhelpful, in grey because an
-                    estimate reported as fact is how a forecast gets poisoned. */}
+                {/* The customer's price is the partner's decision, so this is a
+                    box and not a figure. Empty, it estimates and says so in
+                    grey. Filled — because the partner told us, usually while
+                    asking for a discount — the estimate gives way to a
+                    measurement and the panel starts checking instead of
+                    assuming. */}
                 <div>
                   <p className="text-micro text-gray-500">{t('pm_customer_est')}</p>
-                  <p className="text-sm font-bold text-gray-500 tabular-nums">
-                    ≈ {formatK(channel.customerPrice)}
+                  {channel.customerEstimated ? (
+                    <p className="text-sm font-bold text-gray-500 tabular-nums">
+                      ≈ {formatK(channel.customerPrice)}
+                    </p>
+                  ) : (
+                    <p className="text-sm font-bold text-navy tabular-nums">
+                      {formatK(channel.customerPrice)}
+                    </p>
+                  )}
+                  <input className="input text-xs py-0.5 mt-0.5 w-full" type="number"
+                    value={customerPrice} placeholder={t('pm_customer_ph')}
+                    onChange={e => setCustomerPrice(e.target.value)}/>
+                  <p className="text-micro text-gray-400">
+                    {channel.customerEstimated ? t('pm_estimated') : t('pm_told')}
                   </p>
-                  <p className="text-micro text-gray-400">{t('pm_estimated')}</p>
                 </div>
                 <div>
                   <p className="text-micro text-gray-500">{t('pm_partner_margin')}</p>
-                  <p className="text-sm font-bold text-gray-500 tabular-nums">
-                    ≈ {formatK(channel.partnerMargin)} · {channel.partnerMarginPct}%
+                  <p className={`text-sm font-bold tabular-nums ${
+                    channel.customerEstimated ? 'text-gray-500'
+                      : channel.underTransfer || channel.belowAbsolute ? 'text-red-700'
+                      : channel.belowFloor ? 'text-amber-800' : 'text-green-700'
+                  }`}>
+                    {channel.customerEstimated ? '≈ ' : ''}{formatK(channel.partnerMargin)} · {channel.partnerMarginPct}%
                   </p>
-                  <p className="text-micro text-gray-400">
-                    {channel.programme ? t('pm_programme_rate') : t('pm_assumed_target')}
+                  {/* Against the agreement once there is something to measure:
+                      what the role says it earns, and the floors underneath. */}
+                  <p className={`text-micro ${
+                    !channel.customerEstimated && (channel.underTransfer || channel.belowAbsolute)
+                      ? 'text-red-700 font-semibold'
+                      : !channel.customerEstimated && channel.belowFloor ? 'text-amber-700'
+                      : 'text-gray-400'
+                  }`}>
+                    {channel.customerEstimated
+                      ? (channel.programme ? t('pm_programme_rate') : t('pm_assumed_target'))
+                      : channel.underTransfer ? t('pm_under_transfer')
+                      : channel.belowAbsolute ? t('pm_below_absolute')
+                      : channel.belowFloor ? t('pm_below_floor')
+                      : channel.onRoleRate ? t('pm_on_role_rate').replace('{pct}', channel.roleRatePct)
+                      : t('pm_under_role_rate').replace('{pct}', channel.roleRatePct)}
                   </p>
                 </div>
               </div>

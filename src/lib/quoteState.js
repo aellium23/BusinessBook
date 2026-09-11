@@ -24,7 +24,7 @@ const num = v => (v === null || v === undefined || v === '' ? null : Number(v))
 export function toQuoteState({
   picked = [], volumes = {}, overrides = {}, famSel = {}, years = 5,
   manDays = '', servicesOn = false, servicesPvp = '',
-  channelRole = 'direct', programme = '', country = '',
+  channelRole = 'direct', programme = '', country = '', customerPrice = '',
 }) {
   return {
     v: QUOTE_STATE_VERSION,
@@ -44,6 +44,10 @@ export function toQuoteState({
     channelRole: channelRole || 'direct',
     programme: programme || '',
     country: country || '',
+    // What the partner told us they will charge, when they told us. Empty is
+    // the normal state, and empty must stay empty: a stored estimate is an
+    // estimate that stops looking like one.
+    customerPrice: String(customerPrice ?? ''),
   }
 }
 
@@ -69,6 +73,7 @@ export function fromQuoteState(state) {
     channelRole: state.channelRole || 'direct',
     programme: state.programme || '',
     country: state.country || '',
+    customerPrice: state.customerPrice ?? '',
     rebuilt: false,
   }
 }
@@ -114,6 +119,7 @@ export function rebuildFrom(lines, { years = 5 } = {}) {
     channelRole: 'direct',
     programme: '',
     country: '',
+    customerPrice: '',
     rebuilt: true,
     // What this deal cannot tell us, named so the screen can pass it on.
     unknown: ['years', 'manDays', 'discounts'],

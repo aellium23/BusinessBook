@@ -188,9 +188,12 @@ export function programmeMarginPct(key) {
  * @param role           channel role key; 'direct' means there is no partner
  * @param programme      a named-programme key, which sets the partner's margin
  */
-export function channelEconomics({ listPrice, transferPrice, role = 'direct', programme = null }) {
+export function channelEconomics({
+  listPrice, transferPrice, customerPrice = null, role = 'direct', programme = null,
+}) {
   const list = num(listPrice) ?? 0
   const transfer = num(transferPrice) ?? 0
+  const told = num(customerPrice)
   const r = roleFor(role)
 
   if (list <= 0 || transfer <= 0 || r.key === 'direct') {
@@ -201,6 +204,8 @@ export function channelEconomics({ listPrice, transferPrice, role = 'direct', pr
       cwmRevenueAtList: money(list), givenUp: 0,
       customerPrice: 0, customerEstimated: false,
       partnerMargin: 0, partnerMarginPct: 0, assumedMarginPct: 0,
+      roleRatePct: r.channelPct, onRoleRate: false, belowFloor: false,
+      belowAbsolute: false, underTransfer: false,
     }
   }
 
@@ -210,10 +215,18 @@ export function channelEconomics({ listPrice, transferPrice, role = 'direct', pr
   const discountPct = pct((list - transfer) / list * 100)
   const prog = programmeMarginPct(programme)
   const assumedMarginPct = prog ?? PROTECTED_MARGIN.target
-  // What the partner sells it for, if they take the margin we protect for them.
-  // An estimate, and the caller has to say so: a partner who quotes 10 % above
-  // this has not broken a rule, they have priced their own deal.
-  const customerPrice = money(transfer / (1 - assumedMarginPct / 100))
+
+  // What the partner sells it for. Told to us, or — failing that — assumed at
+  // the margin we protect for them, which the caller must present as a guess.
+  //
+  // The difference is not cosmetic. Assumed, the partner's margin is the
+  // assumption read back and cannot breach anything; told, it is a measurement,
+  // and the floors become something this screen can check rather than a policy
+  // it can only recite. That is the whole reason for the box.
+  const estimated = !(told !== null && told > 0)
+  const sell = estimated ? money(transfer / (1 - assumedMarginPct / 100)) : money(told)
+  const partnerMargin = money(sell - transfer)
+  const marginPct = sell > 0 ? pct(partnerMargin / sell * 100) : 0
 
   return {
     role: r.key,
@@ -228,11 +241,24 @@ export function channelEconomics({ listPrice, transferPrice, role = 'direct', pr
     cwmRevenue: money(transfer),
     cwmRevenueAtList: money(list),
     givenUp: money(Math.max(0, list - transfer)),
-    customerPrice,
-    customerEstimated: true,
-    partnerMargin: money(customerPrice - transfer),
-    partnerMarginPct: assumedMarginPct,
+    customerPrice: sell,
+    customerEstimated: estimated,
+    partnerMargin,
+    partnerMarginPct: marginPct,
     assumedMarginPct,
+    // What the agreement says this role earns. Not an input to anything — with
+    // R1–R4 a transfer list there is nothing for it to be a percentage OF — so
+    // it is used as the benchmark the measured margin is read against, and only
+    // once there is a measurement to read. BIZ-05 is still open on whether it
+    // means anything more than that.
+    roleRatePct: r.channelPct,
+    onRoleRate: !estimated && r.channelPct > 0 && marginPct >= r.channelPct - 0.05,
+    // Only ever true on a told price. An assumption cannot breach a floor.
+    belowFloor: !estimated && marginPct < PROTECTED_MARGIN.discountFloor - 0.05,
+    belowAbsolute: !estimated && marginPct < PROTECTED_MARGIN.absoluteFloor - 0.05,
+    // Selling under what they pay us is not a thin margin, it is a different
+    // conversation, and it has to be said in different words.
+    underTransfer: !estimated && sell < transfer,
   }
 }
 

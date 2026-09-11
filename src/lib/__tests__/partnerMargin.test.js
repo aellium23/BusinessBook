@@ -295,3 +295,86 @@ describe('a channel deal, from the transfer list down', () => {
     expect(channelEconomics({ listPrice: 0, transferPrice: 0, role: 'full_var' }).applies).toBe(false)
   })
 })
+
+/**
+ * A price we were told, against a price we assumed.
+ *
+ * The difference is the whole point of the box. Assumed, the partner's margin is
+ * the assumption read back to itself and cannot breach anything — the floors are
+ * policy the screen can recite and not check. Told, it is a measurement, and
+ * 35/20/15 become something this screen can actually test.
+ */
+describe('when the partner tells us what they will charge', () => {
+  const LIST = 65573.75
+
+  it('measures the margin instead of assuming it', () => {
+    const r = channelEconomics({
+      listPrice: LIST, transferPrice: LIST, customerPrice: 120000, role: 'full_var',
+    })
+    expect(r.customerEstimated).toBe(false)
+    expect(r.customerPrice).toBe(120000)
+    expect(r.partnerMargin).toBe(54426.25)
+    expect(r.partnerMarginPct).toBe(45.4)
+    // Their agreement says 40; they are above it, which is their business.
+    expect(r.roleRatePct).toBe(40)
+    expect(r.onRoleRate).toBe(true)
+  })
+
+  it('says when a discount has taken them under the floor', () => {
+    // 78,000 against a 65,574 transfer is 15.9% — under 20, over 15.
+    const r = channelEconomics({
+      listPrice: LIST, transferPrice: LIST, customerPrice: 78000, role: 'full_var',
+    })
+    expect(r.partnerMarginPct).toBe(15.9)
+    expect(r.belowFloor).toBe(true)
+    expect(r.belowAbsolute).toBe(false)
+    expect(r.onRoleRate).toBe(false)
+  })
+
+  it('says when they are under the absolute floor', () => {
+    const r = channelEconomics({
+      listPrice: LIST, transferPrice: LIST, customerPrice: 70000, role: 'full_var',
+    })
+    expect(r.partnerMarginPct).toBe(6.3)
+    expect(r.belowAbsolute).toBe(true)
+  })
+
+  /** Not a thin margin. A different conversation, and it needs different words. */
+  it('says when they are selling under what they pay us', () => {
+    const r = channelEconomics({
+      listPrice: LIST, transferPrice: LIST, customerPrice: 60000, role: 'full_var',
+    })
+    expect(r.underTransfer).toBe(true)
+    expect(r.partnerMargin).toBeLessThan(0)
+  })
+})
+
+describe('when nobody has told us', () => {
+  const LIST = 65573.75
+
+  /**
+   * The trap this avoids. An assumed margin equals the assumption, so a floor
+   * check against it always passes — and a check that cannot fail reads like a
+   * check that passed.
+   */
+  it('breaches nothing, because an assumption cannot breach a floor', () => {
+    for (const transfer of [LIST, LIST * 0.5, LIST * 0.1]) {
+      const r = channelEconomics({ listPrice: LIST, transferPrice: transfer, role: 'full_var' })
+      expect(r.customerEstimated).toBe(true)
+      expect(r.belowFloor).toBe(false)
+      expect(r.belowAbsolute).toBe(false)
+      expect(r.underTransfer).toBe(false)
+      expect(r.onRoleRate).toBe(false)
+      expect(r.partnerMarginPct).toBe(35)
+    }
+  })
+
+  it('treats an empty box and a zero the same way, as nothing said', () => {
+    for (const told of [null, undefined, '', 0]) {
+      const r = channelEconomics({
+        listPrice: LIST, transferPrice: LIST, customerPrice: told, role: 'full_var',
+      })
+      expect(r.customerEstimated).toBe(true)
+    }
+  })
+})
