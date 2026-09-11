@@ -54,48 +54,118 @@ qualquer "permission denied" inesperado depois de uma migração.
 
 ---
 
-## SEC-03 · P1 · Transições de estado não são impostas na base de dados
+## SEC-03 · ✅ FECHADO · Transições de estado não eram impostas na base de dados
 
-**O quê.** A máquina de estados vive só no browser. Uma chamada directa:
+**O quê.** A máquina de estados vivia só no browser. Uma chamada directa:
 
 ```js
 supabase.from('deals').update({ stage: 'Invoiced' }).eq('id', '<negócio próprio>')
 ```
 
-move um negócio de Lead para Faturado. A política verifica a empresa e mais
-nada.
+movia um negócio de Lead para Faturado. A política verificava a empresa e mais
+nada. Conta para o funil, para as vendas por cliente e para a reconciliação com
+o SAP: um parceiro podia inflacionar receita nossa reportada, e os nossos
+comerciais também.
 
-**Impacto.** Conta para o funil, para as vendas por cliente e para a
-reconciliação com o SAP. Um parceiro pode inflacionar receita reportada nossa.
-Os nossos comerciais podem fazer o mesmo.
+**Fechado a 11-09.** `supabase_migration_20260911_write_guards.sql`:
+`deal_stage_transitions` guarda a regra **como dados**, e um trigger
+`before update of stage on deals` recusa o que lá não estiver.
 
-**Correcção.** Trigger `before update` em `deals` a validar contra a mesma
-tabela de transições. **Precisa de decisão:** quem fica isento. Correcções de
-dados e imports vão precisar de passar por cima.
+**Isento: admin.** Correcções de dados e imports precisam de passar por cima, e
+uma regra sem saída é contornada por acidente. Manager **não** é isento — quem
+corrige histórico deve estar a fazê-lo de propósito. O SQL Editor também passa,
+porque corre como superutilizador sem `auth.uid()`, e uma conta que é dona da
+base de dados não é uma ameaça que um trigger resolva.
 
-**Esforço:** 1 migração. **Risco:** bloqueia correcções legítimas se a lista de
-isenções ficar curta.
+**O INSERT fica de fora, de propósito.** Um negócio pode nascer em qualquer fase
+— um import, ou um negócio que nos chega já ganho. A máquina governa movimento.
+
+**As duas cópias da regra são comparadas a cada `npm run test`.** O teste em
+`src/lib/__tests__/writeGuards.test.js` lê os pares do próprio ficheiro de
+migração e confronta-os com `DEAL_TRANSITIONS`, nomeando os que faltam de cada
+lado. Duas cópias de uma regra é uma a mais; duas cópias que falham o build
+quando divergem é a melhor resposta disponível enquanto o cliente tiver de
+desenhar a caixa de selecção.
 
 ---
 
-## SEC-04 · P2 · Um parceiro não lê o nosso custo, mas pode sobrepô-lo
+## SEC-04 · ✅ FECHADO · Um parceiro não lia o nosso custo, mas podia sobrepô-lo
 
-**O quê.** Fechar o SEC-01 tirou o `SELECT` das colunas de custo, e deixou o
-`INSERT` e o `UPDATE` — que são precisos, porque o quick deal grava custo. Mas
-a política de escrita em `deal_products` deixa um parceiro alterar as linhas dos
-negócios da empresa dele, essas colunas incluídas.
-
-Não pode espiar. Pode estragar — e as nossas margens saem dali.
+**O quê.** Fechar o SEC-01 tirou o `SELECT` das colunas de custo e deixou o
+`INSERT` e o `UPDATE`, que são precisos porque o quick deal grava custo. A
+política de escrita em `deal_products` deixava um parceiro alterar as linhas dos
+negócios da empresa dele, essas colunas incluídas. Não podia espiar. Podia
+estragar — e as nossas margens saem dali.
 
 **Porque não se resolve com `grant`.** Ao nível do Postgres somos todos o mesmo
 papel `authenticated`: um grant de coluna não distingue um comercial nosso de um
 distribuidor. Tem de ser RLS ou um trigger.
 
-**Nota:** um parceiro nunca grava custo legitimamente — o quick deal escreve
-`cost_price: null` quando quem cota não é dos nossos. Portanto a regra é simples
-de enunciar: quem não vê custo não o escreve.
+**Fechado a 11-09.** Trigger `deal_products_cost_guard`, no mesmo ficheiro: quem
+não passa `sees_internal_economics()` tem `cost_price` e `margin_pct` forçados a
+nulo no INSERT e repostos ao valor anterior no UPDATE.
 
-**Parente do SEC-03.** Mesmo mecanismo, mesma migração se forem feitos juntos.
+**Coagido, não recusado.** A proposta de um parceiro manda estas colunas em todas
+as gravações, e manda-as vazias. Rebentar ali partia todas as gravações legítimas
+para castigar um caso que não acontece por esse caminho. O que nunca pode é
+deixar passar um valor.
+
+---
+
+## SEC-05 · P1 · Toda a gravação de linhas escrevia custo zero
+
+**Encontrado a 11-09, ao fechar o SEC-04, e é pior do que o SEC-04.**
+
+`saveDealProducts` fazia `cost_price: parseFloat(l.cost_price) || 0`. O quick
+deal manda `cost_price: null` em **todas** as gravações de parceiro — e
+`parseFloat(null) || 0` é **0**. Portanto cada gravação de um parceiro escrevia
+custo zero e margem zero, que se lê como "entregue de graça" e produz 100% de
+margem. A mentira exacta que todos os ecrãs desta aplicação foram ensinados a
+recusar, escrita na tabela pelo ajudante que os grava.
+
+**Corrigido** com `numOrNull` em `src/lib/numbers.js`, com teste. Desconhecido
+fica nulo; um zero a sério sobrevive, porque é alguém a dizer zero de propósito.
+
+**Fica por fazer:** contar quantas linhas já ficaram com `cost_price = 0` por
+causa disto e decidir o que fazer com elas. Zero e nulo já não se distinguem
+depois do facto, portanto isto precisa de um olho humano e não de um UPDATE:
+
+```sql
+select dp.deal_id, d.client, d.company_id, count(*) as linhas
+from public.deal_products dp
+join public.deals d on d.id = dp.deal_id
+where dp.cost_price = 0
+group by 1, 2, 3
+order by linhas desc;
+```
+
+---
+
+## SEC-06 · P2 · Uma gravação de parceiro apaga o nosso custo à mesma
+
+**O quê.** `saveDealProducts` apaga todas as linhas do negócio e reinsere-as. Um
+parceiro a gravar um negócio que **nós** cotámos destrói o nosso custo nele — não
+por escrever por cima, que o SEC-04 impede, mas por apagar a linha que o
+guardava. A linha volta com custo nulo e o trigger mantém-no nulo.
+
+**Não se fecha sem decidir o BIZ-02:** se um parceiro pode ou não editar um
+negócio que nós criámos. A resposta muda o que o ecrã faz, e não só o que a base
+de dados permite.
+
+---
+
+## UX-02 · P2 · Um distribuidor não consegue fazer avançar um Lead
+
+**O quê.** O ecrã cruza `DIST_STAGES` (Lead, Proposta apresentada, BackLog,
+Perdido) com as transições permitidas. Num Lead as permitidas são Pipeline e
+Perdido, e Pipeline não está na lista de um distribuidor — logo a caixa oferece
+**só Perdido**. Para chegar a Proposta apresentada tem de passar por uma fase que
+não lhe é mostrada.
+
+**Já era assim antes do trigger.** O trigger não o causou; torna-o permanente, e
+por isso fica escrito. A correcção é decidir qual das duas listas está errada: ou
+um distribuidor vê Pipeline, ou Lead → Proposta apresentada passa a ser uma
+transição legítima.
 
 ---
 

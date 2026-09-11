@@ -189,9 +189,32 @@ Peru.
 | Faturado | Perdido *(apenas correcção)* |
 | Perdido | Lead *(reabertura)* |
 
-**⚠ LACUNA CONHECIDA:** isto é aplicado só no browser. Não há trigger nem
-constraint. Uma chamada directa à API move um negócio de Lead para Faturado sem
-passar por nada. Ver `docs/BACKLOG.md`, item SEC-03.
+**BR-051 — A tabela acima é imposta pela base de dados.**
+`deal_stage_transitions` guarda estes treze pares e um trigger em `deals` recusa
+o que lá não estiver. Deixou de ser só a caixa de selecção: uma chamada directa
+à API já não move um Lead para Faturado.
+
+**Isento: admin**, para correcções e imports. Manager não. O SQL Editor também
+passa — corre como superutilizador sem `auth.uid()`.
+
+**O INSERT não é governado.** Um negócio pode nascer em qualquer fase: um
+import, ou um negócio que nos chega já ganho. A máquina governa movimento.
+
+A regra existe em dois sítios por necessidade — o ecrã tem de desenhar a caixa
+antes de qualquer pedido — e os dois são comparados a cada `npm run test`.
+
+**BR-052 — Quem não vê custo não o escreve.**
+`cost_price` e `margin_pct` em `deal_products` são forçados a nulo no INSERT, e
+repostos ao valor anterior no UPDATE, para quem não passa
+`sees_internal_economics()`. Coagido e não recusado: a proposta de um parceiro
+manda essas colunas em todas as gravações e manda-as vazias, e rebentar ali
+partia gravações legítimas para castigar um caso que não acontece.
+
+**BR-053 — Custo desconhecido grava-se a nulo, nunca a zero.**
+`parseFloat(null) || 0` é `0`, e durante meses foi assim que todas as gravações
+de parceiro escreveram custo zero e 100% de margem. Ver `numOrNull` em
+`src/lib/numbers.js`. É o BR-061 aplicado ao caminho de escrita, que era o único
+sítio onde não estava.
 
 ---
 
