@@ -312,32 +312,50 @@ era "isto não é teu para veres". Passou a perguntar `canPrice`.
 
 ---
 
-## BIZ-05 · P1 · A arquitectura de desconto assenta numa lista que não existe
+## BIZ-05 · ⏳ PARCIAL · A arquitectura de desconto assenta numa lista que não existe
 
-**O quê.** `partnerEconomics()` modela o que foi escrito no briefing: o cliente
-paga `netPrice` sobre uma lista publicada, e a transferência desce por baixo
-dela para proteger a margem do parceiro. Todos os números dela se medem contra
-uma lista **do cliente**.
+**`partnerEconomics()` continua desligada.** Modela o briefing — o cliente paga
+`netPrice` sobre uma lista publicada, e a transferência desce por baixo dela —
+e todos os números dela se medem contra uma lista **do cliente**. Com o BR-032
+estabelecido, essa lista não é a R1–R4 e não se sabe onde vive.
 
-Com o BR-032 estabelecido, essa lista não é a R1–R4 — e não se sabe onde vive,
-nem se existe. A função ficou desligada do quick deal a 11-09 e o ecrã passou a
-usar `channelEconomics()`, que lê o negócio do nosso lado.
+**Confirmado pelo dono do P&L a 11-09:** *"o Transfer Price para o parceiro é o
+que aparece na pricelist na coluna que corresponde R1, R2, R3, R4 dependendo do
+país."* O BR-032 deixa de estar por confirmar.
 
-**O que fica órfão, e precisa de decisão tua:**
+**O que ficou resolvido, e por que caminho.** A pergunta "o que significa o Full
+VAR 40%" não tinha resposta — *"não sei qual a resposta mais indicada"* — e não
+era para inventar. Resolveu-se pelo outro lado: **uma caixa para escrever o preço
+que o parceiro nos diz que vai cobrar.**
 
-- **A taxa do papel, Full VAR 40%.** Já não é um desconto sobre lista de
-  cliente. É a margem esperada do parceiro? Então porque é que a proposta dele
-  abre a 35%? Hoje a taxa é só uma etiqueta no select — não entra em conta
-  nenhuma.
-- **Os pisos de 35 / 20 / 15.** Continuam a fazer sentido como política, mas o
-  ecrã já não os pode *medir*: a margem do parceiro é uma escolha dele que não
-  vemos. Só se mede se ele gravar a proposta dele.
-- **Os programas nomeados** (60/42 e 65/45). A margem entre os dois é uma razão
-  — 30% e 30,8% — e essa sobrevive a qualquer base, por isso continua a ser
-  usada. Os dois números em separado não.
+- **Vazia** — o painel estima à margem protegida, a cinzento com `≈`, como antes.
+- **Preenchida** — a estimativa dá lugar a uma medição. A margem do parceiro
+  passa a ser calculada e não assumida, e os pisos 35/20/15 passam a ser
+  **verificáveis** em vez de recitáveis.
 
-**Nota:** `partnerEconomics` e os seus testes ficaram no sítio de propósito. A
-política que codificam é real e é o único registo dela.
+Isto dá também um trabalho honesto aos 40%: deixam de prometer uma conta que não
+existe e passam a ser **a referência contra a qual a margem medida é lida** — "o
+acordo diz 40%, este negócio dá-lhes 45,4%". Não entra em cálculo nenhum, que é
+o que se sabe ser verdade.
+
+**A armadilha que isto evita, e que está no teste:** uma margem assumida é igual
+à assunção, portanto uma verificação de piso contra ela **passa sempre** — e uma
+verificação que não pode falhar lê-se como uma verificação que passou. Por isso
+`belowFloor`, `belowAbsolute`, `underTransfer` e `onRoleRate` são todos falsos
+enquanto ninguém escrever um preço.
+
+**Grava só o que foi dito.** `end_customer_price` e `partner_margin_pct` ficam a
+nulo enquanto a caixa estiver vazia (BR-036). A estimativa do painel nunca chega
+à base de dados.
+
+**O que continua aberto:**
+
+- **O significado dos 40%.** Hoje são uma referência. Se forem a margem que um
+  Full VAR deve mesmo ter, a proposta do parceiro devia abrir a 40% e não aos 35%
+  do alvo protegido — são dois números a fazer o mesmo trabalho em ecrãs
+  diferentes.
+- **Os programas nomeados.** A razão entre os dois números sobrevive a qualquer
+  base (30% e 30,8%) e é essa que se usa. Os dois números em separado não.
 
 ---
 
