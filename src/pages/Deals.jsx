@@ -10,6 +10,7 @@ import { Search, Download, RefreshCw, LayoutGrid, List, Globe, Zap } from 'lucid
 import { useTranslation } from '../hooks/useTranslation'
 import { STAGES, WEIGHTS, REGIONS, BUS, MONTHS, MONTHS_K, FORECAST_CATEGORIES, resolveForecastCategory } from '../constants'
 import { canTransition, getAllowedTransitions } from '../lib/stateMachine'
+import { canEditDeal as canEditDealRule } from '../lib/roles'
 import DealCard from '../components/deals/DealCard'
 import DealsMapView from '../components/deals/DealsMapView'
 import { useToast } from '../components/Toast'
@@ -57,12 +58,10 @@ export default function Deals() {
   const { canEdit, isAdmin, editOwnOnly, profile, perms } = useAuth()
   const { showToast } = useToast()
   const canDelete = perms?.canDelete ?? false
-  const canEditDeal = (deal) => {
-    if (!canEdit) return false
-    if (isAdmin) return true
-    if (editOwnOnly) return deal?.created_by === profile?.id || deal?.sales_owner === profile?.full_name || deal?.sales_owner === profile?.sales_owner_name
-    return true
-  }
+  // The rule lives in lib/roles, beside the other answers to "who sees what",
+  // so the screen and the database cannot drift apart unnoticed again.
+  const canEditDeal = deal => canEditDealRule(profile, deal, { canEdit, isAdmin, editOwnOnly })
+
   const { t } = useTranslation()
 
   // Filtros
