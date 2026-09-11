@@ -111,13 +111,17 @@ export default function Deals() {
   // Apply filters coming from the Product Funnel (deep-link), e.g. /deals?product=SYNAPSE VNA
   const [searchParams, setSearchParams] = useSearchParams()
   useEffect(() => {
+    // A funnel frame links straight into its own deals; without this the click
+    // arrived on an unfiltered list and the figure had to be found again by eye.
+    const stage = searchParams.get('stage')
     const product = searchParams.get('product')
     const brand = searchParams.get('brand')
     const category = searchParams.get('category')
     const noproduct = searchParams.get('noproduct')
     const owner = searchParams.get('owner')
     const client = searchParams.get('client')
-    if (product || brand || category || noproduct || owner || client) {
+    if (stage || product || brand || category || noproduct || owner || client) {
+      if (stage) setStageF(stage)
       if (product) setProductF(product)
       if (brand) setBrandF(brand)
       if (category) setCategoryF(category)

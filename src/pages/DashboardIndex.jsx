@@ -8,8 +8,9 @@ import ProductFunnel from '../components/dashboard/ProductFunnel'
 import SalesRepFunnel from '../components/dashboard/SalesRepFunnel'
 import TopClients from '../components/dashboard/TopClients'
 import SalesByClient from '../components/dashboard/SalesByClient'
+import InstaxFunnel from '../components/dashboard/InstaxFunnel'
 import MemberDashboard from '../components/dashboard/MemberDashboard'
-import { Gauge as GaugeIcon, BarChart3, Package, Users, Building2 } from 'lucide-react'
+import { Gauge as GaugeIcon, BarChart3, Package, Users, Building2, Camera } from 'lucide-react'
 
 const STORAGE_KEY = 'bb_dashboard_view'
 
@@ -121,6 +122,7 @@ export default function DashboardIndex() {
             { id: 'products', label: t('dash_view_products') || 'Products', icon: Package },
             { id: 'reps',     label: t('dash_view_reps') || 'Reps',         icon: Users },
             { id: 'clients',  label: t('dash_view_clients') || 'Clients',   icon: Building2 },
+            { id: 'funnel',   label: t('dash_view_funnel') || 'Funnel',     icon: Camera },
           ].map(v => {
             const Icon = v.icon
             const active = view === v.id
@@ -139,6 +141,7 @@ export default function DashboardIndex() {
       {view === 'summary' ? <DashboardSummary selectedBU={effectiveBU} />
         : view === 'products' ? <ProductFunnel selectedBU={effectiveBU} />
         : view === 'reps' ? <SalesRepFunnel selectedBU={effectiveBU} />
+        : view === 'funnel' ? <InstaxFunnel selectedBU={effectiveBU} />
         : view === 'clients' ? (
           <div className="space-y-4">
             {/* What was invoiced, by client, over a period — the question the
