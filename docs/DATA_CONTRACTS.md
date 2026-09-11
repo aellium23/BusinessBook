@@ -42,7 +42,7 @@ Esta secção vem primeiro porque a confusão entre estas três custou um erro d
 | `deals` | admin · a sua BU · a sua empresa | admin · a sua BU · a sua empresa |
 | `deal_products` | igual, via o negócio-pai, **sem as colunas de custo** | igual ⚠ *escrita do custo não restringida, ver SEC-04* |
 | `deal_products_v` | igual, sem custo nenhum | — *(view, security_invoker)* |
-| `deal_products_cost` | admin · manager | — *(view, guarda no `where`)* |
+| `deal_products_cost` | `sees_internal_economics()` | — *(view, guarda no `where`)* |
 | `deal_channel` | `sees_internal_economics()` | os nossos |
 | `deal_discount_requests` | quem pediu · a empresa · os nossos | insert do próprio; resposta por função |
 | `deal_quote` | quem vê o negócio | quem edita o negócio |

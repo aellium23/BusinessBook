@@ -18,6 +18,7 @@ import ProductLineItems from './ProductLineItems'
 import { BUSINESS_MODELS, RECURRING_MODELS, normalizeBusinessModel, REGIONS, COUNTRY_MAP, MONTHS, MONTHS_K, DIST_STAGES, regionForCountry } from '../constants'
 import { saveDealProducts } from '../hooks/useDealProducts'
 import { getAllowedTransitions, canTransition } from '../lib/stateMachine'
+import { canPrice } from '../lib/roles'
 import { lineCostTotals, marginFromTotals } from '../lib/margins'
 import { useLoadFailures, LoadFailureBanner } from '../hooks/useLoadFailures'
 import { validateDeal } from '../lib/validation'
@@ -128,6 +129,17 @@ export default function DealForm({ deal, onClose, onSaved }) {
   const [catalogProducts, setCatalogProducts] = useState([])
   const [authMap, setAuthMap] = useState({})
   const isDistributor = profile?.role === 'distributor'
+  /**
+   * Who the cost half of the economics block is for.
+   *
+   * It used to be "anybody who is not a distributor", which let a viewer — who
+   * may not price anything — through, and then told them the lines have no
+   * cost. That is not a smaller truth than the real one, it is a different
+   * claim: "nobody filled this in" where the answer was "this is not yours to
+   * see". Asking `canPrice` makes the block appear only for the people the
+   * number is actually for.
+   */
+  const seesCost = canPrice(profile?.role)
   // Auto-derive Internal/External from BU + billing party (who we invoice):
   //   ECT                         → External (always)
   //   VGT invoicing a Fuji subsidiary (HCUS, Fuji España/UK/ME…) → Internal
@@ -888,7 +900,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                   <p className="text-micro text-gray-500">{t('qd_col_price')}</p>
                   <p className="text-base font-bold text-navy tabular-nums">{formatK(economics.pvp)}</p>
                 </div>
-                {!isDistributor && economics.costKnown && (
+                {seesCost && economics.costKnown && (
                   <>
                     <div>
                       <p className="text-micro text-gray-500">{t('qd_col_cost')}</p>
@@ -912,7 +924,7 @@ export default function DealForm({ deal, onClose, onSaved }) {
                   </>
                 )}
               </div>
-              {!isDistributor && economics.uncosted > 0 && (
+              {seesCost && economics.uncosted > 0 && (
                 <p className="text-micro text-amber-800">
                   {t('df_uncosted_lines').replace('{n}', economics.uncosted)}
                 </p>

@@ -6,6 +6,18 @@ import { formatK, Spinner } from '../ui'
 import { dealValue as valueOf } from '../../lib/dealValue'
 import { Package, ChevronRight } from 'lucide-react'
 
+/**
+ * The three ways a euro ends up unattributed, told apart.
+ *
+ * They all used to render as a dash or as "(no product)", which made a category
+ * nobody has set look the same as a line worth 27,500 € that names no product
+ * at all. Only one of these is a data problem, and it could not be seen.
+ */
+const NO_LINES      = '(no product)'          // the DEAL carries no lines
+const UNNAMED       = '(line with no product)' // a LINE that names nothing
+const UNCATEGORISED = '(no category)'          // a real product, category unset
+
+
 export default function ProductFunnel({ selectedBU = '' }) {
   const navigate = useNavigate()
   const { deals: allDeals, loading: dealsLoading } = useDeals()
@@ -49,9 +61,14 @@ export default function ProductFunnel({ selectedBU = '' }) {
 
   const grouped = useMemo(() => {
     const map = {}
+    // Three different things used to land on the same dash, and one of them is
+    // money nobody has attributed: a line whose product was never named. It
+    // reads as a placeholder next to a category that simply is not set, so it
+    // gets a name that can be recognised and chased. `(no product)` stays what
+    // it always was — a DEAL with no lines at all, which is a different gap.
     const keyOf = (r) => groupBy === 'brand'    ? (r.product?.brand || 'Fujifilm')
-                       : groupBy === 'category' ? (r.product?.category || '—')
-                       : (r.product?.name || r.product_name || '—')
+                       : groupBy === 'category' ? (r.product?.category || UNCATEGORISED)
+                       : (r.product?.name || r.product_name || UNNAMED)
 
     for (const d of deals) {
       // Deal value per funnel bucket — SAME logic as the Deals page totals
@@ -70,7 +87,7 @@ export default function ProductFunnel({ selectedBU = '' }) {
       const prodLines = linesByDeal[d.id] || []
       if (prodLines.length === 0) {
         // No product lines — attribute to "(no product)" so totals still reconcile
-        const k = '(no product)'
+        const k = NO_LINES
         if (!map[k]) map[k] = { name: k, pipeline: 0, backlog: 0, invoiced: 0, count: 0 }
         map[k][bucket] += dealValue
         map[k].count += 1
@@ -150,12 +167,16 @@ export default function ProductFunnel({ selectedBU = '' }) {
           <p className="text-sm text-gray-400 text-center py-8">No product data yet. Add products to deals to see the funnel.</p>
         ) : grouped.map(g => (
           <button key={g.name} type="button"
-            onClick={() => navigate(g.name === '(no product)' ? '/deals?noproduct=1' : `/deals?${groupBy}=${encodeURIComponent(g.name)}`)}
+            onClick={() => navigate(g.name === NO_LINES ? '/deals?noproduct=1' : `/deals?${groupBy}=${encodeURIComponent(g.name)}`)}
             className="w-full text-left card-link p-3 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <Package size={13} className="text-gray-400 shrink-0"/>
-                <p className="text-sm font-semibold text-gray-900 truncate">{g.name}</p>
+                {/* Amber, because these two rows are the ones with something to
+                    fix behind them rather than a product to read about. */}
+                <p className={`text-sm font-semibold truncate ${
+                  g.name === UNNAMED || g.name === NO_LINES ? 'text-amber-800' : 'text-gray-900'
+                }`}>{g.name}</p>
                 <span className="text-micro text-gray-400">({g.count})</span>
               </div>
               <div className="flex items-center gap-1 shrink-0">

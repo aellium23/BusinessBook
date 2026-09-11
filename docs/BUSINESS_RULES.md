@@ -225,6 +225,13 @@ import, ou um negócio que nos chega já ganho. A máquina governa movimento.
 A regra existe em dois sítios por necessidade — o ecrã tem de desenhar a caixa
 antes de qualquer pedido — e os dois são comparados a cada `npm run test`.
 
+**BR-054 — Quem vê custo: admin, manager e os nossos comerciais.**
+A pergunta é `sees_internal_economics()`, e é a mesma nos três sítios onde se
+faz: `roles.js`, a função SQL e a view `deal_products_cost`. Distribuidores,
+parceiros e *viewers* ficam de fora. Até 11-09 a view respondia admin e manager
+só, portanto um comercial escrevia o custo no quick deal e era informado, ao
+reabrir o negócio, de que a linha não tinha custo.
+
 **BR-052 — Quem não vê custo não o escreve.**
 `cost_price` e `margin_pct` em `deal_products` são forçados a nulo no INSERT, e
 repostos ao valor anterior no UPDATE, para quem não passa

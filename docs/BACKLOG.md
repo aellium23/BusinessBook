@@ -278,14 +278,37 @@ a dizer que é de propósito.
 
 ---
 
-## SPEC-01 · P2 · Quem vê custo: duas fontes discordam
+## SPEC-01 · ✅ FECHADO · Quem vê custo: três fontes, uma discordante
 
-**O quê.** `roles.js` inclui `member` em quem vê custo e margem. A view mascara
-para quem não é admin ou manager. Um comercial nosso vê a margem do negócio e
-não vê o custo da linha.
+**O quê.** Três respostas a "quem pode ver o que uma linha nos custa":
 
-**Não é claramente um bug.** Pode ser intencional. Precisa de decisão de produto,
-e depois de alinhar as duas fontes.
+| | responde |
+|---|---|
+| `src/lib/roles.js`, `seesCost()` | admin · manager · **member** |
+| `sees_internal_economics()` | admin · manager · **member** |
+| view `deal_products_cost` | admin · manager |
+
+A view era a discordante. Foi escrita a 11-09 e pegou no par de governança
+quando a pergunta que respondia era a interna.
+
+**E não era académico.** Um comercial nosso cota um negócio no quick deal —
+escolhe os SKUs, lê o custo, decide a margem — grava, reabre, e o ecrã diz-lhe
+que as linhas não têm custo. Escreveu o número e não o consegue ler de volta.
+
+Desde o SEC-04 contradizia também um guard: o `deal_products_cost_guard` deixa um
+`member` **escrever** custo, porque o `sees_internal_economics()` diz que pode.
+Escrever e não ler é ao contrário, e ninguém o desenhou.
+
+**Fechado a 11-09** com `supabase_migration_20260911_cost_readers.sql`: a view
+passa a fazer a mesma pergunta que o resto do sistema. Alarga a leitura aos
+nossos comerciais e a mais ninguém — distribuidores, parceiros e *viewers* não
+estão no `sees_internal_economics()` e continuam de fora.
+
+**E o ecrã deixou de confundir duas coisas.** O bloco de economia do `DealForm`
+aparecia para "quem não é distribuidor", o que deixava passar um *viewer* — que
+não pode preçar nada — e depois lhe dizia que as linhas não tinham custo. Não é
+uma verdade mais pequena, é outra afirmação: "ninguém preencheu" onde a resposta
+era "isto não é teu para veres". Passou a perguntar `canPrice`.
 
 ---
 
@@ -318,11 +341,23 @@ política que codificam é real e é o único registo dela.
 
 ---
 
-## BIZ-01 · P2 · Tecto de desconto do `PACS ACTIVE MONITORING FEE`
+## BIZ-01 · ✅ FECHADO · `PACS ACTIVE MONITORING FEE` sai do catálogo
 
-Carrega 80% herdados, que foram ditos incorrectos. Falta o número real.
+Carregava 80% de tecto de desconto herdados da folha de preços, ditos
+incorrectos. A resposta a "qual é o número certo" acabou por ser que o SKU não
+deve ser cotável.
 
-**Esforço:** trivial assim que houver o número.
+**Desactivado, não apagado.** Uma proposta guardada com este SKU foi uma
+proposta a sério, a um preço a sério. Apagar a linha não desfaz isso — faz com
+que a proposta guardada aponte para uma coisa que já não existe, e um preço que
+ninguém consegue ligar a um part number é um preço que ninguém consegue
+defender. O `product_items` já tem `active`, e todos os ecrãs que lêem o
+catálogo filtram por ele, portanto sai de todos os selectores sem mexer num
+único valor gravado.
+
+SQL: `supabase_migration_20260911_retire_monitoring_fee.sql`, que começa por uma
+consulta para ler **antes** de mudar seja o que for — um `like` sobre um nome é
+um instrumento grosseiro.
 
 ---
 
@@ -344,15 +379,27 @@ como regra escrita.
 
 ## DATA-01 · P3 · Linhas de produto sem produto
 
-Pelo menos uma linha com `product_name` vazio e 27.500 € de valor líquido. Cai
-em "(no product)" nos relatórios por produto. Vale confirmar quantas são e se é
-intencional.
+**O lado do código, fechado a 11-09.** Três coisas diferentes aterravam no mesmo
+traço no funil de produto, e só uma delas é um problema de dados:
+
+| Agora diz | É |
+|---|---|
+| `(no product)` | o **negócio** não tem linhas nenhumas |
+| `(line with no product)` | uma **linha** que não nomeia produto — dinheiro por atribuir |
+| `(no category)` | um produto a sério, com a categoria por preencher |
+
+As duas primeiras aparecem a âmbar, porque têm alguma coisa para corrigir por
+trás em vez de um produto para ler.
+
+**O lado dos dados fica contigo.** Pelo menos uma linha com `product_name` vazio
+e 27.500 € de valor líquido. Vale confirmar quantas são e se é intencional:
 
 ```sql
-select id, deal_id, net_price, created_at
-from public.deal_products
-where product_name is null or trim(product_name) = ''
-order by net_price desc;
+select dp.id, dp.deal_id, d.client, dp.net_price, dp.created_at
+from public.deal_products dp
+join public.deals d on d.id = dp.deal_id
+where dp.product_name is null or trim(dp.product_name) = ''
+order by dp.net_price desc;
 ```
 
 ---

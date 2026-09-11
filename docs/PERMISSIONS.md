@@ -58,19 +58,25 @@ Um `permission_set` associado ao perfil **substitui** a lista do papel.
 |---|---|---|
 | Custo e margem de linha | admin, manager | View `deal_products_v` **e a tabela base ⚠** |
 | Margem do negócio (`gm_pct`) | admin, manager, member | Só no ecrã (`canPrice`) |
-| Preço de transferência do parceiro | admin, manager | `sees_internal_economics()` |
+| Preço de transferência do parceiro | admin, manager, member | `sees_internal_economics()` |
+| Custo da linha (`cost_price`) | admin, manager, member | view `deal_products_cost` |
 | Pedidos de desconto | quem pediu, a empresa do negócio, os nossos | RLS `discount_req read` |
 | Objectivos de venda | os nossos, e a empresa a que pertencem | RLS `quotas read` |
 | Notificações | só o destinatário | RLS `user_id = auth.uid()` |
 | Anexos | quem vê o negócio-pai | RLS via `attachments` |
 
-**⚠ Divergência conhecida.** `roles.js` diz que um `member` vê custo e margem; a
-view mascara para quem não é admin ou manager. Resultado: um comercial nosso vê
-a margem do negócio e não vê o custo da linha. Pode ser intencional — não está
-decidido. Ver `docs/BACKLOG.md`, item SPEC-01.
+**✅ Resolvido a 11-09 (SPEC-01).** Havia três respostas a "quem vê o custo de
+uma linha": o `roles.js` e o `sees_internal_economics()` diziam admin, manager e
+member; a view `deal_products_cost` dizia admin e manager. Um comercial nosso
+cotava um negócio, gravava-o, reabria-o e era informado de que as linhas não
+tinham custo — o custo que ele próprio tinha escrito. A view passou a perguntar
+`sees_internal_economics()`, como o resto do sistema. Distribuidores, parceiros
+e *viewers* continuam de fora.
 
-**⚠ Furo aberto.** A tabela `deal_products` continua directamente legível com as
-colunas de custo. A view mascara; a tabela não. Ver SEC-01.
+**✅ Fechado a 11-09 (SEC-01).** A tabela `deal_products` já não entrega as
+colunas de custo: o `grant select` de tabela foi trocado por um de lista de
+colunas, e `cost_price` e `margin_pct` não estão nela. Desde o SEC-04, quem não
+as pode ler também não as pode escrever.
 
 ---
 
