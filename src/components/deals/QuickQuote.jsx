@@ -921,6 +921,25 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
         setError(`${t('qd_err_discounts')} ${reqErr.message}`)
         return false
       }
+
+      // Mark the deal as having a discount question open.
+      //
+      // The requests were being filed and the deal left saying nothing, so the
+      // card showed no chip, the banner on Deals counted it in no bucket, and a
+      // partner with a live request had no sign of it anywhere until somebody
+      // answered — because the answer is what used to set this. Only rows that
+      // were actually filed count: a supplier ask still sitting in the worklist
+      // as `to_request` has not been put to anybody.
+      const filed = toRaise.filter(r => (r.status || r.line.routing.initialStatus) === 'pending')
+      if (filed.length) {
+        const asked = Math.max(...filed.map(({ line: l, sku }) =>
+          Number(sku ? sku.pct : (l.ladder ? l.ladder.pctOff : l.discountPct)) || 0))
+        // The largest ask, not their sum: the column holds one percentage and
+        // adding them together would invent a discount nobody requested.
+        await supabase.from('deals')
+          .update({ discount_status: 'pending', discount_requested: asked || null })
+          .eq('id', data.id)
+      }
     }
 
     setSaving(false)

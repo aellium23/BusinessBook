@@ -74,7 +74,7 @@ export default function Deals() {
   const [ownerF, setOwnerF]     = useState('')
   const [forecastF, setForecastF] = useState('') // '' | 'commit' | 'best_case' | 'upside' | 'omit'
   const [slaF, setSlaF]         = useState(false)
-  const [discountF, setDiscountF] = useState('') // '' | 'pending' | 'approved' | 'rejected' | 'any'
+  const [discountF, setDiscountF] = useState('') // '' | 'pending' | 'counter' | 'approved' | 'rejected' | 'any'
   const [brandF, setBrandF]       = useState('')  // '' | 'Fujifilm' | 'Medsky' | etc.
   const [productF, setProductF]   = useState('')  // '' | product name
   const [categoryF, setCategoryF] = useState('')  // '' | category name
@@ -338,27 +338,40 @@ export default function Deals() {
         const isDistributor = profile?.role === 'distributor'
         const canApprove = isAdmin || profile?.role === 'manager'
         if (!canApprove && !isDistributor) return null
+        // Four states, not three. `counter` was missing from every bucket and
+        // from the total — which is the sum of the buckets — so a countered
+        // deal was counted nowhere while the "All" chip that filters on "has
+        // any discount state" happily listed it. The banner said one and the
+        // list showed two.
+        const byStatus = st => rawDeals.filter(d => d.discount_status === st)
         const counts = {
-          pending:  rawDeals.filter(d => d.discount_status === 'pending').length,
-          approved: rawDeals.filter(d => d.discount_status === 'approved').length,
-          rejected: rawDeals.filter(d => d.discount_status === 'rejected').length,
+          pending:  byStatus('pending').length,
+          counter:  byStatus('counter').length,
+          approved: byStatus('approved').length,
+          rejected: byStatus('rejected').length,
         }
-        const total = counts.pending + counts.approved + counts.rejected
+        // Counted the way the "All" chip filters, rather than as the sum of the
+        // named buckets: if the two ever disagree again, the number is wrong
+        // rather than the list.
+        const withDiscount = rawDeals.filter(d => !!d.discount_status)
+        const total = withDiscount.length
         if (total === 0) return null
-        const pending = rawDeals.filter(d => d.discount_status === 'pending')
+        // Whose move it is depends on which side of the table you sit. A
+        // counter-offer waits on the partner; a pending request waits on us.
+        const mine = isDistributor ? byStatus('counter') : byStatus('pending')
         return (
           <div className={`rounded-xl p-3 space-y-2 ${counts.pending > 0 ? 'bg-purple-50 border border-purple-200' : 'bg-gray-50 border border-gray-200'}`}>
             <div className="flex items-center gap-3">
-              <span className={`text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${counts.pending > 0 ? 'bg-red-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
-                {counts.pending}
+              <span className={`text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${mine.length > 0 ? 'bg-red-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
+                {mine.length}
               </span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-800">
-                  {isDistributor ? 'My Discount Requests' : 'Discount Approvals'}
+                  {isDistributor ? t('deals_my_disc_reqs') : t('deals_disc_approvals')}
                 </p>
-                {counts.pending > 0 && (
+                {mine.length > 0 && (
                   <p className="text-micro text-purple-600 truncate">
-                    {pending.map(d => d.client).filter(Boolean).slice(0, 3).join(', ')}{counts.pending > 3 ? ` +${counts.pending - 3} more` : ''}
+                    {mine.map(d => d.client).filter(Boolean).slice(0, 3).join(', ')}{mine.length > 3 ? ` +${mine.length - 3}` : ''}
                   </p>
                 )}
               </div>
@@ -366,10 +379,11 @@ export default function Deals() {
             {/* Status filter chips */}
             <div className="flex gap-1.5 flex-wrap">
               {[
-                { id: 'pending',  label: `Pending ${counts.pending}`,   cls: 'bg-purple-100 text-purple-800 border-purple-300' },
-                { id: 'approved', label: `Approved ${counts.approved}`, cls: 'bg-green-100 text-green-800 border-green-300' },
-                { id: 'rejected', label: `Rejected ${counts.rejected}`, cls: 'bg-red-100 text-red-700 border-red-300' },
-                { id: 'any',      label: `All ${total}`,                cls: 'bg-gray-200 text-gray-700 border-gray-300' },
+                { id: 'pending',  label: `${t('dc_disc_pending')} ${counts.pending}`,   cls: 'bg-purple-100 text-purple-800 border-purple-300' },
+                { id: 'counter',  label: `${t('dc_disc_counter')} ${counts.counter}`,   cls: 'bg-amber-100 text-amber-800 border-amber-300' },
+                { id: 'approved', label: `${t('deals_disc_approved')} ${counts.approved}`, cls: 'bg-green-100 text-green-800 border-green-300' },
+                { id: 'rejected', label: `${t('deals_disc_rejected')} ${counts.rejected}`, cls: 'bg-red-100 text-red-700 border-red-300' },
+                { id: 'any',      label: `${t('deals_disc_all')} ${total}`,             cls: 'bg-gray-200 text-gray-700 border-gray-300' },
               ].map(chip => (
                 <button key={chip.id}
                   onClick={() => { setDiscountF(f => f === chip.id ? '' : chip.id); resetPage() }}
