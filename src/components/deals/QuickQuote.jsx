@@ -286,8 +286,12 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
   // A quote screen is not the place to invent a transition the pipeline forbids.
   const stageOptions = useMemo(() => {
     if (!deal?.id) return STAGES
+    // The stage it is already in belongs in the list. Without it the select's
+    // value is not among its own options, and a controlled select whose value
+    // matches nothing renders EMPTY — so opening a saved deal showed a blank
+    // stage box and offered only the moves away from a stage it would not name.
     const allowed = getAllowedTransitions('deal', deal.stage)
-    return STAGES.filter(x => allowed.includes(x))
+    return STAGES.filter(x => x === deal.stage || allowed.includes(x))
   }, [deal?.id, deal?.stage])
 
   const regionCode = pricingRegionForCountry(countryMap, country)
