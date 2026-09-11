@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { BUBadge, StageBadge, SalesTypeBadge, ForecastBadge, formatK, CurrencyBadge } from '../ui'
-import { canPrice } from '../../lib/roles'
+import { canPrice, companyScoped as isPartnerRole } from '../../lib/roles'
 import { useAuth } from '../../hooks/useAuth'
 import { Trash2, Pencil, ChevronDown, ChevronUp, Link, AlertTriangle, Clock, RefreshCw, Building2 } from 'lucide-react'
 import { useTranslation } from '../../hooks/useTranslation'
@@ -108,7 +108,7 @@ function DiscountChip({ deal, t }) {
 // Compact by default; taps expand "Details" (extra badges, description,
 // distribution chain, monthly breakdown). Keeps the Monthly toggle as a
 // subset of the full details — one chevron, one state.
-export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete, brands, openDiscounts, partnerName }) {
+export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete, brands, openDiscounts, partnerName, creator }) {
   const { profile } = useAuth()
   const seesMargin = canPrice(profile?.role)
   const { t } = useTranslation()
@@ -315,6 +315,19 @@ export default function DealCard({ deal, onEdit, onDelete, canEdit, canDelete, b
           </div>
 
           {/* Description / Lost reason */}
+          {/* Who wrote it, which is not the same question as whose deal it is.
+              The badge above says the deal belongs to a partner; it cannot say
+              whether the partner typed it or one of us opened it for them, and
+              both carry the same company. Only an admin can read other
+              people's profiles, so for everybody else this line is simply
+              absent — a partner has no business knowing our staff by name. */}
+          {creator && (
+            <p className="text-micro text-gray-400">
+              {isPartnerRole(creator.role) ? t('dc_created_by_partner') : t('dc_created_by_us')}
+              {' · '}{creator.full_name || '—'}
+              {deal.created_at && ` · ${new Date(deal.created_at).toLocaleDateString()}`}
+            </p>
+          )}
           {deal.description && <p className="text-xs text-gray-600 whitespace-pre-wrap">{deal.description}</p>}
           {deal.stage === 'Lost' && deal.lost_reason && (
             <p className="text-xs text-red-500">Lost: {deal.lost_reason}</p>

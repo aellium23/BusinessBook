@@ -177,6 +177,26 @@ export default function Deals() {
         if (data) setPartnerCompanies(Object.fromEntries(data.map(c => [c.id, c.name])))
       })
   }, [])
+
+  /**
+   * Who wrote each deal, which is not the same question as whose deal it is.
+   *
+   * The badge above says a deal belongs to a partner company. It cannot say
+   * whether the partner typed it or one of us set it up on their behalf — both
+   * carry the same company. This answers that, and it is the difference between
+   * "came in from the channel" and "we opened it for them".
+   *
+   * Only an admin can read other people's profiles, so for everybody else this
+   * stays empty and the line simply does not appear. That is the right failure:
+   * a partner has no business knowing the names of our staff.
+   */
+  const [creators, setCreators] = useState({})
+  useEffect(() => {
+    supabase.from('profiles').select('id, full_name, role')
+      .then(({ data }) => {
+        if (data) setCreators(Object.fromEntries(data.map(p => [p.id, p])))
+      })
+  }, [])
   const [dealProducts, setDealProducts] = useState({})
   const [dealCategories, setDealCategories] = useState({})
 
@@ -737,6 +757,7 @@ export default function Deals() {
               {paginated.map(d => (
                 <DealCard key={d.id} deal={d} openDiscounts={openDiscounts[d.id]}
                   partnerName={partnerCompanies[d.company_id]}
+                  creator={creators[d.created_by]}
                   canEdit={canEditDeal(d)} canDelete={canDelete}
                   brands={dealBrands[d.id]}
                   onEdit={deal => { setEditDeal(deal); setQuoteOpen(true) }}
