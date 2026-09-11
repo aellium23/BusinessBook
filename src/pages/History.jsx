@@ -160,7 +160,7 @@ function DistributorHistory() {
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
           <p className="text-2xl font-bold text-gray-900">{byClient.length}</p>
-          <p className="text-xs text-gray-400 mt-0.5">Clientes</p>
+          <p className="text-xs text-gray-400 mt-0.5">{t('hist_clients')}</p>
         </div>
       </div>
 
@@ -207,6 +207,7 @@ function DistributorHistory() {
 
 export default function History() {
   const { isAdmin, profile } = useAuth()
+  const { t } = useTranslation()
   const [fy25, setFy25]   = useState([])
   const [fySummary, setFySummary] = useState([])
   const [sga, setSga] = useState([])
@@ -435,7 +436,7 @@ export default function History() {
       <div className="flex flex-col gap-3 pt-1">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">History</h1>
+            <h1 className="text-xl font-bold text-gray-900">{t('hist_title')}</h1>
             <p className="text-sm text-gray-400">
               {PERIOD_PRESETS[period].label} · {activeBU === 'both' ? 'Iberia' : histBU} actuals
             </p>
@@ -544,9 +545,9 @@ export default function History() {
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
               <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                  {histBU} · Budget Achievement %
+                  {histBU} · {t('hist_budget_ach')}
                 </p>
-                <p className="text-micro text-gray-400">Target: 100%</p>
+                <p className="text-micro text-gray-400">{t('hist_target')}</p>
               </div>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={achData} margin={{ top:8, right:8, left:-12, bottom:0 }}>
@@ -574,7 +575,7 @@ export default function History() {
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
               <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                  {histBU} · Internal vs External Net Sales · K€
+                  {histBU} · {t('hist_intext_ns')}
                 </p>
                 <p className="text-micro text-gray-400">
                   Internal %: {histData.filter(d => d.intPct > 0).map(d => `${d.fy} ${d.intPct}%`).join(' · ')}
@@ -604,7 +605,7 @@ export default function History() {
           {/* SG&A Budget Variance (rubricas) */}
           {hasSga && (
             <CollapsibleSection
-              title="SG&A Budget Variance"
+              title={t('hist_sga_variance')}
               subtitle={`${histBU} · ${sgaYear} · Plan vs Actual by rubrica · K€`}
               defaultOpen={false}>
               <div className="space-y-4">
@@ -619,7 +620,7 @@ export default function History() {
                     ))}
                   </div>
                   <div className="text-right">
-                    <p className="text-micro text-gray-400 uppercase tracking-wide">Total SG&amp;A</p>
+                    <p className="text-micro text-gray-400 uppercase tracking-wide">{t('hist_sga_total')}</p>
                     <p className="text-sm font-semibold text-gray-700">
                       Plan {sgaRubricas.totPlan.toLocaleString('pt-PT')}K · Act {sgaRubricas.totActual.toLocaleString('pt-PT')}K
                       <span className={`ml-1 ${sgaRubricas.totVar <= 0 ? 'text-green-600' : 'text-ect'}`}>
@@ -630,8 +631,8 @@ export default function History() {
                 </div>
 
                 <p className="text-micro text-gray-400">
-                  Diverging bar: <span className="text-green-600 font-medium">green = under budget</span> ·{' '}
-                  <span className="text-ect font-medium">orange = over budget</span> (cost lines)
+                  {t('hist_diverging')} <span className="text-green-600 font-medium">{t('hist_under_budget')}</span> ·{' '}
+                  <span className="text-ect font-medium">{t('hist_over_budget')}</span> {t('hist_cost_lines')}
                 </p>
 
                 {/* Sort toggle */}
@@ -689,9 +690,9 @@ export default function History() {
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="bg-gray-50 border-b border-gray-100">
-                        <th className="text-left px-3 py-2 font-semibold text-gray-500">Rubrica</th>
-                        <th className="px-3 py-2 font-semibold text-gray-500 text-right">Plan</th>
-                        <th className="px-3 py-2 font-semibold text-gray-500 text-right">Actual</th>
+                        <th className="text-left px-3 py-2 font-semibold text-gray-500">{t('hist_line_item')}</th>
+                        <th className="px-3 py-2 font-semibold text-gray-500 text-right">{t('hist_plan')}</th>
+                        <th className="px-3 py-2 font-semibold text-gray-500 text-right">{t('hist_actual')}</th>
                         <th className="px-3 py-2 font-semibold text-gray-500 text-right">Var</th>
                         <th className="px-3 py-2 font-semibold text-gray-500 text-right">%</th>
                       </tr>
@@ -721,14 +722,14 @@ export default function History() {
           )}
 
           {/* Annual summary table */}
-          <CollapsibleSection title="Annual Summary Table" subtitle={`${histBU} · K€`} defaultOpen={false}>
+          <CollapsibleSection title={t('hist_annual_table')} subtitle={`${histBU} · K€`} defaultOpen={false}>
             <div className="overflow-x-auto -mx-4 px-4">
               <table className="w-full text-xs whitespace-nowrap">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100">
                     <th className="text-left px-3 py-2 font-semibold text-gray-500 sticky left-0 bg-gray-50 z-10">FY</th>
-                    <th className="px-3 py-2 font-semibold text-gray-500 text-right">Net Sales</th>
-                    <th className="px-3 py-2 font-semibold text-gray-500 text-right">Plan NS</th>
+                    <th className="px-3 py-2 font-semibold text-gray-500 text-right">{t('hist_net_sales')}</th>
+                    <th className="px-3 py-2 font-semibold text-gray-500 text-right">{t('hist_plan_ns')}</th>
                     <th className="px-3 py-2 font-semibold text-gray-500 text-right">Ach.%</th>
                     <th className="px-3 py-2 font-semibold text-gray-500 text-right">DM</th>
                     <th className="px-3 py-2 font-semibold text-gray-500 text-right">DM%</th>
@@ -787,7 +788,7 @@ export default function History() {
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
             <div className="flex items-center justify-between mb-1 flex-wrap gap-1">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                Iberia · Net Sales (VGT + ECT) &amp; Op. Income · K€
+                {t('hist_iberia_ns_opinc')}
               </p>
               <p className="text-micro text-gray-400">━ NS · ┄ Iberia OP</p>
             </div>
@@ -832,9 +833,9 @@ export default function History() {
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
               <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                  Iberia · Budget Achievement %
+                  {t('hist_iberia_ach')}
                 </p>
-                <p className="text-micro text-gray-400">Target: 100%</p>
+                <p className="text-micro text-gray-400">{t('hist_target')}</p>
               </div>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={ibAch} margin={{ top:8, right:8, left:-12, bottom:0 }}>
@@ -858,7 +859,7 @@ export default function History() {
           )}
 
           {/* Iberia annual table */}
-          <CollapsibleSection title="Annual Summary Table" subtitle="Iberia (VGT + ECT) · K€" defaultOpen={false}>
+          <CollapsibleSection title={t('hist_annual_table')} subtitle={t('hist_iberia_sub')} defaultOpen={false}>
             <div className="overflow-x-auto -mx-4 px-4">
               <table className="w-full text-xs whitespace-nowrap">
                 <thead>
@@ -931,7 +932,7 @@ export default function History() {
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
               <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                  Net Sales &amp; Operating Profit · FY23–FY25
+                  {t('hist_ns_opprofit')}
                 </p>
                 <p className="text-micro text-gray-400">
                   K€ · <span className="text-gray-500">━ Net Sales</span> · <span className="text-gray-500">┄ Op. Profit</span>
@@ -979,7 +980,7 @@ export default function History() {
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                 <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                    VGT · Internal vs External Net Sales · K€
+                    VGT · {t('hist_intext_ns')}
                   </p>
                   <p className="text-micro text-gray-400">
                     Internal % FY23–25: {ie.map(d => `${d.intPct}%`).join(' → ')}
@@ -1005,12 +1006,12 @@ export default function History() {
       )}
 
       {/* ── FY25 MONTHLY DETAIL (always shown) ── */}
-      <CollapsibleSection title="FY25 Monthly Detail" subtitle="Net Sales & Gross Margin · K€" defaultOpen={period === 'recent'}>
+      <CollapsibleSection title={t('hist_fy25_detail')} subtitle={t('hist_fy25_sub')} defaultOpen={period === 'recent'}>
         <div className="space-y-5">
           {/* Monthly Net Sales chart */}
           <div>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-              Monthly Net Sales · K€ · FY25
+              {t('hist_monthly_ns')}
             </p>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={monthlyChart} barGap={2} margin={{ top:4, right:4, left:-20, bottom:0 }}>
@@ -1027,7 +1028,7 @@ export default function History() {
           {/* Monthly GM chart */}
           <div>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-              Monthly Gross Margin · K€ · FY25
+              {t('hist_monthly_gm')}
             </p>
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={monthlyChart} barGap={2} margin={{ top:4, right:4, left:-20, bottom:0 }}>
@@ -1046,7 +1047,7 @@ export default function History() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="text-left px-4 py-2 font-semibold text-gray-500 w-20 sm:w-28 text-micro sm:text-xs">Metric</th>
+                  <th className="text-left px-4 py-2 font-semibold text-gray-500 w-20 sm:w-28 text-micro sm:text-xs">{t('hist_metric')}</th>
                   {MONTHS.map(m => (
                     <th key={m} className="px-2 py-2 font-semibold text-gray-500 text-center w-10 sm:w-12 text-micro sm:text-xs">{m}</th>
                   ))}
