@@ -1777,12 +1777,12 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
                   {/* "Cost" is whatever the person quoting pays: our transfer
                       price, or our price list to them. Same table, same
                       arithmetic, and each side sees only their own half. */}
-                  <th className="text-right font-semibold py-1 px-1">
+                  <th className="text-right font-semibold py-1 px-1 tabular-nums">
                     {internal ? t('qd_col_cost') : t('qd_col_your_cost')}
                   </th>
-                  <th className="text-right font-semibold py-1 px-1">{t('qd_col_price')}</th>
-                  <th className="text-right font-semibold py-1 px-1">{t('qd_col_gm')}</th>
-                  <th className="text-right font-semibold py-1 px-1">{t('qd_gm_pct')}</th>
+                  <th className="text-right font-semibold py-1 px-1 tabular-nums">{t('qd_col_price')}</th>
+                  <th className="text-right font-semibold py-1 px-1 tabular-nums">{t('qd_col_gm')}</th>
+                  <th className="text-right font-semibold py-1 px-1 tabular-nums">{t('qd_gm_pct')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1791,22 +1791,22 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
                     <td className={`text-left py-1 px-1 truncate ${
                       r.services ? 'text-gray-500 italic' : 'text-gray-800'
                     }`}>{r.name}</td>
-                    <td className="text-right py-1 px-1 text-red-700">
+                    <td className="text-right py-1 px-1 text-red-700 tabular-nums">
                       {r.cost > 0 ? `−${formatK(r.cost)}` : '—'}
                     </td>
-                    <td className="text-right py-1 px-1 text-gray-900">{formatK(r.pvp)}</td>
-                    <td className="text-right py-1 px-1 text-green-700">{formatK(r.gm)}</td>
-                    <td className="text-right py-1 px-1 text-green-700">{r.pct}%</td>
+                    <td className="text-right py-1 px-1 text-gray-900 tabular-nums">{formatK(r.pvp)}</td>
+                    <td className="text-right py-1 px-1 text-green-700 tabular-nums">{formatK(r.gm)}</td>
+                    <td className="text-right py-1 px-1 text-green-700 tabular-nums">{r.pct}%</td>
                   </tr>
                 ))}
                 <tr className="border-t-2 border-navy/25 font-bold">
                   <td className="text-left py-1.5 px-1 text-navy uppercase text-micro tracking-wide">
                     {t('qd_total')}
                   </td>
-                  <td className="text-right py-1.5 px-1 text-red-700">−{formatK(table.total.cost)}</td>
-                  <td className="text-right py-1.5 px-1 text-navy">{formatK(table.total.pvp)}</td>
-                  <td className="text-right py-1.5 px-1 text-green-700">{formatK(table.total.gm)}</td>
-                  <td className="text-right py-1.5 px-1 text-green-700">{table.total.pct}%</td>
+                  <td className="text-right py-1.5 px-1 text-red-700 tabular-nums">−{formatK(table.total.cost)}</td>
+                  <td className="text-right py-1.5 px-1 text-navy tabular-nums">{formatK(table.total.pvp)}</td>
+                  <td className="text-right py-1.5 px-1 text-green-700 tabular-nums">{formatK(table.total.gm)}</td>
+                  <td className="text-right py-1.5 px-1 text-green-700 tabular-nums">{table.total.pct}%</td>
                 </tr>
               </tbody>
             </table>

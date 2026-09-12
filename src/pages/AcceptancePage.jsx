@@ -120,19 +120,21 @@ export default function AcceptancePage() {
               {products.length > 0 && (
                 <div>
                   <p className="text-xs text-gray-500 uppercase font-semibold mb-2">Products / Services</p>
-                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  {/* overflow-x-auto e não só hidden: o `main` do Layout corta o
+                      que transborda, e uma tabela cortada não avisa ninguém. */}
+                  <div className="border border-gray-200 rounded-lg overflow-hidden overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead className="bg-gray-50">
                         <tr>
                           <th className="text-left px-3 py-2 text-xs text-gray-500 font-semibold">Item</th>
-                          <th className="text-right px-3 py-2 text-xs text-gray-500 font-semibold">Qty</th>
+                          <th className="text-right px-3 py-2 text-xs text-gray-500 font-semibold tabular-nums">Qty</th>
                         </tr>
                       </thead>
                       <tbody>
                         {products.map((p, i) => (
                           <tr key={i} className="border-t border-gray-100">
                             <td className="px-3 py-2 text-gray-800">{p.product_name || p.name || '—'}</td>
-                            <td className="px-3 py-2 text-right text-gray-600">{p.quantity || 1}</td>
+                            <td className="px-3 py-2 text-right text-gray-600 tabular-nums">{p.quantity || 1}</td>
                           </tr>
                         ))}
                       </tbody>

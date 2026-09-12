@@ -111,12 +111,12 @@ function AccountRow({ account, depth, open, children, onToggle, onEdit, onDelete
           {canEdit && (
             <div className="flex gap-0.5">
               <button type="button" onClick={onEdit}
-                className="p-1 text-gray-400 hover:text-gray-700 rounded hover:bg-gray-100"
+                className="min-h-tap p-1 text-gray-400 hover:text-gray-700 rounded hover:bg-gray-100"
                 aria-label="Edit account">
                 <Edit3 size={11}/>
               </button>
               <button type="button" onClick={onDelete}
-                className="p-1 text-gray-400 hover:text-red-500 rounded hover:bg-red-50"
+                className="min-h-tap p-1 text-gray-400 hover:text-red-500 rounded hover:bg-red-50"
                 aria-label="Delete account">
                 <Trash2 size={11}/>
               </button>
@@ -381,7 +381,7 @@ export default function Accounts() {
   if (loading) return <Spinner label="Loading…"/>
 
   return (
-    <div className="p-4 space-y-4 max-w-5xl mx-auto">
+    <div className="p-4 sm:p-6 space-y-4 max-w-6xl mx-auto">
       <div className="flex items-start justify-between gap-2 flex-wrap">
         <div>
           <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">

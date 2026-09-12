@@ -100,7 +100,7 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
                 <input type="number" className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-28 focus:outline-none focus:ring-2 focus:ring-navy/20"
                   value={editVal} onChange={e => setEditVal(parseFloat(e.target.value)||0)}
                   aria-label={`Target for ${quota.sales_owner}`}/>
-                <button onClick={save} className="text-xs bg-navy text-white px-2 py-1 rounded-lg"
+                <button onClick={save} className="min-h-tap text-xs bg-navy text-white px-2 py-1 rounded-lg"
                   aria-label="Save target">
                   <Save size={11}/>
                 </button>
@@ -217,7 +217,7 @@ function QuotaCard({ quota, actuals, forecast, color, isManager, teamForecast, t
           </button>
           {editing && (
             <button onClick={save}
-              className="text-xs bg-navy text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
+              className="min-h-tap text-xs bg-navy text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
               <Save size={11}/> {t('quotas_save')}
             </button>
           )}
@@ -341,7 +341,7 @@ function TeamSection({ bu, quotas, actuals, forecast, onRefresh, isAdmin, canWri
           </div>
           <div className="flex gap-2">
             <button onClick={() => setAddingNew(false)} className="text-xs text-gray-400 px-3 py-1.5">{t("quotas_cancel")}</button>
-            <button onClick={addQuota} className="text-xs bg-navy text-white px-3 py-1.5 rounded-lg flex items-center gap-1">
+            <button onClick={addQuota} className="min-h-tap text-xs bg-navy text-white px-3 py-1.5 rounded-lg flex items-center gap-1">
               <Save size={11}/> {t('quotas_save')}
             </button>
           </div>
@@ -371,7 +371,7 @@ function DistributorQuota({ quotas, actuals, forecast }) {
   const COLOR = '#1D9E75'
 
   return (
-    <div className="p-4 space-y-5 max-w-lg mx-auto">
+    <div className="p-4 sm:p-6 space-y-5 max-w-4xl mx-auto">
       <div className="pt-1">
         <h1 className="text-xl font-bold text-gray-900">{t('quotas_title')}</h1>
         <p className="text-sm text-gray-400 mt-0.5">{t('dist_target_sub')}</p>

@@ -289,7 +289,7 @@ export default function Network() {
   if (loading) return <Spinner/>
 
   return (
-    <div className="p-4 space-y-4 max-w-4xl mx-auto">
+    <div className="p-4 sm:p-6 space-y-4 max-w-6xl mx-auto">
       <div className="flex items-start justify-between gap-2 flex-wrap">
         <div>
           <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">

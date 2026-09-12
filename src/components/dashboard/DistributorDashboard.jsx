@@ -234,7 +234,7 @@ export default function DistributorDashboard({ deals, profile }) {
       {/* Funil de deals */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <p className="text-sm font-semibold text-gray-700 mb-3">{t('dist_deal_status')}</p>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {[
             { label: 'Invoiced', count: stats.invoicedCount, color: '#1D9E75', bg: '#F0FDF9' },
             { label: 'BackLog',  count: stats.backlogCount,  color: '#185FA5', bg: '#E6F1FB' },

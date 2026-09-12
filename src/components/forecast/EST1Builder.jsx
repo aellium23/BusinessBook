@@ -112,7 +112,7 @@ function CopyButton({ label, rows }) {
   }
   return (
     <button onClick={handle}
-      className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors">
+      className="min-h-tap flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors">
       {copied ? <><Check size={12} className="text-green-600"/> Copied</> : <><Copy size={12}/> {label}</>}
     </button>
   )
@@ -409,7 +409,7 @@ export default function EST1Builder() {
               <tr className="bg-gray-50 text-gray-500">
                 <th className="text-left px-3 py-2 font-semibold sticky left-0 bg-gray-50">Line (K€)</th>
                 {QUARTERS.map(q => <th key={q} className="px-3 py-2 text-right font-semibold w-20">{q}</th>)}
-                <th className="px-3 py-2 text-right font-bold text-gray-700 w-20">FY26</th>
+                <th className="px-3 py-2 text-right font-bold text-gray-700 w-20 tabular-nums">FY26</th>
               </tr>
             </thead>
             <tbody>
@@ -423,34 +423,34 @@ export default function EST1Builder() {
                   <tr key={p} className="border-b border-gray-50 hover:bg-gray-50/50">
                     <td className="px-3 py-1.5 text-gray-600 sticky left-0 bg-white pl-5">{p}</td>
                     {row.map((v, i) => <td key={i} className="px-3 py-1.5 text-right text-gray-700">{k(v)}</td>)}
-                    <td className="px-3 py-1.5 text-right font-semibold text-gray-900">{k(rowFY)}</td>
+                    <td className="px-3 py-1.5 text-right font-semibold text-gray-900 tabular-nums">{k(rowFY)}</td>
                   </tr>
                 )
               })}
               <tr className="border-y border-gray-100 bg-gray-50/40 font-medium">
                 <td className="px-3 py-1.5 text-gray-700 sticky left-0 bg-gray-50/40">B. Maintenance</td>
                 {sales.maint.map((v, i) => <td key={i} className="px-3 py-1.5 text-right text-gray-700">{k(v)}</td>)}
-                <td className="px-3 py-1.5 text-right font-semibold text-gray-900">{k(fy(sales.maint))}</td>
+                <td className="px-3 py-1.5 text-right font-semibold text-gray-900 tabular-nums">{k(fy(sales.maint))}</td>
               </tr>
               <tr className="border-b border-gray-100 bg-gray-50/40 font-medium">
                 <td className="px-3 py-1.5 text-gray-700 sticky left-0 bg-gray-50/40">C. Rental / MES / OPEX</td>
                 {sales.opex.map((v, i) => <td key={i} className="px-3 py-1.5 text-right text-gray-700">{k(v)}</td>)}
-                <td className="px-3 py-1.5 text-right font-semibold text-gray-900">{k(fy(sales.opex))}</td>
+                <td className="px-3 py-1.5 text-right font-semibold text-gray-900 tabular-nums">{k(fy(sales.opex))}</td>
               </tr>
               <tr className="border-y-2 border-navy/20 bg-navy/[0.06] font-bold">
                 <td className="px-3 py-2 text-navy sticky left-0 bg-[#eef1f5]">Total revenue</td>
                 {sales.total.map((v, i) => <td key={i} className="px-3 py-2 text-right text-navy">{k(v)}</td>)}
-                <td className="px-3 py-2 text-right text-navy">{k(productTotalFY)}</td>
+                <td className="px-3 py-2 text-right text-navy tabular-nums">{k(productTotalFY)}</td>
               </tr>
               <tr className="border-b border-gray-50">
                 <td className="px-3 py-1.5 text-green-700 sticky left-0 bg-white pl-5">of which New Business</td>
                 {sales.newBiz.map((v, i) => <td key={i} className="px-3 py-1.5 text-right text-green-700">{k(v)}</td>)}
-                <td className="px-3 py-1.5 text-right font-semibold text-green-700">{k(fy(sales.newBiz))}</td>
+                <td className="px-3 py-1.5 text-right font-semibold text-green-700 tabular-nums">{k(fy(sales.newBiz))}</td>
               </tr>
               <tr>
                 <td className="px-3 py-1.5 text-gray-500 sticky left-0 bg-white pl-5">of which Existing Base</td>
                 {sales.existing.map((v, i) => <td key={i} className="px-3 py-1.5 text-right text-gray-500">{k(v)}</td>)}
-                <td className="px-3 py-1.5 text-right font-semibold text-gray-600">{k(fy(sales.existing))}</td>
+                <td className="px-3 py-1.5 text-right font-semibold text-gray-600 tabular-nums">{k(fy(sales.existing))}</td>
               </tr>
             </tbody>
           </table>
@@ -481,9 +481,9 @@ export default function EST1Builder() {
               <thead>
                 <tr className="bg-gray-50 text-gray-500">
                   <th className="text-left px-3 py-2 font-semibold">Region (K€)</th>
-                  <th className="px-3 py-2 text-right font-semibold w-24">1H (Apr–Sep)</th>
-                  <th className="px-3 py-2 text-right font-semibold w-24">2H (Oct–Mar)</th>
-                  <th className="px-3 py-2 text-right font-bold text-gray-700 w-20">FY26</th>
+                  <th className="px-3 py-2 text-right font-semibold w-24 tabular-nums">1H (Apr–Sep)</th>
+                  <th className="px-3 py-2 text-right font-semibold w-24 tabular-nums">2H (Oct–Mar)</th>
+                  <th className="px-3 py-2 text-right font-bold text-gray-700 w-20 tabular-nums">FY26</th>
                 </tr>
               </thead>
               <tbody>
@@ -492,29 +492,29 @@ export default function EST1Builder() {
                   return (
                     <tr key={r} className="border-b border-gray-50 hover:bg-gray-50/50">
                       <td className="px-3 py-1.5 text-gray-600">{r}</td>
-                      <td className="px-3 py-1.5 text-right text-gray-700">{k(row[0])}</td>
-                      <td className="px-3 py-1.5 text-right text-gray-700">{k(row[1])}</td>
-                      <td className="px-3 py-1.5 text-right font-semibold text-gray-900">{k(fy(row))}</td>
+                      <td className="px-3 py-1.5 text-right text-gray-700 tabular-nums">{k(row[0])}</td>
+                      <td className="px-3 py-1.5 text-right text-gray-700 tabular-nums">{k(row[1])}</td>
+                      <td className="px-3 py-1.5 text-right font-semibold text-gray-900 tabular-nums">{k(fy(row))}</td>
                     </tr>
                   )
                 })}
                 <tr className="border-t-2 border-navy/20 bg-navy/[0.06] font-bold">
                   <td className="px-3 py-2 text-navy">Total internal</td>
-                  <td className="px-3 py-2 text-right text-navy">{k(REGION_ROWS.reduce((s, r) => s + internal.rows[r][0], 0))}</td>
-                  <td className="px-3 py-2 text-right text-navy">{k(REGION_ROWS.reduce((s, r) => s + internal.rows[r][1], 0))}</td>
-                  <td className="px-3 py-2 text-right text-navy">{k(internalTotalFY)}</td>
+                  <td className="px-3 py-2 text-right text-navy tabular-nums">{k(REGION_ROWS.reduce((s, r) => s + internal.rows[r][0], 0))}</td>
+                  <td className="px-3 py-2 text-right text-navy tabular-nums">{k(REGION_ROWS.reduce((s, r) => s + internal.rows[r][1], 0))}</td>
+                  <td className="px-3 py-2 text-right text-navy tabular-nums">{k(internalTotalFY)}</td>
                 </tr>
                 <tr className="border-b border-gray-50">
                   <td className="px-3 py-1.5 text-green-700 pl-5">of which New Business</td>
-                  <td className="px-3 py-1.5 text-right text-green-700">{k(internal.newBiz[0])}</td>
-                  <td className="px-3 py-1.5 text-right text-green-700">{k(internal.newBiz[1])}</td>
-                  <td className="px-3 py-1.5 text-right font-semibold text-green-700">{k(fy(internal.newBiz))}</td>
+                  <td className="px-3 py-1.5 text-right text-green-700 tabular-nums">{k(internal.newBiz[0])}</td>
+                  <td className="px-3 py-1.5 text-right text-green-700 tabular-nums">{k(internal.newBiz[1])}</td>
+                  <td className="px-3 py-1.5 text-right font-semibold text-green-700 tabular-nums">{k(fy(internal.newBiz))}</td>
                 </tr>
                 <tr>
                   <td className="px-3 py-1.5 text-gray-500 pl-5">of which Recurring</td>
-                  <td className="px-3 py-1.5 text-right text-gray-500">{k(internal.recurring[0])}</td>
-                  <td className="px-3 py-1.5 text-right text-gray-500">{k(internal.recurring[1])}</td>
-                  <td className="px-3 py-1.5 text-right font-semibold text-gray-600">{k(fy(internal.recurring))}</td>
+                  <td className="px-3 py-1.5 text-right text-gray-500 tabular-nums">{k(internal.recurring[0])}</td>
+                  <td className="px-3 py-1.5 text-right text-gray-500 tabular-nums">{k(internal.recurring[1])}</td>
+                  <td className="px-3 py-1.5 text-right font-semibold text-gray-600 tabular-nums">{k(fy(internal.recurring))}</td>
                 </tr>
               </tbody>
             </table>

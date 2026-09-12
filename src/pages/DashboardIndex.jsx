@@ -10,6 +10,7 @@ import TopClients from '../components/dashboard/TopClients'
 import SalesByClient from '../components/dashboard/SalesByClient'
 import InstaxFunnel from '../components/dashboard/InstaxFunnel'
 import MemberDashboard from '../components/dashboard/MemberDashboard'
+import ViewPicker from '../components/dashboard/ViewPicker'
 import { Gauge as GaugeIcon, BarChart3, Package, Users, Building2, Camera } from 'lucide-react'
 
 const STORAGE_KEY = 'bb_dashboard_view'
@@ -31,6 +32,43 @@ const STORAGE_KEY = 'bb_dashboard_view'
  * months ago does not sit there outliving the rule that replaced it.
  */
 const DEFAULT_VIEW = 'funnel'
+
+/**
+ * As vistas de cada perfil, numa lista só.
+ *
+ * O funil primeiro em todos, porque é a porta de entrada. A ordem a seguir é a
+ * de quem lê: primeiro o retrato geral, depois os cortes.
+ */
+function viewsFor({ t, role }) {
+  const funnel = { id: 'funnel', label: t('dash_view_funnel') || 'Funnel', icon: Camera }
+  if (role === 'distributor') return [
+    funnel,
+    { id: 'classic', label: t('dash_view_details') || 'Details', icon: BarChart3 },
+  ]
+  if (role === 'member') return [
+    funnel,
+    { id: 'mine', label: t('dash_view_mine') || 'Mine', icon: GaugeIcon },
+  ]
+  return [
+    funnel,
+    { id: 'summary',  label: t('dash_view_summary') || 'Summary', icon: GaugeIcon },
+    { id: 'classic',  label: t('dash_view_details') || 'Details', icon: BarChart3 },
+    { id: 'products', label: t('dash_view_products') || 'Products', icon: Package },
+    { id: 'reps',     label: t('dash_view_reps') || 'Reps', icon: Users },
+    { id: 'clients',  label: t('dash_view_clients') || 'Clients', icon: Building2 },
+  ]
+}
+
+/** O subtítulo de cada vista. Havia um if/else para duas, e seis vistas. */
+const SUBTITLE_KEY = {
+  funnel:   'dash_funnel_sub',
+  summary:  'dash_summary_sub',
+  classic:  'dash_classic_sub',
+  products: 'dash_products_sub',
+  reps:     'dash_reps_sub',
+  clients:  'dash_clients_sub',
+  mine:     'dash_mine_sub',
+}
 
 function openingView(key) {
   if (typeof window === 'undefined') return DEFAULT_VIEW
@@ -90,27 +128,11 @@ export default function DashboardIndex() {
   // else's; it was not before, which is why this reads a little differently.
   if (isDistributor) {
     return (
-      <div className="space-y-3">
-        <div className="px-4 pt-4 flex gap-0.5 bg-transparent">
-          {[
-            { id: 'classic', label: t('dash_view_details') || 'Details', icon: BarChart3 },
-            { id: 'funnel', label: t('dash_view_funnel') || 'Funnel', icon: Camera },
-          ].map(v => {
-            const Icon = v.icon
-            const active = distView === v.id
-            return (
-              <button key={v.id} type="button" onClick={() => setDistView(v.id)}
-                aria-pressed={active}
-                className={`px-3 py-1.5 rounded-full text-xs flex items-center gap-1.5 transition-colors ${
-                  active ? 'bg-navy text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                }`}>
-                <Icon size={13}/> <span>{v.label}</span>
-              </button>
-            )
-          })}
-        </div>
+      <div className="p-4 sm:p-6 space-y-4 max-w-6xl mx-auto">
+        <ViewPicker label={t('dash_title')} value={distView} onChange={setDistView}
+          options={viewsFor({ t, role: 'distributor' })} />
         {distView === 'funnel'
-          ? <div className="px-4 pb-4"><InstaxFunnel selectedBU="" /></div>
+          ? <InstaxFunnel selectedBU="" />
           : <DashboardClassic selectedBU="" />}
       </div>
     )
@@ -121,104 +143,52 @@ export default function DashboardIndex() {
   // the front door" untrue for the people who live in the pipeline all day.
   if (profile?.role === 'member') {
     return (
-      <div className="p-4 space-y-4 max-w-5xl mx-auto">
+      <div className="p-4 sm:p-6 space-y-4 max-w-6xl mx-auto">
         <div className="pt-1">
           <h1 className="text-xl font-bold text-gray-900">{t('dash_title') || 'Dashboard'}</h1>
           <p className="text-sm text-gray-400">{profile?.full_name} · {profile?.bu}</p>
         </div>
-        <div className="flex gap-0.5">
-          {[
-            { id: 'funnel', label: t('dash_view_funnel') || 'Funnel', icon: Camera },
-            { id: 'mine',   label: t('dash_view_mine') || 'Mine',     icon: GaugeIcon },
-          ].map(v => {
-            const Icon = v.icon
-            const active = memberView === v.id
-            return (
-              <button key={v.id} type="button" onClick={() => setMemberView(v.id)}
-                aria-pressed={active}
-                className={`px-3 py-1.5 rounded-full text-xs flex items-center gap-1.5 transition-colors ${
-                  active ? 'bg-navy text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                }`}>
-                <Icon size={13}/> <span>{v.label}</span>
-              </button>
-            )
-          })}
-        </div>
+        <ViewPicker label={t('dash_title')} value={memberView} onChange={setMemberView}
+          options={viewsFor({ t, role: 'member' })} />
         {memberView === 'funnel' ? <InstaxFunnel selectedBU={profile?.bu || ''} /> : <MemberDashboard />}
       </div>
     )
   }
 
   return (
-    <div className="p-4 space-y-4 max-w-5xl mx-auto">
+    <div className="p-4 sm:p-6 space-y-4 max-w-6xl mx-auto">
       {/* Header: title + BU filter */}
       <div className="flex items-start justify-between gap-2 pt-1">
         <div className="min-w-0">
           <h1 className="text-xl font-bold text-gray-900">{t('dash_title')}</h1>
           <p className="text-sm text-gray-400 mt-0.5 truncate">
-            {view === 'summary'
-              ? (t('dash_summary_sub') || 'At-a-glance performance vs budget')
-              : (t('dash_classic_sub') || 'Detailed monthly and year-to-date breakdown')}
+            {t(SUBTITLE_KEY[view] || 'dash_subtitle')}
           </p>
         </div>
-        {isAdmin && (
+        {/* Quem pode escolher, escolhe. Quem não pode, é informado — o selector
+            desaparecia por inteiro para quem não é admin, e o ecrã nunca lhe
+            dizia que estava a ver só a BU dele. Os números eram verdadeiros e a
+            pergunta "isto é tudo?" ficava sem resposta. */}
+        {isAdmin ? (
           <div className="flex gap-0.5 bg-gray-100 p-0.5 rounded-lg shrink-0">
             {['','VGT','ECT'].map(bu => (
               <button key={bu} onClick={() => setSelectedBU(bu)}
-                className={`px-2.5 py-1 rounded text-xs font-semibold ${
+                className={`px-2.5 py-1 rounded text-xs font-semibold min-h-tap ${
                   selectedBU === bu ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'
                 }`}>
-                {bu || 'All'}
+                {bu || t('dash_bu_all')}
               </button>
             ))}
           </div>
-        )}
+        ) : effectiveBU ? (
+          <span className="shrink-0 px-2.5 py-1 rounded-lg bg-gray-100 text-xs font-semibold text-gray-600">
+            {effectiveBU}
+          </span>
+        ) : null}
       </div>
 
-      {/* Primary view: Summary / Details — full-width row, always visible in portrait */}
-      <div className="space-y-2">
-        <div className="grid grid-cols-2 rounded-control border border-gray-200 overflow-hidden">
-          {[
-            { id: 'summary', label: t('dash_view_summary') || 'Summary', icon: GaugeIcon },
-            { id: 'classic', label: t('dash_view_details') || 'Details', icon: BarChart3 },
-          ].map((v, i) => {
-            const Icon = v.icon
-            const active = view === v.id
-            return (
-              <button key={v.id} type="button"
-                onClick={() => setView(v.id)}
-                aria-pressed={active}
-                className={`px-4 py-2 text-xs flex items-center justify-center gap-1.5 whitespace-nowrap ${
-                  i > 0 ? 'border-l border-gray-200' : ''
-                } ${active ? 'bg-navy text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
-                <Icon size={14}/> <span>{v.label}</span>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Secondary: breakdowns — own scrollable row */}
-        <div className="flex items-center gap-1.5 text-micro text-gray-400 overflow-x-auto no-scrollbar">
-          <span className="uppercase tracking-wide shrink-0">{t('dash_breakdowns') || 'By'}:</span>
-          {[
-            { id: 'products', label: t('dash_view_products') || 'Products', icon: Package },
-            { id: 'reps',     label: t('dash_view_reps') || 'Reps',         icon: Users },
-            { id: 'clients',  label: t('dash_view_clients') || 'Clients',   icon: Building2 },
-            { id: 'funnel',   label: t('dash_view_funnel') || 'Funnel',     icon: Camera },
-          ].map(v => {
-            const Icon = v.icon
-            const active = view === v.id
-            return (
-              <button key={v.id} type="button" onClick={() => setView(v.id)} aria-pressed={active}
-                className={`px-2.5 py-1 rounded-full text-xs flex items-center gap-1 transition-colors shrink-0 ${
-                  active ? 'bg-navy text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                }`}>
-                <Icon size={12}/> <span>{v.label}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
+      <ViewPicker label={t('dash_title')} value={view} onChange={setView}
+        options={viewsFor({ t, role: 'admin' })} />
 
       {view === 'summary' ? <DashboardSummary selectedBU={effectiveBU} />
         : view === 'products' ? <ProductFunnel selectedBU={effectiveBU} />

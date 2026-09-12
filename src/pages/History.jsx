@@ -143,7 +143,7 @@ function DistributorHistory() {
   }, 0)
 
   return (
-    <div className="p-4 space-y-5 max-w-3xl mx-auto">
+    <div className="p-4 sm:p-6 space-y-5 max-w-6xl mx-auto">
       <div className="pt-1">
         <h1 className="text-xl font-bold text-gray-900">{t('hist_title')}</h1>
         <p className="text-sm text-gray-400 mt-0.5">{t('dist_hist_subtitle')}</p>
@@ -691,10 +691,10 @@ export default function History() {
                     <thead>
                       <tr className="bg-gray-50 border-b border-gray-100">
                         <th className="text-left px-3 py-2 font-semibold text-gray-500">{t('hist_line_item')}</th>
-                        <th className="px-3 py-2 font-semibold text-gray-500 text-right">{t('hist_plan')}</th>
-                        <th className="px-3 py-2 font-semibold text-gray-500 text-right">{t('hist_actual')}</th>
-                        <th className="px-3 py-2 font-semibold text-gray-500 text-right">Var</th>
-                        <th className="px-3 py-2 font-semibold text-gray-500 text-right">%</th>
+                        <th className="px-3 py-2 font-semibold text-gray-500 text-right tabular-nums">{t('hist_plan')}</th>
+                        <th className="px-3 py-2 font-semibold text-gray-500 text-right tabular-nums">{t('hist_actual')}</th>
+                        <th className="px-3 py-2 font-semibold text-gray-500 text-right tabular-nums">Var</th>
+                        <th className="px-3 py-2 font-semibold text-gray-500 text-right tabular-nums">%</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -703,8 +703,8 @@ export default function History() {
                         return (
                           <tr key={r.rubrica} className="border-b border-gray-50">
                             <td className="px-3 py-1.5 text-gray-600">{r.rubrica}</td>
-                            <td className="px-3 py-1.5 text-right text-gray-500">{r.plan.toLocaleString('pt-PT')}</td>
-                            <td className="px-3 py-1.5 text-right text-gray-700">{r.actual.toLocaleString('pt-PT')}</td>
+                            <td className="px-3 py-1.5 text-right text-gray-500 tabular-nums">{r.plan.toLocaleString('pt-PT')}</td>
+                            <td className="px-3 py-1.5 text-right text-gray-700 tabular-nums">{r.actual.toLocaleString('pt-PT')}</td>
                             <td className={`px-3 py-1.5 text-right font-medium ${over ? 'text-ect' : 'text-green-600'}`}>
                               {r.variance > 0 ? '+' : ''}{r.variance}
                             </td>
@@ -728,13 +728,13 @@ export default function History() {
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100">
                     <th className="text-left px-3 py-2 font-semibold text-gray-500 sticky left-0 bg-gray-50 z-10">FY</th>
-                    <th className="px-3 py-2 font-semibold text-gray-500 text-right">{t('hist_net_sales')}</th>
-                    <th className="px-3 py-2 font-semibold text-gray-500 text-right">{t('hist_plan_ns')}</th>
-                    <th className="px-3 py-2 font-semibold text-gray-500 text-right">Ach.%</th>
-                    <th className="px-3 py-2 font-semibold text-gray-500 text-right">DM</th>
-                    <th className="px-3 py-2 font-semibold text-gray-500 text-right">DM%</th>
-                    <th className="px-3 py-2 font-semibold text-gray-500 text-right">Op.Inc</th>
-                    <th className="px-3 py-2 font-semibold text-gray-500 text-right">Int%</th>
+                    <th className="px-3 py-2 font-semibold text-gray-500 text-right tabular-nums">{t('hist_net_sales')}</th>
+                    <th className="px-3 py-2 font-semibold text-gray-500 text-right tabular-nums">{t('hist_plan_ns')}</th>
+                    <th className="px-3 py-2 font-semibold text-gray-500 text-right tabular-nums">Ach.%</th>
+                    <th className="px-3 py-2 font-semibold text-gray-500 text-right tabular-nums">DM</th>
+                    <th className="px-3 py-2 font-semibold text-gray-500 text-right tabular-nums">DM%</th>
+                    <th className="px-3 py-2 font-semibold text-gray-500 text-right tabular-nums">Op.Inc</th>
+                    <th className="px-3 py-2 font-semibold text-gray-500 text-right tabular-nums">Int%</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -743,15 +743,15 @@ export default function History() {
                     return (
                       <tr key={d.fy} className={`border-b border-gray-50 ${isLegacy ? 'bg-gray-50/50' : ''} ${d.fy === brk.year ? 'border-t-2 border-t-amber-300' : ''}`}>
                         <td className={`px-3 py-1.5 font-semibold sticky left-0 z-10 ${isLegacy ? 'text-gray-400 bg-gray-50/50' : 'text-gray-700 bg-white'}`}>{d.fy}</td>
-                        <td className="px-3 py-1.5 text-right font-medium text-gray-700">{d.ns.toLocaleString('pt-PT')}</td>
-                        <td className="px-3 py-1.5 text-right text-gray-500">{d.planNs ? d.planNs.toLocaleString('pt-PT') : '—'}</td>
+                        <td className="px-3 py-1.5 text-right font-medium text-gray-700 tabular-nums">{d.ns.toLocaleString('pt-PT')}</td>
+                        <td className="px-3 py-1.5 text-right text-gray-500 tabular-nums">{d.planNs ? d.planNs.toLocaleString('pt-PT') : '—'}</td>
                         <td className={`px-3 py-1.5 text-right font-medium ${d.ach === null ? 'text-gray-300' : d.ach >= 100 ? 'text-green-600' : d.ach >= 95 ? 'text-amber-600' : 'text-red-500'}`}>
                           {d.ach !== null ? `${d.ach}%` : '—'}
                         </td>
-                        <td className="px-3 py-1.5 text-right text-gray-600">{d.dm.toLocaleString('pt-PT')}</td>
-                        <td className="px-3 py-1.5 text-right text-gray-500">{d.dmPct != null ? `${d.dmPct}%` : '—'}</td>
+                        <td className="px-3 py-1.5 text-right text-gray-600 tabular-nums">{d.dm.toLocaleString('pt-PT')}</td>
+                        <td className="px-3 py-1.5 text-right text-gray-500 tabular-nums">{d.dmPct != null ? `${d.dmPct}%` : '—'}</td>
                         <td className={`px-3 py-1.5 text-right font-medium ${d.op < 0 ? 'text-red-500' : 'text-gray-700'}`}>{d.op.toLocaleString('pt-PT')}</td>
-                        <td className="px-3 py-1.5 text-right text-gray-500">{d.intPct}%</td>
+                        <td className="px-3 py-1.5 text-right text-gray-500 tabular-nums">{d.intPct}%</td>
                       </tr>
                     )
                   })}
@@ -865,24 +865,24 @@ export default function History() {
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100">
                     <th className="text-left px-3 py-2 font-semibold text-gray-500 sticky left-0 bg-gray-50 z-10">FY</th>
-                    <th className="px-3 py-2 font-semibold text-gray-500 text-right">VGT NS</th>
-                    <th className="px-3 py-2 font-semibold text-gray-500 text-right">ECT NS</th>
-                    <th className="px-3 py-2 font-semibold text-gray-700 text-right">Iberia NS</th>
-                    <th className="px-3 py-2 font-semibold text-gray-500 text-right">DM</th>
-                    <th className="px-3 py-2 font-semibold text-gray-500 text-right">DM%</th>
-                    <th className="px-3 py-2 font-semibold text-gray-500 text-right">Op.Inc</th>
-                    <th className="px-3 py-2 font-semibold text-gray-500 text-right">Ach.%</th>
+                    <th className="px-3 py-2 font-semibold text-gray-500 text-right tabular-nums">VGT NS</th>
+                    <th className="px-3 py-2 font-semibold text-gray-500 text-right tabular-nums">ECT NS</th>
+                    <th className="px-3 py-2 font-semibold text-gray-700 text-right tabular-nums">Iberia NS</th>
+                    <th className="px-3 py-2 font-semibold text-gray-500 text-right tabular-nums">DM</th>
+                    <th className="px-3 py-2 font-semibold text-gray-500 text-right tabular-nums">DM%</th>
+                    <th className="px-3 py-2 font-semibold text-gray-500 text-right tabular-nums">Op.Inc</th>
+                    <th className="px-3 py-2 font-semibold text-gray-500 text-right tabular-nums">Ach.%</th>
                   </tr>
                 </thead>
                 <tbody>
                   {iberiaHist.map(d => (
                     <tr key={d.fy} className="border-b border-gray-50">
                       <td className="px-3 py-1.5 font-semibold text-gray-700 sticky left-0 bg-white z-10">{d.fy}</td>
-                      <td className="px-3 py-1.5 text-right text-vgt">{d['VGT NS'].toLocaleString('pt-PT')}</td>
-                      <td className="px-3 py-1.5 text-right text-ect">{d['ECT NS'].toLocaleString('pt-PT')}</td>
-                      <td className="px-3 py-1.5 text-right font-bold text-navy">{d.ns.toLocaleString('pt-PT')}</td>
-                      <td className="px-3 py-1.5 text-right text-gray-600">{d.dm.toLocaleString('pt-PT')}</td>
-                      <td className="px-3 py-1.5 text-right text-gray-500">{d.dmPct != null ? `${d.dmPct}%` : '—'}</td>
+                      <td className="px-3 py-1.5 text-right text-vgt tabular-nums">{d['VGT NS'].toLocaleString('pt-PT')}</td>
+                      <td className="px-3 py-1.5 text-right text-ect tabular-nums">{d['ECT NS'].toLocaleString('pt-PT')}</td>
+                      <td className="px-3 py-1.5 text-right font-bold text-navy tabular-nums">{d.ns.toLocaleString('pt-PT')}</td>
+                      <td className="px-3 py-1.5 text-right text-gray-600 tabular-nums">{d.dm.toLocaleString('pt-PT')}</td>
+                      <td className="px-3 py-1.5 text-right text-gray-500 tabular-nums">{d.dmPct != null ? `${d.dmPct}%` : '—'}</td>
                       <td className={`px-3 py-1.5 text-right font-medium ${d.op < 0 ? 'text-red-500' : 'text-gray-700'}`}>{d.op.toLocaleString('pt-PT')}</td>
                       <td className={`px-3 py-1.5 text-right font-medium ${d.ach === null ? 'text-gray-300' : d.ach >= 100 ? 'text-green-600' : d.ach >= 95 ? 'text-amber-600' : 'text-red-500'}`}>
                         {d.ach !== null ? `${d.ach}%` : '—'}

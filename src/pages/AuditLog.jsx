@@ -47,7 +47,11 @@ function DiffTable({ changed }) {
   if (!changed) return null
   const entries = Object.entries(changed)
   if (entries.length === 0) return null
+  // O `main` do Layout tem overflow-x-hidden, que CORTA o que transborda em vez
+  // de o deixar rolar. Uma tabela larga sem este invólucro não rebenta o
+  // layout — desaparece pela direita, e nada no ecrã diz que há mais.
   return (
+    <div className="overflow-x-auto">
     <table className="w-full text-tiny">
       <tbody>
         {entries.map(([field, { old: oldV, new: newV }]) => (
@@ -60,6 +64,7 @@ function DiffTable({ changed }) {
         ))}
       </tbody>
     </table>
+    </div>
   )
 }
 
@@ -171,7 +176,7 @@ export default function AuditLog() {
 
   if (!isAdmin) {
     return (
-      <div className="p-6 max-w-3xl mx-auto">
+      <div className="p-4 sm:p-6 max-w-6xl mx-auto">
         <EmptyState icon="🔒" title="Admin only"
           description="The audit log is only visible to admins."/>
       </div>

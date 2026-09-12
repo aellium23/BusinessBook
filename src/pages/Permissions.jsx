@@ -57,7 +57,7 @@ export default function Permissions() {
   ]
 
   return (
-    <div className="p-4 space-y-5 max-w-3xl mx-auto">
+    <div className="p-4 sm:p-6 space-y-5 max-w-6xl mx-auto">
       <div className="pt-1">
         <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
           <Shield size={20} className="text-navy"/>{t('perm_title') || 'Permissions'}

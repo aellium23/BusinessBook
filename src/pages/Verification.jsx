@@ -114,7 +114,7 @@ export default function Verification() {
   const agrees = Math.abs(result.total.delta) < 1
 
   return (
-    <div className="p-4 space-y-4 max-w-5xl mx-auto">
+    <div className="p-4 sm:p-6 space-y-4 max-w-6xl mx-auto">
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
         <div>
           <h1 className="text-xl font-bold text-gray-900">{t('vf_title')}</h1>

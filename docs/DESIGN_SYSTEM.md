@@ -126,7 +126,33 @@ dentro do seu próprio `overflow-x-auto`.
 
 ---
 
-## 7. O que falta documentar
+## 7. Larguras, alvos e transbordo — as regras de 12-09
+
+**Duas larguras de página, não sete.** `max-w-6xl` (1152px) nas páginas de
+leitura densa — tabelas, orçamento, histórico, listas com filtros — e
+`max-w-4xl` (896px) em tudo o resto. Padding `p-4 sm:p-6` em todas. Uma página
+sem contentor herda a largura total do `main`, que é a maneira silenciosa de
+criar uma terceira largura: quatro páginas estavam assim.
+
+**Tudo o que se toca tem 44px.** `.btn`, `.input` e `.select` já os têm. Um botão
+escrito à mão com Tailwind cru não — `px-2.5 py-1` dá 26px — e por isso leva
+`min-h-tap`. A conta mede-se, não se estima: quinze botões estavam abaixo.
+
+**O `main` tem `overflow-x-hidden`, e isso CORTA.** Não deixa rolar: esconde.
+Portanto todo o conteúdo genuinamente mais largo do que o ecrã — tabelas,
+kanban, filas de separadores — leva o seu próprio `overflow-x-auto`. Sem ele não
+rebenta o layout; desaparece pela direita, e nada avisa ninguém.
+
+**Grelhas.** Uma ou duas colunas empilham sozinhas e não precisam de nada. Três
+colunas de números curtos cabem em 360px. **De quatro para cima, sempre
+`grid-cols-2 sm:grid-cols-N`** — seis colunas num telemóvel dão 60px cada, onde o
+número cabe e a etiqueta por cima dele não.
+
+**Números em coluna levam `tabular-nums`.** Um número solto numa frase não.
+
+---
+
+## 8. O que falta documentar
 
 | Área | Falta |
 |---|---|
