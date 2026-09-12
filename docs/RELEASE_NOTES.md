@@ -8,6 +8,18 @@ que estava mal não serve para ninguém saber se foi afectado.
 
 ## 2026-09-12
 
+### A proposta de um parceiro abre na taxa do acordo dele
+
+Um Full VAR abre a **40%** de margem, que é o que o acordo lhe dá, em vez dos 35%
+do piso protegido. A estimativa do preço ao cliente no nosso painel usa o mesmo
+número — um número, dois ecrãs.
+
+Os 35% voltam a ser o que sempre foram: o piso que um desconto não deve romper,
+e não o ponto de partida. No negócio `test chile`, a estimativa passa de
+≈100.883 € para ≈109.290 €.
+
+*Isto fecha a última regra que estava por confirmar.*
+
 ### O funil é a porta de entrada, para toda a gente
 
 Abre sempre que a aplicação abre — admin, comercial ou parceiro. Já era o defeito

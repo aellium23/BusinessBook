@@ -455,36 +455,25 @@ nenhum; fica onde está até haver motivo para lhe tocar.
 
 ---
 
-## DOC-01 · ⏳ À TUA ESPERA · Documentação sem autoridade
+## DOC-01 · ✅ FECHADO · Documentação sem autoridade
 
-**O problema era pior do que estava escrito.** Este item dizia "tirar as marcas
-`⚠ POR CONFIRMAR`". Não havia marcas nenhumas: a expressão aparecia **uma vez**,
-no cabeçalho a explicar a convenção, e em nenhuma das quarenta regras. Um leitor
-concluía que estavam todas confirmadas.
+**Eram duas coisas.** O item dizia "tirar as marcas ⚠ POR CONFIRMAR", e não havia
+marcas: a expressão aparecia uma vez, no cabeçalho, e em nenhuma das quarenta
+regras. Um leitor concluía que estavam todas confirmadas — que é pior do que não
+ter marcas, porque um sinal prometido e ausente lê-se como um sinal que passou.
 
-Um sinal prometido e ausente é pior do que sinal nenhum — lê-se como um sinal que
-passou.
+**Fase 1, 11-09.** As quarenta ganharam uma marca, aplicada uma a uma, dizendo de
+onde vem a prova: ✅ confirmado, 📐 facto do código, ⚠ inferido.
 
-**Feito a 11-09.** As quarenta regras levam agora uma marca, aplicada uma a uma,
-e a marca diz **de onde vem a prova**:
+**Fase 2, 12-09.** As 21 ⚠ foram postas ao dono do P&L como perguntas de escolha,
+uma a uma. **Vinte confirmaram o que existe**; uma — a BR-031, o que significam os
+40% do Full VAR — recebeu finalmente resposta e mudou o código.
 
-| | Quantas | Significa |
-|---|---|---|
-| ✅ | 6 | Confirmado pelo dono do P&L, por escrito ou por decisão. Normativa. |
-| 📐 | 13 | Facto do código, verificável sem opinião. Não é política. |
-| ⚠ | 21 | Política que eu inferi e ninguém aprovou. |
+**Estado: 27 ✅, 13 📐, 0 ⚠.**
 
-As 21 estão listadas na secção 8 do `BUSINESS_RULES.md`, agrupadas por assunto e
-escritas como perguntas de sim ou não, para serem despachadas de uma assentada
-sem percorrer o documento.
-
-**Falta:** responderes. Enquanto não responderes, o documento continua a não
-conseguir dizer que o código está errado — que foi como a margem 100× sobreviveu
-três meses.
-
-**A que vale mais:** a **BR-031**, o que significam os 40% do Full VAR. É a única
-⚠ que já sabemos não ter resposta, e é a que ainda deixa dois números a fazer o
-mesmo trabalho em ecrãs diferentes.
+A partir daqui o `BUSINESS_RULES.md` é **normativo**. Uma divergência entre ele e
+o código é um bug do código, e não uma nota de rodapé — que é exactamente a
+propriedade que faltava quando um erro de 100× na margem sobreviveu três meses.
 
 ---
 

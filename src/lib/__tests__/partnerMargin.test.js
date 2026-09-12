@@ -248,14 +248,32 @@ describe('a channel deal, from the transfer list down', () => {
     expect(r.transfer).not.toBe(39344.25)
   })
 
-  it('estimates the customer price at the margin the partner quote opens on', () => {
+  /**
+   * The rate the agreement gives them, not the floor a discount must not break.
+   *
+   * BR-031, decided on 12-09: the Full VAR's 40 % IS the margin the partner is
+   * expected to earn. So it is the number the estimate uses here AND the number
+   * their own quote opens at — one number in two screens. Before that decision
+   * the estimate used the 35 % protected target and their quote opened at 35 %
+   * too, which was coherent but answered a question nobody had asked: 35 is the
+   * floor a discount may not break through, not the starting point.
+   */
+  it('estimates the customer price at the rate the agreement gives them', () => {
     const r = channelEconomics({ listPrice: LIST, transferPrice: LIST, role: 'full_var' })
-    // What TIMED's own screen shows for the same deal: 65,573.75 / 0.65.
-    expect(r.customerPrice).toBe(100882.69)
-    expect(r.partnerMargin).toBe(35308.94)
-    expect(r.partnerMarginPct).toBe(35)
+    // 65,573.75 / 0.60 — a Full VAR keeping their 40 %.
+    expect(r.customerPrice).toBe(109289.58)
+    expect(r.partnerMargin).toBe(43715.83)
+    expect(r.partnerMarginPct).toBe(40)
     // And says it is a guess, because the partner sets that price, not us.
     expect(r.customerEstimated).toBe(true)
+  })
+
+  it('falls back to the protected target for a role with no rate of its own', () => {
+    // A retired role still prices at what it was quoted at; a role at zero has
+    // nothing to fall back ON, so the target stands in rather than a zero
+    // margin, which would put the customer price equal to the transfer.
+    expect(channelEconomics({ listPrice: LIST, transferPrice: LIST, role: 'referral' })
+      .partnerMarginPct).toBe(15)
   })
 
   it('counts a discount off the transfer list as ours, in full', () => {
@@ -365,7 +383,7 @@ describe('when nobody has told us', () => {
       expect(r.belowAbsolute).toBe(false)
       expect(r.underTransfer).toBe(false)
       expect(r.onRoleRate).toBe(false)
-      expect(r.partnerMarginPct).toBe(35)
+      expect(r.partnerMarginPct).toBe(40)
     }
   })
 

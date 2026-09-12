@@ -214,7 +214,14 @@ export function channelEconomics({
   // customer — we do not set the customer's price on a channel deal.
   const discountPct = pct((list - transfer) / list * 100)
   const prog = programmeMarginPct(programme)
-  const assumedMarginPct = prog ?? PROTECTED_MARGIN.target
+  // A taxa do papel é a margem que o acordo diz que o parceiro ganha — decidido
+  // pelo dono do P&L a 12-09, e é o que resolve a BR-031. Um Full VAR fica com
+  // 40% sobre o preço a que vende, e é esse o número que a estimativa usa e é
+  // esse que a proposta dele abre: dois ecrãs, um número.
+  //
+  // Os 35% do PROTECTED_MARGIN voltam a ser o que sempre foram — o piso que um
+  // desconto não deve romper — e ficam como recurso para um papel sem taxa.
+  const assumedMarginPct = prog ?? (r.channelPct || PROTECTED_MARGIN.target)
 
   // What the partner sells it for. Told to us, or — failing that — assumed at
   // the margin we protect for them, which the caller must present as a guess.
