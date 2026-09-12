@@ -1,31 +1,35 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useTranslation } from '../hooks/useTranslation'
 import { Spinner, EmptyState } from '../components/ui'
 import { Shield, Search, ChevronDown, ChevronRight, Plus, Pencil, Trash2, User, AlertCircle, Download } from 'lucide-react'
 
+// Guardam a chave e não o texto: uma constante de módulo é avaliada uma vez, à
+// importação, e um `t()` aqui ficava preso na língua de arranque — trocar de
+// idioma deixava estas duas listas para trás.
 const TABLE_OPTIONS = [
-  { id: '', label: 'All tables' },
-  { id: 'deals',                 label: 'Deals' },
-  { id: 'contacts',              label: 'Contacts' },
-  { id: 'tenders',               label: 'Tenders' },
-  { id: 'tender_requirements',   label: 'Tender requirements' },
-  { id: 'quotas',                label: 'Sales targets (quotas)' },
-  { id: 'attachments',           label: 'Attachments' },
+  { id: '',                      key: 'al_all_tables' },
+  { id: 'deals',                 key: 'nav_deals' },
+  { id: 'contacts',              key: 'nav_contacts' },
+  { id: 'tenders',               key: 'nav_tenders' },
+  { id: 'tender_requirements',   key: 'al_tbl_requirements' },
+  { id: 'quotas',                key: 'al_tbl_quotas' },
+  { id: 'attachments',           key: 'al_tbl_attachments' },
 ]
 
 const ACTIONS = [
-  { id: '',       label: 'All actions' },
-  { id: 'insert', label: 'Create' },
-  { id: 'update', label: 'Update' },
-  { id: 'delete', label: 'Delete' },
+  { id: '',       key: 'al_all_actions' },
+  { id: 'insert', key: 'al_create' },
+  { id: 'update', key: 'al_update' },
+  { id: 'delete', key: 'al_delete' },
 ]
 
-function ActionBadge({ action }) {
+function ActionBadge({ action, t }) {
   const map = {
-    insert: { label: 'Create',  cls: 'bg-green-100 text-green-700', Icon: Plus },
-    update: { label: 'Update',  cls: 'bg-blue-100 text-blue-700',   Icon: Pencil },
-    delete: { label: 'Delete',  cls: 'bg-red-100 text-red-700',     Icon: Trash2 },
+    insert: { label: t('al_create'), cls: 'bg-green-100 text-green-700', Icon: Plus },
+    update: { label: t('al_update'), cls: 'bg-blue-100 text-blue-700',   Icon: Pencil },
+    delete: { label: t('al_delete'), cls: 'bg-red-100 text-red-700',     Icon: Trash2 },
   }
   const m = map[action] || { label: action, cls: 'bg-gray-100 text-gray-600', Icon: User }
   const I = m.Icon
@@ -88,15 +92,15 @@ function Snapshot({ data, title }) {
   )
 }
 
-function toCSV(rows) {
-  const headers = ['Time','Actor','Action','Table','Record','Fields changed']
+function toCSV(rows, t) {
+  const headers = [t('al_csv_time'), t('al_csv_actor'), t('al_csv_action'), t('al_csv_table'), t('al_csv_record'), t('al_fields_changed')]
   const data = rows.map(r => [
     new Date(r.at).toISOString(),
     r.actor_email || '',
     r.action,
     r.table_name,
     r.record_id || '',
-    r.changed ? Object.keys(r.changed).join('; ') : (r.action === 'insert' ? '(created)' : r.action === 'delete' ? '(deleted)' : ''),
+    r.changed ? Object.keys(r.changed).join('; ') : (r.action === 'insert' ? t('al_record_created') : r.action === 'delete' ? t('al_record_deleted') : ''),
   ])
   const csv = [headers, ...data]
     .map(row => row.map(v => {
@@ -115,6 +119,7 @@ function toCSV(rows) {
 
 export default function AuditLog() {
   const { isAdmin } = useAuth()
+  const { t } = useTranslation()
   const [rows, setRows]       = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(null)
@@ -177,8 +182,8 @@ export default function AuditLog() {
   if (!isAdmin) {
     return (
       <div className="p-4 sm:p-6 max-w-6xl mx-auto">
-        <EmptyState icon="🔒" title="Admin only"
-          description="The audit log is only visible to admins."/>
+        <EmptyState icon="🔒" title={t('al_admin_only')}
+          description={t('al_admin_only_desc')}/>
       </div>
     )
   }
@@ -188,14 +193,14 @@ export default function AuditLog() {
       <div className="flex items-start justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Shield size={20} className="text-navy"/> Audit log
+            <Shield size={20} className="text-navy"/> {t('al_title')}
           </h1>
           <p className="text-sm text-gray-400 mt-0.5">
-            Who changed what, and when.
+            {t('al_subtitle')}
           </p>
         </div>
-        <button onClick={() => toCSV(filtered)} className="btn-secondary text-xs">
-          <Download size={13}/> Export
+        <button onClick={() => toCSV(filtered, t)} className="btn-secondary text-xs">
+          <Download size={13}/> {t('al_export')}
         </button>
       </div>
 
@@ -203,27 +208,27 @@ export default function AuditLog() {
       <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-2">
         <div className="relative">
           <Search size={14} className="absolute left-2.5 top-2.5 text-gray-400"/>
-          <input className="input pl-8 w-full" placeholder="Search fields, record id, email, table…"
+          <input className="input pl-8 w-full" placeholder={t('al_search_ph')}
             value={search} onChange={e => setSearch(e.target.value)}/>
         </div>
         <div className="flex gap-2 flex-wrap">
           <select className="select text-xs py-1.5" value={tableF} onChange={e => setTableF(e.target.value)}>
-            {TABLE_OPTIONS.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+            {TABLE_OPTIONS.map(o => <option key={o.id} value={o.id}>{t(o.key)}</option>)}
           </select>
           <select className="select text-xs py-1.5" value={actionF} onChange={e => setActionF(e.target.value)}>
-            {ACTIONS.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+            {ACTIONS.map(o => <option key={o.id} value={o.id}>{t(o.key)}</option>)}
           </select>
           <select className="select text-xs py-1.5 flex-1 min-w-40" value={actorF} onChange={e => setActorF(e.target.value)}>
-            <option value="">All actors</option>
+            <option value="">{t('al_all_actors')}</option>
             {actors.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
           <input type="date" className="select text-xs py-1.5" value={sinceF}
-            onChange={e => setSinceF(e.target.value)} title="Events since"/>
+            onChange={e => setSinceF(e.target.value)} title={t('al_since')}/>
           <select className="select text-xs py-1.5" value={limit} onChange={e => setLimit(Number(e.target.value))}>
-            <option value={100}>Last 100</option>
-            <option value={200}>Last 200</option>
-            <option value={500}>Last 500</option>
-            <option value={1000}>Last 1000</option>
+            <option value={100}>{t('al_last')} 100</option>
+            <option value={200}>{t('al_last')} 200</option>
+            <option value={500}>{t('al_last')} 500</option>
+            <option value={1000}>{t('al_last')} 1000</option>
           </select>
           {(tableF || actionF || actorF || sinceF || search) && (
             <button type="button"
@@ -247,8 +252,8 @@ export default function AuditLog() {
       {loading ? (
         <Spinner/>
       ) : filtered.length === 0 ? (
-        <EmptyState icon="📋" title="No events"
-          description="Try widening the filters or scope."/>
+        <EmptyState icon="📋" title={t('al_none')}
+          description={t('al_none_desc')}/>
       ) : (
         <div className="space-y-1">
           {filtered.map(r => {
@@ -263,7 +268,7 @@ export default function AuditLog() {
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <ActionBadge action={r.action}/>
+                      <ActionBadge action={r.action} t={t}/>
                       <span className="text-xs font-semibold text-gray-800">{r.table_name}</span>
                       <span className="text-micro text-gray-400 font-mono truncate">
                         {r.record_id?.slice(0, 8) || '—'}
@@ -278,7 +283,7 @@ export default function AuditLog() {
                       </span>
                       {r.changed && (
                         <span className="text-micro text-gray-400">
-                          · {Object.keys(r.changed).length} field{Object.keys(r.changed).length !== 1 ? 's' : ''} changed
+                          · {Object.keys(r.changed).length} {t('al_fields_changed')}
                         </span>
                       )}
                     </div>
@@ -290,7 +295,7 @@ export default function AuditLog() {
                     {r.changed && <DiffTable changed={r.changed}/>}
                     {r.snapshot && (
                       <Snapshot data={r.snapshot}
-                        title={r.action === 'insert' ? 'Created record' : 'Deleted record'}/>
+                        title={r.action === 'insert' ? t('al_record_created') : t('al_record_deleted')}/>
                     )}
                   </div>
                 )}

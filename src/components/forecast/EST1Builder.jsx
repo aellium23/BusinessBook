@@ -9,6 +9,11 @@ import { useLoadFailures, LoadFailureBanner } from '../../hooks/useLoadFailures'
 
 const MONTHS_LABEL = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 
+// Os nomes de linha do EST1 — `A. Product sales`, `B. Maintenance`,
+// `C. Rental / MES / OPEX`, `Total revenue`, `Internal Sales — VGT (FFPT)` —
+// ficam em inglês de propósito, como os códigos de coluna do P&L no History.
+// São os nomes do próprio impresso da Fujifilm e é contra ele que esta tabela é
+// conferida; traduzi-los torna a reconciliação mais difícil, não mais fácil.
 const PRODUCT_ROWS = ['PACS', 'VNA', 'RIS', 'Synapse 3D', 'Pathology/DP', 'Others']
 const REGION_ROWS = ['Spain', 'UK', 'Other Europe', 'Mexico', 'Other Latin America', 'Middle East', 'Other regions']
 const FTE_FUNCTIONS = ['BU head', 'Account sales', 'Sales admin', 'Product specialist', 'Project manager', 'Engineer', 'QA / RA', 'R&D']
@@ -98,7 +103,7 @@ function halfAmounts(deal) {
 function k(v) { return v ? (v / 1000).toFixed(1) : '—' }
 function kNum(v) { return v ? (v / 1000).toFixed(1) : '0' }
 
-function CopyButton({ label, rows }) {
+function CopyButton({ label, rows, t }) {
   const [copied, setCopied] = useState(false)
   const handle = async () => {
     const tsv = rows.map(r => r.join('\t')).join('\n')
@@ -113,7 +118,7 @@ function CopyButton({ label, rows }) {
   return (
     <button onClick={handle}
       className="min-h-tap flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors">
-      {copied ? <><Check size={12} className="text-green-600"/> Copied</> : <><Copy size={12}/> {label}</>}
+      {copied ? <><Check size={12} className="text-green-600"/> {t('est1_copied')}</> : <><Copy size={12}/> {label}</>}
     </button>
   )
 }
@@ -354,7 +359,7 @@ export default function EST1Builder() {
           <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
             <input type="checkbox" checked={weighted} onChange={e => setWeighted(e.target.checked)}
               className="rounded border-gray-300"/>
-            Weight by stage
+            {t('forecast_weight_stage')}
           </label>
           <span className="text-micro text-gray-400 ml-auto">
             {scopeDeals.length} deals{includeArr ? ` + ${scopeSlas.length} SLAs` : ''}
@@ -370,16 +375,16 @@ export default function EST1Builder() {
         </div>
         <div className="flex items-center gap-4 text-xs">
           <div className="text-center">
-            <p className="text-micro text-gray-400">External (tbl)</p>
+            <p className="text-micro text-gray-400">{t('forecast_external')}</p>
             <p className="font-bold text-amber-700">{k(productTotalFY)}</p>
           </div>
           <div className="text-center">
-            <p className="text-micro text-gray-400">Internal (tbl)</p>
+            <p className="text-micro text-gray-400">{t('forecast_internal')}</p>
             <p className="font-bold text-blue-700">{k(internalTotalFY)}</p>
           </div>
           {unallocated.total > 0 && (
             <div className="text-center border-l border-gray-300 pl-4">
-              <p className="text-micro text-red-400">Unallocated</p>
+              <p className="text-micro text-red-400">{t('forecast_unallocated')}</p>
               <p className="font-bold text-red-500">{k(unallocated.total)}</p>
               <p className="text-micro text-gray-400">
                 E {k(unallocated.ext)} · I {k(unallocated.int)}
@@ -396,7 +401,7 @@ export default function EST1Builder() {
             <Package size={15} className="text-navy"/> Sales by Product — {bu} {bu === 'VGT' ? '(FFPT)' : '(HCES)'}
           </h3>
           <div className="flex items-center gap-2">
-            <CopyButton label="Copy table" rows={salesClipboard}/>
+            <CopyButton label={t('est1_copy_table')} rows={salesClipboard} t={t}/>
             <button onClick={() => exportSalesByProduct(sales, bu)}
               className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border border-green-200 bg-white hover:bg-green-50 text-green-700 transition-colors">
               <Download size={12}/> Excel
@@ -469,7 +474,7 @@ export default function EST1Builder() {
               <Building2 size={15} className="text-navy"/> Internal Sales — VGT (FFPT)
             </h3>
             <div className="flex items-center gap-2">
-              <CopyButton label="Copy table" rows={internalClipboard}/>
+              <CopyButton label={t('est1_copy_table')} rows={internalClipboard} t={t}/>
               <button onClick={() => exportInternalSales(internal, bu)}
                 className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border border-green-200 bg-white hover:bg-green-50 text-green-700 transition-colors">
                 <Download size={12}/> Excel
@@ -520,7 +525,7 @@ export default function EST1Builder() {
             </table>
           </div>
           <p className="px-4 py-2 text-micro text-gray-400 border-t border-gray-50">
-            Internal deals are matched to regions from the trading partner / client name. Margin % (MP) is entered manually in the HQ Excel.
+            {t('est1_internal_note')}
           </p>
         </section>
       )}

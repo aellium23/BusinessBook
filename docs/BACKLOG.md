@@ -584,9 +584,24 @@ clientes do `History` dizia `Clientes`, e o `UsersTab` tinha `Cancelar`,
 ficheiros ingleses, invisível para quem lê em inglês e errado para quem lê em
 espanhol.
 
-**O que falta**, por ordem: `EST1Builder` (14), `AuditLog` (13),
-`ProductLineItems` (12), `SalesOverlayConfig` (12), e a cauda. É ficheiro a
-ficheiro e cada string precisa de uma chave e de três traduções.
+**Medido outra vez a 12-09, com uma contagem melhor:** 304 strings em 53
+ficheiros. A contagem antiga apanhava siglas e nomes de função como se fossem
+texto; esta ignora comentários, siglas (VGT, ECT, PACS, SLA…) e o HelpGuide.
+
+Feitos nesse dia: os filtros dos Negócios, a página de Clientes, o auto de
+receção, o `RolesTab`, o `AuditLog` e a parte do `EST1Builder` que é nossa.
+**Restam 269**, dos quais ~19 ficam em inglês de propósito.
+
+**Por ordem, o que falta:** `RequirementsMatrix` (12), `ContactsList` (11),
+`Settings` (11), `ProjectTCO`, `ForecastCalendar`, `Accounts` e `WhiteSpace` (10
+cada), e a cauda em 45 ficheiros.
+
+**O padrão que se repete**, e que vale mais do que a contagem: em quase todos os
+casos **a tradução já existia** e o ecrã tinha o inglês escrito à mão ao lado da
+chave. Nos Negócios eram `df_stage`, `df_region`, `df_product`; no `EST1Builder`
+eram `forecast_weight_stage`, `forecast_unallocated`, `forecast_external`,
+`forecast_internal`; no `RolesTab` estavam lá as três línguas todas. Não é
+trabalho de tradução — é de ligação.
 
 **Nota sobre a contagem:** é grosseira — texto entre tags e
 `placeholder`/`title` com palavras que começam por maiúscula. Serve para ordenar
