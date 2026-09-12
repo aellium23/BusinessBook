@@ -172,21 +172,21 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
           {/* Name + Role */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="label">Full Name</label>
+              <label className="label">{t('ut_full_name')}</label>
               <input className="input text-sm" value={editName}
                 onChange={e => setEditName(e.target.value)}
-                placeholder="User full name" style={{ fontSize: '16px' }}/>
+                placeholder={t('ut_full_name_ph')} style={{ fontSize: '16px' }}/>
             </div>
             <div>
-              <label className="label">Role</label>
+              <label className="label">{t('users_role')}</label>
               <select className="select text-sm" value={editRole}
                 onChange={e => setEditRole(e.target.value)}>
-                <option value="admin">Admin</option>
-                <option value="manager">Manager</option>
-                <option value="member">Member</option>
-                <option value="distributor">Distributor</option>
-                <option value="viewer">Viewer</option>
-                <option value="partner">Partner</option>
+                <option value="admin">{t('ut_role_admin')}</option>
+                <option value="manager">{t('ut_role_manager')}</option>
+                <option value="member">{t('ut_role_member')}</option>
+                <option value="distributor">{t('ut_role_distributor')}</option>
+                <option value="viewer">{t('ut_role_viewer')}</option>
+                <option value="partner">{t('ut_role_partner')}</option>
               </select>
             </div>
           </div>
@@ -242,7 +242,7 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
 
           {/* Business Unit (direct) */}
           <div>
-            <label className="label">Business Unit</label>
+            <label className="label">{t('ut_bu')}</label>
             <select className="select text-sm" value={profile.bu || ''}
               onChange={async (e) => {
                 await supabase.from('profiles').update({ bu: e.target.value || null }).eq('id', profile.id)
@@ -256,7 +256,7 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
 
           {/* Company: the home one, and any others they act for. */}
           <div>
-            <label className="label">Home company</label>
+            <label className="label">{t('ut_home_company')}</label>
             <select className="select text-sm" value={profile.company_id || ''}
               onChange={async (e) => {
                 const next = e.target.value || null
@@ -285,7 +285,7 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
 
           {/* Discount approval brands */}
           <div>
-            <label className="label">Discount Approver for Brands</label>
+            <label className="label">{t('ut_approver_brands')}</label>
             <div className="flex flex-wrap gap-1.5">
               {['Fujifilm', 'Medsky'].map(b => {
                 const current = Array.isArray(profile.approves_brands) ? profile.approves_brands : []
@@ -318,10 +318,10 @@ function UserCard({ profile, permSets, companies, salesOwners, onSaved, isSelf }
           </div>
 
           <div className="flex gap-2">
-            <button onClick={() => setOpen(false)} className="btn-secondary flex-1 text-xs">Cancelar</button>
+            <button onClick={() => setOpen(false)} className="btn-secondary flex-1 text-xs">{t('cancel')}</button>
             <button onClick={save} disabled={saving || isSelf}
               className="btn-primary flex-1 text-xs">
-              {saving ? <RefreshCw size={12} className="animate-spin mx-auto"/> : saved ? '✓ Guardado' : 'Guardar'}
+              {saving ? <RefreshCw size={12} className="animate-spin mx-auto"/> : saved ? `✓ ${t('ut_saved')}` : t('save')}
             </button>
           </div>
           {isSelf && <p className="text-micro text-amber-600 text-center">Não podes editar o teu próprio perfil.</p>}
@@ -467,7 +467,7 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
       <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="label">Nome (opcional)</label>
+            <label className="label">{t('ut_name_optional')}</label>
             <input className="input" value={name} onChange={e => setName(e.target.value)}
               style={{fontSize:'16px'}}/>
           </div>
@@ -477,7 +477,7 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
               style={{fontSize:'16px'}}/>
           </div>
           <div className="sm:col-span-2">
-            <label className="label">Permission Set *</label>
+            <label className="label">{t('ut_permission_set')}</label>
             <div className="grid grid-cols-2 gap-1.5">
               {permSets.map(p => (
                 <button key={p.id} onClick={() => setPsId(p.id)}
@@ -493,7 +493,7 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
             </div>
           </div>
           <div>
-            <label className="label">Business Unit</label>
+            <label className="label">{t('ut_bu')}</label>
             <select className="select" value={buSel} onChange={e => setBuSel(e.target.value)}>
               <option value="">— Derive from company —</option>
               <option value="VGT">VGT</option>
@@ -513,7 +513,7 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
             </select>
           </div>
           <div>
-            <label className="label">Sales Owner</label>
+            <label className="label">{t('ut_sales_owner')}</label>
             <select className="select" value={ownerId} onChange={e => setOwner(e.target.value)}>
               <option value="">— Sem ligação —</option>
               {salesOwners.filter(o=>o.active).map(o => (
@@ -532,7 +532,7 @@ function InviteSection({ companies, salesOwners, permSets, onSaved }) {
 
         <button onClick={handleInvite} disabled={!email.trim() || sending}
           className="btn-primary w-full disabled:opacity-50">
-          {sending ? <RefreshCw size={14} className="animate-spin mx-auto"/> : <><Mail size={14}/><span>Convidar utilizador</span></>}
+          {sending ? <RefreshCw size={14} className="animate-spin mx-auto"/> : <><Mail size={14}/><span>{t('ut_invite')}</span></>}
         </button>
       </div>
     </div>
@@ -624,6 +624,7 @@ export default function UsersTab({ profiles, permSets, companies, salesOwners, u
  * call waiting to happen.
  */
 function CompanyMemberships({ profile, companies, onSaved }) {
+  const { t } = useTranslation()
   const [ids, setIds] = useState(null)
   const [busy, setBusy] = useState(false)
 
@@ -652,7 +653,7 @@ function CompanyMemberships({ profile, companies, onSaved }) {
 
   return (
     <div>
-      <label className="label">Also acts for</label>
+      <label className="label">{t('ut_acts_for')}</label>
       <div className="flex flex-wrap gap-1.5">
         {companies.map(c => {
           const home = c.id === profile.company_id

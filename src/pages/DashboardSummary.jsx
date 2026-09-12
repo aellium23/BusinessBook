@@ -148,22 +148,22 @@ function DistributorDashboard() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="card p-4">
-          <p className="text-micro text-gray-500">Pipeline</p>
+          <p className="text-micro text-gray-500">{t('ds_pipeline')}</p>
           <p className="text-xl font-bold text-navy mt-1">{formatK(pipelineValue)}</p>
           <p className="text-micro text-gray-400">{myDeals.filter(d => !['Invoiced','Lost'].includes(d.stage)).length} deals</p>
         </div>
         <div className="card p-4">
-          <p className="text-micro text-gray-500">Invoiced YTD</p>
+          <p className="text-micro text-gray-500">{t('ds_invoiced_ytd')}</p>
           <p className="text-xl font-bold text-green-600 mt-1">{formatK(actuals)}</p>
           <p className="text-micro text-gray-400">{stageCounts['Invoiced'] || 0} deals</p>
         </div>
         <div className="card p-4">
-          <p className="text-micro text-gray-500">Forecast YTD</p>
+          <p className="text-micro text-gray-500">{t('ds_forecast_ytd')}</p>
           <p className="text-xl font-bold text-blue-600 mt-1">{formatK(forecast)}</p>
-          <p className="text-micro text-gray-400">Invoiced + BackLog</p>
+          <p className="text-micro text-gray-400">{t('ds_fc_basis')}</p>
         </div>
         <div className="card p-4">
-          <p className="text-micro text-gray-500">Total Deals</p>
+          <p className="text-micro text-gray-500">{t('ds_total_deals')}</p>
           <p className="text-xl font-bold text-gray-700 mt-1">{myDeals.length}</p>
           <p className="text-micro text-gray-400">all stages</p>
         </div>
@@ -181,7 +181,7 @@ function DistributorDashboard() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-3xl font-bold text-gray-900">{formatK(target)}</p>
-              <p className="text-xs text-gray-400 mt-0.5">Annual target</p>
+              <p className="text-xs text-gray-400 mt-0.5">{t('ds_annual_target')}</p>
             </div>
             <div className="text-right">
               <p className="text-lg font-bold" style={{ color: actPct >= 95 ? '#16A34A' : actPct >= 70 ? '#D97706' : '#DC2626' }}>
@@ -193,7 +193,7 @@ function DistributorDashboard() {
           <div className="space-y-2">
             <div>
               <div className="flex justify-between text-xs text-gray-500 mb-1">
-                <span>Actuals</span>
+                <span>{t('dash_actuals')}</span>
                 <span className="font-medium">{formatK(actuals)}</span>
               </div>
               <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -203,7 +203,7 @@ function DistributorDashboard() {
             </div>
             <div>
               <div className="flex justify-between text-xs text-gray-500 mb-1">
-                <span>Forecast</span>
+                <span>{t('dash_forecast')}</span>
                 <span className="font-medium">{formatK(forecast)}</span>
               </div>
               <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -223,8 +223,8 @@ function DistributorDashboard() {
       {!target && (
         <div className="card p-6 text-center bg-gray-50 border-dashed">
           <Target size={24} className="mx-auto text-gray-300 mb-2"/>
-          <p className="text-sm text-gray-500">No sales target set for your company yet.</p>
-          <p className="text-xs text-gray-400 mt-1">Contact your account manager to set a target.</p>
+          <p className="text-sm text-gray-500">{t('ds_no_target')}</p>
+          <p className="text-xs text-gray-400 mt-1">{t('ds_no_target_hint')}</p>
         </div>
       )}
 
@@ -542,7 +542,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
           </p>
           <div className="ml-auto flex items-center gap-2">
             {/* Actuals source toggle: BB (CRM deals) vs SAP (official P&L) */}
-            <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg" title="Source of the actual sales values">
+            <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg" title={t('ds_source_title')}>
               {['BB', 'SAP'].map(s => (
                 <button key={s} onClick={() => setSource(s)} disabled={s === 'SAP' && !hasSap}
                   className={`text-micro font-semibold px-2 py-0.5 rounded-md transition-colors ${
@@ -600,10 +600,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
         {/* Explainer — right below the gauge grid */}
         <div className="card p-4 bg-gray-50 border-dashed mt-3">
           <p className="text-xs text-gray-500 leading-relaxed">
-            <strong className="text-gray-700">How to read this:</strong> the gauges compare actuals to the Budget for the same months (FY26 year-to-date).
-            Use the <strong>BB / SAP</strong> toggle to switch the actuals source — <strong>BB</strong> sums invoiced deals from the CRM, <strong>SAP</strong> uses the official P&amp;L (budget ACT cycle).
-            The BB / SAP line under each gauge shows both, and the ▲ gap flags sales booked in SAP but not yet tracked as deals in the CRM.
-            Colour reflects performance against target — red &lt; 70%, amber 70–95%, green ≥ 95%.
+            <strong className="text-gray-700">{t('ds_howto_lead')}</strong> {t('ds_howto_body')}
           </p>
         </div>
       </div>
@@ -611,23 +608,23 @@ export default function DashboardSummary({ selectedBU = '' }) {
 
       {/* Public vs Private */}
       {(publicPrivate.total_pipe > 0 || publicPrivate.total_inv > 0) && (
-        <CollapsibleSection id="pub_priv" title="Public vs Private" icon={<Target size={12}/>}>
+        <CollapsibleSection id="pub_priv" title={t('ds_pub_priv')} icon={<Target size={12}/>}>
         <div className="card p-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-blue-50 rounded-lg p-2 text-center">
-              <p className="text-micro text-gray-500">Public Pipeline</p>
+              <p className="text-micro text-gray-500">{t('ds_public_pipe')}</p>
               <p className="text-lg font-bold text-blue-700">{formatK(publicPrivate.pub_pipe)}</p>
             </div>
             <div className="bg-purple-50 rounded-lg p-2 text-center">
-              <p className="text-micro text-gray-500">Private Pipeline</p>
+              <p className="text-micro text-gray-500">{t('ds_private_pipe')}</p>
               <p className="text-lg font-bold text-purple-700">{formatK(publicPrivate.priv_pipe)}</p>
             </div>
             <div className="bg-blue-50 rounded-lg p-2 text-center">
-              <p className="text-micro text-gray-500">Public Invoiced</p>
+              <p className="text-micro text-gray-500">{t('ds_public_inv')}</p>
               <p className="text-lg font-bold text-blue-700">{formatK(publicPrivate.pub_inv)}</p>
             </div>
             <div className="bg-purple-50 rounded-lg p-2 text-center">
-              <p className="text-micro text-gray-500">Private Invoiced</p>
+              <p className="text-micro text-gray-500">{t('ds_private_inv')}</p>
               <p className="text-lg font-bold text-purple-700">{formatK(publicPrivate.priv_inv)}</p>
             </div>
           </div>
@@ -683,7 +680,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
               </p>
             </div>
             <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-micro text-gray-500">Auto Forecast</p>
+              <p className="text-micro text-gray-500">{t('ds_auto_forecast')}</p>
               <p className="text-xl font-bold text-gray-700">{formatK(pipeline.vgt + pipeline.ect)}</p>
               <p className="text-micro text-gray-400">from deals pipeline</p>
             </div>
@@ -714,7 +711,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
               })()}
             </div>
             <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-micro text-gray-500">SLA Pipeline</p>
+              <p className="text-micro text-gray-500">{t('ds_sla_pipeline')}</p>
               <p className="text-xl font-bold text-gray-600">{formatK(slaStats.pipelineValue)}</p>
               <a href="/sla" className="text-micro text-blue-600 hover:underline">{t('dash_view_contracts') || 'View contracts →'}</a>
             </div>
