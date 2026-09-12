@@ -30,6 +30,7 @@ import { dealLines } from '../../lib/dealLines'
 import { authMapOf, authorisedProducts, authorisedCountries,
          hasAuthorisations, authKey, partnerLineCost } from '../../lib/partnerCatalogue'
 import SearchableSelect from '../SearchableSelect'
+import ClientDuplicateHint from '../ClientDuplicateHint'
 import { formatK, Spinner } from '../ui'
 import { X, Check, ChevronDown, ChevronRight, Paperclip } from 'lucide-react'
 import AttachmentsList from '../AttachmentsList'
@@ -1159,6 +1160,10 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
             onCreateNew={q => q && setClient(q)}
             createLabel={t('qd_client_new')}
           />
+          {/* O sítio onde os duplicados nascem: escrever o nome em vez de o
+              escolher. Sugere-se, não se corrige — dois hospitais parecidos
+              existem, e o nome escrito continua a valer. */}
+          <ClientDuplicateHint value={client} existing={clients} onPick={setClient}/>
         </div>
         <div>
           <label className="label">{t('qd_country')} <span className="text-red-500">*</span></label>

@@ -8,6 +8,7 @@ import { REGIONS } from '../constants'
 import { regionOf, countriesOf } from '../lib/regions'
 import { X } from 'lucide-react'
 import SearchableSelect from './SearchableSelect'
+import ClientDuplicateHint from './ClientDuplicateHint'
 
 /**
  * A deal, in four fields, from inside something else — a tender, a task.
@@ -102,6 +103,8 @@ export default function QuickDealForm({ initialClient = '', onCancel, onCreated 
           createLabel={t('qdf_new_client')}
           size="sm"
         />
+        <ClientDuplicateHint value={form.client} existing={existingClients}
+          onPick={v => set('client', v)}/>
       </div>
 
       <div className="grid grid-cols-2 gap-2">

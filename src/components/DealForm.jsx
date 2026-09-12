@@ -14,6 +14,7 @@ import { useTranslation } from '../hooks/useTranslation'
 import AttachmentsList from './AttachmentsList'
 import ContactsList from './ContactsList'
 import SearchableSelect from './SearchableSelect'
+import ClientDuplicateHint from './ClientDuplicateHint'
 import ProductLineItems from './ProductLineItems'
 import { BUSINESS_MODELS, RECURRING_MODELS, normalizeBusinessModel, REGIONS, COUNTRY_MAP, MONTHS, MONTHS_K, DIST_STAGES, regionForCountry } from '../constants'
 import { saveDealProducts } from '../hooks/useDealProducts'
@@ -598,6 +599,21 @@ export default function DealForm({ deal, onClose, onSaved }) {
           {fieldErrors.client && <p className="text-tiny text-red-500 mt-0.5">{fieldErrors.client}</p>}
           {form.client && !form.account_id && !fieldErrors.client && (
             <p className="text-micro text-amber-500 mt-1">{t("df_custom_client")} {form.client} {t("df_not_linked")}</p>
+          )}
+          {/* Só quando o nome não está ligado a uma conta: um negócio já ligado
+              tem a entidade escolhida, e a dúvida está resolvida. Aqui aceitar a
+              sugestão liga a conta — é a diferença entre deixar de criar um
+              duplicado e apenas escrevê-lo melhor. */}
+          {!form.account_id && (
+            <ClientDuplicateHint
+              value={form.client}
+              existing={accountsForBU.map(a => a.name)}
+              onPick={name => {
+                const acc = accountsForBU.find(a => a.name === name)
+                set('client', name)
+                set('account_id', acc?.id || null)
+              }}
+            />
           )}
         </div>
         {/* Location, owner & billing — collapsed by default (set when needed) */}

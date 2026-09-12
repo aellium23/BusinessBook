@@ -400,6 +400,25 @@ uma falha põe uma linha âmbar no ecrã com o nome do que falta.
 a pessoa escreveu na caixa com ar de guardado, e não se soma esse número a
 nenhum total no ecrã.
 
+⚠ **BR-063 — Um cliente provavelmente repetido avisa-se antes de nascer.**
+*⚠ — regra nova, por confirmar*
+Enquanto o nome é escrito, compara-se com os clientes que já existem e o ecrã
+diz o que encontrou. Três formas do mesmo erro: o nome idêntico depois de
+normalizar (acentos, maiúsculas, `, S.A.`), um nome cortado por uma importação,
+e uma gralha de uma ou duas letras. `src/lib/clientMatch.js` — a normalização é
+propositadamente a mesma do SQL de limpeza: se as duas discordarem, uma cria o
+que a outra tenta juntar.
+
+**Sugere, não corrige.** Aceitar é um toque; não tocar mantém o que se escreveu.
+Um nome de cliente é uma decisão de quem vende, e há hospitais genuinamente
+parecidos — quatro Unidades Locais de Saúde diferentes estão na tabela hoje.
+
+**E cala-se quando não sabe.** Um nome curto que é o princípio de outro só se
+sugere com dez caracteres e três quartos do comprimento do maior. `Remagna` é o
+princípio de sete clínicas diferentes; sugerir uma delas trocaria um duplicado
+por um negócio arquivado no sítio errado. O limiar veio de ver a regra falhar
+exactamente aí, no preview da limpeza por SQL.
+
 ---
 
 ## Regras que ficaram por formalizar
@@ -415,8 +434,9 @@ nenhum total no ecrã.
 
 ## 8. O que falta confirmares
 
-**Nada.** As quarenta regras estão confirmadas ou são facto do código — vinte e
-seis ✅ e catorze 📐, a 12 de Setembro de 2026.
+**Uma:** a BR-063, o aviso de cliente repetido, nasceu hoje e está por confirmar.
+As restantes quarenta estão confirmadas ou são facto do código — vinte e seis ✅
+e catorze 📐, a 12 de Setembro de 2026.
 
 A partir daqui este documento é **normativo**: uma divergência entre ele e o
 código é um bug do código, não uma nota de rodapé. Foi assim que um erro de 100×
