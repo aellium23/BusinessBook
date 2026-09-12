@@ -6,11 +6,12 @@ import { useDebounce } from '../hooks/useDebounce'
 import { BUBadge, formatK, Spinner, EmptyState, Modal } from '../components/ui'
 import DealForm from '../components/DealForm'
 import MergeClientsModal from '../components/MergeClientsModal'
+import SearchableSelect from '../components/SearchableSelect'
 import { Search, MapPin, RefreshCw, Plus, Pencil, GitMerge, Check, Building2 } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 import { REGIONS, COUNTRY_MAP } from '../constants'
 
-function ClientFormModal({ client, distributors, onClose, onSaved }) {
+function ClientFormModal({ client, accounts, distributors, onClose, onSaved }) {
   const { t } = useTranslation()
   const isEdit = !!client?.id
   const [form, setForm] = useState({
@@ -20,11 +21,34 @@ function ClientFormModal({ client, distributors, onClose, onSaved }) {
     bu:             client?.bu             || 'VGT',
     client_type:    client?.client_type    || 'public',
     distributor_id: client?.distributor_id || '',
+    parent_id:      client?.parent_id      || '',
     notes:          client?.notes          || '',
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
+
+  /**
+   * Um cliente não pode ser pai de si próprio, nem de quem já está por baixo
+   * dele: era assim que se fazia um grupo que se contém, e a soma do grupo
+   * passava a correr para sempre à procura do fim da lista.
+   */
+  const parentOptions = useMemo(() => {
+    const blocked = new Set()
+    if (isEdit) {
+      blocked.add(client.id)
+      const byParent = new Map()
+      accounts.forEach(a => {
+        if (!byParent.has(a.parent_id)) byParent.set(a.parent_id, [])
+        byParent.get(a.parent_id).push(a.id)
+      })
+      const walk = id => (byParent.get(id) || []).forEach(c => { blocked.add(c); walk(c) })
+      walk(client.id)
+    }
+    return accounts
+      .filter(a => !blocked.has(a.id) && (!form.bu || a.bu === form.bu))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [accounts, client?.id, isEdit, form.bu])
 
   async function handleSave() {
     if (!form.name.trim()) { setError('Name is required'); return }
@@ -36,6 +60,7 @@ function ClientFormModal({ client, distributors, onClose, onSaved }) {
       bu: form.bu || 'VGT',
       client_type: form.client_type || 'public',
       distributor_id: form.distributor_id || null,
+      parent_id: form.parent_id || null,
       notes: form.notes || null,
     }
     const res = isEdit
@@ -109,6 +134,20 @@ function ClientFormModal({ client, distributors, onClose, onSaved }) {
             </select>
           </div>
         )}
+        {/* O grupo estava só em Contas, que é outra página. Quem olha para a
+            faturação por cliente é aqui que a vê, e era aqui que não podia
+            dizer que duas fichas são a mesma casa. */}
+        <div>
+          <label className="label">{t('accounts_parent')}</label>
+          <SearchableSelect
+            value={form.parent_id}
+            onChange={v => set('parent_id', v || '')}
+            options={parentOptions.map(a => ({ value: a.id, label: a.name, hint: a.country || a.bu }))}
+            placeholder={t('cli_search_ph')}
+            emptyLabel="—"
+          />
+          <p className="text-micro text-gray-400 mt-0.5">{t('cli_parent_hint')}</p>
+        </div>
         <div>
           <label className="label">{t('accounts_notes')}</label>
           <textarea className="input min-h-[60px] resize-none" value={form.notes} onChange={e => set('notes', e.target.value)}/>
@@ -491,6 +530,7 @@ export default function Clients() {
       {formOpen && (
         <ClientFormModal
           client={editClient}
+          accounts={accounts}
           distributors={distributors}
           onClose={() => { setFormOpen(false); setEditClient(null) }}
           onSaved={() => { setFormOpen(false); setEditClient(null); refresh() }}
