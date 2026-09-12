@@ -227,7 +227,26 @@ históricos é um acto, não um efeito secundário.
 A pertença está em `company_members`, e a função `acts_for()` é a única pergunta
 que as políticas fazem.
 
-📐 **BR-041 — A unidade de um parceiro é a empresa, não a pessoa.**  
+📐 **BR-044 — As vistas pessoais filtram por dono; as corporativas não.**
+O funil de um comercial e o painel dele mostram a carteira dele. O orçamento, as
+vendas por cliente e a reconciliação com o SAP mostram tudo, porque é para isso
+que existem.
+
+**É um filtro de vista, não uma permissão.** Nada é escondido da base de dados:
+esconder linhas partiria o reporte, e há 250 negócios — 6 M€, dos quais 3,1 M€ de
+BackLog — que vieram de três importações e não são carteira de ninguém.
+
+**"É meu" tem uma definição só**, em `src/lib/dealOwner.js`: o comercial
+atribuído, depois o nome completo do perfil, e por fim quem o criou. Apara
+espaços e ignora maiúsculas; **não** adivinha a partir de um primeiro nome —
+medido a 12-09, quinze negócios dizem `Elio` e um diz `Elio Santos`, e numa vista
+pessoal um palpite errado mostra a carteira de outra pessoa.
+
+**Um funil vazio por filtro diz porquê.** Quantos ficaram de fora, e quantos
+desses não são de ninguém. Um funil vazio sem explicação lê-se como "não tens
+pipeline" — é o BR-062 aplicado a um filtro em vez de a uma leitura falhada.
+
+**BR-041 — A unidade de um parceiro é a empresa, não a pessoa.**  
 *📐 — é o que a política faz*
 Um negócio da empresa é editável por qualquer pessoa que aja por ela, seja quem
 for que o criou.

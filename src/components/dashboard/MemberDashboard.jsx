@@ -5,6 +5,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { supabase } from '../../lib/supabase'
 import { formatK, Spinner } from '../ui'
 import { MONTHS_K } from '../../constants'
+import { ownsDeal } from '../../lib/dealOwner'
 import { Target, TrendingUp, ChevronRight } from 'lucide-react'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useLoadFailures, LoadFailureBanner } from '../../hooks/useLoadFailures'
@@ -69,8 +70,10 @@ export default function MemberDashboard() {
 
   // My own deals
   const myDeals = useMemo(() =>
-    allDeals.filter(d => d.sales_owner === myName && !d.is_intercompany_mirror),
-  [allDeals, myName])
+    // A mesma pergunta que o funil e o `canEditDeal` fazem, e vinda do mesmo
+    // sítio: um `===` sobre o nome falhava num espaço a mais ou numa maiúscula.
+    allDeals.filter(d => ownsDeal(profile, d) && !d.is_intercompany_mirror),
+  [allDeals, profile])
 
   // Overlay credit deals (other reps' deals that credit to me, by product match)
   const overlayDeals = useMemo(() => {

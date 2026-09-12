@@ -132,7 +132,7 @@ export default function DashboardIndex() {
         <ViewPicker label={t('dash_title')} value={distView} onChange={setDistView}
           options={viewsFor({ t, role: 'distributor' })} />
         {distView === 'funnel'
-          ? <InstaxFunnel selectedBU="" />
+          ? <InstaxFunnel selectedBU="" owner={profile} />
           : <DashboardClassic selectedBU="" />}
       </div>
     )
@@ -150,7 +150,12 @@ export default function DashboardIndex() {
         </div>
         <ViewPicker label={t('dash_title')} value={memberView} onChange={setMemberView}
           options={viewsFor({ t, role: 'member' })} />
-        {memberView === 'funnel' ? <InstaxFunnel selectedBU={profile?.bu || ''} /> : <MemberDashboard />}
+        {/* O funil de um comercial é a carteira dele. É um filtro de vista, não
+            uma permissão: o que fica de fora continua a contar no orçamento, nas
+            vendas por cliente e na reconciliação com o SAP. */}
+        {memberView === 'funnel'
+          ? <InstaxFunnel selectedBU={profile?.bu || ''} owner={profile} />
+          : <MemberDashboard />}
       </div>
     )
   }
