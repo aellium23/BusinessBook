@@ -591,3 +591,53 @@ ficheiro e cada string precisa de uma chave e de três traduções.
 **Nota sobre a contagem:** é grosseira — texto entre tags e
 `placeholder`/`title` com palavras que começam por maiúscula. Serve para ordenar
 os ficheiros por tamanho do problema, não para reportar progresso ao décimo.
+
+---
+
+## DATA-04 · P1 · O número de cliente do SAP existe e não se pode usar
+
+**O quê.** O `Sold-to` — o número de cliente do SAP, que é a identidade fiscal e
+o critério que o P&L owner usa para decidir se duas linhas são o mesmo cliente —
+está guardado **dentro do campo de texto livre `deals.description`**, no fim, a
+seguir a um `|`:
+
+```
+Medportal 14158.80€ | Contract: 1131268517 | Sold-to: 4500074509
+```
+
+Não é uma coluna. Não se pesquisa, não se agrupa, não se junta a nada, e
+sobrevive por acaso — porque alguém o colou ali e ninguém apagou.
+
+**O que ele resolve, medido.** A 12-09, na limpeza dos clientes com produto
+dentro do nome, o `Sold-to` confirmou sozinho a divisão inteira:
+
+| unidade | Sold-to |
+|---|---|
+| Remagna CRP | 244027 nos dois negócios |
+| Remagna Paiva Raposo | 244026 nos dois |
+| Remagna Montijo/Odivelas/Portalegre | 243933 nos dois |
+| Casa de Saúde de São Mateus | 186970 no Medportal e no PACS |
+| Intercir | 127737 nos dois |
+| IPO Porto | 127367 no voz e no AI |
+| Hospital de Carabineros | 4500074509 nos dois |
+| Steward Nevados | 4500069461 nos dois |
+
+Todos os pares que juntámos partilham número; todas as unidades que separámos
+têm números diferentes. E desfez uma decisão nossa: o negócio que cobre Montijo,
+Odivelas e Portalegre tem **um** `Sold-to`, por isso é um cliente e não três.
+
+**Porque é P1.** As duas horas de limpeza de 12-09 foram um exercício de
+semelhança de letras — normalizar acentos, medir distância de edição, discutir
+se `Remagna` é o princípio de sete clínicas. Com o número numa coluna nada disso
+seria preciso: um duplicado é duas linhas com o mesmo `Sold-to`, sem juízo
+nenhum pelo meio. E a reconciliação com o SAP, que hoje casa por nome de cliente
+e por isso falha em tudo o que esta limpeza corrigiu, passaria a casar por chave.
+
+**O que é preciso.** Uma coluna `sap_sold_to` em `deals` e em `slas`, extraída
+por SQL do que já está escrito nas descrições (`Contract:` merece o mesmo), o
+campo no formulário, e o `clientMatch` a preferir o número quando existe. A
+extracção é a parte fácil — o formato é constante. A parte que precisa de
+decisão é o que fazer com os negócios que não o têm, que são a maioria.
+
+**Ainda não medido:** quantos dos 512 negócios trazem `Sold-to` na descrição.
+Sem esse número não se sabe se isto é uma chave ou uma anotação ocasional.
