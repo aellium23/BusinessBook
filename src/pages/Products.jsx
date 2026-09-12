@@ -70,7 +70,7 @@ function ComponentsEditor({ productId, allProducts, t }) {
   return (
     <div className="space-y-2">
       <p className="text-xs font-semibold text-gray-500 uppercase flex items-center gap-1">
-        <Layers size={12}/> {t('products_components') || 'Components'}
+        <Layers size={12}/> {t('products_components')}
         <span className="text-gray-400 font-normal">({components.length})</span>
       </p>
 
@@ -101,14 +101,14 @@ function ComponentsEditor({ productId, allProducts, t }) {
 
       <div className="flex gap-2">
         <select className="select text-xs flex-1" value={addingId} onChange={e => setAddingId(e.target.value)}>
-          <option value="">{t('products_add_comp') || '+ Add component…'}</option>
+          <option value="">{t('products_add_comp')}</option>
           {available.map(p => (
             <option key={p.id} value={p.id}>{p.name} {p.sku ? `(${p.sku})` : ''}</option>
           ))}
         </select>
         {addingId && (
           <button onClick={addComponent} className="btn-primary text-xs px-3">
-            {t('products_add') || 'Add'}
+            {t('products_add')}
           </button>
         )}
       </div>

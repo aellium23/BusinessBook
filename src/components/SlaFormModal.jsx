@@ -95,7 +95,7 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
     const { error: e } = await supabase.from('sla_products').update(patch).eq('id', id)
     if (e) {
       logger.error('SLA line not saved', { id, error: e.message })
-      setError(t('sla_line_save_failed') || 'That change was not saved. Check your connection and try again.')
+      setError(t('sla_line_save_failed'))
       return false
     }
     setError(null)
@@ -257,7 +257,7 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
     if (nameChanged && renameDecision === true) {
       const propErr = await propagateClientRename(sla.client, form.client.trim())
       if (propErr) {
-        setError(t('sla_rename_failed') || 'The contract was saved, but the client name could not be updated on the other records.')
+        setError(t('sla_rename_failed'))
         return
       }
     }
@@ -284,27 +284,27 @@ export default function SlaFormModal({ sla, onClose, onSaved, owners }) {
           <div className="relative bg-white rounded-t-3xl sm:rounded-2xl p-6 w-full sm:max-w-sm shadow-xl"
                style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
             <h3 className="font-semibold text-gray-900 mb-2">
-              {t('sla_rename_title') || 'Rename this client everywhere?'}
+              {t('sla_rename_title')}
             </h3>
             <p className="text-sm text-gray-600 mb-3 break-words">
               <strong>{renamePlan.oldName}</strong> → <strong>{renamePlan.newName}</strong>
             </p>
             <p className="text-xs text-amber-700 bg-amber-50 px-3 py-2 rounded-lg mb-4">
-              {t('sla_rename_affects') || 'This also renames:'}{' '}
-              {renamePlan.accounts} {t('sla_rename_accounts') || 'account(s)'} ·{' '}
-              {renamePlan.deals} {t('sla_rename_deals') || 'deal(s)'} ·{' '}
-              {renamePlan.contracts} {t('sla_rename_contracts') || 'other contract(s)'}
+              {t('sla_rename_affects')}{' '}
+              {renamePlan.accounts} {t('sla_rename_accounts')} ·{' '}
+              {renamePlan.deals} {t('sla_rename_deals')} ·{' '}
+              {renamePlan.contracts} {t('sla_rename_contracts')}
             </p>
             <div className="flex flex-col gap-2">
               <button onClick={() => { setRenamePlan(null); handleSave(true) }} className="btn-primary">
-                {t('sla_rename_everywhere') || 'Rename everywhere'}
+                {t('sla_rename_everywhere')}
               </button>
               <button onClick={() => { setRenamePlan(null); handleSave(false) }} className="btn-secondary">
-                {t('sla_rename_only_this') || 'Only this contract'}
+                {t('sla_rename_only_this')}
               </button>
               <button onClick={() => setRenamePlan(null)}
                 className="text-xs text-gray-400 hover:text-gray-600 min-h-tap">
-                {t('cancel') || 'Cancel'}
+                {t('cancel')}
               </button>
             </div>
           </div>

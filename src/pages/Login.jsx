@@ -105,7 +105,7 @@ function PasswordForm() {
 
       <button type="button" onClick={handleReset}
         className="w-full text-center text-sm text-gray-400 hover:text-navy transition-colors">
-        {t('login_forgot') || 'Forgot your password?'}
+        {t('login_forgot')}
       </button>
     </form>
   )

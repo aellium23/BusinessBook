@@ -43,7 +43,7 @@ export default function Permissions() {
     <div className="flex items-center justify-center h-64 text-gray-400">
       <div className="text-center">
         <Lock size={32} className="mx-auto mb-2 opacity-30"/>
-        <p className="text-sm">{t('perm_admin_only') || 'Admin access only'}</p>
+        <p className="text-sm">{t('perm_admin_only')}</p>
       </div>
     </div>
   )
@@ -60,7 +60,7 @@ export default function Permissions() {
     <div className="p-4 sm:p-6 space-y-5 max-w-6xl mx-auto">
       <div className="pt-1">
         <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-          <Shield size={20} className="text-navy"/>{t('perm_title') || 'Permissions'}
+          <Shield size={20} className="text-navy"/>{t('perm_title')}
         </h1>
         <p className="text-sm text-gray-400 mt-0.5">
           {profiles.length} {t('perm_users_title')} · {permSets.length} {t('perm_roles_title')}
@@ -69,7 +69,7 @@ export default function Permissions() {
 
       {readOnly && (
         <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-          <Lock size={13}/> {t('perm_readonly_banner') || 'Read-only view — you can browse users, roles and companies but cannot make changes.'}
+          <Lock size={13}/> {t('perm_readonly_banner')}
         </div>
       )}
 

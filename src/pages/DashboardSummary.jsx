@@ -538,7 +538,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
         <div className="flex items-center gap-2 mb-3">
           <Target size={14} className="text-gray-400"/>
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-            {t('dash_sales_vs_budget') || 'Sales vs Budget'}
+            {t('dash_sales_vs_budget')}
           </p>
           <div className="ml-auto flex items-center gap-2">
             {/* Actuals source toggle: BB (CRM deals) vs SAP (official P&L) */}
@@ -713,7 +713,7 @@ export default function DashboardSummary({ selectedBU = '' }) {
             <div className="bg-gray-50 rounded-lg p-3">
               <p className="text-micro text-gray-500">{t('ds_sla_pipeline')}</p>
               <p className="text-xl font-bold text-gray-600">{formatK(slaStats.pipelineValue)}</p>
-              <a href="/sla" className="text-micro text-blue-600 hover:underline">{t('dash_view_contracts') || 'View contracts →'}</a>
+              <a href="/sla" className="text-micro text-blue-600 hover:underline">{t('dash_view_contracts')}</a>
             </div>
           </div>
         </div>

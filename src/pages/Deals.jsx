@@ -375,7 +375,7 @@ export default function Deals() {
   async function confirmDelete() {
     const { error } = await deleteDeal(confirmDel.id)
     if (error) {
-      showToast(t("deals_delete_failed") || 'Could not delete the deal — please retry', 'error')
+      showToast(t("deals_delete_failed"), 'error')
       return
     }
     setConfirmDel(null); refetch()

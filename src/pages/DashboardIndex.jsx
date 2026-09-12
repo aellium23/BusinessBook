@@ -40,22 +40,22 @@ const DEFAULT_VIEW = 'funnel'
  * de quem lê: primeiro o retrato geral, depois os cortes.
  */
 function viewsFor({ t, role }) {
-  const funnel = { id: 'funnel', label: t('dash_view_funnel') || 'Funnel', icon: Camera }
+  const funnel = { id: 'funnel', label: t('dash_view_funnel'), icon: Camera }
   if (role === 'distributor') return [
     funnel,
-    { id: 'classic', label: t('dash_view_details') || 'Details', icon: BarChart3 },
+    { id: 'classic', label: t('dash_view_details'), icon: BarChart3 },
   ]
   if (role === 'member') return [
     funnel,
-    { id: 'mine', label: t('dash_view_mine') || 'Mine', icon: GaugeIcon },
+    { id: 'mine', label: t('dash_view_mine'), icon: GaugeIcon },
   ]
   return [
     funnel,
-    { id: 'summary',  label: t('dash_view_summary') || 'Summary', icon: GaugeIcon },
-    { id: 'classic',  label: t('dash_view_details') || 'Details', icon: BarChart3 },
-    { id: 'products', label: t('dash_view_products') || 'Products', icon: Package },
-    { id: 'reps',     label: t('dash_view_reps') || 'Reps', icon: Users },
-    { id: 'clients',  label: t('dash_view_clients') || 'Clients', icon: Building2 },
+    { id: 'summary',  label: t('dash_view_summary'), icon: GaugeIcon },
+    { id: 'classic',  label: t('dash_view_details'), icon: BarChart3 },
+    { id: 'products', label: t('dash_view_products'), icon: Package },
+    { id: 'reps',     label: t('dash_view_reps'), icon: Users },
+    { id: 'clients',  label: t('dash_view_clients'), icon: Building2 },
   ]
 }
 
@@ -145,7 +145,7 @@ export default function DashboardIndex() {
     return (
       <div className="p-4 sm:p-6 space-y-4 max-w-6xl mx-auto">
         <div className="pt-1">
-          <h1 className="text-xl font-bold text-gray-900">{t('dash_title') || 'Dashboard'}</h1>
+          <h1 className="text-xl font-bold text-gray-900">{t('dash_title')}</h1>
           <p className="text-sm text-gray-400">{profile?.full_name} · {profile?.bu}</p>
         </div>
         <ViewPicker label={t('dash_title')} value={memberView} onChange={setMemberView}

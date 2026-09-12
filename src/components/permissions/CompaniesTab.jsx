@@ -81,7 +81,7 @@ function CompaniesSection({ companies, onRefresh }) {
           <Building2 size={15} className="text-navy"/>{t('perm_companies')}
         </h2>
         <button onClick={() => setAdding(o => !o)} className="btn-primary text-xs gap-1">
-          <Plus size={12}/> {t('perm_new_company') || 'New company'}
+          <Plus size={12}/> {t('perm_new_company')}
         </button>
       </div>
 
@@ -104,13 +104,13 @@ function CompaniesSection({ companies, onRefresh }) {
               </select>
             </div>
             <div>
-              <label className="label">{t('perm_country') || 'Country'}</label>
+              <label className="label">{t('perm_country')}</label>
               <input className="input" value={form.country}
                 onChange={e => setForm(f => ({...f, country: e.target.value}))}
                 placeholder={t('perm_country_ph')} style={{fontSize:'16px'}}/>
             </div>
             <div>
-              <label className="label">{t('perm_currency') || 'Default Currency'}</label>
+              <label className="label">{t('perm_currency')}</label>
               <select className="select" value={form.default_currency}
                 onChange={e => setForm(f => ({...f, default_currency: e.target.value}))}>
                 <option value="EUR">EUR</option>
@@ -120,10 +120,10 @@ function CompaniesSection({ companies, onRefresh }) {
             </div>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setAdding(false)} className="btn-secondary flex-1 text-xs">{t('cancel') || 'Cancel'}</button>
+            <button onClick={() => setAdding(false)} className="btn-secondary flex-1 text-xs">{t('cancel')}</button>
             <button onClick={handleAdd} disabled={!form.name.trim() || saving}
               className="btn-primary flex-1 text-xs">
-              {saving ? '…' : t('save') || 'Save'}
+              {saving ? '…' : t('save')}
             </button>
           </div>
         </div>
@@ -174,7 +174,7 @@ function CompaniesSection({ companies, onRefresh }) {
 
       {/* Product Authorization Modal */}
       {editingAuth && <Modal open onClose={() => setEditingAuth(null)}
-        title={`${editingAuth.name} — ${t('perm_auth_products') || 'Authorized Products'}`}>
+        title={`${editingAuth.name} — ${t('perm_auth_products')}`}>
         {(() => {
           const byProduct = {}
           authProducts.forEach(ap => {
@@ -217,13 +217,13 @@ function CompaniesSection({ companies, onRefresh }) {
                   ))}
                 </div>
               )) : (
-                <p className="text-xs text-gray-400 text-center py-4">{t('perm_no_auth') || 'No products authorized yet'}</p>
+                <p className="text-xs text-gray-400 text-center py-4">{t('perm_no_auth')}</p>
               )}
 
               <div className="border-t pt-3 space-y-2">
-                <p className="text-micro font-semibold text-gray-500 uppercase">{t('perm_add_auth') || 'Add Product Authorization'}</p>
+                <p className="text-micro font-semibold text-gray-500 uppercase">{t('perm_add_auth')}</p>
                 <select className="select text-xs" value={addProd} onChange={e => setAddProd(e.target.value)} style={{fontSize:'16px'}}>
-                  <option value="">{t('perm_select_product') || 'Select product…'}</option>
+                  <option value="">{t('perm_select_product')}</option>
                   {Object.entries(
                     catalogProducts.reduce((g, p) => { (g[p.category] = g[p.category] || []).push(p); return g }, {})
                   ).map(([cat, prods]) => (
@@ -234,7 +234,7 @@ function CompaniesSection({ companies, onRefresh }) {
                 </select>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <select className="select text-xs" value={addCountry} onChange={e => setAddCountry(e.target.value)} style={{fontSize:'16px'}}>
-                    <option value="">{t('perm_country') || 'Country'}…</option>
+                    <option value="">{t('perm_country')}…</option>
                     {['Portugal','Spain','France','Germany','Italy','Netherlands','Belgium','UK','Switzerland','Sweden','Norway','Denmark','Finland','Austria','Poland','Czech Republic','Romania','Greece','Turkey',
                       'UAE','Saudi Arabia','Qatar','Kuwait','Egypt','Morocco','South Africa','Israel',
                       'Mexico','Brazil','Argentina','Chile','Colombia','Peru',
@@ -242,7 +242,7 @@ function CompaniesSection({ companies, onRefresh }) {
                       'USA','Canada'].map(c => <option key={c}>{c}</option>)}
                   </select>
                   <input className="input text-xs" id="addAuthPrice" type="number" step="0.01"
-                    placeholder={`${t('perm_price') || 'Price'} € (${t('optional') || 'optional'})`} style={{ fontSize: '16px' }}/>
+                    placeholder={`${t('perm_price')} € (${t('optional')})`} style={{ fontSize: '16px' }}/>
                 </div>
                 <button onClick={async () => {
                   if (!addProd || !addCountry || !editingAuth) return
@@ -255,7 +255,7 @@ function CompaniesSection({ companies, onRefresh }) {
                   loadAuth(editingAuth)
                 }} disabled={!addProd || !addCountry}
                   className="btn-primary text-xs w-full disabled:opacity-30">
-                  <Plus size={12}/> {t('perm_authorize') || 'Authorize'}
+                  <Plus size={12}/> {t('perm_authorize')}
                 </button>
               </div>
             </div>
@@ -331,14 +331,14 @@ function SalesTargetsSection({ companies, onRefresh }) {
     <div className="space-y-4">
       <div>
         <h2 className="text-sm font-bold text-gray-700 flex items-center gap-2">
-          <Target size={15} className="text-navy"/>{t('perm_sales_targets') || 'Sales Targets'}
+          <Target size={15} className="text-navy"/>{t('perm_sales_targets')}
         </h2>
-        <p className="text-xs text-gray-400 mt-0.5">{t('perm_targets_desc') || 'Annual targets for distributors and partners'}</p>
+        <p className="text-xs text-gray-400 mt-0.5">{t('perm_targets_desc')}</p>
       </div>
 
       {distCompanies.length === 0 ? (
         <div className="bg-gray-50 rounded-xl p-8 text-center">
-          <p className="text-gray-400 text-sm">{t('perm_no_distributors') || 'No active distributors'}</p>
+          <p className="text-gray-400 text-sm">{t('perm_no_distributors')}</p>
         </div>
       ) : (
         <div className="space-y-2">

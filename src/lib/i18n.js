@@ -10,7 +10,7 @@ export const LANGUAGES = [
   { code: 'pt', label: 'Português', flag: 'PT' },
 ]
 
-const translations = {
+export const translations = {
   en: {
     // Login
     login_subtitle:     'Sales management platform',
@@ -657,6 +657,34 @@ const translations = {
     cli_private: 'Private',
     cli_new: 'New Client',
     loading: 'Loading\u2026',
+    optional: 'optional',
+    auth_invalid: 'This link is invalid or has expired. Ask for a new one.',
+    setpw_placeholder: 'New password',
+    setpw_placeholder2: 'Repeat the password',
+    setpw_submit: 'Set password',
+    setpw_submitting: 'Setting\u2026',
+    setpw_check_length: 'At least 8 characters',
+    setpw_check_upper: 'One capital letter',
+    setpw_check_number: 'One digit',
+    setpw_check_match: 'The two match',
+    df_distributor_search: 'Search distributors\u2026',
+    df_distributor_none: 'No distributor',
+    df_hub_search: 'Search hubs\u2026',
+    df_hub_none: 'No hub',
+    df_end_customer_hint: 'Who buys it at the end of the chain',
+    df_ec_value_hint: 'What the end customer pays',
+    perm_admin_only: 'Admin access only',
+    perm_readonly_banner: 'Read-only view \u2014 you can browse users, roles and companies but cannot make changes.',
+    perm_auth_products: 'Authorized Products',
+    perm_add_auth: 'Add Product Authorization',
+    perm_no_auth: 'No products authorized yet',
+    perm_select_product: 'Select product\u2026',
+    perm_authorize: 'Authorize',
+    perm_price: 'Price',
+    perm_currency: 'Default Currency',
+    perm_no_distributors: 'No active distributors',
+    perm_sales_targets: 'Sales Targets',
+    perm_targets_desc: 'Annual targets for distributors and partners',
     cli_name_required: 'Name is required',
     cli_direct: '\u2014 Direct \u2014',
     cli_merge: 'Merge',
@@ -2203,6 +2231,34 @@ const translations = {
     cli_private: 'Privado',
     cli_new: 'Nuevo cliente',
     loading: 'Cargando\u2026',
+    optional: 'opcional',
+    auth_invalid: 'Este enlace no es valido o ha caducado. Pide uno nuevo.',
+    setpw_placeholder: 'Nueva contrasena',
+    setpw_placeholder2: 'Repite la contrasena',
+    setpw_submit: 'Definir contrasena',
+    setpw_submitting: 'Definiendo\u2026',
+    setpw_check_length: 'Al menos 8 caracteres',
+    setpw_check_upper: 'Una mayuscula',
+    setpw_check_number: 'Un numero',
+    setpw_check_match: 'Las dos coinciden',
+    df_distributor_search: 'Busca distribuidores\u2026',
+    df_distributor_none: 'Sin distribuidor',
+    df_hub_search: 'Busca hubs\u2026',
+    df_hub_none: 'Sin hub',
+    df_end_customer_hint: 'Quien lo compra al final de la cadena',
+    df_ec_value_hint: 'Lo que paga el cliente final',
+    perm_admin_only: 'Solo acceso de administrador',
+    perm_readonly_banner: 'Vista de solo lectura \u2014 puedes consultar usuarios, roles y empresas, pero no cambiarlos.',
+    perm_auth_products: 'Productos autorizados',
+    perm_add_auth: 'Anadir autorizacion de producto',
+    perm_no_auth: 'Todavia no hay productos autorizados',
+    perm_select_product: 'Elige un producto\u2026',
+    perm_authorize: 'Autorizar',
+    perm_price: 'Precio',
+    perm_currency: 'Moneda por defecto',
+    perm_no_distributors: 'Sin distribuidores activos',
+    perm_sales_targets: 'Objetivos de venta',
+    perm_targets_desc: 'Objetivos anuales para distribuidores y socios',
     cli_name_required: 'El nombre es obligatorio',
     cli_direct: '\u2014 Directo \u2014',
     cli_merge: 'Fusionar',
@@ -3741,6 +3797,34 @@ const translations = {
     cli_private: 'Privado',
     cli_new: 'Novo cliente',
     loading: 'A carregar\u2026',
+    optional: 'opcional',
+    auth_invalid: 'Esta ligacao nao e valida ou expirou. Pede uma nova.',
+    setpw_placeholder: 'Nova palavra-passe',
+    setpw_placeholder2: 'Repete a palavra-passe',
+    setpw_submit: 'Definir palavra-passe',
+    setpw_submitting: 'A definir\u2026',
+    setpw_check_length: 'Pelo menos 8 caracteres',
+    setpw_check_upper: 'Uma maiuscula',
+    setpw_check_number: 'Um algarismo',
+    setpw_check_match: 'As duas coincidem',
+    df_distributor_search: 'Procura distribuidores\u2026',
+    df_distributor_none: 'Sem distribuidor',
+    df_hub_search: 'Procura hubs\u2026',
+    df_hub_none: 'Sem hub',
+    df_end_customer_hint: 'Quem o compra no fim da cadeia',
+    df_ec_value_hint: 'O que o cliente final paga',
+    perm_admin_only: 'Apenas acesso de administrador',
+    perm_readonly_banner: 'Vista de leitura \u2014 podes consultar utilizadores, papeis e empresas, mas nao alterar.',
+    perm_auth_products: 'Produtos autorizados',
+    perm_add_auth: 'Adicionar autorizacao de produto',
+    perm_no_auth: 'Ainda nao ha produtos autorizados',
+    perm_select_product: 'Escolhe um produto\u2026',
+    perm_authorize: 'Autorizar',
+    perm_price: 'Preco',
+    perm_currency: 'Moeda por defeito',
+    perm_no_distributors: 'Sem distribuidores ativos',
+    perm_sales_targets: 'Objetivos de venda',
+    perm_targets_desc: 'Objetivos anuais para distribuidores e parceiros',
     cli_name_required: 'O nome e obrigatorio',
     cli_direct: '\u2014 Direto \u2014',
     cli_merge: 'Juntar',
@@ -4675,7 +4759,26 @@ const translations = {
 }
 
 // ── State (in-memory + localStorage) ──────────────────────────────────────────
-let currentLang = localStorage.getItem(STORAGE_KEY) || 'en'
+
+/**
+ * O `localStorage` não é garantido, e este é o pior sítio para descobrir isso.
+ *
+ * Numa janela privada, com os dados do site bloqueados, ou sob uma política de
+ * empresa, o próprio acesso **lança** — não devolve null, lança. E como isto
+ * corria no topo do módulo, a excepção acontecia à importação: a aplicação não
+ * chegava a desenhar coisa nenhuma. Um ecrã branco, sem mensagem, para quem tem
+ * o browser apertado.
+ *
+ * A língua escolhida é uma conveniência. Não vale um arranque.
+ */
+function lembrado(key) {
+  try { return localStorage.getItem(key) } catch { return null }
+}
+function lembrar(key, value) {
+  try { localStorage.setItem(key, value) } catch { /* a escolha dura a visita */ }
+}
+
+let currentLang = lembrado(STORAGE_KEY) || 'en'
 let listeners   = []
 
 export function getLang() { return currentLang }
@@ -4683,7 +4786,7 @@ export function getLang() { return currentLang }
 export function setLang(code) {
   if (!translations[code]) return
   currentLang = code
-  localStorage.setItem(STORAGE_KEY, code)
+  lembrar(STORAGE_KEY, code)
   listeners.forEach(fn => fn(code))
 }
 

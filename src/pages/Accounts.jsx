@@ -387,8 +387,8 @@ export default function Accounts() {
           <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
             <GitBranch size={20} className="text-navy"/> {t('accounts_title')}
           </h1>
-          <p className="text-xs text-gray-400 mt-0.5">{t('accounts_subtitle') || 'Organizational hierarchy and structure'}</p>
-          <Link to="/clients" className="text-micro text-blue-500 hover:text-blue-700">{t('accounts_go_clients') || 'View individual clients →'}</Link>
+          <p className="text-xs text-gray-400 mt-0.5">{t('accounts_subtitle')}</p>
+          <Link to="/clients" className="text-micro text-blue-500 hover:text-blue-700">{t('accounts_go_clients')}</Link>
         </div>
         <div className="flex gap-1.5">
           <button onClick={expandAll}   className="btn-secondary text-xs">{t('accounts_expand_all')}</button>

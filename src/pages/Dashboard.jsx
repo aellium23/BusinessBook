@@ -319,7 +319,7 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
 
       {/* Actuals source toggle (BB = CRM deals · SAP = official P&L / budget ACT) */}
       <div className="flex items-center justify-end gap-2">
-        <span className="text-micro text-gray-400 uppercase tracking-wide">{t('dash_actuals') || 'Actuals'} source</span>
+        <span className="text-micro text-gray-400 uppercase tracking-wide">{t('dash_actuals')} source</span>
         <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg" title="Source of the actual sales values">
           {['BB','SAP'].map(s => (
             <button key={s} onClick={() => setSource(s)} disabled={s === 'SAP' && !hasSap}
@@ -534,7 +534,7 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
 
         {/* ── Sub-section: Sales Funnel with Conversion Rates ─────────────── */}
         <div className="border-t border-gray-100 pt-4">
-          <p className="text-xs font-semibold uppercase text-gray-500 mb-3">{t("dash_sales_funnel") || 'Sales Funnel'}</p>
+          <p className="text-xs font-semibold uppercase text-gray-500 mb-3">{t("dash_sales_funnel")}</p>
           {(() => {
             const active = deals.filter(d => !d.is_intercompany_mirror)
             const stageCounts = {

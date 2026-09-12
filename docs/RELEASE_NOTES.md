@@ -8,6 +8,46 @@ que estava mal não serve para ninguém saber se foi afectado.
 
 ## 2026-09-12
 
+### Vinte e oito textos apareciam como código no ecrã
+
+`setpw_check_length`. Escrito assim mesmo, na lista de requisitos da palavra-passe
+— **a primeira página que um utilizador novo vê**. Mais oito nessa página, doze
+nas Permissões e seis nos campos de distribuidor do formulário de negócio.
+
+Nenhuma dava erro. O `t()` devolve a chave quando não a encontra, por isso a
+aplicação compila, arranca e desenha o nome da variável.
+
+Alguém já tinha tentado proteger-se, com `t('perm_price') || 'Price'`. Isso não
+podia funcionar: a chave em falta devolve a string `'perm_price'`, que é
+verdadeira, e o `||` nunca chega a ser avaliado. Os 49 fallbacks desse tipo foram
+removidos — uma rede que não apanha nada é pior do que rede nenhuma, porque dá
+por resolvido o que não está.
+
+**Há agora um teste que falha** se alguém pedir ao dicionário uma chave que ele
+não tem, se o espanhol ou o português ficarem atrás do inglês, ou se voltar a
+aparecer um fallback que não pode disparar.
+
+### A aplicação não arrancava com os dados do site bloqueados
+
+O `i18n.js` lia a língua escolhida do `localStorage` no topo do módulo. Numa
+janela privada, com os dados do site bloqueados ou sob política de empresa, esse
+acesso **lança** — e como acontecia à importação, a aplicação não chegava a
+desenhar nada. Ecrã branco, sem mensagem.
+
+A língua escolhida é uma conveniência; não vale um arranque. Passou a ser lida e
+gravada com protecção, e quem tem o browser apertado usa a aplicação em inglês
+durante a visita em vez de não a usar.
+
+### Os filtros dos Negócios estavam em inglês
+
+Fase, Região, Produto, FY YTD e o aviso de quantos meses estão escolhidos **já
+estavam traduzidos nas três línguas** — o ecrã é que tinha o inglês escrito à
+mão ao lado das chaves. É a página onde toda a gente vive e era a menos
+traduzida da aplicação.
+
+O mesmo na página de Clientes, e o `A carregar…` que estava cravado em inglês em
+cinco páginas.
+
 ### O cliente repetido avisa-se antes de nascer
 
 Escrever o nome do cliente em vez de o escolher da lista é como a tabela ficou
