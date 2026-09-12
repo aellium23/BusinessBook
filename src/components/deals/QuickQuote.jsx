@@ -15,7 +15,7 @@ import { recommendedCapexPvp, recommendedSlaPvp, belowFloor, lineOverTerm,
          servicesEconomics, recommendedServicesPvp,
          SERVICES_TARGET_MARGIN_PCT } from '../../lib/margins'
 import { routeFor, applyDiscount, discountViews, internalApproval } from '../../lib/discountRouting'
-import { channelEconomics, partnerTargetPrice, PROTECTED_MARGIN,
+import { channelEconomics, partnerTargetPrice, PROTECTED_MARGIN, roleFor,
          CHANNEL_ROLES, NAMED_PROGRAMMES } from '../../lib/partnerMargin'
 import { unitsNeeded, quantityFor } from '../../lib/volumeUnits'
 import { toEur, rateLabel } from '../../lib/fx'
@@ -364,6 +364,16 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companyRole, channelRole, dealCompany, deal?.id])
 
+  /**
+   * A margem a que a proposta de um parceiro abre.
+   *
+   * A taxa do papel dele, não o alvo protegido — BR-031, decidida a 12-09. Um
+   * Full VAR abre a 40% porque é o que o acordo lhe dá; os 35% são o piso que um
+   * desconto não deve romper, e não o ponto de partida. Sem taxa registada,
+   * recorre-se ao alvo em vez de abrir a zero.
+   */
+  const partnerOpeningMarginPct = roleFor(channelRole).channelPct || PROTECTED_MARGIN.target
+
   const regionCode = pricingRegionForCountry(countryMap, country)
   const region = regionCode ? regions[regionCode] : null
 
@@ -510,10 +520,10 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
         // the same 35% the transfer price protects on our own deals — so the
         // common case needs no arithmetic at all. It is a target, not a rule:
         // the price and the margin are both editable from either end.
-        : !internal ? partnerTargetPrice(capexCost)
+        : !internal ? partnerTargetPrice(capexCost, partnerOpeningMarginPct)
         : (listed ? listed.net : recommendedCapexPvp(capexCost))
       const annualPvp = o.annualPvp !== undefined ? Number(o.annualPvp) || 0
-        : !internal ? partnerTargetPrice(annualCost)
+        : !internal ? partnerTargetPrice(annualCost, partnerOpeningMarginPct)
         : isSub && listed ? listed.net
         : recommendedSlaPvp(annualCost)
 
@@ -588,7 +598,7 @@ export default function QuickQuote({ deal, onCancel, onCreated, onFullForm }) {
     }).filter(Boolean)
   }, [picked, catalogue, tiersByProduct, region, studies, overrides, itemsByProduct,
       famSel, productCosts, years, pacsInQuote, suppliers, volumes, rates,
-      internal, authMap, country])
+      internal, authMap, country, partnerOpeningMarginPct])
 
   // The quote seen both ways: what we have, and what we have if the supplier
   // discounts land. The gap between them is the number worth naming.

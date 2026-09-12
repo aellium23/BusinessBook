@@ -95,7 +95,7 @@ formatação. Onde não consegui escrever um verificável, digo-o.
 | 1 | Vejo apenas os produtos autorizados à minha empresa **e ao país do negócio** | ✅ `partnerCatalogue.test.js` |
 | 2 | Um produto sem preço para a minha empresa é assinalado, não custeado a zero | ✅ `partnerCatalogue.test.js` |
 | 3 | **Nunca vejo o custo nem a margem da Fujifilm**, nem no ecrã nem pela API | ✅ verificado em `information_schema.column_privileges` |
-| 4 | A minha proposta abre na margem protegida e o preço é meu para mudar | ✅ `partnerMargin.test.js` |
+| 4 | A minha proposta abre na **taxa do meu acordo** (40% para um Full VAR) e o preço é meu para mudar | ✅ `partnerMargin.test.js` |
 | 5 | Sem autorização nenhuma, sou informado disso em vez de ver um catálogo vazio | 🟡 |
 
 ### H3.2 — Ver a economia do canal
@@ -107,7 +107,7 @@ formatação. Onde não consegui escrever um verificável, digo-o.
 |---|---|---|
 | 1 | A nossa receita é o preço de transferência, sem segunda dedução | ✅ `partnerMargin.test.js` |
 | 2 | Um desconto sobre a lista de transferência sai **inteiro** da nossa receita | ✅ `partnerMargin.test.js` |
-| 3 | O preço ao cliente é **estimado** e impresso a cinzento com `≈`, e nunca gravado | ✅ `partnerMargin.test.js` |
+| 3 | O preço ao cliente é **estimado à taxa do papel** e impresso a cinzento com `≈`, e nunca gravado | ✅ `partnerMargin.test.js` |
 | 4 | Escrito o preço real, a margem do parceiro passa a ser **medida**, e os pisos 35/20/15 passam a ser verificados | ✅ `partnerMargin.test.js` |
 | 5 | Enquanto for estimativa, nenhum piso dispara — uma assunção não pode ser violada | ✅ `partnerMargin.test.js` |
 
@@ -120,7 +120,7 @@ formatação. Onde não consegui escrever um verificável, digo-o.
 |---|---|---|
 | 1 | Posso pertencer a várias empresas e trocar entre elas | ✅ `useCompanyScope` |
 | 2 | Um negócio do Peru é valorizado pelas autorizações do Peru, mesmo com o filtro no Chile | ✅ `partnerCatalogue.test.js` |
-| 3 | Vejo só o que é meu e o CEO vê a empresa toda | ⬜ **por fazer** — hoje **qualquer** utilizador da empresa vê tudo |
+| 3 | Vejo só o que é meu e o CEO vê a empresa toda | ⬜ **decidido a 12-09, por fazer** — vai para RLS. Falta decidir como se marca o CEO |
 
 ---
 
