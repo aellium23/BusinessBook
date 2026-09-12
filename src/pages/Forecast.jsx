@@ -12,7 +12,7 @@ export default function Forecast() {
   const [tab, setTab] = useState('calendar')
 
   return (
-    <div className="p-4 space-y-4 max-w-full mx-auto">
+    <div className="p-4 sm:p-6 space-y-4 max-w-6xl mx-auto">
       {/* Header */}
       <div>
         <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">

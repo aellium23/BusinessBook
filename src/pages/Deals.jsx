@@ -382,7 +382,7 @@ export default function Deals() {
   }
 
   return (
-    <div className="p-4 space-y-4 max-w-4xl mx-auto">
+    <div className="p-4 sm:p-6 space-y-4 max-w-4xl mx-auto">
 
       <LoadFailureBanner failed={failed} t={t} />
 
@@ -644,7 +644,7 @@ export default function Deals() {
                 }}
                   className={`text-micro px-1.5 py-0.5 rounded ${invoicedMonthF.length > 1 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>FY YTD</button>
               </div>
-              <div className="grid grid-cols-4 gap-0.5 mt-1">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-0.5 mt-1">
                 {MONTHS.map((m, i) => (
                   <button key={m} onClick={() => {
                     handleInvoicedMonth(invoicedMonthF.includes(MONTHS_K[i])

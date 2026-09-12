@@ -94,7 +94,7 @@ export default function SalesByClient({ selectedBU = '' }) {
             <p className="text-micro text-gray-400">{t('sbc_sub')}</p>
           </div>
           <button type="button" onClick={exportCsv}
-            className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border border-green-200 bg-white hover:bg-green-50 text-green-700 transition-colors">
+            className="min-h-tap flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border border-green-200 bg-white hover:bg-green-50 text-green-700 transition-colors">
             <Download size={12}/> CSV
           </button>
         </div>
@@ -150,12 +150,12 @@ export default function SalesByClient({ selectedBU = '' }) {
                     · {total.clients} {t('sbc_clients')}
                   </span>
                 </td>
-                <td className="px-3 py-2 text-right text-navy">{formatK(total.net)}</td>
+                <td className="px-3 py-2 text-right text-navy tabular-nums">{formatK(total.net)}</td>
                 {seesMargin && (
-                  <td className="px-3 py-2 text-right text-green-700">{formatK(total.margin)}</td>
+                  <td className="px-3 py-2 text-right text-green-700 tabular-nums">{formatK(total.margin)}</td>
                 )}
                 {seesMargin && (
-                  <td className="px-3 py-2 text-right text-green-700">
+                  <td className="px-3 py-2 text-right text-green-700 tabular-nums">
                     {total.marginPct === null ? '—' : `${total.marginPct} %`}
                   </td>
                 )}
@@ -183,9 +183,9 @@ function FragmentRow({ r, i, open, seesMargin, t, onToggle, onOpenDeals }) {
             <span className="text-micro text-gray-400">({r.deals.length})</span>
           </span>
         </td>
-        <td className="px-3 py-1.5 text-right font-medium text-gray-800">{formatK(r.net)}</td>
+        <td className="px-3 py-1.5 text-right font-medium text-gray-800 tabular-nums">{formatK(r.net)}</td>
         {seesMargin && (
-          <td className="px-3 py-1.5 text-right text-green-700">{formatK(r.margin)}</td>
+          <td className="px-3 py-1.5 text-right text-green-700 tabular-nums">{formatK(r.margin)}</td>
         )}
         {seesMargin && (
           <td className={`px-3 py-1.5 text-right ${
@@ -204,10 +204,10 @@ function FragmentRow({ r, i, open, seesMargin, t, onToggle, onOpenDeals }) {
             </span>
             {d.country && <span className="text-micro text-gray-400 ml-1">· {d.country}</span>}
           </td>
-          <td className="px-3 py-1 text-right text-gray-600">{formatK(d.net)}</td>
-          {seesMargin && <td className="px-3 py-1 text-right text-gray-500">{formatK(d.margin)}</td>}
+          <td className="px-3 py-1 text-right text-gray-600 tabular-nums">{formatK(d.net)}</td>
+          {seesMargin && <td className="px-3 py-1 text-right text-gray-500 tabular-nums">{formatK(d.margin)}</td>}
           {seesMargin && (
-            <td className="px-3 py-1 text-right text-gray-500">
+            <td className="px-3 py-1 text-right text-gray-500 tabular-nums">
               {d.marginPct === null ? '—' : `${d.marginPct} %`}
             </td>
           )}

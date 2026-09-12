@@ -107,7 +107,7 @@ function PSEditor({ ps, onSave, onCancel, existingNames }) {
           <Settings size={14} className="text-navy"/>
           {isNew ? 'Novo Permission Set' : `Editar: ${ps.name}`}
         </h3>
-        <button onClick={onCancel} className="text-gray-400 hover:text-gray-600 p-1">
+        <button onClick={onCancel} className="min-h-tap text-gray-400 hover:text-gray-600 p-1">
           <X size={14}/>
         </button>
       </div>

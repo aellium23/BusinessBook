@@ -118,7 +118,7 @@ export default function Approvals() {
 
   if (myBrands.length === 0) {
     return (
-      <div className="p-4 max-w-2xl mx-auto space-y-4">
+      <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-4">
         <CostRequestWorklist/>
         <EmptyState icon="🛡️" title={t('ap_no_brands')}
           description="An admin must assign you as a discount approver for one or more brands."/>

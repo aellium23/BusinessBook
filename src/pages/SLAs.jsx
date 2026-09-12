@@ -299,7 +299,7 @@ export default function SLAs() {
   ]
 
   return (
-    <div className="space-y-4">
+    <div className="p-4 sm:p-6 space-y-4 max-w-6xl mx-auto">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-lg font-bold text-gray-900">{t('sla_title')}</h1>
@@ -567,7 +567,7 @@ export default function SLAs() {
             <p className="text-sm text-gray-600">{confirmDel.client} — {formatK(confirmDel.annual_value)}/year</p>
             <div className="flex gap-2">
               <button onClick={() => setConfirmDel(null)} className="btn-secondary flex-1">{t('cancel')}</button>
-              <button onClick={handleDelete} className="bg-red-600 text-white rounded-lg px-4 py-2 text-sm font-semibold flex-1">{t('delete')}</button>
+              <button onClick={handleDelete} className="min-h-tap bg-red-600 text-white rounded-lg px-4 py-2 text-sm font-semibold flex-1">{t('delete')}</button>
             </div>
           </div>
         </div>

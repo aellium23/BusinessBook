@@ -143,7 +143,7 @@ function SplitEditor({ deal, onSave, onClose }) {
         <p className="text-micro font-bold text-blue-700">Revenue split · {formatK(total)} total</p>
         <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={12}/></button>
       </div>
-      <div className="grid grid-cols-4 gap-1">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
         {MONTHS_LABEL.map((m, i) => (
           <div key={m}>
             <label className="text-micro text-gray-400">{m}</label>
@@ -162,7 +162,7 @@ function SplitEditor({ deal, onSave, onClose }) {
           {remaining > 0.01 ? `${formatK(remaining)} remaining` : remaining < -0.01 ? `${formatK(Math.abs(remaining))} over-allocated!` : 'Fully allocated'}
         </span>
         <button onClick={handleSave} disabled={saving}
-          className="flex items-center gap-1 text-xs bg-navy text-white px-3 py-1 rounded-lg hover:bg-navy/90 disabled:opacity-50">
+          className="min-h-tap flex items-center gap-1 text-xs bg-navy text-white px-3 py-1 rounded-lg hover:bg-navy/90 disabled:opacity-50">
           {saving ? '...' : <><Save size={11}/> Save split</>}
         </button>
       </div>

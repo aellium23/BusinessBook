@@ -22,7 +22,7 @@ function CollapsibleSection({ id, title, icon, children, defaultOpen = true }) {
   }, [key])
   return (
     <div>
-      <button onClick={toggle} className="w-full flex items-center justify-between py-1 group">
+      <button onClick={toggle} className="min-h-tap w-full flex items-center justify-between py-1 group">
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-1">
           {icon} {title}
         </p>

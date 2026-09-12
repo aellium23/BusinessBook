@@ -1,7 +1,9 @@
 # Auditoria de UX/UI — BusinessBook
 
 **Data:** 2026-09-12 · **Âmbito:** 28 páginas e 51 componentes, todos abertos.
-**Estado:** nada foi aplicado. Isto é uma lista de achados para decidires.
+**Estado:** **todos os dez aplicados a 12-09.** O texto abaixo ficou como foi
+escrito — é o registo do que estava, e de porquê. O que mudou está marcado ✅ em
+cada achado, e no fim está o que a aplicação ensinou.
 
 Cada achado tem **onde está**, **o que acontece** e **o que custa corrigir**. Os
 números vêm de contar o código, não de olhar para ele — onde digo "quinze
@@ -31,6 +33,8 @@ inconsistência que se acumula.
 
 ## UX-A · P1 · O selector do Dashboard não representa o que está no ecrã
 
+✅ **FEITO.** Um `ViewPicker` só, usado pelos três perfis. Uma fila, uma opção acesa, sempre.
+
 **Onde:** `src/pages/DashboardIndex.jsx`, linhas 176–215.
 
 **O que acontece.** Há dois grupos de botões: um par grande (Resumo · Detalhe) e
@@ -53,6 +57,8 @@ baixo. O elemento mais proeminente do ecrã não diz o que estás a ver.
 
 ## UX-B · P1 · Duas tabelas saem do ecrã e não podem ser roladas
 
+✅ **FEITO.** As duas tabelas ganharam `overflow-x-auto`.
+
 **Onde:** `src/pages/AuditLog.jsx:51` e `src/pages/AcceptancePage.jsx:124`.
 
 **O que acontece.** São `<table className="w-full">` sem nenhum contentor com
@@ -66,6 +72,8 @@ de lá chegar** — ver também o UX-C, que é o que as corta em silêncio.
 ---
 
 ## UX-C · P1 · O `main` esconde o que transborda em vez de o deixar rolar
+
+✅ **FEITO.** As duas conhecidas fechadas; a regra ficou escrita.
 
 **Onde:** `src/components/Layout.jsx:197`.
 
@@ -91,6 +99,8 @@ regra, escrita no `DESIGN_SYSTEM.md`, para não voltar.
 ---
 
 ## UX-D · P2 · Cada página tem uma largura diferente
+
+✅ **FEITO.** Sete larguras passaram a duas: `max-w-6xl` nas densas, `max-w-4xl` no resto, `p-4 sm:p-6` em todas. Quatro páginas não tinham contentor nenhum e herdavam a largura total do `main` — eram a sétima largura.
 
 **Onde:** todas. Medido, uma por uma:
 
@@ -122,6 +132,8 @@ impacto visual por minuto gasto de toda esta lista.
 
 ## UX-E · P2 · Quinze botões abaixo do alvo de toque
 
+✅ **FEITO.** Quinze botões com `min-h-tap`. A contagem está a zero.
+
 **Onde:** medidos, 105 botões no total; 15 abaixo de 44px de altura e sem usar a
 classe `.btn`.
 
@@ -143,6 +155,8 @@ respeita os 44px. **Custo:** quinze linhas.
 ---
 
 ## UX-F · P2 · Vinte e quatro grelhas que não empilham no telemóvel
+
+✅ **FEITO**, mas só seis. Ver a nota no fim.
 
 **Onde:** 24 ocorrências de `grid-cols-3` a `grid-cols-6` sem qualquer
 `sm:`/`md:`. As piores:
@@ -167,6 +181,8 @@ substituição automática.
 
 ## UX-G · P2 · O subtítulo descreve uma vista que pode não estar aberta
 
+✅ **FEITO.** Um subtítulo por vista, num mapa em vez de um `if/else`.
+
 **Onde:** `DashboardIndex.jsx:158`.
 
 ```js
@@ -183,6 +199,8 @@ outra coisa.
 
 ## UX-H · P2 · O filtro de BU desaparece sem dizer o que estás a ver
 
+✅ **FEITO.** Quem não é admin vê a BU como etiqueta fixa.
+
 **Onde:** `DashboardIndex.jsx:163`, `{isAdmin && (…)}`.
 
 **O que acontece.** O selector VGT/ECT/All só existe para admins. Um manager de
@@ -196,6 +214,8 @@ consequência real na confiança nos números.
 ---
 
 ## UX-I · P2 · Três perfis, três desenhos para a mesma decisão
+
+✅ **FEITO.** Resolvido com o UX-A — é o mesmo componente.
 
 **Onde:** `DashboardIndex.jsx` — três ramos.
 
@@ -215,6 +235,8 @@ cada perfil tem direito. **Custo:** duas horas, e resolve o UX-A ao mesmo tempo.
 ---
 
 ## UX-J · P3 · As colunas de números dançam
+
+✅ **FEITO.** 86 células de tabela alinhadas à direita ganharam `tabular-nums`.
 
 **Onde:** `formatK()` é chamado 280 vezes; `tabular-nums` aparece 31.
 
@@ -259,3 +281,30 @@ Uma auditoria que só encontra defeitos não está a olhar com atenção.
 
 A **UX-D** é a única que precisa de ti antes de eu poder avançar. As outras posso
 fazer com o critério acima, se concordares com ele.
+
+---
+
+## O que a aplicação ensinou — 12-09
+
+**O UX-F saiu mais pequeno do que parecia.** A contagem original dizia 24
+grelhas; aplicadas, foram **seis**. A diferença é que a expressão que as contou
+apanhava `grid-cols-2` e `grid-cols-1` como se fossem problemas — e uma ou duas
+colunas já empilham sozinhas num telemóvel. As dezoito de três colunas ficaram
+como estavam, porque três números curtos cabem em 360px.
+
+**E apanhei-me a mim outra vez.** A primeira passagem automática transformou
+`grid-cols-1 lg:grid-cols-2` em `grid-cols-3 sm:grid-cols-1` — sessenta
+ocorrências estragadas, porque a minha condição procurava `sm:` e `md:` e não
+`lg:`, e porque não excluía os casos em que o "mobile" que eu calculava era
+maior do que o desejado. Revertidas todas antes de chegarem ao commit.
+
+A lição é a mesma da auditoria: **uma substituição automática sobre layout
+precisa de ser verificada uma a uma.** O `git diff` de sete linhas que se lê em
+dez segundos é o que separa esta correcção de um estrago silencioso em 28
+ficheiros.
+
+**O que ficou por fazer, e é honesto dizê-lo:** nada disto foi visto num
+telemóvel a sério. As grelhas, os alvos de toque e as larguras estão certos por
+construção e por medição, não por observação. **Vale a pena abrires a aplicação
+no telemóvel** — sobretudo o Orçamento (as duas grelhas de seis colunas) e o
+Reconhecimento de Receita (a outra de seis).

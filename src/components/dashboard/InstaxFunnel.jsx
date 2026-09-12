@@ -502,7 +502,7 @@ function PhoneFrame({ f, t, onOpen }) {
   return (
     <button type="button" onClick={onOpen}
       aria-label={`${f.stage} — ${formatK(f.value)}, ${f.count} ${t('ifn_deals')}`}
-      className="w-full text-left bg-[#fbf7f0] rounded-[3px] shadow-md ring-1 ring-black/5
+      className="min-h-tap w-full text-left bg-[#fbf7f0] rounded-[3px] shadow-md ring-1 ring-black/5
                  p-2 pb-3 flex gap-3 items-center">
       <div className="w-28 shrink-0 relative"
         style={{ aspectRatio: `${w} / ${PHOTO_BOTTOM - PHOTO_TOP}`,

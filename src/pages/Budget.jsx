@@ -179,7 +179,7 @@ export default function Budget() {
   if (!isAdmin) return <div className="p-8 text-center text-gray-400">{tr("budget_admin")}</div>
   if (loading) return <Spinner/>
   if (loadError) return (
-    <div className="p-4 max-w-3xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-6xl mx-auto">
       <p role="alert" className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
         {tr('bud_load_failed')} {loadError}
       </p>
@@ -202,7 +202,7 @@ export default function Budget() {
           <p className="text-sm text-gray-400">{tr("budget_values")}</p>
         </div>
         {activeBu !== 'ALL' && !readOnly && <button onClick={handleSave} disabled={saving}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white transition-all"
+          className="min-h-tap flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white transition-all"
           style={{ background: saved ? '#1D9E75' : '#0D2137' }}>
           {saved ? <><CheckCircle size={15}/> {tr("budget_saved")}</> : saving ? tr("budget_saving") : <><Save size={15}/> {tr("budget_save")}</>}
         </button>}
@@ -319,11 +319,11 @@ export default function Budget() {
                       <thead>
                         <tr className="text-gray-500">
                           <th className="text-left px-2 py-1 font-semibold">P&L Line</th>
-                          <th className="text-right px-2 py-1 font-semibold">{periodLabel} Bud</th>
-                          <th className="text-right px-2 py-1 font-semibold">{periodLabel} Act</th>
-                          <th className="text-right px-2 py-1 font-semibold">Gap</th>
-                          <th className="text-right px-2 py-1 font-semibold">{currentMonthLabel} Act</th>
-                          <th className="text-right px-2 py-1 font-semibold">{currentMonthLabel} Bud</th>
+                          <th className="text-right px-2 py-1 font-semibold tabular-nums">{periodLabel} Bud</th>
+                          <th className="text-right px-2 py-1 font-semibold tabular-nums">{periodLabel} Act</th>
+                          <th className="text-right px-2 py-1 font-semibold tabular-nums">Gap</th>
+                          <th className="text-right px-2 py-1 font-semibold tabular-nums">{currentMonthLabel} Act</th>
+                          <th className="text-right px-2 py-1 font-semibold tabular-nums">{currentMonthLabel} Bud</th>
                           <th className={`text-right px-2 py-1 font-bold ${titleColor}`}>Need in {currentMonthLabel}</th>
                         </tr>
                       </thead>
@@ -333,13 +333,13 @@ export default function Budget() {
                           return (
                             <tr key={g.pk} className={isNS ? `border-t-2 ${rowBold} font-bold` : `border-t ${rowBorder}`}>
                               <td className="px-2 py-1.5 text-gray-700">{g.label}</td>
-                              <td className="px-2 py-1.5 text-right text-gray-600">{g.bud.toFixed(1)}</td>
-                              <td className="px-2 py-1.5 text-right text-gray-600">{g.act.toFixed(1)}</td>
+                              <td className="px-2 py-1.5 text-right text-gray-600 tabular-nums">{g.bud.toFixed(1)}</td>
+                              <td className="px-2 py-1.5 text-right text-gray-600 tabular-nums">{g.act.toFixed(1)}</td>
                               <td className={`px-2 py-1.5 text-right font-bold ${g.gap > 0 ? 'text-red-600' : 'text-green-600'}`}>
                                 {g.gap > 0 ? '' : '+'}{(-g.gap).toFixed(1)}
                               </td>
-                              <td className="px-2 py-1.5 text-right text-gray-600">{g.actM ? g.actM.toFixed(1) : '—'}</td>
-                              <td className="px-2 py-1.5 text-right text-gray-400">{g.budM.toFixed(1)}</td>
+                              <td className="px-2 py-1.5 text-right text-gray-600 tabular-nums">{g.actM ? g.actM.toFixed(1) : '—'}</td>
+                              <td className="px-2 py-1.5 text-right text-gray-400 tabular-nums">{g.budM.toFixed(1)}</td>
                               <td className={`px-2 py-1.5 text-right font-bold ${g.need > g.budM * 1.1 ? 'text-red-600' : 'text-green-600'}`}>
                                 {g.need.toFixed(1)}
                               </td>
@@ -788,7 +788,7 @@ export default function Budget() {
                       {extRow && (
                         <div>
                           <p className="text-micro text-gray-400 uppercase">External</p>
-                          <div className="grid grid-cols-6 gap-0.5">
+                          <div className="grid grid-cols-2 sm:grid-cols-6 gap-0.5">
                             {MONTHS.map((m, mi) => (
                               <div key={m} className="text-center">
                                 <p className="text-micro text-gray-300">{m}</p>
@@ -801,7 +801,7 @@ export default function Budget() {
                       {intRow && (
                         <div>
                           <p className="text-micro text-gray-400 uppercase">Internal</p>
-                          <div className="grid grid-cols-6 gap-0.5">
+                          <div className="grid grid-cols-2 sm:grid-cols-6 gap-0.5">
                             {MONTHS.map((m, mi) => (
                               <div key={m} className="text-center">
                                 <p className="text-micro text-gray-300">{m}</p>

@@ -287,7 +287,7 @@ export default function Dashboard({ hideHeader = false, selectedBU = '' } = {}) 
   }
 
   return (
-    <div className={hideHeader ? 'space-y-5' : 'p-4 space-y-5 max-w-5xl mx-auto'}>
+    <div className={hideHeader ? 'space-y-5' : 'p-4 sm:p-6 space-y-5 max-w-6xl mx-auto'}>
 
       {/* Above everything, because it changes how every figure below is read. */}
       <LoadFailureBanner failed={failed} t={t} />

@@ -99,7 +99,7 @@ export default function RevenueRecognitionPanel({ form }) {
         </span>
       </div>
       {/* 12 month grid - 2 rows of 6 */}
-      <div className="grid grid-cols-6 gap-1.5">
+      <div className="grid grid-cols-2 sm:grid-cols-6 gap-1.5">
         {FY26_MONTHS.map(m => {
           const r = result.recognition[m]
           const v = Math.round(r?.value || 0)

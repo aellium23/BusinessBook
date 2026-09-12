@@ -85,9 +85,9 @@ export default function PriceLadderEditor({ productId, priceUnit }) {
           <thead className="bg-gray-50 text-gray-500">
             <tr>
               <th className="text-left px-2 py-2 font-semibold">{t('pl_band')}</th>
-              <th className="text-right px-2 py-2 font-semibold w-24">{t('pl_from')}</th>
-              <th className="text-right px-2 py-2 font-semibold w-24">{t('pl_to')}</th>
-              <th className="text-right px-2 py-2 font-semibold w-24">{t('pl_price')}</th>
+              <th className="text-right px-2 py-2 font-semibold w-24 tabular-nums">{t('pl_from')}</th>
+              <th className="text-right px-2 py-2 font-semibold w-24 tabular-nums">{t('pl_to')}</th>
+              <th className="text-right px-2 py-2 font-semibold w-24 tabular-nums">{t('pl_price')}</th>
               <th className="w-20"/>
             </tr>
           </thead>

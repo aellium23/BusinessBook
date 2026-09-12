@@ -62,7 +62,7 @@ export default function CompanySwitcher() {
 function Option({ label, hint, active, onPick }) {
   return (
     <button type="button" onClick={onPick}
-      className={`w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-gray-50
+      className={`min-h-tap w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-gray-50
                   ${active ? 'bg-navy/5' : ''}`}>
       <span className="min-w-0 flex-1">
         <span className={`block text-sm truncate ${active ? 'font-semibold text-navy' : 'text-gray-700'}`}>
