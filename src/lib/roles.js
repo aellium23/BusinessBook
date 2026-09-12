@@ -10,6 +10,8 @@
 // Roles: admin · manager · member (our own sales) · distributor · partner ·
 // viewer · brand approvers.
 
+import { ownsDeal } from './dealOwner'
+
 /** Ours. Cost, margin, transfer prices, the whole pricing screen. */
 export const INTERNAL_ROLES = ['admin', 'manager', 'member']
 
@@ -71,15 +73,10 @@ export function canEditDeal(profile, deal, { canEdit, isAdmin, editOwnOnly } = {
     // not a partner with access to everything.
     return !!profile?.company_id && deal?.company_id === profile.company_id
   }
-  if (editOwnOnly) {
-    // Each comparison needs something on both sides. Written as a bare `===`
-    // this matched a deal with no sales owner against a profile with no sales
-    // owner name — undefined to undefined — and handed every unassigned deal in
-    // the book to every rep whose profile had that field blank.
-    const same = (a, b) => !!a && a === b
-    return same(deal?.created_by, profile?.id)
-      || same(deal?.sales_owner, profile?.full_name)
-      || same(deal?.sales_owner, profile?.sales_owner_name)
-  }
+  // A pergunta "é meu?" vive em `lib/dealOwner`, porque desde 12-09 há duas
+  // vistas a fazê-la: esta e o filtro das vistas pessoais. Duas cópias de uma
+  // regra desta divergem sempre, e a divergência aqui é um botão que aparece a
+  // quem não devia.
+  if (editOwnOnly) return ownsDeal(profile, deal)
   return true
 }

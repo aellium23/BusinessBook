@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDeals } from '../../hooks/useDeals'
+import { ownedBy } from '../../lib/dealOwner'
 import { useTranslation } from '../../hooks/useTranslation'
 import { formatK, Spinner } from '../ui'
 import { stageFunnel, conversion } from '../../lib/stageFunnel'
@@ -233,13 +234,26 @@ function framePhoto(conf) {
   return crop(x, PHOTO_TOP, w, PHOTO_BOTTOM - PHOTO_TOP)
 }
 
-export default function InstaxFunnel({ selectedBU = '' }) {
+/**
+ * @param owner  quando dado, o funil mostra a carteira desta pessoa e não a da
+ *               empresa. É um FILTRO de vista pessoal, não uma permissão: o que
+ *               fica de fora continua a contar em todo o lado onde se reporta.
+ */
+export default function InstaxFunnel({ selectedBU = '', owner = null }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { deals, loading } = useDeals()
 
+  // O âmbito primeiro — a BU — e só depois o dono, para a contagem do que ficou
+  // de fora ser sobre o que esta pessoa poderia ver e não sobre a casa toda.
+  const inScope = useMemo(
+    () => (deals || []).filter(d => !d.is_intercompany_mirror && (!selectedBU || d.bu === selectedBU)),
+    [deals, selectedBU])
+  const mine = useMemo(() => (owner ? ownedBy(inScope, owner) : null), [inScope, owner])
+  const shown = mine ? mine.deals : inScope
+
   const { stages, lost, total } = useMemo(
-    () => stageFunnel(deals, { bu: selectedBU }), [deals, selectedBU]
+    () => stageFunnel(shown, { bu: selectedBU }), [shown, selectedBU]
   )
   const frames = useMemo(() => conversion(stages), [stages])
 
@@ -268,6 +282,17 @@ export default function InstaxFunnel({ selectedBU = '' }) {
 
   return (
     <>
+      {/* Um funil vazio lê-se como "não tens pipeline". Quando a razão é que
+          nada tem o teu nome, isso é outra coisa, e o ecrã tem de o dizer —
+          BR-062 aplicado a um filtro em vez de a uma leitura falhada.
+          Aparece só quando há mesmo alguma coisa escondida. */}
+      {mine && mine.hidden > 0 && (
+        <p className="text-micro text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">
+          {t('ifn_mine_only').replace('{n}', mine.hidden)}
+          {mine.unassigned > 0 && ' ' + t('ifn_unassigned').replace('{n}', mine.unassigned)}
+        </p>
+      )}
+
       {/* The scene, at its own proportions, from a tablet upwards. Below that
           it would be five thumbnails of unreadable type, so the phone gets the
           list underneath instead — same pictures, same figures, stacked. */}
