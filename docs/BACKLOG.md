@@ -639,5 +639,18 @@ campo no formulário, e o `clientMatch` a preferir o número quando existe. A
 extracção é a parte fácil — o formato é constante. A parte que precisa de
 decisão é o que fazer com os negócios que não o têm, que são a maioria.
 
-**Ainda não medido:** quantos dos 512 negócios trazem `Sold-to` na descrição.
-Sem esse número não se sabe se isto é uma chave ou uma anotação ocasional.
+**Medido a 12-09:** **158 dos 512** negócios trazem `Sold-to` na descrição (157
+trazem `Contract:`), e dão **114 clientes SAP distintos**. Portanto é uma chave
+em menos de um terço da carteira.
+
+Isso decide o que o DATA-04 pode ser. **Não substitui o comparador de nomes** —
+em dois terços dos negócios não há número para comparar, e uma detecção de
+duplicados que só funciona onde o campo está preenchido deixa passar a maioria.
+O que faz é **confirmar**: onde o número existe, a decisão deixa de ser opinião.
+Foi assim que a divisão das unidades da Remagna se confirmou sem discussão, e
+assim que se viu que dois nomes Steward diferentes são o cliente 4500069489.
+
+Portanto a ordem é: extrair para coluna, mostrar no formulário, e usá-lo no
+`clientMatch` como **primeira** pergunta — dois negócios com o mesmo `Sold-to`
+são o mesmo cliente, ponto; sem número, cai-se na comparação de nomes que já
+existe. O trabalho maior não é a extracção, é preencher os 354 que não o têm.
