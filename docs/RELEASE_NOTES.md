@@ -8,6 +8,33 @@ que estava mal não serve para ninguém saber se foi afectado.
 
 ## 2026-09-12
 
+### O auto de receção ia para o cliente em inglês, com a data em português
+
+É a única página desta aplicação que alguém de fora abre: o hospital recebe um
+link, toca nele no telemóvel e confirma que o equipamento chegou. Estava escrita
+inteiramente em inglês — "Delivery Acceptance Certificate", "Confirm Delivery" —
+e a data vinha em português, porque o formato estava cravado em `pt-PT` no
+código. O pior dos dois lados.
+
+Envolvê-la no `t()` da aplicação não resolvia: esse lê a língua do
+`localStorage`, e naquele browser não há nenhum — nunca cá entrou. Cairia em
+inglês na mesma.
+
+**A língua vem do país do negócio**, que é a coisa que nós sabemos, porque fomos
+nós que o vendemos. Espanha abre em espanhol, Portugal em português, e um país
+para o qual não há regra abre em inglês. Se o negócio não trouxer país, decide o
+browser de quem está a ler — um palpite, mas dele e não nosso. As datas e os
+valores seguem a mesma escolha.
+
+### Português cravado num ficheiro em inglês
+
+`Cor` numa etiqueta e `Cancelar` num botão, nos Conjuntos de Permissões —
+invisível para quem lê em inglês e errado para quem lê em espanhol. O ficheiro
+tinha as chaves todas à mão, traduzidas nas três línguas, e escreveu à mesma.
+
+É o terceiro sítio onde isto aparece, depois do contador de clientes do
+histórico e do ecrã de utilizadores.
+
 ### Vinte e oito textos apareciam como código no ecrã
 
 `setpw_check_length`. Escrito assim mesmo, na lista de requisitos da palavra-passe

@@ -657,6 +657,24 @@ export const translations = {
     cli_private: 'Private',
     cli_new: 'New Client',
     loading: 'Loading\u2026',
+    acc_title: 'Delivery Acceptance Certificate',
+    acc_intro: 'Please review the items below and confirm that everything has been delivered as agreed.',
+    acc_client: 'Client',
+    acc_description: 'Description',
+    acc_value: 'Value',
+    acc_products: 'Products / Services',
+    acc_item: 'Item',
+    acc_qty: 'Qty',
+    acc_confirm: 'Confirm delivery',
+    acc_confirming: 'Confirming\u2026',
+    acc_disclaimer: 'By confirming, you state that every item listed above has been delivered and accepted.',
+    acc_confirmed_title: 'Delivery confirmed',
+    acc_confirmed_body: 'Thank you. The delivery acceptance has been recorded for',
+    acc_confirmed_on: 'Confirmed on',
+    acc_err_expired: 'This link is not valid, or it has expired.',
+    acc_err_network: 'We could not reach the server. Please try again.',
+    acc_err_confirm: 'The confirmation did not go through. Please try again.',
+    acc_err_contact: 'If you believe this is a mistake, please contact your Fujifilm representative.',
     optional: 'optional',
     auth_invalid: 'This link is invalid or has expired. Ask for a new one.',
     setpw_placeholder: 'New password',
@@ -1087,6 +1105,7 @@ export const translations = {
     perm_invite_subtitle:  'Send an invitation email to add a new user',
     perm_all:              'All',
     perm_sets_sub:         'Create templates and assign them to users.',
+    perm_color:            'Colour',
     perm_new_set:          'New set',
     perm_new_set_title:    'New Permission Set',
     perm_edit_set:         'Edit:',
@@ -2231,6 +2250,24 @@ export const translations = {
     cli_private: 'Privado',
     cli_new: 'Nuevo cliente',
     loading: 'Cargando\u2026',
+    acc_title: 'Certificado de aceptacion de entrega',
+    acc_intro: 'Revisa los elementos siguientes y confirma que todo se ha entregado segun lo acordado.',
+    acc_client: 'Cliente',
+    acc_description: 'Descripcion',
+    acc_value: 'Importe',
+    acc_products: 'Productos / Servicios',
+    acc_item: 'Elemento',
+    acc_qty: 'Cant.',
+    acc_confirm: 'Confirmar la entrega',
+    acc_confirming: 'Confirmando\u2026',
+    acc_disclaimer: 'Al confirmar, declaras que todos los elementos listados arriba se han entregado y aceptado.',
+    acc_confirmed_title: 'Entrega confirmada',
+    acc_confirmed_body: 'Gracias. Queda registrada la aceptacion de la entrega para',
+    acc_confirmed_on: 'Confirmada el',
+    acc_err_expired: 'Este enlace no es valido, o ha caducado.',
+    acc_err_network: 'No hemos podido contactar con el servidor. Intentalo de nuevo.',
+    acc_err_confirm: 'La confirmacion no se ha completado. Intentalo de nuevo.',
+    acc_err_contact: 'Si crees que es un error, contacta con tu representante de Fujifilm.',
     optional: 'opcional',
     auth_invalid: 'Este enlace no es valido o ha caducado. Pide uno nuevo.',
     setpw_placeholder: 'Nueva contrasena',
@@ -2884,6 +2921,7 @@ export const translations = {
     perm_invite_subtitle:  'Envía un email de invitación para añadir un nuevo usuario',
     perm_all:              'Todos',
     perm_sets_sub:         'Crea plantillas y asígnalas a usuarios.',
+    perm_color:            'Color',
     perm_new_set:          'Nuevo conjunto',
     perm_new_set_title:    'Nuevo Conjunto de Permisos',
     perm_edit_set:         'Editar:',
@@ -3797,6 +3835,24 @@ export const translations = {
     cli_private: 'Privado',
     cli_new: 'Novo cliente',
     loading: 'A carregar\u2026',
+    acc_title: 'Auto de rececao',
+    acc_intro: 'Confere os elementos abaixo e confirma que foi tudo entregue conforme acordado.',
+    acc_client: 'Cliente',
+    acc_description: 'Descricao',
+    acc_value: 'Valor',
+    acc_products: 'Produtos / Servicos',
+    acc_item: 'Elemento',
+    acc_qty: 'Qtd.',
+    acc_confirm: 'Confirmar a rececao',
+    acc_confirming: 'A confirmar\u2026',
+    acc_disclaimer: 'Ao confirmar, declaras que todos os elementos acima foram entregues e aceites.',
+    acc_confirmed_title: 'Rececao confirmada',
+    acc_confirmed_body: 'Obrigado. Fica registada a aceitacao da entrega para',
+    acc_confirmed_on: 'Confirmada a',
+    acc_err_expired: 'Esta ligacao nao e valida, ou expirou.',
+    acc_err_network: 'Nao conseguimos contactar o servidor. Tenta outra vez.',
+    acc_err_confirm: 'A confirmacao nao ficou registada. Tenta outra vez.',
+    acc_err_contact: 'Se achas que e um engano, fala com o teu contacto na Fujifilm.',
     optional: 'opcional',
     auth_invalid: 'Esta ligacao nao e valida ou expirou. Pede uma nova.',
     setpw_placeholder: 'Nova palavra-passe',
@@ -4450,6 +4506,7 @@ export const translations = {
     perm_invite_subtitle:  'Envia um email de convite para adicionar um novo utilizador',
     perm_all:              'Todos',
     perm_sets_sub:         'Cria templates e atribui-os a utilizadores.',
+    perm_color:            'Cor',
     perm_new_set:          'Novo conjunto',
     perm_new_set_title:    'Novo Conjunto de Permissões',
     perm_edit_set:         'Editar:',
@@ -4798,4 +4855,40 @@ export function onLangChange(fn) {
 export function t(key) {
   return translations[currentLang]?.[key] ?? translations['en']?.[key] ?? key
 }
+
+/**
+ * O `t` de uma página que não tem utilizador.
+ *
+ * O `t()` normal lê a língua do `localStorage` de quem está a usar a aplicação.
+ * Num ecrã aberto por um cliente a partir de um link — o auto de receção — esse
+ * `localStorage` está vazio, porque aquele browser nunca cá entrou. A língua tem
+ * de vir de outro lado, e quem a sabe é o negócio.
+ */
+export function tFor(lang) {
+  const pack = translations[lang] || translations.en
+  return key => pack[key] ?? translations.en[key] ?? key
+}
+
+/**
+ * Em que língua se fala com este cliente.
+ *
+ * Não é uma tabela de línguas oficiais — é onde a Fujifilm Iberia vende. O
+ * Brasil fala português e o resto da América Latina espanhol; tudo o que não
+ * esteja aqui recebe inglês, que é a resposta honesta para um país onde não
+ * sabemos com quem estamos a falar.
+ */
+const LANG_BY_COUNTRY = {
+  Portugal: 'pt', Brazil: 'pt', Angola: 'pt', Mozambique: 'pt', 'Cape Verde': 'pt',
+  Spain: 'es', Mexico: 'es', Argentina: 'es', Chile: 'es', Colombia: 'es',
+  Peru: 'es', 'Costa Rica': 'es', Panama: 'es', 'El Salvador': 'es',
+  Guatemala: 'es', Ecuador: 'es', Bolivia: 'es', Venezuela: 'es',
+  'Dominican Republic': 'es', 'Other LATAM': 'es',
+}
+
+export function langForCountry(country) {
+  return LANG_BY_COUNTRY[String(country || '').trim()] || null
+}
+
+/** O código de locale para datas e números, derivado da mesma língua. */
+export const LOCALE_BY_LANG = { pt: 'pt-PT', es: 'es-ES', en: 'en-GB' }
 

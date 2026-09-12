@@ -121,7 +121,7 @@ function PSEditor({ ps, onSave, onCancel, existingNames }) {
               placeholder={t('perm_name_ph')} style={{fontSize:'16px'}}/>
           </div>
           <div>
-            <label className="label">Cor</label>
+            <label className="label">{t('perm_color')}</label>
             <div className="flex gap-1.5 flex-wrap mt-1.5">
               {COLORS.map(c => (
                 <button key={c} onClick={() => setColor(c)}
@@ -211,7 +211,7 @@ function PSEditor({ ps, onSave, onCancel, existingNames }) {
         )}
 
         <div className="flex gap-2 pt-1">
-          <button onClick={onCancel} className="btn-secondary flex-1 text-sm">Cancelar</button>
+          <button onClick={onCancel} className="btn-secondary flex-1 text-sm">{t('cancel')}</button>
           <button onClick={handleSave} disabled={saving}
             className="btn-primary flex-1 text-sm">
             {saving ? <RefreshCw size={13} className="animate-spin mx-auto"/> : (isNew ? 'Criar' : 'Guardar')}
@@ -267,14 +267,14 @@ export default function RolesTab({ permSets, profiles, onRefresh }) {
         <div>
           <h2 className="text-sm font-bold text-gray-700 flex items-center gap-2">
             <Shield size={15} className="text-navy"/>
-            Permission Sets
+            {t('perm_sets_title')}
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">
-            Cria templates de permissões e depois atribui aos utilizadores.
+            {t('perm_sets_sub')}
           </p>
         </div>
         <button onClick={() => setEditing('new')} className="btn-primary text-xs gap-1">
-          <Plus size={12}/> Novo set
+          <Plus size={12}/> {t('perm_new_set')}
         </button>
       </div>
 
