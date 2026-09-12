@@ -40,9 +40,12 @@ O antes e o depois de cada linha ficaram em `client_dedupe_backup_20260912`.
 ### A Colômbia passou a existir
 
 *Isto altera números reportados por país e por região.* Dezassete clientes
-colombianos estavam gravados como Guatemala — 23 negócios. Nos relatórios por
-país, a Colômbia não existia e a Guatemala valia seis vezes o que vale: ficam-lhe
-três negócios, os dois Disgua e o Villa Nueva.
+colombianos estavam gravados como Guatemala. A Colômbia passa de **um** cliente
+e 5.073 € para **dezoito** clientes e 148.600 €, e a Guatemala fica com três
+negócios — os dois Disgua e o Villa Nueva — em vez de dezanove.
+
+O país existia, portanto, e era isso que o tornava difícil de ver: um mercado com
+uma linha lê-se como um mercado pequeno, não como um relatório partido.
 
 Não foi um engano de quem escreveu. Foi o valor por omissão de uma importação, o
 mesmo que tinha posto o Popayán, o Hospital Universitario Clínica San Rafael e
