@@ -68,6 +68,23 @@ não resolve procurar.
 Infantil Roosevelt. Provavelmente o princípio de uma morada; provavelmente não é
 razão para apagar.
 
+### O ecrã de clientes não deixava criar um cliente na Guatemala
+
+A lista de países existia em **três cópias** no código, e não eram iguais. A de
+`Clients.jsx` era mais curta: faltavam-lhe Costa Rica, Guatemala, Panamá,
+Equador, Bolívia, Venezuela e República Dominicana na LATAM, e Bahrein, Omã,
+Argélia, Tunísia, Jordânia, Iraque, Nigéria, Quénia e Gana na MEA.
+
+Metade dos clientes arrumados hoje é de países que aquele ecrã não oferecia — o
+formulário de negócio oferecia-os e o de cliente não, portanto quem lá fosse
+corrigir um país não conseguia, e não havia mensagem nenhuma a dizer porquê. As
+três cópias passaram a uma, em `src/constants.js`.
+
+**Angola entrou na lista.** A Clínica Sagrada Esperança, de Luanda, são 484.634 €
+— a maior linha da carteira sem país — e estavam na região `NA`, América do
+Norte. Sem Angola na lista, corrigir a base de dados não chegava: o formulário
+esvaziava o campo na primeira edição. Entraram também Moçambique e Cabo Verde.
+
 ### A proposta de um parceiro abre na taxa do acordo dele
 
 Um Full VAR abre a **40%** de margem, que é o que o acordo lhe dá, em vez dos 35%

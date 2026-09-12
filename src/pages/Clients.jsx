@@ -8,16 +8,7 @@ import DealForm from '../components/DealForm'
 import MergeClientsModal from '../components/MergeClientsModal'
 import { Search, MapPin, RefreshCw, Plus, Pencil, GitMerge, Check, Building2 } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
-import { REGIONS } from '../constants'
-
-const MONTHS_K = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar']
-const COUNTRY_MAP = {
-  Europe: ['Portugal','Spain','France','Germany','Italy','Netherlands','Belgium','UK','Switzerland','Sweden','Norway','Denmark','Finland','Austria','Poland','Czech Republic','Romania','Greece','Turkey','Other Europe'],
-  MEA: ['UAE','Saudi Arabia','Qatar','Kuwait','Egypt','Morocco','South Africa','Israel','Other MEA'],
-  LATAM: ['Mexico','Brazil','Argentina','Chile','Colombia','Peru','Other LATAM'],
-  APAC: ['Japan','China','South Korea','Australia','India','Singapore','Other APAC'],
-  NA: ['USA','Canada','Other NA'],
-}
+import { REGIONS, COUNTRY_MAP } from '../constants'
 
 function ClientFormModal({ client, distributors, onClose, onSaved }) {
   const { t } = useTranslation()

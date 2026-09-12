@@ -4,15 +4,8 @@ import { useAuth } from '../hooks/useAuth'
 import { useTranslation } from '../hooks/useTranslation'
 import { Spinner, EmptyState } from '../components/ui'
 import SearchableSelect from '../components/SearchableSelect'
-import { REGIONS } from '../constants'
+import { REGIONS, COUNTRY_MAP } from '../constants'
 
-const COUNTRY_MAP = {
-  Europe: ['Portugal','Spain','France','Germany','Italy','Netherlands','Belgium','UK','Switzerland','Sweden','Norway','Denmark','Finland','Austria','Poland','Czech Republic','Romania','Greece','Turkey','Other Europe'],
-  MEA:    ['UAE','Saudi Arabia','Qatar','Kuwait','Bahrain','Oman','Egypt','Morocco','Algeria','Tunisia','South Africa','Israel','Jordan','Iraq','Nigeria','Kenya','Ghana','Other MEA'],
-  LATAM:  ['Mexico','Brazil','Argentina','Chile','Colombia','Peru','Costa Rica','Panama','El Salvador','Guatemala','Ecuador','Bolivia','Venezuela','Dominican Republic','Other LATAM'],
-  APAC:   ['Japan','China','South Korea','Australia','India','Singapore','Malaysia','Thailand','Indonesia','Vietnam','New Zealand','Other APAC'],
-  NA:     ['USA','Canada','Other NA'],
-}
 import {
   Globe, Plus, Edit3, Trash2, X, Save, AlertCircle, Search,
   MapPin, Building, Network as NetIcon,
