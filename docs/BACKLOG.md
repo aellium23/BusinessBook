@@ -654,3 +654,94 @@ Portanto a ordem é: extrair para coluna, mostrar no formulário, e usá-lo no
 `clientMatch` como **primeira** pergunta — dois negócios com o mesmo `Sold-to`
 são o mesmo cliente, ponto; sem número, cai-se na comparação de nomes que já
 existe. O trabalho maior não é a extracção, é preencher os 354 que não o têm.
+
+---
+
+## DATA-05 · ⏸ EM PAUSA · Consolidação de nomes de cliente — o que falta
+
+**Parado a 12-09, a pedido, depois de três padrões fechados.** Isto é o estado
+exacto para se poder retomar sem reconstruir o raciocínio.
+
+### O que já está feito
+
+| padrão | resultado |
+|---|---|
+| A — a mesma entidade com duas grafias | 20 nomes juntados, 33 negócios e 1 contrato |
+| B — o produto colado ao nome | ~70 nomes limpos, produto em `deals.product`, nome antigo em `Projeto: …` na descrição |
+| estado no nome (`desinstalado`, `desativado`) | 3 casos, passados para a descrição |
+| país por omissão da importação | 23 negócios da Guatemala para a Colômbia, 484.634 € de `NA` para Angola, ~110 negócios com país copiado da ficha |
+| grupos | GoOpen Remagna (4), Steward Healthcare (2), Grupo Casais (15), LPCC (3) |
+
+Tudo reversível: `client_dedupe_backup_20260912` (nomes e países) e
+`deal_owner_backup_20260912` (comerciais). O mapa de trabalho é
+`client_fix_map_20260912`, com as colunas `antes · depois · produto · nota ·
+pais`.
+
+### O achado que reenquadra o resto
+
+**O nome do cliente estava a guardar quatro factos diferentes** — distribuidor,
+grupo, cliente e produto — porque três deles não tinham campo visível a quem
+escrevia. Os três têm sítio na aplicação e sempre tiveram:
+
+| facto | onde pertence |
+|---|---|
+| distribuidor | `accounts.distributor_id`, `deals.company_id` |
+| grupo | `accounts.parent_id` |
+| produto | `deals.product` |
+
+Exemplos confirmados pelo P&L owner: `Medsky Sangalhos CWM ES` é distribuidor +
+cliente + produto; `México Medportal` é distribuidor + produto, sem cliente
+final (é uma open fee para a Fujifilm México); `Gabimate (NPLI)` e `clinica
+bonfimed (NPLI)` levam o **grupo** entre parênteses.
+
+**Regra que daí sai, e que a varredura automática tem de respeitar:** um sufixo
+entre parênteses no fim do nome é quase sempre o grupo, nunca o produto. Foi
+assim que eu meti o `(NPL)` do CIMV e da Radelfe dentro do campo do produto.
+
+### O que ficou pendente
+
+1. **A varredura geral.** A query que propõe cortes está escrita (tokens de
+   produto, corte só em fronteira de palavra, resto do nome ≥ 6 caracteres, e
+   exclusão do que já está no mapa). **Nunca se aplica sem revisão humana** —
+   três regras automáticas falharam hoje: a que queria fundir sete Remagnas, a
+   que tirava o `SA` de `RACONSA`, e a que trocou 60 grelhas de Tailwind.
+2. **Os quatro casos corrigidos pelo utilizador** — NPLI como grupo de cinco
+   unidades (Gabimate, Bonfimed, CIMV, Radelfe, Nuno Pinto Leite), Sangalhos
+   com a Medsky como distribuidor, Fujifilm México como cliente de uma open fee,
+   e o `(NPL)` a sair do campo do produto. SQL escrito, por correr.
+3. **Quatro fichas por decidir:** `Licença 3d` (o nome é inteiramente um
+   produto), `Medportal hosp` (sem negócios e sem significado), os três
+   `San Juan de Dios` (este, o San Miguel e o da Disgua), e
+   `SUCH MedCd Silver H. Faro & H.Portimão` (dois hospitais num negócio).
+   Mais a `Clinica da Mulher Medportal+cwm reporting` contra a já existente
+   `Clínica da Mulher Womanpower`.
+4. **Duas fichas antigas sobreviveram** ao `delete` da última passagem. O
+   diagnóstico está escrito; falta correr.
+5. **Sete entidades por classificar no Grupo Casais:** ANCORPOR, BLUFAB,
+   COLLINSON, UNDEL, VHPH, CNTEUROPE, SOCIMORCASAL — 23 negócios, ~70 mil. O
+   utilizador fará isto no ecrã, agora que o campo Grupo existe em Clientes.
+6. **`CASAIS ANGOLA` e `Casais Gibraltar`** ficaram com país Portugal, que é o
+   da ficha. Gibraltar nem está na lista de países. É uma decisão sobre onde
+   reconhecer receita, não sobre um nome.
+7. **Três comerciais sem perfil:** Paco (Francisco Perez, director comercial
+   ECT), Patricia Gomes (comercial VGT) e Ricardo Rubilar (CEO da TIMED Chile e
+   Peru). O `sales_owner` é texto livre, portanto o nome não é dado corrompido —
+   o que ele não faz é dar-lhes a vista pessoal, e para isso é preciso conta.
+   O caso do Ricardo é diferente: sendo parceiro, o que o liga aos números é o
+   `company_id` do negócio, não o nome. A TIMED existe em `companies`
+   (`9f1221d7…`, Chile).
+8. **Fichas em falta.** Um negócio cujo cliente não tem ficha não aparece na
+   página de Clientes, não entra em grupo nenhum, e o valor dele não é somado a
+   cliente nenhum — existe só como texto dentro do negócio. A query que os lista
+   está escrita e nunca foi corrida.
+
+### Atribuição de carteira, feita hoje
+
+375 negócios sem comercial passaram a ter dono. Desses, 122 voltaram para a
+Carla Oliveira, que os criou. Os nomes que a aplicação não reconhecia (`Elio`,
+`aellium`, `Paulo`) foram alinhados com os perfis. O Élio Santos ficou com ~254
+negócios e 9,4 M€.
+
+**O que se perdeu ao fazê-lo, e convém ficar escrito:** deixou de se poder
+distinguir "é do Élio" de "não se sabe de quem é". Uma coluna `source` a marcar
+os 249 que vieram das três importações de bulk devolveria essa distinção.
