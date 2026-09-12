@@ -8,6 +8,35 @@ que estava mal não serve para ninguém saber se foi afectado.
 
 ## 2026-09-12
 
+### O cliente repetido avisa-se antes de nascer
+
+Escrever o nome do cliente em vez de o escolher da lista é como a tabela ficou
+com o Hospital Ramón y Cajal em duas linhas, a Telefónica em duas e 1,14 M€ do
+Catsalut separados por um S maiúsculo. Enquanto se escreve, o campo compara com
+os clientes que já existem e diz o que encontrou — o nome idêntico com outra
+grafia, um nome cortado por uma importação, ou uma gralha de uma letra. Um toque
+aceita a sugestão; no formulário completo aceitar **liga a conta**, que é a
+diferença entre não criar um duplicado e escrevê-lo melhor.
+
+Sugere e nunca corrige: há hospitais genuinamente parecidos — quatro Unidades
+Locais de Saúde diferentes estão na tabela. E cala-se onde não sabe: `Remagna` é
+o princípio de sete clínicas diferentes e não sugere nenhuma, porque isso trocava
+um duplicado por um negócio arquivado no sítio errado.
+
+### Vinte clientes duplicados juntados
+
+*Isto altera números reportados por cliente, e para melhor.* 33 negócios e 1
+contrato passaram para o nome certo, e o Ramón y Cajal deixa de ter 713 mil numa
+linha e 119 mil noutra.
+
+O sobrevivente é a grafia melhor escrita, não a mais frequente: minúsculas antes
+de maiúsculas, com acentos antes de sem acentos, sem sufixo societário antes de
+com sufixo. Escolher por número de registos deixava ganhar a grafia da
+importação — `HOSPITAL RAMON Y CAJAL` em vez de Hospital Ramón y Cajal — o que
+resolvia o total e estragava o nome em todos os relatórios a partir daí.
+
+O antes e o depois de cada linha ficaram em `client_dedupe_backup_20260912`.
+
 ### A proposta de um parceiro abre na taxa do acordo dele
 
 Um Full VAR abre a **40%** de margem, que é o que o acordo lhe dá, em vez dos 35%
