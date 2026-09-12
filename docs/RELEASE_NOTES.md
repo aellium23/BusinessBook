@@ -6,6 +6,24 @@ que estava mal não serve para ninguém saber se foi afectado.
 
 ---
 
+## 2026-09-12
+
+### O funil é a porta de entrada, para toda a gente
+
+Abre sempre que a aplicação abre — admin, comercial ou parceiro. Já era o defeito
+para os admins, mas só até clicarem noutra vista uma vez: a escolha ia para o
+`localStorage` e ficava lá para sempre. Um defeito que sobrevive a um clique não
+é um defeito, é a primeira coisa que se viu.
+
+A escolha passa a durar a visita, não a vida. Mudar de vista e ir aos Negócios e
+voltar mantém-te onde estavas; abrir a aplicação amanhã leva-te ao funil.
+
+**Os comerciais passam a ter acesso ao funil**, que era o único perfil que não
+lhe chegava — precisamente quem vive no pipeline o dia inteiro. Ganham as duas
+vistas com um selector, funil à frente.
+
+---
+
 ## 2026-09-11
 
 ### Funil de vendas Instax

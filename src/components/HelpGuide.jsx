@@ -11,7 +11,7 @@ const HELP = {
       title: 'Dashboard',
       description: 'Your central command center: two primary views (Summary, Details) plus secondary breakdowns by product, sales rep, and client.',
       features: [
-        'Two primary tabs (Summary, Details) plus secondary breakdown pills (Products, Reps, Clients, Funnel).',
+        'The funnel opens every time the app does, for every role — admin, sales and partner alike. Switch to another view and it stays switched while you are working; open the app again tomorrow and you are back on the funnel. Two primary tabs (Summary, Details) plus secondary breakdown pills (Products, Reps, Clients, Funnel).',
         'An amber line at the top of a page names anything that failed to load. It appears across the app, not only here, and it matters most where every figure is a sum: a sum of nothing is zero, and zero reads as a quarter with no revenue rather than as a question we did not manage to ask. While that line is showing, what is on screen is incomplete. Reload and it goes away by itself once the read succeeds. Nothing is hidden in the meantime, because the rest of the page is usually fine.',
         'The bell in the top bar carries your notifications on every page — it used to sit on the Tasks screen, which is why answered discount requests went unread for months. Clicking one opens what it is about: a discount answer opens that deal\'s card, where it can be accepted or countered.',
         'Funnel is what the dashboard opens on, because the first question in the morning is what is in the pipeline.',
@@ -60,7 +60,7 @@ const HELP = {
       title: 'Panel',
       description: 'Tu centro de mando: dos vistas principales (Resumen, Detalle) mas desgloses por producto, comercial y cliente.',
       features: [
-        'Dos pestanas principales (Resumen, Detalle) mas pills de desglose (Productos, Comerciales, Clientes, Embudo).',
+        'El embudo se abre cada vez que se abre la aplicacion, para todos los roles — admin, comerciales y partners. Si cambias de vista se queda cambiada mientras trabajas; manana al abrir vuelves al embudo. Dos pestanas principales (Resumen, Detalle) mas pills de desglose (Productos, Comerciales, Clientes, Embudo).',
         'Una linea ambar en la parte alta de la pagina nombra lo que no se ha podido cargar. Aparece en toda la aplicacion, no solo aqui, y donde mas importa es donde cada cifra es una suma: una suma de nada es cero, y el cero se lee como un trimestre sin ingresos en vez de como una pregunta que no llegamos a hacer. Mientras esa linea este ahi, lo que ves esta incompleto. Recarga y desaparece sola en cuanto la lectura funcione. Entretanto no se oculta nada, porque el resto de la pagina suele estar bien.',
         'La campana de la barra superior lleva tus notificaciones en todas las paginas — antes vivia en la pantalla de Tareas, y por eso las respuestas a solicitudes de descuento pasaban meses sin leerse. Al pulsar una se abre aquello de lo que trata: la respuesta a un descuento abre la ficha de esa oportunidad, donde se puede aceptar o contraofertar.',
         'El Embudo es la vista con la que abre el panel, porque la primera pregunta de la manana es que hay en el pipeline.',
@@ -109,7 +109,7 @@ const HELP = {
       title: 'Painel',
       description: 'O teu centro de comando: duas vistas principais (Resumo, Detalhe) mais desdobramentos por produto, comercial e cliente.',
       features: [
-        'Duas abas principais (Resumo, Detalhe) mais pills de desdobramento (Produtos, Comerciais, Clientes, Funil).',
+        'O funil abre sempre que a aplicacao abre, para todos os perfis — admin, comerciais e parceiros. Se mudares de vista, fica mudada enquanto estiveres a trabalhar; amanha ao abrir voltas ao funil. Duas abas principais (Resumo, Detalhe) mais pills de desdobramento (Produtos, Comerciais, Clientes, Funil).',
         'Uma linha ambar no topo da pagina nomeia o que nao conseguiu carregar. Aparece em toda a aplicacao, nao so aqui, e onde mais importa e onde cada numero e uma soma: uma soma de nada da zero, e o zero le-se como um trimestre sem receita em vez de uma pergunta que nao chegamos a fazer. Enquanto essa linha estiver la, o que esta no ecra esta incompleto. Recarrega e ela sai sozinha assim que a leitura resultar. Entretanto nao se esconde nada, porque o resto da pagina costuma estar bem.',
         'A campainha na barra de topo leva as tuas notificacoes em todas as paginas — antes vivia no ecra das Tarefas, e foi por isso que respostas a pedidos de desconto passaram meses por ler. Tocar numa abre aquilo de que ela trata: a resposta a um desconto abre o cartao desse negocio, onde pode ser aceite ou contraposta.',
         'O Funil e a vista com que o painel abre, porque a primeira pergunta da manha e o que esta no pipeline.',

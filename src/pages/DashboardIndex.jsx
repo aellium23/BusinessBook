@@ -15,6 +15,36 @@ import { Gauge as GaugeIcon, BarChart3, Package, Users, Building2, Camera } from
 const STORAGE_KEY = 'bb_dashboard_view'
 
 /**
+ * The funnel is the front door, and it opens every time the app does.
+ *
+ * It was already the default — and only until somebody clicked another view
+ * once, because the choice went to `localStorage` and stayed there forever.
+ * "Default" that survives exactly one click is not a default; it is the first
+ * thing you ever saw.
+ *
+ * So the choice now lives in `sessionStorage`. Opening the app lands on the
+ * funnel, whatever you were looking at yesterday; moving to Deals and back
+ * keeps you where you were, because losing your place on every navigation is a
+ * different kind of annoying.
+ *
+ * The old localStorage keys are cleared on the way past, so a preference saved
+ * months ago does not sit there outliving the rule that replaced it.
+ */
+const DEFAULT_VIEW = 'funnel'
+
+function openingView(key) {
+  if (typeof window === 'undefined') return DEFAULT_VIEW
+  try {
+    localStorage.removeItem(key)
+    return sessionStorage.getItem(key) || DEFAULT_VIEW
+  } catch { return DEFAULT_VIEW }   // private window
+}
+
+function rememberView(key, value) {
+  try { sessionStorage.setItem(key, value) } catch { /* private window */ }
+}
+
+/**
  * Thin wrapper that lets users flip between the two dashboard styles:
  *   - Summary : the new gauge-based, glance-able view (default)
  *   - Classic : the original dense MTD/YTD/chart-heavy view
@@ -27,24 +57,14 @@ export default function DashboardIndex() {
   const { profile, isAdmin } = useAuth()
   const isDistributor = profile?.role === 'distributor'
 
-  // Distributors go straight to the Classic view which has DistributorDashboard
-  // The funnel is where the day starts, so it is what opens — until somebody
-  // chooses otherwise, which is then remembered.
-  const [view, setView] = useState(() => {
-    if (isDistributor) return 'classic'
-    if (typeof window === 'undefined') return 'funnel'
-    return localStorage.getItem(STORAGE_KEY) || 'funnel'
-  })
+  // The same front door for everybody: the funnel, every time the app opens.
+  const [view, setView] = useState(() => openingView(STORAGE_KEY))
   const [selectedBU, setSelectedBU] = useState('')
-  const [distView, setDistView] = useState(() => {
-    if (typeof window === 'undefined') return 'classic'
-    return localStorage.getItem(`${STORAGE_KEY}_dist`) || 'classic'
-  })
+  const [distView, setDistView] = useState(() => openingView(`${STORAGE_KEY}_dist`))
+  const [memberView, setMemberView] = useState(() => openingView(`${STORAGE_KEY}_member`))
 
   useEffect(() => {
-    if (isDistributor) {
-      try { localStorage.setItem(`${STORAGE_KEY}_dist`, distView) } catch { /* private window */ }
-    }
+    if (isDistributor) rememberView(`${STORAGE_KEY}_dist`, distView)
   }, [distView, isDistributor])
 
   // Non-admins are locked to their own BU across every dashboard view
@@ -56,10 +76,12 @@ export default function DashboardIndex() {
   const effectiveBU = isAdmin ? selectedBU : (profile?.bu || '')
 
   useEffect(() => {
-    if (!isDistributor) {
-      try { localStorage.setItem(STORAGE_KEY, view) } catch { /* private window */ }
-    }
+    if (!isDistributor) rememberView(STORAGE_KEY, view)
   }, [view, isDistributor])
+
+  useEffect(() => {
+    if (profile?.role === 'member') rememberView(`${STORAGE_KEY}_member`, memberView)
+  }, [memberView, profile?.role])
 
   // Distributors get their own dashboard, and the funnel beside it. Their
   // deals move through the same five stages ours do, and the question the
@@ -94,7 +116,9 @@ export default function DashboardIndex() {
     )
   }
 
-  // Sales reps (member) get a personal dashboard similar to distributors
+  // Sales reps get a personal dashboard, and now the funnel beside it — they
+  // were the one role that could not reach it at all, which made "the funnel is
+  // the front door" untrue for the people who live in the pipeline all day.
   if (profile?.role === 'member') {
     return (
       <div className="p-4 space-y-4 max-w-5xl mx-auto">
@@ -102,7 +126,25 @@ export default function DashboardIndex() {
           <h1 className="text-xl font-bold text-gray-900">{t('dash_title') || 'Dashboard'}</h1>
           <p className="text-sm text-gray-400">{profile?.full_name} · {profile?.bu}</p>
         </div>
-        <MemberDashboard />
+        <div className="flex gap-0.5">
+          {[
+            { id: 'funnel', label: t('dash_view_funnel') || 'Funnel', icon: Camera },
+            { id: 'mine',   label: t('dash_view_mine') || 'Mine',     icon: GaugeIcon },
+          ].map(v => {
+            const Icon = v.icon
+            const active = memberView === v.id
+            return (
+              <button key={v.id} type="button" onClick={() => setMemberView(v.id)}
+                aria-pressed={active}
+                className={`px-3 py-1.5 rounded-full text-xs flex items-center gap-1.5 transition-colors ${
+                  active ? 'bg-navy text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}>
+                <Icon size={13}/> <span>{v.label}</span>
+              </button>
+            )
+          })}
+        </div>
+        {memberView === 'funnel' ? <InstaxFunnel selectedBU={profile?.bu || ''} /> : <MemberDashboard />}
       </div>
     )
   }
