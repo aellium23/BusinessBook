@@ -37,6 +37,34 @@ resolvia o total e estragava o nome em todos os relatórios a partir daí.
 
 O antes e o depois de cada linha ficaram em `client_dedupe_backup_20260912`.
 
+### A Colômbia passou a existir
+
+*Isto altera números reportados por país e por região.* Dezassete clientes
+colombianos estavam gravados como Guatemala — 23 negócios. Nos relatórios por
+país, a Colômbia não existia e a Guatemala valia seis vezes o que vale: ficam-lhe
+três negócios, os dois Disgua e o Villa Nueva.
+
+Não foi um engano de quem escreveu. Foi o valor por omissão de uma importação, o
+mesmo que tinha posto o Popayán, o Hospital Universitario Clínica San Rafael e
+os dois Steward no país errado. Um campo que nunca foi preenchido lê-se igual a
+um campo preenchido com cuidado.
+
+### O estado da instalação estava escrito no nome do cliente
+
+`Departamento de Radiologia S.A. Clinica SOMA desintalado`. `HOSPITAL NACIONAL
+ESPECIALIZADO DE VILLA NUEVA desativado`. `FUNDACION HOSPITAL SAN PEDRO( FHSP no
+ISS???)` — uma pergunta por responder, guardada no campo do cliente.
+
+É diferente do produto no nome: um produto tem uma coluna para onde ir. Um
+"desinstalado" não tem nenhuma, e limpar o nome sem mais apagava a única
+indicação de que aquele cliente já não tem o sistema. Passou para o início da
+descrição do negócio, que é texto livre e não se filtra — resolve não perder,
+não resolve procurar.
+
+**Continua no nome, de propósito:** o `Carrera` do Instituto de Ortopedia
+Infantil Roosevelt. Provavelmente o princípio de uma morada; provavelmente não é
+razão para apagar.
+
 ### A proposta de um parceiro abre na taxa do acordo dele
 
 Um Full VAR abre a **40%** de margem, que é o que o acordo lhe dá, em vez dos 35%
