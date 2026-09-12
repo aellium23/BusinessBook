@@ -463,7 +463,7 @@ export default function Deals() {
         </div>
         <div className="flex items-center gap-1.5 flex-wrap justify-end">
           {/* View toggle — List vs Kanban */}
-          <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden" role="group" aria-label="View mode">
+          <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden" role="group" aria-label={t("deals_view_mode")}>
             <button type="button"
               onClick={() => setViewMode('list')}
               aria-pressed={viewMode === 'list'}
@@ -471,7 +471,7 @@ export default function Deals() {
               className={`px-2.5 py-1.5 text-xs flex items-center gap-1 ${
                 viewMode === 'list' ? 'bg-navy text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
               }`}>
-              <List size={13}/><span className="hidden sm:inline">List</span>
+              <List size={13}/><span className="hidden sm:inline">{t("deals_view_list")}</span>
             </button>
             <button type="button"
               onClick={() => setViewMode('kanban')}
@@ -480,7 +480,7 @@ export default function Deals() {
               className={`px-2.5 py-1.5 text-xs flex items-center gap-1 border-l border-gray-200 ${
                 viewMode === 'kanban' ? 'bg-navy text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
               }`}>
-              <LayoutGrid size={13}/><span className="hidden sm:inline">Kanban</span>
+              <LayoutGrid size={13}/><span className="hidden sm:inline">{t("deals_view_kanban")}</span>
             </button>
             <button type="button"
               onClick={() => setViewMode('map')}
@@ -489,7 +489,7 @@ export default function Deals() {
               className={`px-2.5 py-1.5 text-xs flex items-center gap-1 border-l border-gray-200 ${
                 viewMode === 'map' ? 'bg-navy text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
               }`}>
-              <Globe size={13}/><span className="hidden sm:inline">Map</span>
+              <Globe size={13}/><span className="hidden sm:inline">{t("deals_view_map")}</span>
             </button>
           </div>
 
@@ -563,7 +563,7 @@ export default function Deals() {
 
             {/* Stage */}
             <div>
-              <label className="text-micro text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Stage</label>
+              <label className="text-micro text-gray-400 font-semibold uppercase tracking-wide mb-1 block">{t("df_stage")}</label>
               <select className="select text-xs w-full" value={stageF} onChange={e => handleStage(e.target.value)}>
                 <option value="">{t("deals_all_stages")}</option>
                 {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -572,7 +572,7 @@ export default function Deals() {
 
             {/* Region */}
             <div>
-              <label className="text-micro text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Region</label>
+              <label className="text-micro text-gray-400 font-semibold uppercase tracking-wide mb-1 block">{t("df_region")}</label>
               <select className="select text-xs w-full" value={regionF} onChange={e => handleRegion(e.target.value)}>
                 <option value="">{t("deals_all_regions")}</option>
                 {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
@@ -590,7 +590,7 @@ export default function Deals() {
 
             {/* Forecast category */}
             <div>
-              <label className="text-micro text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Forecast</label>
+              <label className="text-micro text-gray-400 font-semibold uppercase tracking-wide mb-1 block">{t("nav_forecast")}</label>
               <select className="select text-xs w-full" value={forecastF}
                 onChange={e => { setForecastF(e.target.value); resetPage() }}>
                 <option value="">{t("deals_all_forecasts")}</option>
@@ -600,9 +600,9 @@ export default function Deals() {
 
             {/* Brand */}
             <div>
-              <label className="text-micro text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Brand</label>
+              <label className="text-micro text-gray-400 font-semibold uppercase tracking-wide mb-1 block">{t("deals_brand")}</label>
               <select className="select text-xs w-full" value={brandF} onChange={e => { setBrandF(e.target.value); setProductF(''); resetPage() }}>
-                <option value="">All brands</option>
+                <option value="">{t("deals_all_brands")}</option>
                 {(() => {
                   const all = new Set()
                   Object.values(dealBrands).forEach(bs => bs.forEach(b => all.add(b)))
@@ -614,9 +614,9 @@ export default function Deals() {
 
             {/* Product */}
             <div>
-              <label className="text-micro text-gray-400 font-semibold uppercase tracking-wide mb-1 block">Product</label>
+              <label className="text-micro text-gray-400 font-semibold uppercase tracking-wide mb-1 block">{t("df_product")}</label>
               <select className="select text-xs w-full" value={productF} onChange={e => { setProductF(e.target.value); resetPage() }}>
-                <option value="">All products</option>
+                <option value="">{t("deals_all_products")}</option>
                 {(() => {
                   const all = new Set()
                   Object.entries(dealProducts).forEach(([did, ps]) => {
@@ -636,13 +636,13 @@ export default function Deals() {
               </label>
               <div className="flex gap-1 flex-wrap">
                 <button onClick={() => handleInvoicedMonth([])}
-                  className={`text-micro px-1.5 py-0.5 rounded ${invoicedMonthF.length === 0 ? 'bg-navy text-white' : 'bg-gray-100 text-gray-500'}`}>All</button>
+                  className={`text-micro px-1.5 py-0.5 rounded ${invoicedMonthF.length === 0 ? 'bg-navy text-white' : 'bg-gray-100 text-gray-500'}`}>{t("deals_all")}</button>
                 <button onClick={() => {
                   const m = new Date().getMonth() + 1
                   const elapsed = ((m - 4 + 12) % 12) + 1
                   handleInvoicedMonth(MONTHS_K.slice(0, elapsed))
                 }}
-                  className={`text-micro px-1.5 py-0.5 rounded ${invoicedMonthF.length > 1 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>FY YTD</button>
+                  className={`text-micro px-1.5 py-0.5 rounded ${invoicedMonthF.length > 1 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>{t("deals_fy_ytd")}</button>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-0.5 mt-1">
                 {MONTHS.map((m, i) => (
@@ -657,7 +657,7 @@ export default function Deals() {
                 ))}
               </div>
               {invoicedMonthF.length > 0 && (
-                <p className="text-micro text-blue-500 mt-0.5">{invoicedMonthF.length} month{invoicedMonthF.length > 1 ? 's' : ''} selected</p>
+                <p className="text-micro text-blue-500 mt-0.5">{invoicedMonthF.length} {t("deals_months_selected")}</p>
               )}
             </div>
 

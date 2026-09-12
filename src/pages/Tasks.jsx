@@ -440,7 +440,7 @@ export default function Tasks() {
     return list.filter(t => t.status === 'open' && t.deadline && daysDiff(t.deadline) < 0).length
   }
 
-  if (loading) return <Spinner label="Loading…" />
+  if (loading) return <Spinner label={t('loading')} />
 
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">

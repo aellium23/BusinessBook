@@ -535,7 +535,7 @@ export default function Tenders() {
     refetch()
   }
 
-  if (loading) return <Spinner label="Loading…" />
+  if (loading) return <Spinner label={t('loading')} />
 
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">

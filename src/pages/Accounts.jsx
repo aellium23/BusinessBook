@@ -378,7 +378,7 @@ export default function Accounts() {
 
   const topLevel = (byParent.get(null) || [])
 
-  if (loading) return <Spinner label="Loading…"/>
+  if (loading) return <Spinner label={t('loading')}/>
 
   return (
     <div className="p-4 sm:p-6 space-y-4 max-w-6xl mx-auto">

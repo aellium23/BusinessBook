@@ -51,7 +51,7 @@ function ClientFormModal({ client, accounts, distributors, onClose, onSaved }) {
   }, [accounts, client?.id, isEdit, form.bu])
 
   async function handleSave() {
-    if (!form.name.trim()) { setError('Name is required'); return }
+    if (!form.name.trim()) { setError(t('cli_name_required')); return }
     setSaving(true); setError(null)
     const payload = {
       name: form.name.trim(),
@@ -129,7 +129,7 @@ function ClientFormModal({ client, accounts, distributors, onClose, onSaved }) {
           <div>
             <label className="label">{t('cli_distributor')}</label>
             <select className="select" value={form.distributor_id} onChange={e => set('distributor_id', e.target.value)}>
-              <option value="">— Direct —</option>
+              <option value="">{t('cli_direct')}</option>
               {distributors.map(d => <option key={d.id} value={d.id}>{d.name} ({d.country || d.region})</option>)}
             </select>
           </div>
@@ -322,7 +322,7 @@ export default function Clients() {
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize)
   const totalPages = Math.ceil(filtered.length / pageSize)
 
-  if (loading) return <Spinner label="Loading…"/>
+  if (loading) return <Spinner label={t('loading')}/>
 
   return (
     <div className="p-4 sm:p-6 space-y-4 max-w-6xl mx-auto">
@@ -338,7 +338,7 @@ export default function Clients() {
               className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
                 mergeMode ? 'bg-navy text-white' : 'btn-secondary'
               }`}>
-              <GitMerge size={13}/> {mergeMode ? 'Cancel Merge' : 'Merge'}
+              <GitMerge size={13}/> {mergeMode ? t('cli_merge_cancel') : t('cli_merge')}
             </button>
           )}
           {canEdit && (
@@ -393,13 +393,13 @@ export default function Clients() {
       </div>
 
       <p className="text-xs text-gray-400">
-        Showing {Math.min((page-1)*pageSize+1, filtered.length)}–{Math.min(page*pageSize, filtered.length)} of {filtered.length}
+        {t('cli_showing')} {Math.min((page-1)*pageSize+1, filtered.length)}–{Math.min(page*pageSize, filtered.length)} / {filtered.length}
       </p>
 
       <div className="space-y-2">
         {paginated.length === 0 ? (
-          <EmptyState icon="🏥" title={t('clients_none')} description="Create a client or adjust filters."
-            action={canEdit && <button onClick={() => setFormOpen(true)} className="btn-primary">New Client</button>}/>
+          <EmptyState icon="🏥" title={t('clients_none')} description={t('cli_none_hint')}
+            action={canEdit && <button onClick={() => setFormOpen(true)} className="btn-primary">{t('cli_new')}</button>}/>
         ) : paginated.map(c => {
           const clientDeals = deals.filter(d => d.account_id === c.id || (d.client && d.client.toLowerCase() === c.name.toLowerCase()))
           return (
@@ -485,7 +485,7 @@ export default function Clients() {
             {clientDeals.length > 0 && (
               <details className="border-t border-gray-100">
                 <summary className="px-3 py-1.5 text-micro text-gray-400 cursor-pointer hover:text-gray-600">
-                  View {clientDeals.length} deal{clientDeals.length > 1 ? 's' : ''}
+                  {clientDeals.length} {t('cli_deals')}
                 </summary>
                 <div className="px-3 pb-2 space-y-1">
                   {clientDeals.map(d => (
