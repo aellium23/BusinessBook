@@ -6,7 +6,7 @@ import { useDebounce } from '../hooks/useDebounce'
 import { BUBadge, formatK, Spinner, EmptyState, Modal } from '../components/ui'
 import DealForm from '../components/DealForm'
 import MergeClientsModal from '../components/MergeClientsModal'
-import { Search, MapPin, RefreshCw, Plus, Pencil, GitMerge, Check } from 'lucide-react'
+import { Search, MapPin, RefreshCw, Plus, Pencil, GitMerge, Check, Building2 } from 'lucide-react'
 import { useTranslation } from '../hooks/useTranslation'
 import { REGIONS } from '../constants'
 
@@ -194,47 +194,100 @@ export default function Clients() {
     })
   }
 
-  const leafAccounts = useMemo(() => {
-    const parentIds = new Set(accounts.filter(a => a.parent_id).map(a => a.parent_id))
-    return accounts.filter(a => !parentIds.has(a.id))
-  }, [accounts])
-
+  /**
+   * Uma conta de cada vez, com os números dela e só dela.
+   *
+   * Isto contava antes apenas as folhas: qualquer conta que fosse pai de outra
+   * era retirada da lista. A hierarquia existia na base de dados e o que ela
+   * produzia era um cliente a menos no ecrã — um grupo com negócios próprios
+   * desaparecia, com os negócios dentro.
+   */
   const enriched = useMemo(() => {
-    return leafAccounts.map(acc => {
+    return accounts.map(acc => {
       const accDeals = deals.filter(d => d.account_id === acc.id || (d.client && d.client.toLowerCase() === acc.name.toLowerCase()))
       const pipeline = accDeals.filter(d => ['Pipeline', 'Offer Presented'].includes(d.stage)).reduce((s, d) => s + (Number(d.value_total) || 0), 0)
       const invoiced = accDeals.filter(d => d.stage === 'Invoiced').reduce((s, d) => s + (Number(d.value_total) || 0), 0)
       const slaCount = accDeals.filter(d => d.is_sla).length
       return { ...acc, dealCount: accDeals.length, pipeline, invoiced, slaCount }
     })
-  }, [leafAccounts, deals])
+  }, [accounts, deals])
+
+  /**
+   * O grupo com as unidades por baixo, e a soma das duas coisas.
+   *
+   * A Remagna são cinco clínicas com cinco NIF, e cada uma factura por si — por
+   * isso cada uma é um cliente. Mas quem negoceia é o grupo, e uma lista que só
+   * mostra unidades nunca diz quanto vale a relação toda. Aqui a linha do grupo
+   * traz os números dele mais os de todas as unidades, e abre para as mostrar
+   * uma a uma.
+   *
+   * `total*` é o que se lê na linha; `invoiced`/`pipeline` continuam a ser só
+   * do próprio, porque um grupo também pode ter negócios seus — o negócio que
+   * cobre Montijo, Odivelas e Portalegre ao mesmo tempo não é de nenhuma delas.
+   */
+  const grouped = useMemo(() => {
+    const byId = new Map(enriched.map(a => [a.id, a]))
+    const kids = new Map()
+    for (const a of enriched) {
+      if (a.parent_id && byId.has(a.parent_id)) {
+        if (!kids.has(a.parent_id)) kids.set(a.parent_id, [])
+        kids.get(a.parent_id).push(a)
+      }
+    }
+    // Um pai que não existe na lista não é um pai: a conta fica à cabeça, em vez
+    // de desaparecer por apontar para algo que não se carregou.
+    return enriched
+      .filter(a => !a.parent_id || !byId.has(a.parent_id))
+      .map(a => {
+        const children = (kids.get(a.id) || [])
+          .sort((x, y) => (y.invoiced + y.pipeline) - (x.invoiced + x.pipeline))
+        return {
+          ...a,
+          children,
+          totalInvoiced: a.invoiced + children.reduce((s, c) => s + c.invoiced, 0),
+          totalPipeline: a.pipeline + children.reduce((s, c) => s + c.pipeline, 0),
+          totalDeals:    a.dealCount + children.reduce((s, c) => s + c.dealCount, 0),
+          totalSla:      a.slaCount + children.reduce((s, c) => s + c.slaCount, 0),
+        }
+      })
+  }, [enriched])
 
   const filtered = useMemo(() => {
-    let list = enriched
-    if (regionF) list = list.filter(a => a.region === regionF)
-    if (countryF) list = list.filter(a => a.country === countryF)
-    if (typeF) list = list.filter(a => a.client_type === typeF)
-    if (buF) list = list.filter(a => a.bu === buF)
-    if (debouncedSearch) {
-      const s = debouncedSearch.toLowerCase()
-      list = list.filter(a => a.name.toLowerCase().includes(s) || (a.country || '').toLowerCase().includes(s))
-    }
-    return list.sort((a, b) => (b.invoiced + b.pipeline) - (a.invoiced + a.pipeline))
-  }, [enriched, regionF, countryF, typeF, buF, debouncedSearch])
+    const s = debouncedSearch.toLowerCase()
+    // Um filtro que bate numa unidade tem de trazer o grupo com ela, senão
+    // procurar por "Paiva Raposo" não devolve nada e a clínica parece não
+    // existir.
+    const hits = a =>
+      (!regionF  || a.region === regionF) &&
+      (!countryF || a.country === countryF) &&
+      (!typeF    || a.client_type === typeF) &&
+      (!buF      || a.bu === buF) &&
+      (!s || a.name.toLowerCase().includes(s) || (a.country || '').toLowerCase().includes(s))
+
+    return grouped
+      .filter(g => hits(g) || g.children.some(hits))
+      .sort((a, b) => (b.totalInvoiced + b.totalPipeline) - (a.totalInvoiced + a.totalPipeline))
+  }, [grouped, regionF, countryF, typeF, buF, debouncedSearch])
 
   const countries = useMemo(() =>
     [...new Set(enriched.filter(a => !regionF || a.region === regionF).map(a => a.country).filter(Boolean))].sort(),
     [enriched, regionF]
   )
 
-  const stats = useMemo(() => ({
-    total: filtered.length,
-    public: filtered.filter(a => a.client_type === 'public').length,
-    private: filtered.filter(a => a.client_type === 'private').length,
-    withSLA: filtered.filter(a => a.slaCount > 0).length,
-    pipeline: filtered.reduce((s, a) => s + a.pipeline, 0),
-    invoiced: filtered.reduce((s, a) => s + a.invoiced, 0),
-  }), [filtered])
+  // Conta entidades, não linhas: o grupo e as unidades dele são cinco clientes,
+  // e o dinheiro soma-se uma vez só porque as unidades não voltam a aparecer
+  // como linha de topo.
+  const stats = useMemo(() => {
+    const todos = filtered.flatMap(g => [g, ...g.children])
+    return {
+      total: todos.length,
+      public: todos.filter(a => a.client_type === 'public').length,
+      private: todos.filter(a => a.client_type === 'private').length,
+      withSLA: todos.filter(a => a.slaCount > 0).length,
+      pipeline: filtered.reduce((s, a) => s + a.totalPipeline, 0),
+      invoiced: filtered.reduce((s, a) => s + a.totalInvoiced, 0),
+    }
+  }, [filtered])
 
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize)
   const totalPages = Math.ceil(filtered.length / pageSize)
@@ -336,9 +389,14 @@ export default function Clients() {
                   <span className={`text-micro font-bold px-1.5 py-0.5 rounded ${c.client_type === 'public' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
                     {c.client_type === 'public' ? 'Public' : 'Private'}
                   </span>
-                  {c.slaCount > 0 && (
+                  {c.totalSla > 0 && (
                     <span className="text-micro font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700 flex items-center gap-0.5">
-                      <RefreshCw size={8}/> {c.slaCount} SLA
+                      <RefreshCw size={8}/> {c.totalSla} SLA
+                    </span>
+                  )}
+                  {c.children.length > 0 && (
+                    <span className="text-micro font-bold px-1.5 py-0.5 rounded bg-navy/10 text-navy flex items-center gap-0.5">
+                      <Building2 size={8}/> {t('cli_group')}
                     </span>
                   )}
                 </div>
@@ -346,12 +404,16 @@ export default function Clients() {
                 <div className="flex items-center gap-2 text-micro text-gray-400">
                   {c.country && <span className="flex items-center gap-0.5"><MapPin size={8}/> {c.country}</span>}
                   {c.region && <span>{c.region}</span>}
-                  {c.dealCount > 0 && <span>{c.dealCount} deals</span>}
+                  {c.totalDeals > 0 && <span>{c.totalDeals} deals</span>}
+                  {c.children.length > 0 && <span>{c.children.length} {t('cli_units')}</span>}
                 </div>
               </div>
               <div className="text-right shrink-0">
-                {c.invoiced > 0 && <p className="text-sm font-bold text-green-600">{formatK(c.invoiced)}</p>}
-                {c.pipeline > 0 && <p className="text-micro text-amber-600">+{formatK(c.pipeline)} pipe</p>}
+                {c.totalInvoiced > 0 && <p className="text-sm font-bold text-green-600">{formatK(c.totalInvoiced)}</p>}
+                {c.totalPipeline > 0 && <p className="text-micro text-amber-600">+{formatK(c.totalPipeline)} pipe</p>}
+                {/* Sem isto, a linha do grupo dá um número que nenhuma das
+                    unidades confirma e ninguém sabe de onde veio. */}
+                {c.children.length > 0 && <p className="text-micro text-gray-400">{t('cli_group_total')}</p>}
               </div>
               {canEdit && (
                 <button onClick={() => { setEditClient(c); setFormOpen(true) }}
@@ -360,6 +422,36 @@ export default function Clients() {
                 </button>
               )}
             </div>
+            {c.children.length > 0 && (
+              <details className="border-t border-gray-100">
+                <summary className="px-3 py-1.5 text-micro text-navy cursor-pointer hover:text-gray-900 min-h-tap flex items-center">
+                  {c.children.length} {t('cli_units')}
+                </summary>
+                <div className="px-3 pb-2 space-y-1">
+                  {c.children.map(u => (
+                    <div key={u.id} className="flex items-center justify-between bg-gray-50 rounded px-2 py-1.5 gap-2">
+                      <div className="min-w-0">
+                        <p className="text-xs text-gray-800 truncate">{u.name}</p>
+                        <p className="text-micro text-gray-400">
+                          {[u.country, u.dealCount > 0 ? `${u.dealCount} deals` : null].filter(Boolean).join(' · ') || '—'}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        {u.invoiced > 0 && <p className="text-xs font-semibold text-green-600">{formatK(u.invoiced)}</p>}
+                        {u.pipeline > 0 && <p className="text-micro text-amber-600">+{formatK(u.pipeline)} pipe</p>}
+                        {u.invoiced === 0 && u.pipeline === 0 && <p className="text-micro text-gray-300">—</p>}
+                      </div>
+                      {canEdit && (
+                        <button onClick={() => { setEditClient(u); setFormOpen(true) }}
+                          className="text-gray-400 hover:text-navy p-1.5 min-h-tap shrink-0">
+                          <Pencil size={12}/>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
             {clientDeals.length > 0 && (
               <details className="border-t border-gray-100">
                 <summary className="px-3 py-1.5 text-micro text-gray-400 cursor-pointer hover:text-gray-600">

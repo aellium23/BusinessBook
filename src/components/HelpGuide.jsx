@@ -359,6 +359,7 @@ const HELP = {
         'Use the "+" button to add a new client record.',
         'Filter by region, country, type (Public/Private), or BU.',
         'Expand a client card to view all associated deals inline.',
+        'Groups and their units: a client can sit under a parent, and the parent now shows as a Group with the invoiced and pipeline of itself plus every unit under it, and a count of how many units that is. Tap the group to see each unit with its own figures. The five Remagna clinics have five tax numbers and each invoices on its own, so each is a client — but nobody negotiates with a clinic, they negotiate with the group, and a list that only shows units never says what the whole relationship is worth. The group keeps its own deals separate from theirs, because a deal covering three sites at once belongs to none of them. Searching or filtering for a unit brings its group with it, so looking for "Paiva Raposo" does not come back empty. Before this, a parent was simply removed from the list — the hierarchy existed in the database and all it produced was one client fewer on screen, with its deals inside it.',
       ],
       steps: [
         '1. Click "New Client" to open the creation form.',
@@ -392,6 +393,7 @@ const HELP = {
         'Usa el boton "+" para anadir un nuevo cliente.',
         'Filtra por region, pais, tipo (Publico/Privado) o BU.',
         'Expande una tarjeta de cliente para ver los deals asociados.',
+        'Grupos y sus unidades: un cliente puede colgar de otro, y el padre aparece ahora como Grupo con la facturacion y el pipeline suyos mas los de todas sus unidades, y cuantas unidades son. Pulsa el grupo para ver cada unidad con sus propias cifras. Las cinco clinicas Remagna tienen cinco NIF y cada una factura por su cuenta, asi que cada una es un cliente — pero nadie negocia con una clinica, se negocia con el grupo, y una lista que solo ensena unidades nunca dice lo que vale la relacion entera. El grupo mantiene sus propios deals aparte de los de ellas, porque una oportunidad que cubre tres centros a la vez no es de ninguna. Buscar o filtrar por una unidad trae su grupo con ella, asi que buscar "Paiva Raposo" no vuelve vacio. Antes de esto, un padre se quitaba de la lista sin mas — la jerarquia existia en la base de datos y lo unico que producia era un cliente menos en pantalla, con sus deals dentro.',
       ],
       steps: [
         '1. Haz clic en "Nuevo Cliente" para abrir el formulario.',
@@ -424,6 +426,7 @@ const HELP = {
         'Usa o botao "+" para adicionar um novo cliente.',
         'Filtra por regiao, pais, tipo (Publico/Privado) ou BU.',
         'Expande um cartao de cliente para ver os deals associados.',
+        'Grupos e as unidades deles: um cliente pode estar por baixo de outro, e o pai aparece agora como Grupo com a faturacao e o pipeline dele mais os de todas as unidades, e quantas unidades sao. Toca no grupo para veres cada unidade com os numeros dela. As cinco clinicas Remagna tem cinco NIF e cada uma fatura por si, por isso cada uma e um cliente — mas ninguem negoceia com uma clinica, negoceia-se com o grupo, e uma lista que so mostra unidades nunca diz quanto vale a relacao toda. O grupo guarda os negocios dele a parte dos delas, porque um negocio que cobre tres sitios ao mesmo tempo nao e de nenhuma. Procurar ou filtrar por uma unidade traz o grupo com ela, para que procurar "Paiva Raposo" nao volte vazio. Antes disto, um pai era simplesmente retirado da lista — a hierarquia existia na base de dados e o que produzia era um cliente a menos no ecra, com os negocios dele la dentro.',
       ],
       steps: [
         '1. Clica em "Novo Cliente" para abrir o formulario.',
